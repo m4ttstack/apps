@@ -30,22 +30,6 @@ export interface AppConfig {
    */
   sizeBand: { tooSmall: number; tooLarge: number };
 
-  /**
-   * Linear delivery metrics (optional). The API key lives in .env (LINEAR_API_KEY); this
-   * is just the non-secret identity map. Omit the block, or leave emailByUser empty, to
-   * disable the "Issues done" metric. Issues are counted by assignee across all teams.
-   */
-  linear?: {
-    /** GitLab username -> Linear account email. Unmapped users get no Linear data. */
-    emailByUser: Record<string, string>;
-    /**
-     * Exclude stale backlog from "Issues done": skip issues completed more than this many
-     * days after they were created. Bulk-closing months-old issues otherwise inflates the
-     * count (an EM grooming the backlog scored 47, of which 43 were ~223 days old). Set to
-     * 0 or omit to count every completed issue regardless of age. Default 90.
-     */
-    maxIssueAgeDays?: number;
-  };
 }
 
 export const config: AppConfig = {
@@ -76,26 +60,4 @@ export const config: AppConfig = {
   concurrency: 6,
 
   sizeBand: { tooSmall: 10, tooLarge: 400 },
-
-  // Linear emails resolved from the Assured workspace. Edit when people join/leave.
-  linear: {
-    emailByUser: {
-      m4ttheweric: "matthew.goodwin@assured.claims",
-      westonnovelli: "weston@assured.claims",
-      geoff82: "geoff@assured.claims",
-      leath1: "leath@assured.claims",
-      edroch: "ed.rocha@assured.claims",
-      "john.west.assured.claims": "john.west@assured.claims",
-      "doug-at-assured": "doug@assured.claims",
-      "peterfrench-assured": "peter.french@assured.claims",
-      hacknightly: "darrell.banks@assured.claims",
-      djclaims: "djam@assured.claims",
-      jorgecoello: "jorge@assured.claims",
-      "CalebDudley-Assured": "caleb.dudley@assured.claims",
-      "fabian-assured": "fabian.buentello@assured.claims",
-      "jeremy.brown.assured": "jeremy.brown@assured.claims",
-      "jerry.hong1": "jerry.hong@assured.claims",
-    },
-    maxIssueAgeDays: 90,
-  },
 };
