@@ -36,6 +36,12 @@
     "workshop": {
       "name": "workshop",
       "version": "0.0.0",
+      "dependencies": {
+        "@soribashi/core": "file:../../soribashi/packages/core",
+      },
+      "devDependencies": {
+        "vite": "^8",
+      },
     },
   },
   "overrides": {
@@ -637,9 +643,9 @@
 
     "@soribashi/codegen/@types/node": ["@types/node@22.20.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q=="],
 
-    "@soribashi/core/@soribashi/factory": ["@soribashi/factory@file:../soribashi/packages/factory", { "dependencies": { "@soribashi/theme": "workspace:*", "clsx": "^2.1.1", "tailwind-merge": "^2.5.0" }, "devDependencies": { "@testing-library/jest-dom": "^6.6.3", "@testing-library/react": "^16.1.0", "@types/react": "^19", "@types/react-dom": "^19", "jsdom": "^25.0.0", "react": "^19.2", "react-dom": "^19.2", "typescript": "^7", "vitest": "^4" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }],
+    "@soribashi/core/@soribashi/factory": ["@soribashi/factory@file:../soribashi/packages/factory", {}],
 
-    "@soribashi/core/@soribashi/theme": ["@soribashi/theme@file:../soribashi/packages/theme", { "dependencies": { "zod": "^4" }, "devDependencies": { "typescript": "^7", "vitest": "^4" } }],
+    "@soribashi/core/@soribashi/theme": ["@soribashi/theme@file:../soribashi/packages/theme", {}],
 
     "@soribashi/factory/@soribashi/theme": ["@soribashi/theme@file:../soribashi/packages/theme", { "dependencies": { "zod": "^4" }, "devDependencies": { "typescript": "^7", "vitest": "^4" } }],
 
@@ -653,8 +659,12 @@
 
     "vite/fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 
+    "workshop/@soribashi/core": ["@soribashi/core@file:../soribashi/packages/core", { "dependencies": { "@soribashi/factory": "workspace:*", "@soribashi/theme": "workspace:*" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }],
+
     "@soribashi/codegen/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
-    "@soribashi/core/@soribashi/factory/@soribashi/theme": ["@soribashi/theme@file:../soribashi/packages/theme", { "dependencies": { "zod": "^4" }, "devDependencies": { "typescript": "^7", "vitest": "^4" } }],
+    "workshop/@soribashi/core/@soribashi/factory": ["@soribashi/factory@file:../soribashi/packages/factory", {}],
+
+    "workshop/@soribashi/core/@soribashi/theme": ["@soribashi/theme@file:../soribashi/packages/theme", {}],
   }
 }
