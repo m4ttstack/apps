@@ -218,6 +218,14 @@ describe('RunRow board redesign', () => {
     expect(window.location.pathname).toBe('/runs/repo-tools/run-1');
   });
 
+  it('exposes the ticket-id/title text as a real link to the run detail page', () => {
+    const { getByTestId } = renderRow(baseRun, { enrichment: enrichedMr });
+    const row = getByTestId('run-row-run-1');
+
+    const link = within(row).getByRole('link', { name: /RT-1/ });
+    expect(link).toHaveAttribute('href', '/runs/repo-tools/run-1');
+  });
+
   it('does not navigate when opening the actions menu', async () => {
     renderRow(baseRun);
 
@@ -275,6 +283,27 @@ describe('RunRow menu actions', () => {
     );
 
     expect(writeText).toHaveBeenCalledWith('feat/x');
+  });
+
+  // Regression: `Menu.Dropdown` is portalled, but React re-dispatches its
+  // bubbling clicks along the REACT tree (not the DOM tree the portal
+  // actually renders into), so an item click still reached the row's
+  // onClick and navigated to the detail page underneath the copy.
+  it('does not also navigate the row when a menu item is clicked', async () => {
+    renderRow(baseRun);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+
+    await openMenu();
+    await userEvent.click(
+      screen.getByRole('menuitem', { name: 'Copy branch' })
+    );
+
+    expect(writeText).toHaveBeenCalledWith('feat/x');
+    expect(window.location.pathname).toBe('/');
   });
 
   it('tells the user nothing is recorded yet rather than opening anything', async () => {

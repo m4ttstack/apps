@@ -1,11 +1,12 @@
 import type { BranchEnrichment } from '@mattstack/rt-client';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 
-import { ActionIcon, Group, Menu, Stack, Text } from '@ui/core';
+import { ActionIcon, Anchor, Group, Menu, Stack, Text } from '@ui/core';
 import { useClipboard, useSchemeColors } from '@ui/hooks';
 import { Icons } from '@ui/icons';
 import { notifications } from '@ui/notifications';
 import { client } from '../api';
+import { Link } from '../router/Link';
 import { navigate } from '../router/navigation';
 import { agingWarning } from './aging';
 import type { BoardRun } from './bands';
@@ -131,16 +132,29 @@ export function RunRow({ run, pruneDays, enrichment }: RunRowProps) {
       }}
     >
       <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
-        <Group gap="xs" wrap="nowrap">
-          <Text fw={700} fz={14} c={text.highContrast('accent')} truncate>
-            {run.ticket ?? run.id}
-          </Text>
-          {title && (
-            <Text c={text.normal} fz={13} truncate style={{ minWidth: 0 }}>
-              {title}
+        {/* A real anchor, not just the row's own onClick, so the detail
+            link is Tab-reachable, announced by a screen reader, and
+            middle-click/open-in-new-tab work -- `stopPropagation` keeps its
+            own navigate() from double-firing the row's onClick underneath
+            it (both target the same href, so harmless either way, but the
+            second call is pure noise). */}
+        <Anchor
+          component={Link}
+          href={detailHref}
+          onClick={event => event.stopPropagation()}
+          style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+        >
+          <Group gap="xs" wrap="nowrap">
+            <Text fw={700} fz={14} c={text.highContrast('accent')} truncate>
+              {run.ticket ?? run.id}
             </Text>
-          )}
-        </Group>
+            {title && (
+              <Text c={text.normal} fz={13} truncate style={{ minWidth: 0 }}>
+                {title}
+              </Text>
+            )}
+          </Group>
+        </Anchor>
         <Text c={text.muted} fz={11} truncate>
           {repoLabel(run.repo)} · {run.branch ?? 'no branch'}
           {mr && ` · MR !${mr.iid} ${mr.state}`}
@@ -181,7 +195,11 @@ export function RunRow({ run, pruneDays, enrichment }: RunRowProps) {
               <Icons.moreHorizontal size={16} />
             </ActionIcon>
           </Menu.Target>
-          <Menu.Dropdown>
+          {/* React re-dispatches a portalled child's bubbling event along the
+              REACT tree, not the DOM tree the portal actually renders into --
+              so without this, a click on any item here still reaches the
+              row's onClick and navigates to the detail page underneath it. */}
+          <Menu.Dropdown onClick={event => event.stopPropagation()}>
             <Menu.Item disabled={!mrUrl} onClick={handleOpenMr}>
               Open MR
             </Menu.Item>
