@@ -6,8 +6,10 @@ import type {
 
 import {
   Badge,
+  Box,
   Group,
   Timeline as MantineTimeline,
+  Paper,
   Stack,
   Text,
 } from '@ui/core';
@@ -132,6 +134,25 @@ export interface TimelineProps {
   stages: RunStageRow[];
   fields: RunFieldRow[];
   decisions: RunDecisionRow[];
+  /** `run.current_stage` -- names the stage that stays expanded; every other
+      stage (done or not) collapses to a condensed line. */
+  currentStage: string | null;
+}
+
+/**
+ * Same "last attempt wins" rule `groupTimeline` already applies to field/
+ * decision attribution: a retried stage repeats its name across attempts, so
+ * the LAST stageGroup matching `currentStage` is the live one.
+ */
+function findCurrentIndex(
+  stageGroups: StageGroup[],
+  currentStage: string | null
+): number {
+  let found = -1;
+  stageGroups.forEach((group, i) => {
+    if (group.stage.name === currentStage) found = i;
+  });
+  return found;
 }
 
 /**
@@ -145,29 +166,37 @@ export function Timeline({
   stages,
   fields,
   decisions,
+  currentStage,
 }: TimelineProps) {
-  const { text } = useSchemeColors();
+  const { text, bg, border } = useSchemeColors();
   const { stageGroups, outsideGroups } = groupTimeline(
     stages,
     fields,
     decisions
   );
+  const currentIndex = findCurrentIndex(stageGroups, currentStage);
 
   return (
-    <MantineTimeline
-      active={stageGroups.length}
-      bulletSize={22}
-      lineWidth={2}
-      data-testid="run-timeline"
+    <Paper
+      data-testid="timeline-surface"
+      bg={bg.level2}
+      p="md"
+      radius={10}
+      style={{ border: `1px solid ${border.default}` }}
     >
-      {stageGroups.map(
-        ({ stage, fields: stageFields, decisions: stageDecisions }) => (
-          <MantineTimeline.Item
-            key={`${stage.name}-${stage.attempt}`}
-            bullet={<StageBullet status={stage.status} />}
-            color={STAGE_STATUS_COLOR[stage.status] ?? 'gray'}
-            data-testid={`timeline-stage-${stage.name}-${stage.attempt}`}
-            title={
+      <Text fw={700} size="sm" mb="sm">
+        Pipeline
+      </Text>
+      <MantineTimeline
+        active={stageGroups.length}
+        bulletSize={22}
+        lineWidth={2}
+        data-testid="run-timeline"
+      >
+        {stageGroups.map(
+          ({ stage, fields: stageFields, decisions: stageDecisions }, i) => {
+            const isCurrent = i === currentIndex;
+            const summary = (
               <Group gap="xs" wrap="nowrap">
                 <Text fw={600}>{stage.name}</Text>
                 {stage.attempt > 1 && (
@@ -183,65 +212,109 @@ export function Timeline({
                   {stage.status}
                 </Badge>
               </Group>
-            }
+            );
+
+            return (
+              <MantineTimeline.Item
+                key={`${stage.name}-${stage.attempt}`}
+                bullet={<StageBullet status={stage.status} />}
+                color={STAGE_STATUS_COLOR[stage.status] ?? 'gray'}
+                data-testid={`timeline-stage-${stage.name}-${stage.attempt}`}
+                title={
+                  isCurrent ? (
+                    summary
+                  ) : (
+                    <Group
+                      gap="md"
+                      wrap="nowrap"
+                      data-testid="timeline-stage-condensed"
+                    >
+                      {summary}
+                      {stageFields.map(field => (
+                        <FieldRow key={field.key} field={field} />
+                      ))}
+                      {stageDecisions.map(decision => (
+                        <DecisionRow
+                          key={`${decision.contract}-${decision.scope}-${decision.decided_at}`}
+                          decision={decision}
+                        />
+                      ))}
+                    </Group>
+                  )
+                }
+              >
+                {isCurrent && (
+                  <Box
+                    data-testid="timeline-current-stage"
+                    bg={bg.lightened('accent')}
+                    p="xs"
+                    mt={4}
+                    style={{
+                      border: border.style('accent'),
+                      borderRadius: 8,
+                    }}
+                  >
+                    <Stack gap={4}>
+                      {stage.status === 'failed' && (
+                        <>
+                          {stage.reason && (
+                            <Text size="sm" c={text.highContrast('bad')}>
+                              {stage.reason}
+                            </Text>
+                          )}
+                          {stage.detail_path && (
+                            <FailureExcerpt
+                              repo={repo}
+                              runId={runId}
+                              detailPath={stage.detail_path}
+                            />
+                          )}
+                        </>
+                      )}
+                      {stageFields.map(field => (
+                        <FieldRow key={field.key} field={field} />
+                      ))}
+                      {stageDecisions.map(decision => (
+                        <DecisionRow
+                          key={`${decision.contract}-${decision.scope}-${decision.decided_at}`}
+                          decision={decision}
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </MantineTimeline.Item>
+            );
+          }
+        )}
+        {outsideGroups.length > 0 && (
+          <MantineTimeline.Item
+            bullet={<Icons.link size={12} />}
+            color="gray"
+            title="Outside the pipeline"
+            data-testid="timeline-outside-pipeline"
           >
-            <Stack gap={4} mt={4}>
-              {stage.status === 'failed' && (
-                <>
-                  {stage.reason && (
-                    <Text size="sm" c={text.highContrast('bad')}>
-                      {stage.reason}
-                    </Text>
-                  )}
-                  {stage.detail_path && (
-                    <FailureExcerpt
-                      repo={repo}
-                      runId={runId}
-                      detailPath={stage.detail_path}
+            <Stack gap="sm" mt={4}>
+              {outsideGroups.map(group => (
+                <Stack key={group.producedBy} gap={4}>
+                  <Text size="xs" c={text.muted}>
+                    {group.producedBy}
+                  </Text>
+                  {group.fields.map(field => (
+                    <FieldRow key={field.key} field={field} />
+                  ))}
+                  {group.decisions.map(decision => (
+                    <DecisionRow
+                      key={`${decision.contract}-${decision.scope}-${decision.decided_at}`}
+                      decision={decision}
                     />
-                  )}
-                </>
-              )}
-              {stageFields.map(field => (
-                <FieldRow key={field.key} field={field} />
-              ))}
-              {stageDecisions.map(decision => (
-                <DecisionRow
-                  key={`${decision.contract}-${decision.scope}-${decision.decided_at}`}
-                  decision={decision}
-                />
+                  ))}
+                </Stack>
               ))}
             </Stack>
           </MantineTimeline.Item>
-        )
-      )}
-      {outsideGroups.length > 0 && (
-        <MantineTimeline.Item
-          bullet={<Icons.link size={12} />}
-          color="gray"
-          title="Outside the pipeline"
-          data-testid="timeline-outside-pipeline"
-        >
-          <Stack gap="sm" mt={4}>
-            {outsideGroups.map(group => (
-              <Stack key={group.producedBy} gap={4}>
-                <Text size="xs" c={text.muted}>
-                  {group.producedBy}
-                </Text>
-                {group.fields.map(field => (
-                  <FieldRow key={field.key} field={field} />
-                ))}
-                {group.decisions.map(decision => (
-                  <DecisionRow
-                    key={`${decision.contract}-${decision.scope}-${decision.decided_at}`}
-                    decision={decision}
-                  />
-                ))}
-              </Stack>
-            ))}
-          </Stack>
-        </MantineTimeline.Item>
-      )}
-    </MantineTimeline>
+        )}
+      </MantineTimeline>
+    </Paper>
   );
 }
