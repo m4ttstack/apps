@@ -2,8 +2,9 @@ import { readBranchCache } from '@mattstack/rt-client';
 import { Hono } from 'hono';
 import { validator } from 'hono/validator';
 
-/** The daemon's own cap on a single `cache:read` call (lib/state/branch-cache.ts) --
-    mirrored here so an oversized list is rejected before it reaches rt-client. */
+/** Console's own bound, not an upstream one -- the daemon accepts any list
+    size, so this is what keeps a runaway caller from shipping the whole
+    branch cache through one request. */
 const MAX_BRANCHES = 100;
 
 function isStringArray(value: unknown): value is string[] {
