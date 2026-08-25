@@ -1,8 +1,48 @@
+import type { ReactNode } from 'react';
 import type { RunSummary } from '@mattstack/rt-client';
 
 import { Box } from '@ui/core';
 import type { MantineColor } from '@ui/core';
 import { useSchemeColors } from '@ui/hooks';
+
+export interface PillProps {
+  color: MantineColor;
+  children: ReactNode;
+  'data-testid'?: string;
+  'data-state'?: string;
+}
+
+/** The small rounded status-pill chrome shared by `LivenessChip` and
+    `RunDetail`'s stage/status pill -- same tinted-background-on-high-contrast-
+    text treatment, differing only in color and label. */
+export function Pill({
+  color,
+  children,
+  'data-testid': dataTestId,
+  'data-state': dataState,
+}: PillProps) {
+  const { bg, text } = useSchemeColors();
+
+  return (
+    <Box
+      data-testid={dataTestId}
+      data-state={dataState}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        borderRadius: 999,
+        padding: '2px 8px',
+        fontSize: 11,
+        fontWeight: 600,
+        backgroundColor: bg.color(color),
+        color: text.highContrast(color),
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
 
 export type LivenessState =
   | 'blocked'
@@ -76,26 +116,11 @@ export interface LivenessChipProps {
 }
 
 export function LivenessChip({ run }: LivenessChipProps) {
-  const { bg, text } = useSchemeColors();
   const { state, color, label } = livenessSpec(run);
 
   return (
-    <Box
-      data-testid="liveness-chip"
-      data-state={state}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        borderRadius: 999,
-        padding: '2px 8px',
-        fontSize: 11,
-        fontWeight: 600,
-        backgroundColor: bg.color(color),
-        color: text.highContrast(color),
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <Pill color={color} data-testid="liveness-chip" data-state={state}>
       {label}
-    </Box>
+    </Pill>
   );
 }

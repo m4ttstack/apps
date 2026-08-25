@@ -505,7 +505,7 @@ describe('RunDetail', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the enriched ticket title and links the MR iid to its webUrl, with CI status below', async () => {
+  it('renders the enriched ticket title and links the MR iid+state to its webUrl, with CI status below', async () => {
     enrichPost.mockResolvedValue({
       ok: true,
       status: 200,
@@ -530,7 +530,7 @@ describe('RunDetail', () => {
       await within(card).findByText('Redesign the run detail page')
     ).toBeInTheDocument();
 
-    const mrLink = within(card).getByRole('link', { name: '!7' });
+    const mrLink = within(card).getByRole('link', { name: '!7 opened' });
     expect(mrLink).toHaveAttribute('href', 'https://example.com/mr/7');
     expect(within(card).getByText('success')).toBeInTheDocument();
   });

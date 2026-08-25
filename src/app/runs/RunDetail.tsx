@@ -5,7 +5,6 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import {
   Anchor,
-  Box,
   Button,
   CopyActionIcon,
   GenericError,
@@ -23,7 +22,7 @@ import { notifications } from '@ui/notifications';
 import { client } from '../api';
 import { CommandProvenance } from './CommandProvenance';
 import { EffectiveInputs } from './EffectiveInputs';
-import { LivenessChip, livenessSpec } from './LivenessChip';
+import { LivenessChip, livenessSpec, Pill } from './LivenessChip';
 import { repoLabel } from './repoLabel';
 import { fieldsByKey, Timeline } from './Timeline';
 import { useMarkSeen, useRun, useRunEvents, useRunsEnrich } from './useRuns';
@@ -180,22 +179,9 @@ function SummaryCard({
         </Group>
         <Group gap="xs" wrap="nowrap">
           {showStagePill ? (
-            <Box
-              data-testid="stage-status-pill"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                borderRadius: 999,
-                padding: '2px 8px',
-                fontSize: 11,
-                fontWeight: 600,
-                backgroundColor: bg.color('accent'),
-                color: text.highContrast('accent'),
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <Pill color="accent" data-testid="stage-status-pill">
               {run.current_stage ?? 'not started'} · {run.status}
-            </Box>
+            </Pill>
           ) : (
             <LivenessChip run={run} />
           )}
@@ -223,10 +209,12 @@ function SummaryCard({
                   fz={13}
                   data-testid="mr-link"
                 >
-                  !{mr.iid}
+                  !{mr.iid} {mr.state}
                 </Anchor>
               ) : (
-                <Text fz={13}>!{mr.iid}</Text>
+                <Text fz={13}>
+                  !{mr.iid} {mr.state}
+                </Text>
               )
             ) : (
               <Text c={text.dimmed} fz={13}>
