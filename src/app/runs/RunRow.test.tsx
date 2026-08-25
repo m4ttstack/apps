@@ -451,3 +451,16 @@ describe('RunRow aging warning', () => {
     expect(screen.queryByTestId('aging-warning')).not.toBeInTheDocument();
   });
 });
+
+it('labels a finished row with total runtime, not the last-event sliver', () => {
+  const twoHours = 2 * 60 * 60 * 1000;
+  const run = {
+    ...baseRun,
+    status: 'done',
+    started_at: Date.now() - twoHours,
+    ended_at: Date.now(),
+    last_event_at: Date.now() - 30_000,
+  };
+  renderRow(run);
+  expect(screen.getByText(/2h/)).toBeInTheDocument();
+});

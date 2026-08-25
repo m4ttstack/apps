@@ -80,7 +80,13 @@ export function RunRow({ run, pruneDays, enrichment }: RunRowProps) {
   // RunSummary's `stages` (list view) carry only name/status -- no per-stage
   // timestamp, unlike the detail view's `RunStageRow` -- so `last_event_at`
   // is the closest available proxy for how long the run has sat here.
-  const stageElapsed = formatElapsed(run.last_event_at, run.ended_at);
+  // A finished run's last event IS its ending, so last_event_at would read
+  // as a meaningless sliver -- total runtime is the honest label there. The
+  // running case keeps the last-event proxy (see the stages comment above).
+  const stageElapsed =
+    run.ended_at == null
+      ? formatElapsed(run.last_event_at, run.ended_at)
+      : formatElapsed(run.started_at, run.ended_at);
 
   async function handleCopyWorktree() {
     try {

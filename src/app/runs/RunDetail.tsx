@@ -122,6 +122,10 @@ function SummaryCard({
   const values = new Map(
     HOTKEY_FIELDS.map(spec => [spec.key, byKey.get(spec.key)?.value ?? null])
   );
+  // `m` must copy what the card SHOWS: the MR column renders enrichment when
+  // present, so a field/enrichment divergence would otherwise leave the kbd
+  // hint beside one URL while copying another.
+  if (enrichment?.mr?.webUrl) values.set('mr', enrichment.mr.webUrl);
 
   // Independent of the click-to-copy affordances below: every hotkey writes
   // the clipboard directly, same behavior HandoffField pinned before the
