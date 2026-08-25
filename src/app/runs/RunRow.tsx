@@ -1,32 +1,17 @@
-import { useState } from 'react';
+import type { BranchEnrichment } from '@mattstack/rt-client';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 
-import {
-  ActionIcon,
-  Badge,
-  CopyActionIcon,
-  Group,
-  Stack,
-  Text,
-  Tooltip,
-} from '@ui/core';
-import type { MantineColor } from '@ui/core';
+import { ActionIcon, Group, Menu, Stack, Text } from '@ui/core';
 import { useClipboard, useSchemeColors } from '@ui/hooks';
 import { Icons } from '@ui/icons';
 import { notifications } from '@ui/notifications';
 import { client } from '../api';
-import { Link } from '../router/Link';
+import { navigate } from '../router/navigation';
 import { agingWarning } from './aging';
 import type { BoardRun } from './bands';
-import { BRANCH_CHECKOUT_LABEL, branchCheckoutCommand } from './branchCheckout';
+import { LivenessChip } from './LivenessChip';
 import { repoLabel } from './repoLabel';
-
-const STATUS_COLOR: Record<string, MantineColor> = {
-  running: 'accent',
-  done: 'ok',
-  failed: 'bad',
-  abandoned: 'warn',
-};
+import { StageProgress } from './StageProgress';
 
 function formatElapsed(startedAt: number, endedAt: number | null): string {
   const ms = Math.max(0, (endedAt ?? Date.now()) - startedAt);
@@ -39,19 +24,17 @@ function formatElapsed(startedAt: number, endedAt: number | null): string {
 }
 
 /** `RunSummary` denormalizes only `ticket`/`branch` for the list; `worktree`
-    and `mr` live in `RunDetail.fields` and are fetched on demand here rather
-    than guessed from `branch` -- a wrong guess would send someone to a path
-    or MR that doesn't exist. Routed through `queryClient.fetchQuery` under
-    the same `['run', repo, runId]` key `useRun` uses, so clicking worktree
-    then MR (or landing on the detail view) shares one cached fetch instead
-    of issuing a fresh detail request per action. `staleTime` is what makes
-    that sharing real: without it the default `staleTime: 0` would still
-    refetch on the second click even though the query key matches. */
-async function fetchDetailField(
+    lives in `RunDetail.fields` and is fetched on demand here rather than
+    guessed from `branch` -- a wrong guess would send someone to a path that
+    doesn't exist. Routed through `queryClient.fetchQuery` under the same
+    `['run', repo, runId]` key `useRun` uses, so a second copy shares the
+    first fetch instead of hitting the daemon again. `staleTime` is what
+    makes that sharing real: without it the default `staleTime: 0` would
+    still refetch on the second click even though the query key matches. */
+async function fetchWorktreePath(
   queryClient: QueryClient,
   repo: string,
-  runId: string,
-  key: 'worktree' | 'mr'
+  runId: string
 ): Promise<string | null> {
   const detail = await queryClient.fetchQuery({
     queryKey: ['run', repo, runId],
@@ -64,7 +47,7 @@ async function fetchDetailField(
       return res.json();
     },
   });
-  return detail.fields.find(f => f.key === key)?.value ?? null;
+  return detail.fields.find(f => f.key === 'worktree')?.value ?? null;
 }
 
 export interface RunRowProps {
@@ -73,32 +56,34 @@ export interface RunRowProps {
       only board rows carry the aging warning (search states the window
       itself, once, rather than repeating it per row). */
   pruneDays?: number;
+  /** This row's entry from the batched `/api/runs/enrich` join, keyed by
+      `run.branch` at the board level -- absent for a branch the daemon has
+      no cached Linear/MR data for yet, not only for a fetch that hasn't
+      landed. */
+  enrichment?: BranchEnrichment;
 }
 
-export function RunRow({ run, pruneDays }: RunRowProps) {
+export function RunRow({ run, pruneDays, enrichment }: RunRowProps) {
   const { bg, text, border } = useSchemeColors();
   const clipboard = useClipboard();
   const queryClient = useQueryClient();
-  const [resolving, setResolving] = useState<'worktree' | 'mr' | null>(null);
   const detailHref = `/runs/${run.repo}/${run.id}`;
-  const statusColor = STATUS_COLOR[run.status] ?? 'accent';
   const aging = agingWarning(run, pruneDays);
 
-  /** A worktree is a local filesystem path, and this console is a plain page
-      served over http(s) -- not a desktop shell -- so `window.open('file://
-      ...')` is refused by the browser before it ever reaches disk (verified
-      against this app's own serving context: no dialog, no thrown error, no
-      new tab, just a console line the user never sees). Clipboard is the
-      only handoff that actually lands. */
+  const title = enrichment?.ticket?.title;
+  const mr = enrichment?.mr;
+  const mrUrl = mr?.webUrl ?? null;
+  const ticketUrl = enrichment?.ticket?.url ?? null;
+
+  const stageName = run.current_stage ?? 'not started';
+  // RunSummary's `stages` (list view) carry only name/status -- no per-stage
+  // timestamp, unlike the detail view's `RunStageRow` -- so `last_event_at`
+  // is the closest available proxy for how long the run has sat here.
+  const stageElapsed = formatElapsed(run.last_event_at, run.ended_at);
+
   async function handleCopyWorktree() {
-    setResolving('worktree');
     try {
-      const value = await fetchDetailField(
-        queryClient,
-        run.repo,
-        run.id,
-        'worktree'
-      );
+      const value = await fetchWorktreePath(queryClient, run.repo, run.id);
       if (!value) {
         notifications.info('No worktree recorded for this run yet.');
         return;
@@ -108,25 +93,22 @@ export function RunRow({ run, pruneDays }: RunRowProps) {
       notifications.error(
         `Could not copy worktree path: ${(err as Error).message}`
       );
-    } finally {
-      setResolving(null);
     }
   }
 
-  async function handleOpenMr() {
-    setResolving('mr');
-    try {
-      const value = await fetchDetailField(queryClient, run.repo, run.id, 'mr');
-      if (!value) {
-        notifications.info('No MR recorded for this run yet.');
-        return;
-      }
-      window.open(value, '_blank', 'noopener');
-    } catch (err) {
-      notifications.error(`Could not open MR: ${(err as Error).message}`);
-    } finally {
-      setResolving(null);
-    }
+  function handleCopyBranch() {
+    if (!run.branch) return;
+    clipboard.copy(run.branch);
+  }
+
+  function handleOpenMr() {
+    if (!mrUrl) return;
+    window.open(mrUrl, '_blank', 'noopener');
+  }
+
+  function handleOpenTicket() {
+    if (!ticketUrl) return;
+    window.open(ticketUrl, '_blank', 'noopener');
   }
 
   return (
@@ -137,9 +119,11 @@ export function RunRow({ run, pruneDays }: RunRowProps) {
       align="center"
       bg={bg.level2}
       p="sm"
+      onClick={() => navigate(detailHref)}
       style={{
         borderRadius: 6,
         border: `1px solid ${border.default}`,
+        cursor: 'pointer',
         // Seen-but-unresolved rows sink to the bottom of their band; opacity
         // (not a different color) is what marks them de-emphasised so the
         // palette stays intact.
@@ -148,87 +132,70 @@ export function RunRow({ run, pruneDays }: RunRowProps) {
     >
       <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
         <Group gap="xs" wrap="nowrap">
-          <Text fw={600} c={text.normal} truncate>
+          <Text fw={700} fz={14} c={text.highContrast('accent')} truncate>
             {run.ticket ?? run.id}
           </Text>
-          <Text c={text.muted} size="sm">
-            {repoLabel(run.repo)}
-          </Text>
-          <Badge color={statusColor} variant="light" size="sm">
-            {run.status}
-          </Badge>
-          {run.attention.needs && (
-            <Text c={text.highContrast('bad')} size="sm">
-              {run.attention.reason}
+          {title && (
+            <Text c={text.normal} fz={13} truncate style={{ minWidth: 0 }}>
+              {title}
             </Text>
           )}
         </Group>
+        <Text c={text.muted} fz={11} truncate>
+          {repoLabel(run.repo)} · {run.branch ?? 'no branch'}
+          {mr && ` · MR !${mr.iid} ${mr.state}`}
+        </Text>
+        {aging && (
+          <Text
+            c={text.highContrast('warn')}
+            fz={11}
+            data-testid="aging-warning"
+          >
+            {aging}
+          </Text>
+        )}
+      </Stack>
+
+      <Stack gap={4} style={{ width: 300, flexShrink: 0 }}>
         <Group gap="xs" wrap="nowrap">
-          <Text c={text.muted} size="xs">
-            {run.work_type}
+          <Text fw={700} fz={14}>
+            {stageName}
           </Text>
-          <Text c={text.muted} size="xs">
-            {run.current_stage ?? 'not started'}
+          <Text c={text.muted} fz={12}>
+            {stageElapsed}
           </Text>
-          <Text c={text.muted} size="xs">
-            {formatElapsed(run.started_at, run.ended_at)}
-          </Text>
-          {aging && (
-            <Text
-              c={text.highContrast('warn')}
-              size="xs"
-              data-testid="aging-warning"
-            >
-              {aging}
-            </Text>
-          )}
         </Group>
+        <StageProgress stages={run.stages} />
       </Stack>
 
       <Group gap="xs" wrap="nowrap">
-        <Tooltip label="Open run detail">
-          <ActionIcon
-            component={Link}
-            href={detailHref}
-            variant="subtle"
-            color="gray"
-            aria-label="open run detail"
-          >
-            <Icons.externalLink size={16} />
-          </ActionIcon>
-        </Tooltip>
-        {run.branch && (
-          <CopyActionIcon
-            value={branchCheckoutCommand(run.branch)}
-            label={BRANCH_CHECKOUT_LABEL}
-          />
-        )}
-        <Tooltip label={clipboard.copied ? 'Copied!' : 'Copy worktree path'}>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            loading={resolving === 'worktree'}
-            onClick={() => void handleCopyWorktree()}
-            aria-label="copy worktree path"
-          >
-            {clipboard.copied ? (
-              <Icons.check size={16} />
-            ) : (
-              <Icons.copy size={16} />
-            )}
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label="Open MR">
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            loading={resolving === 'mr'}
-            onClick={() => void handleOpenMr()}
-            aria-label="open MR"
-          >
-            <Icons.externalLink size={16} />
-          </ActionIcon>
-        </Tooltip>
+        <LivenessChip run={run} />
+        <Menu position="bottom-end">
+          <Menu.Target>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              aria-label="run actions"
+              onClick={event => event.stopPropagation()}
+            >
+              <Icons.moreHorizontal size={16} />
+            </ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item disabled={!mrUrl} onClick={handleOpenMr}>
+              Open MR
+            </Menu.Item>
+            <Menu.Item disabled={!ticketUrl} onClick={handleOpenTicket}>
+              Open ticket
+            </Menu.Item>
+            <Menu.Item onClick={() => void handleCopyWorktree()}>
+              Copy worktree path
+            </Menu.Item>
+            <Menu.Item disabled={!run.branch} onClick={handleCopyBranch}>
+              Copy branch
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
       </Group>
     </Group>
   );
