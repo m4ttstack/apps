@@ -6,8 +6,8 @@
       "name": "mr-board",
       "dependencies": {
         "@mattstack/glance": "^0.19.0",
-        "@mattstack/rt-client": "^0.4.0",
-        "@mattstack/settings-kit": "^0.1.1",
+        "@mattstack/rt-client": "^0.4.1",
+        "@mattstack/settings-kit": "^0.1.2",
         "@mattstack/tui-kit": "file:../tui-kit",
         "invadrs": "^0.2.0",
         "react": "19.2.7",
@@ -42,9 +42,9 @@
 
     "@mattstack/glance": ["@mattstack/glance@0.19.0", "", { "dependencies": { "@gitbeaker/rest": "^43.8.0", "@octokit/core": "^7.0.7", "@octokit/graphql": "^9.0.4", "@octokit/plugin-paginate-rest": "^15.0.0", "@octokit/plugin-retry": "^8.1.1", "@octokit/plugin-throttling": "^11.0.5", "@octokit/request-error": "^7.1.1" } }, "sha512-H+QMuyC3IZ3SXl8TpdjIKVhZvx+vP2ltVdt88CDz8e6YFponB2fplyOrHXLvGFITN1EnnEM6DQyYTcQ06F+7fg=="],
 
-    "@mattstack/rt-client": ["@mattstack/rt-client@0.4.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-cje8sLAToZ9D8xPa4gOSIl8kFSw3q7jsML3nQlyWI7il4YEEegrOxcuZMke499GHXk+hddUFwV/RY3BrOKjBWg=="],
+    "@mattstack/rt-client": ["@mattstack/rt-client@0.4.1", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-FFXGJWQeqlIb6t0gA9XkMN7Y0V86rIN8BOzTmU67rRKgjT/zrUl3nVFX5IjrTJh1uQgORog62+k4hvQNZ/RK4A=="],
 
-    "@mattstack/settings-kit": ["@mattstack/settings-kit@0.1.1", "", { "peerDependencies": { "@mattstack/rt-client": "^0.4.0", "react": ">=18" }, "optionalPeers": ["react"] }, "sha512-XBR3fm8rWZpf75mfVjbg6zlv7LS25W+7CGHh48t+aLkQPqlzhoKRfxvSGOWupxlA1Yj2leKIjthXK4LrwV40gA=="],
+    "@mattstack/settings-kit": ["@mattstack/settings-kit@0.1.2", "", { "peerDependencies": { "@mattstack/rt-client": "^0.4.1", "react": ">=18" }, "optionalPeers": ["react"] }, "sha512-OjeE8GwP2OSjt82kM+zfFDFfzyujWPD0Epg/wxq8+p7aIkMRMudLEMMWTe6VmEx4QPPT73kVxxHB1sBt0E6zbA=="],
 
     "@mattstack/tui-kit": ["@mattstack/tui-kit@file:../tui-kit", { "dependencies": { "@soribashi/core": "file:../soribashi/packages/core", "react-markdown": "^10.1.0", "remark-gfm": "^4.0.1" }, "devDependencies": { "@types/node": "^26.2.0", "@types/react": "^19", "@types/react-dom": "^19", "@types/react-test-renderer": "^19.1.0", "@vitejs/plugin-react": "^6", "@vitest/browser-playwright": "^4.1.10", "playwright": "^1.59.1", "react": "^19.2", "react-dom": "^19.2", "react-test-renderer": "^19.2.8", "typescript": "^7", "vitest": "^4", "vitest-browser-react": "^2" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0" } }],
 
