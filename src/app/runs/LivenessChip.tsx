@@ -12,7 +12,8 @@ export type LivenessState =
   | 'driven'
   | 'idle'
   | 'running'
-  | 'done';
+  | 'done'
+  | 'finished-other';
 
 export interface LivenessSpec {
   state: LivenessState;
@@ -61,7 +62,13 @@ export function livenessSpec(run: RunSummary): LivenessSpec {
   if (run.ended_at == null) {
     return { state: 'running', color: 'accent', label: 'running' };
   }
-  return { state: 'done', color: 'ok', label: 'done' };
+  // `status` is a free string past this point (done/abandoned/whatever a
+  // future pipeline terminal state adds) -- the label carries the specifics
+  // while `data-state` stays a closed set consumers can switch on.
+  if (run.status === 'done') {
+    return { state: 'done', color: 'ok', label: 'done' };
+  }
+  return { state: 'finished-other', color: 'warn', label: run.status };
 }
 
 export interface LivenessChipProps {

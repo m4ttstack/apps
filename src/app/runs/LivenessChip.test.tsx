@@ -189,4 +189,19 @@ describe('LivenessChip', () => {
       backgroundColor: staticSchemeColors.bg.color('ok'),
     });
   });
+
+  it('renders the run\'s own status for a non-"done" terminal run, under a stable data-state', () => {
+    const run: RunSummary = {
+      ...baseRun,
+      status: 'abandoned',
+      ended_at: 1000,
+      agent: null,
+    };
+    const el = chip(run);
+    expect(el).toHaveAttribute('data-state', 'finished-other');
+    expect(el).toHaveTextContent('abandoned');
+    expect(el).toHaveStyle({
+      backgroundColor: staticSchemeColors.bg.color('warn'),
+    });
+  });
 });
