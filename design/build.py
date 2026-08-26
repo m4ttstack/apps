@@ -357,7 +357,7 @@ def desktop(down=False):
 {banner}
         <div style="display: flex; flex: 1; min-height: 0; align-items: stretch;">
 
-          <div class="stack grid" style="flex: 1; min-width: 0; padding: 11.2px 14.4px;">
+          <div class="stack" style="flex: 1; min-width: 0; padding: 11.2px 14.4px; background: var(--bg2);">
             <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
 {transcript()}
             </div>
