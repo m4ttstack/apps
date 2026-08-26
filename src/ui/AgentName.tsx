@@ -1,6 +1,7 @@
 import { Box, Button, Group, HoverCard, Stack, Text } from '@mantine/core';
 import type { BuddyStatus } from '@mattstack/rt-client';
 
+import classes from './agent-name.module.css';
 import { useBuddies } from './buddies-context';
 import {
   DOT_COLOR,
@@ -257,7 +258,12 @@ export function AgentName({
     label = (
       <Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
         <Group gap={0} wrap="nowrap" style={{ minWidth: 0 }}>
-          <Text size="sm" fw={600} style={{ flex: 'none' }}>
+          <Text
+            size="sm"
+            fw={600}
+            className={classes.name}
+            style={{ flex: 'none' }}
+          >
             {handle}
           </Text>
           {repo && <RepoToken repo={repo} />}
@@ -289,7 +295,13 @@ export function AgentName({
   } else if (variant === 'inline') {
     label = (
       <Group gap={0} wrap="nowrap" component="span" style={{ minWidth: 0 }}>
-        <Text component="span" size="lg" fw={600} style={{ flex: 'none' }}>
+        <Text
+          component="span"
+          size="lg"
+          fw={600}
+          className={classes.name}
+          style={{ flex: 'none' }}
+        >
           {handle}
         </Text>
         {repo && <RepoToken repo={repo} />}
@@ -297,7 +309,7 @@ export function AgentName({
     );
   } else {
     label = (
-      <Text component="span" fw={600} inherit>
+      <Text component="span" fw={600} inherit className={classes.name}>
         {handle}
       </Text>
     );
@@ -324,9 +336,11 @@ export function AgentName({
     >
       <HoverCard.Target>
         {variant === 'name' ? (
-          <span style={{ cursor: 'default' }}>{label}</span>
+          <span className={classes.target}>{label}</span>
         ) : (
-          label
+          <Box className={classes.target} style={{ minWidth: 0, flex: 1 }}>
+            {label}
+          </Box>
         )}
       </HoverCard.Target>
       <HoverCard.Dropdown>
