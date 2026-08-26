@@ -123,7 +123,9 @@ Each row is a `.member` (`align-items: flex-start`, `gap: 7.2px`, `padding:
 7.2px 0`), separated by `--border-soft`. The `.dot` gets `margin-top: 6px`,
 which is **optical, not mathematical** — do not "fix" it to centre.
 
-Row contents, top to bottom:
+Row contents, top to bottom (the row is one line plus the away message;
+items 3 to 6 live in the row's hover detail card, a `.pop` 280px wide at
+`left-start`, and only the phone drawer keeps item 5 on the row):
 
 1. 8px dot + handle (`.sm`, 600) + `STATUS_WORD[status]` in `.status.<status>`
 2. the away message when `statusText` is set, as `.away` (10.56px, muted,

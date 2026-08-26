@@ -236,24 +236,42 @@ def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
         f'<span class="tag{" dm" if t == "dm" else ""}">{t}</span>' for t in tags) + '</div>'
     path = '' if compact else f'<span class="xs muted truncate path">&lrm;{cwd}</span>'
     subl = 'presence unknown while the daemon is down' if down else sub
+    # One line per buddy plus the away message; branch/pane, path, heartbeat
+    # and tags live in the hover detail card (drawn once on the Roster
+    # artboard). The phone drawer (compact) has no hover, so it keeps the
+    # heartbeat line.
+    detail = f'<span class="xs muted">{subl}</span>' if compact else ''
     parts = [
         f'<div class="row" style="gap: 7.2px;"><span class="sm truncate" style="font-weight: 600;">{h}</span>{stw}</div>',
         awayline,
-        f'<span class="xs muted truncate">{br} · {pane}</span>',
-        path,
-        f'<span class="xs muted">{subl}</span>',
-        tagbits,
+        detail,
     ]
     inner = "\n            ".join(x for x in parts if x)
     return ('        <div class="member">\n          <div class="dot ' + dot + '"></div>\n'
             '          <div class="stack" style="gap: 1px; flex: 1; min-width: 0;">\n            ' + inner + '\n          </div>\n        </div>')
 
-def roster(down=False, compact=False, offline_expanded=False):
+def detail_card(h, br, pane, cwd, sub, tags):
+    tagbits = '<div class="row" style="gap: 3px; padding-top: 2px;">' + ''.join(
+        f'<span class="tag{" dm" if t == "dm" else ""}">{t}</span>' for t in tags) + '</div>'
+    return ('        <!-- the hover detail card for the row above, as HoverCard draws it: 280px, left-start -->\n'
+            '        <div class="pop stack" style="gap: 2px; width: 280px; padding: 7.2px; margin: -4px 0 8px 0;">\n'
+            f'          <span class="xs muted truncate">{br} · {pane}</span>\n'
+            f'          <span class="xs muted truncate path">&lrm;{cwd}</span>\n'
+            f'          <span class="xs muted">{sub}</span>\n'
+            f'          {tagbits}\n'
+            '        </div>')
+
+def roster(down=False, compact=False, offline_expanded=False, with_detail=False):
     out = []
+    first = True
     for label, rows in BUDDIES:
         out.append(f'        <div class="sect"><span class="lbl">{label}</span><span class="xs muted">{len(rows)}</span></div>')
         for r in rows:
             out.append(buddy_row(*r, down=down, compact=compact))
+            if with_detail and first and not down:
+                h, st, br, pane, cwd, sub, away, tags = r
+                out.append(detail_card(h, br, pane, cwd, sub, tags))
+            first = False
     if down:
         return "\n".join(out)
     if offline_expanded:
@@ -319,7 +337,7 @@ def desktop(down=False):
   <div class="stack" style="flex: 1; min-width: 0;">
 
     <div class="row" style="height: 64px; flex: none; padding: 0 9.6px; background: var(--bg1); border-bottom: 1px solid var(--border); gap: 9.6px;">
-      <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14.4" fill="#161224"/><g transform="translate(7.04 10) scale(2.08)" fill="#FF6B9D"><path d="M6.5 2h11A4.5 4.5 0 0 1 22 6.5v5a4.5 4.5 0 0 1-4.5 4.5H13l-8.5 6.5L6 16a4.5 4.5 0 0 1-4-4.5v-5A4.5 4.5 0 0 1 6.5 2z"/></g></svg>
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14.4" fill="#1d1830"/><g transform="translate(7.04 10) scale(2.08)" fill="#ff84ad"><path d="M6.5 2h11A4.5 4.5 0 0 1 22 6.5v5a4.5 4.5 0 0 1-4.5 4.5H13l-8.5 6.5L6 16a4.5 4.5 0 0 1-4-4.5v-5A4.5 4.5 0 0 1 6.5 2z"/></g></svg>
       <span style="font-size: 22px; font-weight: 700; line-height: 1;">chat</span>
       <div style="flex: 1;"></div>
       <div class="row" style="gap: 6px; color: var(--muted-text);">
@@ -532,7 +550,7 @@ rost = head() + f"""
     <span class="chip deaf"><span class="dot deaf"></span>1</span>
   </div>
   <div class="stack" style="flex: 1; min-height: 0; overflow: auto; padding: 4.8px 14.4px 14.4px;">
-{roster(False, compact=False, offline_expanded=True)}
+{roster(False, compact=False, offline_expanded=True, with_detail=True)}
     <span class="xs muted" style="padding-top: 9.6px; border-top: 1px solid var(--border-soft); margin-top: 9.6px;">A buddy is a session. Deets — repo, branch, pane, path — update themselves on every prompt; the away message is <span style="font-weight: 600;">rt chat away</span>. Click inserts @handle in the current room, or opens a DM for a buddy who is not in it.</span>
   </div>
 </div>

@@ -23,7 +23,7 @@ const b = (
     ...extra,
   }) as RosterBuddy;
 
-test("four sections in the spec's order, offline collapsed to one line", () => {
+test("four sections in the spec's order, offline collapsed to one line", async () => {
   render(
     <Roster
       now={now}
@@ -58,7 +58,8 @@ test("four sections in the spec's order, offline collapsed to one line", () => {
   expect(screen.getByTestId('status-rt-chat-wt')).toHaveTextContent(
     'listening'
   );
-  expect(screen.getByTestId('sub-gitq-main')).toHaveTextContent(
+  await userEvent.hover(screen.getByTestId('row-gitq-main'));
+  expect(await screen.findByTestId('sub-gitq-main')).toHaveTextContent(
     /armed, silent 22m — tail died/
   );
   expect(screen.getByText('“waiting on CI”')).toBeInTheDocument();
@@ -72,7 +73,7 @@ test("four sections in the spec's order, offline collapsed to one line", () => {
   ).toBeNull();
 });
 
-test('a buddy is identified by what it is: branch, pane, path, and its rooms as tags', () => {
+test('a buddy is identified by what it is: branch, pane, path, and its rooms as tags, in its detail card', async () => {
   render(
     <Roster
       now={now}
@@ -87,7 +88,10 @@ test('a buddy is identified by what it is: branch, pane, path, and its rooms as 
       ]}
     />
   );
-  expect(screen.getByText(/…\/acme-wt-invite-onboarding/)).toBeInTheDocument();
+  await userEvent.hover(screen.getByTestId('row-acme-dev-42'));
+  expect(
+    await screen.findByText(/…\/acme-wt-invite-onboarding/)
+  ).toBeInTheDocument();
   expect(screen.getByText(/fix-auth · pane 4/)).toBeInTheDocument();
   expect(screen.getByText('#build')).toBeInTheDocument();
   expect(screen.getByText('dm')).toBeInTheDocument();
@@ -112,7 +116,7 @@ test('picking a buddy says whether it is in this room', async () => {
   expect(onPick).toHaveBeenNthCalledWith(2, 'c', { inRoom: false });
 });
 
-test('withheld: no status word or colour while the daemon is unreachable', () => {
+test('withheld: no status word or colour while the daemon is unreachable', async () => {
   render(
     <Roster
       now={now}
@@ -122,7 +126,8 @@ test('withheld: no status word or colour while the daemon is unreachable', () =>
     />
   );
   expect(screen.getByTestId('status-a')).toHaveTextContent('—');
-  expect(screen.getByTestId('sub-a')).toHaveTextContent(
+  await userEvent.hover(screen.getByTestId('row-a'));
+  expect(await screen.findByTestId('sub-a')).toHaveTextContent(
     /presence unknown while the daemon is down/
   );
 });

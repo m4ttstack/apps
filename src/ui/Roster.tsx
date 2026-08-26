@@ -1,5 +1,12 @@
 import { Fragment } from 'react';
-import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
+import {
+  Box,
+  Group,
+  HoverCard,
+  Stack,
+  Text,
+  UnstyledButton,
+} from '@mantine/core';
 import type { BuddyStatus, PresenceRow } from '@mattstack/rt-client';
 
 import { Icon } from '@ui/icons';
@@ -182,6 +189,12 @@ function branchPaneLine(buddy: RosterBuddy): string | undefined {
   return parts.length > 0 ? parts.join(' · ') : undefined;
 }
 
+/** One line per buddy, the way a buddy list reads: dot, handle, status,
+    and the away message when there is one. Where it is (branch, pane,
+    path), its heartbeat and its rooms are a hover away in the detail card,
+    not on the row: five lines of 10px per buddy was the whole roster
+    shouting at once. The phone drawer has no hover, so its rows carry the
+    heartbeat line and nothing else. */
 function MemberRow({
   buddy,
   now,
@@ -200,8 +213,11 @@ function MemberRow({
   const { handle } = buddy;
   const status = buddy.status as 'live' | 'idle' | 'deaf';
   const branchPane = branchPaneLine(buddy);
+  const heartbeat = reachable
+    ? statusDetail(buddy, now)
+    : 'presence unknown while the daemon is down';
 
-  return (
+  const row = (
     <UnstyledButton
       data-testid={`row-${handle}`}
       onClick={() => onPick?.(handle, { inRoom })}
@@ -240,7 +256,6 @@ function MemberRow({
             {reachable ? STATUS_WORD[buddy.status] : '—'}
           </Text>
         </Group>
-
         {reachable && buddy.statusText && (
           <Text
             component="span"
@@ -254,41 +269,60 @@ function MemberRow({
             “{buddy.statusText}”
           </Text>
         )}
-
-        {branchPane && (
-          <Text size="xs" c="dimmed" truncate>
-            {branchPane}
+        {compact && (
+          <Text
+            component="span"
+            data-testid={`sub-${handle}`}
+            style={{ fontSize: '10.56px', color: 'var(--tk-muted-text)' }}
+          >
+            {heartbeat}
           </Text>
-        )}
-
-        {!compact && buddy.cwd && (
-          <Text size="xs" c="dimmed" truncate>
-            {headTruncatePath(buddy.cwd)}
-          </Text>
-        )}
-
-        <Text
-          component="span"
-          data-testid={`sub-${handle}`}
-          style={{
-            fontSize: '10.56px',
-            color: 'var(--tk-muted-text)',
-          }}
-        >
-          {reachable
-            ? statusDetail(buddy, now)
-            : 'presence unknown while the daemon is down'}
-        </Text>
-
-        {reachable && buddy.rooms.length > 0 && (
-          <Group gap={3} wrap="wrap" style={{ paddingTop: 2 }}>
-            {buddy.rooms.map(room => (
-              <Tag key={room} handle={handle} room={room} />
-            ))}
-          </Group>
         )}
       </Stack>
     </UnstyledButton>
+  );
+
+  if (compact) return row;
+
+  return (
+    <HoverCard
+      position="left-start"
+      width={280}
+      shadow="md"
+      openDelay={150}
+      closeDelay={100}
+      withinPortal
+    >
+      <HoverCard.Target>{row}</HoverCard.Target>
+      <HoverCard.Dropdown data-testid={`detail-${handle}`} p="sm">
+        <Stack gap={2}>
+          {branchPane && (
+            <Text size="xs" c="dimmed" truncate>
+              {branchPane}
+            </Text>
+          )}
+          {buddy.cwd && (
+            <Text size="xs" c="dimmed" truncate>
+              {headTruncatePath(buddy.cwd)}
+            </Text>
+          )}
+          <Text
+            component="span"
+            data-testid={`sub-${handle}`}
+            style={{ fontSize: '10.56px', color: 'var(--tk-muted-text)' }}
+          >
+            {heartbeat}
+          </Text>
+          {reachable && buddy.rooms.length > 0 && (
+            <Group gap={3} wrap="wrap" style={{ paddingTop: 2 }}>
+              {buddy.rooms.map(room => (
+                <Tag key={room} handle={handle} room={room} />
+              ))}
+            </Group>
+          )}
+        </Stack>
+      </HoverCard.Dropdown>
+    </HoverCard>
   );
 }
 
