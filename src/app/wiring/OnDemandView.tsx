@@ -21,8 +21,9 @@ export interface OnDemandViewProps {
  * promoted to its own tab: skills invoked by name rather than run by the
  * pipeline (Group 1 -- see `outline.ts`'s `external`/`unwired` fields). The
  * other two groups the old section bundled in are demoted here rather than
- * dropped: another plugin's binders get one muted footnote line, and unwired
- * verbs get a count that points at the Health tab, which already lists them.
+ * dropped: another plugin's binders get one muted footnote line, and the
+ * skills and fills nothing binds get a count that points at the Health tab,
+ * which lists them together under Unwired.
  *
  * Shares the split-view + detail-panel machinery with `WiringSpineView`
  * (`SkillSplitLayout` + `useSkillSelection`) rather than duplicating it --
