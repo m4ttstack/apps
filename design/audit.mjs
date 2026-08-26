@@ -129,14 +129,9 @@ export const TARGETS = [
   // now point at the real component's own testids. `find` targets a
   // fixture handle (CHAT_FIXTURES=1) rather than a class, same convention
   // RoomRail/PageBar's entries use.
-  {
-    spec: '.card',
-    find: '[data-testid="roster"]',
-    props: ['background', 'border-radius'],
-    why: {
-      border: 'full shorthand (width/style/colour combined); not separately enumerated, verified by eye',
-    },
-  },
+  // No `.card` target: the desktop artboards became PageShell panels
+  // (sidebar, header, content) on 2026-08-26, so nothing on the page is a
+  // card any more. The phone drawers never were.
   {
     spec: '.member',
     find: '[data-testid="row-rt-chat-wt"]',
