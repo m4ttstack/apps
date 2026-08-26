@@ -201,3 +201,32 @@ test('a body renders its paragraphs, lists, bold and links, and leaves code alon
   expect(link).toHaveAttribute('href', 'http://x.test/a');
   expect(screen.getByText('**not bold**').tagName).toBe('CODE');
 });
+
+test('two bare URLs in one body both render as links', () => {
+  // Regression: URL_RE carries the `g` flag, so a global-regex `.test()` in
+  // the render loop advanced `lastIndex` and the second URL fell through to
+  // plain text. The anchored `URL_TEST` is stateless.
+  renderWithProviders(
+    <Transcript
+      room="build"
+      messages={[
+        {
+          id: 1,
+          room: 'build',
+          handle: 'deck-main',
+          body: 'see http://x.test/a and http://y.test/b',
+          mentions: [],
+          postedAt: 1,
+        },
+      ]}
+    />
+  );
+  expect(screen.getByRole('link', { name: 'http://x.test/a' })).toHaveAttribute(
+    'href',
+    'http://x.test/a'
+  );
+  expect(screen.getByRole('link', { name: 'http://y.test/b' })).toHaveAttribute(
+    'href',
+    'http://y.test/b'
+  );
+});

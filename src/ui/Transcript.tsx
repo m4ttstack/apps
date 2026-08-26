@@ -126,6 +126,10 @@ function renderMentions(
 }
 
 const URL_RE = /(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/g;
+/** Same source without `g`: `test` on a global regex advances `lastIndex`
+    across calls, but `split` never resets it, so a second bare URL in one
+    body would test false and render as text. Anchored, stateless. */
+const URL_TEST = new RegExp(`^${URL_RE.source}$`);
 
 /** `**bold**` and bare URLs inside a prose chunk that has already been split
     away from code spans, so neither markup form is ever read inside code. */
@@ -144,7 +148,7 @@ function renderInline(
       ];
     }
     return chunk.split(URL_RE).map((piece, j) =>
-      URL_RE.test(piece) && piece.startsWith('http') ? (
+      URL_TEST.test(piece) ? (
         <a
           key={`${keyPrefix}-u-${i}-${j}`}
           href={piece}

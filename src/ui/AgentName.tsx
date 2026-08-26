@@ -105,7 +105,7 @@ export function AgentCard({
   const ctx = useBuddies();
   const reachable = reachableProp ?? ctx?.reachable ?? true;
   const now = nowProp ?? ctx?.now ?? Date.now();
-  const status = buddy.status as 'live' | 'idle' | 'deaf';
+  const status = buddy.status;
   const inRoom = inRoomProp ?? ctx?.roomMembers.includes(buddy.handle) ?? false;
   const branchPane = [
     buddy.branch,
@@ -123,8 +123,14 @@ export function AgentCard({
               height: 8,
               borderRadius: '50%',
               flex: 'none',
-              background: reachable ? DOT_COLOR[status] : 'transparent',
-              border: reachable ? undefined : '1px solid var(--tk-border)',
+              background:
+                reachable && status !== 'offline'
+                  ? DOT_COLOR[status]
+                  : 'transparent',
+              border:
+                reachable && status !== 'offline'
+                  ? undefined
+                  : '1px solid var(--tk-border)',
             }}
           />
           <Text size="lg" fw={600} truncate>
@@ -137,9 +143,10 @@ export function AgentCard({
             fontSize: '10.56px',
             fontWeight: 500,
             flex: 'none',
-            color: reachable
-              ? STATUS_TEXT_COLOR[status]
-              : 'var(--tk-muted-text)',
+            color:
+              reachable && status !== 'offline'
+                ? STATUS_TEXT_COLOR[status]
+                : 'var(--tk-muted-text)',
           }}
         >
           {reachable ? STATUS_WORD[buddy.status] : '—'}

@@ -129,12 +129,15 @@ export function PageBar({
   onOrderChange,
 }: PageBarProps) {
   const handleMarkRead = () => {
-    onMarkRead?.(room.room);
+    // Refresh only after the POST resolves: the count clears server-side
+    // first, so a refetch fired before it would read the stale unread.
     void fetch('/api/chat/mark', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ room: room.room }),
-    }).catch(() => {});
+    })
+      .then(() => onMarkRead?.(room.room))
+      .catch(() => {});
   };
 
   const title = (

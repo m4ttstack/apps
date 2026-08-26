@@ -405,7 +405,7 @@ def desktop(down=False):
               {'<span class="xs muted">last known</span>' if down else ''}
             </div>
             <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
-{roster(down, compact=True)}
+{roster(down, compact=False)}
             </div>
           </div>
 

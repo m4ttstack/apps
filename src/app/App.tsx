@@ -979,6 +979,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
                     reachable={daemon.reachable}
                     order={roomOrder}
                     onOrderChange={setRoomOrder}
+                    onMarkRead={() => refetchRooms()}
                   />
                 </PageShell.Header>
               )}
