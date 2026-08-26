@@ -363,7 +363,6 @@ export function Roster({
         padding: compact
           ? undefined
           : 'var(--mantine-spacing-lg) var(--mantine-spacing-xl)',
-        overflowY: 'auto',
       }}
     >
       {!compact && (
@@ -401,30 +400,36 @@ export function Roster({
         </Group>
       )}
 
-      {sections.map(section => (
-        <Fragment key={section.status}>
-          <SectionHeading
-            status={section.status}
-            label={section.label}
-            count={section.members.length}
-          />
-          {section.members.map(buddy =>
-            section.status === 'offline' ? (
-              <OfflineRow key={buddy.handle} buddy={buddy} now={now} />
-            ) : (
-              <MemberRow
-                key={buddy.handle}
-                buddy={buddy}
-                now={now}
-                reachable={daemonReachable}
-                inRoom={roomMembers.includes(buddy.handle)}
-                compact={compact}
-                onPick={onPick}
-              />
-            )
-          )}
-        </Fragment>
-      ))}
+      {/* The BUDDIES row stays put; only the sections scroll. */}
+      <Box
+        data-testid="roster-scroll"
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
+      >
+        {sections.map(section => (
+          <Fragment key={section.status}>
+            <SectionHeading
+              status={section.status}
+              label={section.label}
+              count={section.members.length}
+            />
+            {section.members.map(buddy =>
+              section.status === 'offline' ? (
+                <OfflineRow key={buddy.handle} buddy={buddy} now={now} />
+              ) : (
+                <MemberRow
+                  key={buddy.handle}
+                  buddy={buddy}
+                  now={now}
+                  reachable={daemonReachable}
+                  inRoom={roomMembers.includes(buddy.handle)}
+                  compact={compact}
+                  onPick={onPick}
+                />
+              )
+            )}
+          </Fragment>
+        ))}
+      </Box>
     </Stack>
   );
 }
