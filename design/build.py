@@ -96,6 +96,7 @@ CSS = r"""
     .opt.on { background: color-mix(in srgb, var(--accent) var(--wash), transparent); }
 """
 ICON = {
+    'collapse': '<svg width="{s}" height="{s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19V5"/><path d="m13 6-6 6 6 6"/><path d="M7 12h14"/></svg>',
  'panel': '<svg width="{s}" height="{s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg>',
  'rooms': '<svg width="{s}" height="{s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
  'users': '<svg width="{s}" height="{s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
@@ -349,15 +350,17 @@ def desktop(down=False):
          edge-to-edge panels inside the scroll-clamped content. No moat. -->
     <div style="display: flex; flex: 1; min-height: 0; height: 772px;">
 
-      <div class="stack" style="width: 244px; flex: none; background: var(--bg2); border-right: 1px solid var(--border); padding: 11.2px 6px; overflow: auto;">
+      <div class="stack" style="width: 244px; flex: none; background: var(--bg2); border-right: 1px solid var(--border); padding: 11.2px 6px; overflow: auto; position: relative;">
 {rooms_rail(down)}
+        <!-- PageShell.Sidebar's collapse trigger: a 34px default ActionIcon centred on the sidebar edge -->
+        <button class="row" aria-label="Toggle sidebar" style="position: absolute; top: 50%; right: 0; transform: translate(50%, -50%); width: 34px; height: 34px; justify-content: center; background: var(--bg1); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); cursor: pointer; padding: 0;">{ic('collapse', 18)}</button>
       </div>
 
       <div class="stack" style="flex: 1; min-width: 0; min-height: 0;">
 {banner}
         <div style="display: flex; flex: 1; min-height: 0; align-items: stretch;">
 
-          <div class="stack" style="flex: 1; min-width: 0; padding: 11.2px 14.4px; background: var(--bg2);">
+          <div class="stack" style="flex: 1; min-width: 0; padding: 11.2px 14.4px 11.2px 31.4px; background: var(--bg2);">
             <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
 {transcript()}
             </div>

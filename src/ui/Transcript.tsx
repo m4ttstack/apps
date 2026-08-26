@@ -388,9 +388,12 @@ export function Transcript({
         display: 'flex',
         flexDirection: 'column',
         background: bare ? undefined : 'var(--tk-panel)',
+        // The sidebar's collapse trigger is a 34px button centred on the
+        // sidebar edge, so 17px of it rides over this panel: the left
+        // padding clears it, and nothing else, so text never sits under it.
         padding: bare
           ? undefined
-          : 'var(--mantine-spacing-lg) var(--mantine-spacing-xl)',
+          : 'var(--mantine-spacing-lg) var(--mantine-spacing-xl) var(--mantine-spacing-lg) calc(var(--mantine-spacing-xl) + 17px)',
       }}
       data-testid="transcript"
     >
