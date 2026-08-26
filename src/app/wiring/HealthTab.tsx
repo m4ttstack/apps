@@ -411,11 +411,7 @@ export function HealthTab({ pack, onOpenSkill }: HealthTabProps) {
           label="Never compiled"
           color="bad"
         />
-        <StatCard
-          count={unwiredRows.length}
-          label="Unwired"
-          color={null}
-        />
+        <StatCard count={unwiredRows.length} label="Unwired" color={null} />
       </div>
 
       <div style={{ marginTop: 18 }}>
