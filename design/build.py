@@ -192,7 +192,7 @@ def transcript(msgs=MSGS, edge=True):
         codeblk = f'\n            <span class="code">{code}</span>' if code else ''
         out.append(f"""        <div class="msg">
           <div class="stack" style="gap: 1px; flex: 1; min-width: 0;">
-            <div class="row" style="gap: 7.2px;"><span style="font-weight: 600;">{h}</span><span class="xs muted">{t}</span></div>
+            <div class="row" style="gap: 7.2px;"><span style="font-size: 13.6px; font-weight: 600;">{h}</span><span class="xs muted">{t}</span></div>
             <span class="msg-body">{body}</span>{codeblk}
           </div>
         </div>""")

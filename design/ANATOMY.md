@@ -89,9 +89,10 @@ separated from the next by `border-top: 1px solid var(--border-soft)` — the
 
 Inside, a stack at `gap: 1px`:
 
-- header row, `gap: 7.2px`: handle in `.sm` at `font-weight: 600`, then time
-  in `.xs.muted`. **Local time.**
-- body in `.msg-body` (12.16px, `line-height: 1.55`, `overflow-wrap: anywhere`)
+- header row, `gap: 7.2px`: handle at 13.6px (`lg`, a step above the body)
+  and `font-weight: 600`, then time in `.xs.muted`. **Local time.**
+- body in `.msg-body` (12.16px, `line-height: 1.55`, `overflow-wrap: anywhere`,
+  `white-space: pre-wrap` so posted newlines survive)
 - optional `.code` block: own `overflow-x: auto`, `margin-top: 4.8px`
 
 **No status dot beside a message.** A dot next to a 21:58 message would be a
