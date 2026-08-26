@@ -75,7 +75,7 @@ jobs:
           # can answer proves nothing.
           css=$(curl -s localhost:11099/ | grep -oE '/assets/[^"]+\.css' | head -1)
           test -n "$css"
-          font=$(curl -s "localhost:11099$css" | grep -oE '/assets/[^)\"]+\.woff2' | head -1)
+          font=$(curl -s "localhost:11099$css" | grep -oE '/assets/[^)"]+\.woff2' | head -1)
           test -n "$font"
           test "$(curl -s -o /dev/null -w '%{http_code}' "localhost:11099$font")" = 200
           test "$(curl -s -o /dev/null -w '%{content_type}' "localhost:11099$font")" = "font/woff2"
