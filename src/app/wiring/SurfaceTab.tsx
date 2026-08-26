@@ -69,7 +69,10 @@ function commandLine(
     below does not fire on every render -- only when the server truth the
     rows describe actually changes. */
 function rowsSignature(rows: SkillsSurfaceRow[]): string {
-  return rows.map(row => `${row.name}:${row.status}`).join('|');
+  // `kind` is part of the truth: a row that becomes `missing` on refetch (same
+  // name and status) must reset staging, or a since-invalid entry lingers in
+  // the delta and Apply submits a name rt rejects.
+  return rows.map(row => `${row.name}:${row.status}:${row.kind}`).join('|');
 }
 
 /**
