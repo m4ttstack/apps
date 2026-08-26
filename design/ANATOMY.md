@@ -63,7 +63,8 @@ Console's second 64px bar. Title at **20px / 700** (`#build`, or the
 Then the fleet chips, all `.chip` (22px tall, radius 6px, `gap: 4.8px`,
 `padding: 0 8px`, 10.56px / 500):
 
-- `N signed in` — plain chip, no dot
+- `N in room` — plain chip, no dot (the bar counts this room's members; the
+  roster counts the fleet)
 - `N listening` — `.chip.live` with a `.dot.live`
 - `N idle` — `.chip.idle` with a `.dot.idle`
 - `N deaf` — `.chip.deaf` with a `.dot.deaf` (this one also gets a `bad` 7% wash)
@@ -73,7 +74,7 @@ A chip whose count is **≤2 names its handles**: `1 deaf: gitq-main`. That is
 what makes the stuck agent read first instead of found last. `offline` never
 gets a chip.
 
-Daemon down: exactly two plain chips, `N signed in · last known` and
+Daemon down: exactly two plain chips, `N in room · last known` and
 `presence withheld`. No dots, no status variants.
 
 ## Transcript — Task 5

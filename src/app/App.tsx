@@ -973,7 +973,9 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
                 <PageShell.Header>
                   <PageBar
                     room={activeRoomSummary}
-                    buddies={buddies}
+                    buddies={buddies.filter(b =>
+                      roomMembers.includes(b.handle)
+                    )}
                     reachable={daemon.reachable}
                     order={roomOrder}
                     onOrderChange={setRoomOrder}

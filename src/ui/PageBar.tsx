@@ -63,8 +63,8 @@ export interface PageBarBuddy {
 export interface PageBarProps {
   room: RoomSummary;
   buddies: PageBarBuddy[];
-  /** Daemon reachable. When false the bar shows only the last-known signed-in
-      count and "presence withheld": status is the daemon's, never inferred. */
+  /** The room's members with their presence: the bar counts who is in THIS
+      room, the roster counts the fleet. */
   reachable?: boolean;
   onMarkRead?: (room: string) => void;
   /** The rail's sort, the artboard's `join order` select. */
@@ -227,7 +227,7 @@ export function PageBar({
           style={{ flex: '1 1 0%', minWidth: 0, overflowX: 'auto' }}
         >
           <Box component="span" style={CHIP_BASE} data-testid="chip-signed-in">
-            {signedInCount(buddies)} signed in · last known
+            {signedInCount(buddies)} in room · last known
           </Box>
           <Box component="span" style={CHIP_BASE} data-testid="chip-withheld">
             presence withheld
@@ -261,7 +261,7 @@ export function PageBar({
         style={{ flex: '1 1 0%', minWidth: 0, overflowX: 'auto' }}
       >
         <Box component="span" style={CHIP_BASE} data-testid="chip-signed-in">
-          {signedInTotal} signed in
+          {signedInTotal} in room
         </Box>
         {live.length > 0 && (
           <Box

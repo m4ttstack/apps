@@ -343,9 +343,9 @@ def desktop(down=False):
         <button class="aicon" aria-label="Probe now" style="color: var(--bad);">{ic('refresh', 16)}</button>
       </div>"""
     if down:
-        chips = '<span class="chip">6 signed in · last known</span><span class="chip">presence withheld</span>'
+        chips = '<span class="chip">6 in room · last known</span><span class="chip">presence withheld</span>'
     else:
-        chips = '<span class="chip">6 signed in</span><span class="chip live"><span class="dot live"></span>3 listening</span><span class="chip idle"><span class="dot idle"></span>2 idle</span><span class="chip deaf"><span class="dot deaf"></span>1 deaf: gitq-main</span>'
+        chips = '<span class="chip">6 in room</span><span class="chip live"><span class="dot live"></span>3 listening</span><span class="chip idle"><span class="dot idle"></span>2 idle</span><span class="chip deaf"><span class="dot deaf"></span>1 deaf: gitq-main</span>'
     mem_style = 'opacity: 0.6;' if down else ''
     return head() + f"""
 <div class="app {{{{schemeClass}}}}" style="width: 1440px; min-height: 900px; display: flex;">
