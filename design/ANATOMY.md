@@ -115,7 +115,7 @@ A DM transcript opens with `start of this conversation · <day>`.
 A 300px panel on `bg2` with a `border-left`, `padding: 11.2px 14.4px`,
 scrolling on its own to the right of the transcript.
 
-Heading `BUDDIES`, caption `the fleet, not the room`.
+Heading `BUDDIES` (caption `last known` only while the daemon is down).
 
 Four sections **in this order**, each a `.sect` with its count: `listening`,
 `idle`, `deaf`, `offline · last 24h`. Within a section, sign-in order.

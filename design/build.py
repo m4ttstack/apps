@@ -408,7 +408,7 @@ def desktop(down=False):
           <div class="stack roster-panel" style="{mem_style}">
             <div class="row" style="justify-content: space-between; padding-bottom: 4.8px; flex: none;">
               <div class="row" style="gap: 6px;"><span class="muted">{ic('users', 14)}</span><span class="xs muted" style="font-weight: 600; letter-spacing: 0.04em;">BUDDIES</span></div>
-              <span class="xs muted">{'last known' if down else 'the fleet, not the room'}</span>
+              {'<span class="xs muted">last known</span>' if down else ''}
             </div>
             <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
 {roster(down, compact=True)}
@@ -626,7 +626,6 @@ dmdesk = head() + f"""
         <div class="card stack" style="width: 300px; flex: none; padding: 11.2px 14.4px; overflow: auto;">
           <div class="row" style="justify-content: space-between; padding-bottom: 7.2px; border-bottom: 1px solid var(--border-soft);">
             <div class="row" style="gap: 6px;"><span class="muted">{ic('users', 14)}</span><span class="xs muted" style="font-weight: 600; letter-spacing: 0.04em;">BUDDIES</span></div>
-            <span class="xs muted">the fleet, not the room</span>
           </div>
 {roster(False, compact=True)}
         </div>

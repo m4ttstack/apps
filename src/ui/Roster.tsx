@@ -335,14 +335,13 @@ export function Roster({
               BUDDIES
             </Text>
           </Group>
-          <Text
-            style={{
-              fontSize: '10.56px',
-              color: 'var(--tk-muted-text)',
-            }}
-          >
-            {daemonReachable ? 'the fleet, not the room' : 'last known'}
-          </Text>
+          {!daemonReachable && (
+            <Text
+              style={{ fontSize: '10.56px', color: 'var(--tk-muted-text)' }}
+            >
+              last known
+            </Text>
+          )}
         </Group>
       )}
 
