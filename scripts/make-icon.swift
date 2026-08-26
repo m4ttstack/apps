@@ -13,8 +13,10 @@ import Foundation
 import CoreGraphics
 import AppKit
 
-let bg: (CGFloat, CGFloat, CGFloat) = (22 / 255, 18 / 255, 36 / 255)     // #161224
-let fg: (CGFloat, CGFloat, CGFloat) = (255 / 255, 107 / 255, 157 / 255)   // #FF6B9D
+// Pink canvas, dark glyph, as console's mark is: the dark squircle receded
+// at 16px in a tab strip. Source constants; they ship as #ff84ad / #1d1830.
+let bg: (CGFloat, CGFloat, CGFloat) = (255 / 255, 107 / 255, 157 / 255)   // #FF6B9D
+let fg: (CGFloat, CGFloat, CGFloat) = (22 / 255, 18 / 255, 36 / 255)     // #161224
 
 struct Slot { let filename: String; let pixels: Int }
 let slots: [Slot] = [
@@ -108,7 +110,7 @@ func render(_ slot: Slot) {
     // Favicon sizes: the bubble alone, large. At 16px the "m" plus bubble
     // pair reads as two smudges; one mark filling the canvas still reads.
     if px <= 64 {
-        let side = size * 0.78
+        let side = size * 0.82
         // The tail hangs below the body, so the box is nudged down until the
         // body, the mass the eye centres, sits on the canvas centre.
         drawBubbleGlyph(ctx, in: CGRect(x: (size - side) / 2.0, y: (size - side) / 2.0 - size * 0.14,
