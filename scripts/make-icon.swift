@@ -109,7 +109,9 @@ func render(_ slot: Slot) {
     // pair reads as two smudges; one mark filling the canvas still reads.
     if px <= 64 {
         let side = size * 0.78
-        drawBubbleGlyph(ctx, in: CGRect(x: (size - side) / 2.0, y: (size - side) / 2.0 - size * 0.02,
+        // The tail hangs below the body, so the box is nudged down until the
+        // body, the mass the eye centres, sits on the canvas centre.
+        drawBubbleGlyph(ctx, in: CGRect(x: (size - side) / 2.0, y: (size - side) / 2.0 - size * 0.14,
                                         width: side, height: side), color: fgColor, filled: true)
         write(ctx, slot)
         return
