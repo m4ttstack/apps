@@ -340,7 +340,9 @@ export function VersionTimeline({
               <RuntimeRow
                 first
                 label="working tree"
-                color={dirty === null ? null : dirty.length === 0 ? 'ok' : 'warn'}
+                color={
+                  dirty === null ? null : dirty.length === 0 ? 'ok' : 'warn'
+                }
               >
                 {dirty === null
                   ? 'not measured — git status did not answer'

@@ -661,7 +661,11 @@ describe('WiringMap: actions', () => {
         limit: 20,
         truncated: false,
         commits: [],
-        runtime: { dirtyFiles: [], moreDirtyFiles: false, packVersion: '0.4.11' },
+        runtime: {
+          dirtyFiles: [],
+          moreDirtyFiles: false,
+          packVersion: '0.4.11',
+        },
       })
     );
     const user = userEvent.setup();
@@ -678,7 +682,9 @@ describe('WiringMap: actions', () => {
     // for a commit to have touched -- the same reason it carries no health.
     const stagePanel = await openPanel(user, 'stage-provision');
     await user.click(within(stagePanel).getByRole('tab', { name: 'History' }));
-    expect(within(stagePanel).getByTestId('detail-no-verb')).toBeInTheDocument();
+    expect(
+      within(stagePanel).getByTestId('detail-no-verb')
+    ).toBeInTheDocument();
   });
 
   it('reads the verb history scoped to that verb from the History tab', async () => {
@@ -693,7 +699,11 @@ describe('WiringMap: actions', () => {
         limit: 20,
         truncated: false,
         commits: [],
-        runtime: { dirtyFiles: [], moreDirtyFiles: false, packVersion: '0.4.11' },
+        runtime: {
+          dirtyFiles: [],
+          moreDirtyFiles: false,
+          packVersion: '0.4.11',
+        },
       })
     );
     const user = userEvent.setup();
@@ -726,9 +736,9 @@ describe('WiringMap: actions', () => {
       await within(panel).findByText(/not a diff against the artifact/)
     ).toBeInTheDocument();
     await waitFor(() =>
-      expect(within(panel).getByTestId('compile-preview-body')).toHaveTextContent(
-        'name: work'
-      )
+      expect(
+        within(panel).getByTestId('compile-preview-body')
+      ).toHaveTextContent('name: work')
     );
     // No write route exists, so the panel must not offer to apply anything.
     expect(
@@ -805,7 +815,9 @@ describe('WiringMap: actions', () => {
     await user.click(within(panel).getByRole('tab', { name: 'Compiled' }));
 
     await waitFor(() =>
-      expect(within(panel).getByTestId('compiled-slot-tiering')).toBeInTheDocument()
+      expect(
+        within(panel).getByTestId('compiled-slot-tiering')
+      ).toBeInTheDocument()
     );
     expect(
       within(panel).queryByTestId('compiled-slot-domain')

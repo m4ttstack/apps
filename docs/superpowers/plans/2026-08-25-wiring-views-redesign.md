@@ -26,6 +26,7 @@
 ## Verification gate (every task)
 
 A task is DONE only when ALL pass:
+
 1. `bun run typecheck` clean.
 2. `bunx vitest run <touched test files>` green (task adds/updates tests).
 3. Renders in Fast Browser at `http://localhost:5173/wiring` with no console errors.
@@ -36,6 +37,7 @@ A task is DONE only when ALL pass:
 ## File Structure
 
 New files:
+
 - `src/app/wiring/WiringTabs.tsx` — the tab definitions + active-tab state wiring (or inline in WiringMap if small).
 - `src/app/wiring/SummaryStrip.tsx` — structured fact strip (replaces `SpineSummary` run-on).
 - `src/app/wiring/SkillDetailPanel.tsx` — the per-skill detail panel with sub-tabs; hosts `CompiledView`, `VersionTimeline` body, `InverseIndex` body, inline `Rebind`.
@@ -43,6 +45,7 @@ New files:
 - `src/app/wiring/HealthTab.tsx` — grouped check results + stat cards.
 
 Modified:
+
 - `src/app/wiring/WiringMap.tsx` — tab scaffold, detail-panel state, drawer removal.
 - `src/app/wiring/SkillRow.tsx` / `SlotRow.tsx` — slim to one-line; slot tables leave the row.
 - `src/app/wiring/SurfaceRoster.tsx` — body extracted for `SurfaceTab` (or superseded).
@@ -52,15 +55,18 @@ Modified:
 ### Task 1: Top-level tab scaffold
 
 **Files:**
+
 - Modify: `src/app/wiring/WiringMap.tsx` (WiringMap L718-834; WiringSpineView L363-686)
 - Create: `src/app/wiring/HealthTab.tsx` (placeholder for now)
 - Test: `src/app/wiring/__tests__/WiringMap.tabs.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `PageShellTab` from `@ui/core` (`{id,label,icon?,active?,onClick?}`); `useSchemeColors()`.
 - Produces: an `activeTab` state (`'pipeline'|'surface'|'health'`) in WiringMap; Pipeline tab renders existing `WiringSpineView` unchanged; Surface tab renders existing `SurfaceRoster` body inline (Task 5 refines); Health tab renders `HealthTab` placeholder.
 
 **Steps:**
+
 - [ ] Write failing test: `/wiring` renders a tab bar with tabs "Pipeline", "Surface", "Health"; clicking "Health" hides the spine and shows the Health panel. (Mock `usePacks`/composition/check as the existing tests do.)
 - [ ] Run it, confirm it fails.
 - [ ] Add `const [activeTab, setActiveTab] = useState<'pipeline'|'surface'|'health'>('pipeline')` to WiringMap. Build `tabs: PageShellTab[]` with `icon` (`Icons.zap`/`Icons.layers`/`Icons.activity` or nearest), `active`, `onClick`. Pass `tabs` to `PageShell`.
@@ -72,6 +78,7 @@ Modified:
 ### Task 2: Pipeline summary strip + slim rows
 
 **Files:**
+
 - Create: `src/app/wiring/SummaryStrip.tsx`
 - Modify: `src/app/wiring/WiringMap.tsx` (replace `SpineSummary` L189-297 usage), `src/app/wiring/SkillRow.tsx`, `src/app/wiring/SlotRow.tsx`
 - Test: `src/app/wiring/__tests__/SummaryStrip.test.tsx`, update SkillRow tests
@@ -79,10 +86,12 @@ Modified:
 **Parity target:** `Main.dc.html` summary strip + stage rows.
 
 **Interfaces:**
+
 - `SummaryStrip` props: `{ orchestrator: SpineEntry|null; workType: string|null; stageCount: number; health: WiringHealth-ish summary; attentionCount: number }`. Renders the 5 facts (Orchestrator link / Work type / Stages / Pack health / Attention) with `flabel` (10px uppercase `text.muted`) + `fval` (13px), dividers `border-right` `SOFT_RULE`, padding matching `Main.dc.html` (.summary padding 14px 18px; .fact padding 0 18px).
 - Slim `SkillRow`: keep name/ref/health/`N slots` count + chevron; REMOVE the inline `SlotTable` from the pipeline-row rendering (slot detail moves to the detail panel in Task 4). Row becomes clickable (whole row → detail open, wired in Task 4 via an `onOpen` prop; add the prop now, no-op until Task 4).
 
 **Steps:**
+
 - [ ] Failing test: SummaryStrip renders the five labelled facts with the given values.
 - [ ] Implement SummaryStrip against `Main.dc.html` values (extract exact px/color from the artboard; use tokens).
 - [ ] Replace the run-on `SpineSummary` with `<SummaryStrip .../>`.
@@ -93,12 +102,14 @@ Modified:
 ### Task 3: "Not run by this pipeline" — rename + collapse
 
 **Files:**
+
 - Modify: `src/app/wiring/WiringMap.tsx` (`OutsideThePipeline` L133-179, `OrphanFillRow` L81-126)
 - Test: update `WiringMap`/outside tests
 
 **Parity target:** `Main.dc.html` off-pipeline collapsed section.
 
 **Steps:**
+
 - [ ] Failing test: the off-pipeline section header reads "Not run by this pipeline", is collapsed by default, shows a count + "N other plugin"/"N unwired" badges, and expands on click.
 - [ ] Rename heading + subline ("N skills you invoke directly, plus fills another plugin binds. No run order.").
 - [ ] Wrap the outside list in a collapse (Mantine `Collapse` from `@ui/core`), default closed; header row with chevron + counts (derive from `spine.outside` / `spine.orphans`).
@@ -107,6 +118,7 @@ Modified:
 ### Task 4: Skill detail panel (replaces 4 drawers)
 
 **Files:**
+
 - Create: `src/app/wiring/SkillDetailPanel.tsx`
 - Modify: `src/app/wiring/WiringMap.tsx` (WiringSpineView: replace the 4 drawers L602-683 with panel state; wire row `onOpen`)
 - Test: `src/app/wiring/__tests__/SkillDetailPanel.test.tsx`
@@ -114,6 +126,7 @@ Modified:
 **Parity target:** `Detail.dc.html` (split view: list left, panel right; sub-tabs; inline rebind).
 
 **Interfaces:**
+
 - `SkillDetailPanel` props: `{ pack: string; entry: SpineEntry; composition: SkillsComposition; bindingSites: Record<string,BindingSite[]>; onClose: () => void; onSwitchEntry: (e: SpineEntry) => void }`.
 - Header: name (16px/700), ref (`text.muted`), kind badge, health chip (`text.highContrast`), public/internal switch, "Open source" (vscode link — reuse RowActions logic), "Preview compile", "Copy agent context".
 - Sub-tabs via Mantine `Tabs` from `@ui/core`: **Slots & bindings** (default) / **Compiled** / **History** / **Used by**.
@@ -124,6 +137,7 @@ Modified:
 - Layout: split — left column ~400px condensed spine list (reuse slim rows), right column the panel (`flex:1`), per `Detail.dc.html`. On narrow widths the panel can overlay (defer; desktop split is the spec).
 
 **Steps:**
+
 - [ ] Failing test: clicking a spine row opens the panel with the skill name; the panel shows four sub-tabs; the Slots tab lists the slots; clicking Rebind shows the inline editor with the `rt skills bind` preview.
 - [ ] Extract the drawer bodies: refactor `CompileDrawer`→ use `CompiledView` directly; lift `VersionTimeline`/`InverseIndex`/`Rebind` bodies so they render without their `Drawer`. Keep their internal logic.
 - [ ] Build `SkillDetailPanel` (split layout, header controls, sub-tabs) to `Detail.dc.html` parity.
@@ -134,6 +148,7 @@ Modified:
 ### Task 5: Surface tab (promote roster)
 
 **Files:**
+
 - Create: `src/app/wiring/SurfaceTab.tsx`
 - Modify: `src/app/wiring/WiringMap.tsx` (Surface tab renders `SurfaceTab`), retire `SurfaceRoster` Drawer usage (keep helpers `commandLine`/`effectLine`/`SurfaceDelta`)
 - Test: `src/app/wiring/__tests__/SurfaceTab.test.tsx`
@@ -141,10 +156,12 @@ Modified:
 **Parity target:** `Surface.dc.html` (2-col grid, filter bar, staged-changes footer).
 
 **Interfaces:**
+
 - `SurfaceTab` props: `{ pack: string }` — fetches `useSurface(pack)` itself and `useSkillsApply(pack).surfaceApply`.
 - Reuse the staged-state pattern from `SurfaceRoster` (Map<name,'public'|'internal'>, `delta` memo, toggle vs baseline). Render rows in a 2-col grid (`grid-template-columns: repeat(2, minmax(0,1fr))`), a filter bar (All/Public/Internal/Fill/Compiled chips + text filter), and a footer bar with `commandLine` preview + Discard/Apply.
 
 **Steps:**
+
 - [ ] Failing test: SurfaceTab renders public rows as on, toggling a row stages a change and the footer shows the `rt skills surface set` preview + change count; Discard clears.
 - [ ] Implement to `Surface.dc.html` parity (row height, switch size, badge colors `fill`→cyan/`compiled`→purple, footer).
 - [ ] Wire Apply → `surfaceApply.mutate(delta)`; disabled while `applying`; show `applyError`.
@@ -153,16 +170,19 @@ Modified:
 ### Task 6: Health tab
 
 **Files:**
+
 - Modify: `src/app/wiring/HealthTab.tsx` (replace Task 1 placeholder)
 - Test: `src/app/wiring/__tests__/HealthTab.test.tsx`
 
 **Parity target:** `Health.dc.html` (stat cards + grouped issue lists).
 
 **Interfaces:**
+
 - `HealthTab` props: `{ pack: string; onOpenSkill?: (verb: string) => void }`. Fetches `useSkillsCheck(pack)` + `useCompositionSnapshot(pack)` (for refs/unwired). Derive groups from `SkillsCheck.verbs[].status` (`in-sync`/`stale`/`never-compiled`) + `staleFiles`, and unwired from `buildSpine(...).outside.filter(e => e.unwired)`.
 - Four stat cards (In sync / Source newer / Never compiled / Unwired) with counts; then grouped lists (Recompile needed / Never compiled / Unwired), each row → detail (via `onOpenSkill`).
 
 **Steps:**
+
 - [ ] Failing test: HealthTab renders the 4 stat cards with counts and a "Recompile needed" group listing stale verbs.
 - [ ] Implement to `Health.dc.html` parity (stat card number sizes, dot colors, group head, row layout).
 - [ ] Wire rows to open the detail panel (switch to Pipeline tab + select the entry, or open panel directly).
@@ -171,10 +191,12 @@ Modified:
 ### Task 7: Cleanup + final parity + full browser QA
 
 **Files:**
+
 - Modify: remove now-dead code (`CompileDrawer` wrapper if fully superseded, `SurfaceRoster` Drawer, unused drawer state/imports); `SpineSummary` if replaced.
 - Test: full `bunx vitest run` on `src/app/wiring/**`.
 
 **Steps:**
+
 - [ ] Grep for orphaned imports/exports and dead drawer components; remove.
 - [ ] Full wiring test suite green.
 - [ ] `bun run typecheck` + `bun run lint` clean.

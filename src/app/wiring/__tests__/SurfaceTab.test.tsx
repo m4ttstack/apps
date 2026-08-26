@@ -38,9 +38,7 @@ const ROWS = [
 ];
 
 function renderSurfaceTab(rows: unknown[] = ROWS) {
-  surfaceGet.mockResolvedValue(
-    ok({ pack: 'demo', packDir: '/p', rows })
-  );
+  surfaceGet.mockResolvedValue(ok({ pack: 'demo', packDir: '/p', rows }));
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -102,7 +100,9 @@ describe('SurfaceTab: staging is the whole design', () => {
   });
 
   it('the staged delta names the equivalent CLI command in the footer', async () => {
-    renderSurfaceTab([{ name: 'watch-ci', kind: 'compiled', status: 'internal' }]);
+    renderSurfaceTab([
+      { name: 'watch-ci', kind: 'compiled', status: 'internal' },
+    ]);
     await screen.findByTestId('surface-row-watch-ci');
 
     await userEvent.click(screen.getByRole('switch', { name: /^watch-ci$/ }));
@@ -130,7 +130,9 @@ describe('SurfaceTab: staging is the whole design', () => {
   });
 
   it('a row toggled twice leaves the delta empty rather than listing it as unchanged-but-touched', async () => {
-    renderSurfaceTab([{ name: 'watch-ci', kind: 'compiled', status: 'internal' }]);
+    renderSurfaceTab([
+      { name: 'watch-ci', kind: 'compiled', status: 'internal' },
+    ]);
     await screen.findByTestId('surface-row-watch-ci');
     const toggle = screen.getByRole('switch', { name: /^watch-ci$/ });
 
@@ -237,10 +239,7 @@ describe('SurfaceTab: filters', () => {
     renderSurfaceTab();
     await screen.findByTestId('surface-row-watch-ci');
 
-    await userEvent.type(
-      screen.getByTestId('surface-filter-input'),
-      'watch'
-    );
+    await userEvent.type(screen.getByTestId('surface-filter-input'), 'watch');
 
     expect(screen.getByTestId('surface-row-watch-ci')).toBeInTheDocument();
     expect(screen.queryByTestId('surface-row-review')).not.toBeInTheDocument();
@@ -258,7 +257,9 @@ describe('SurfaceTab: filters', () => {
 
     expect(screen.getByTestId('surface-row-review')).toBeInTheDocument();
     expect(screen.getByTestId('surface-row-ship')).toBeInTheDocument();
-    expect(screen.queryByTestId('surface-row-watch-ci')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('surface-row-watch-ci')
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('surface-row-model-tiering')
     ).not.toBeInTheDocument();
@@ -270,11 +271,11 @@ describe('SurfaceTab: filters', () => {
 
     await userEvent.click(screen.getByTestId('surface-filter-fill'));
 
-    expect(
-      screen.getByTestId('surface-row-model-tiering')
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('surface-row-model-tiering')).toBeInTheDocument();
     expect(screen.queryByTestId('surface-row-review')).not.toBeInTheDocument();
     expect(screen.queryByTestId('surface-row-ship')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('surface-row-watch-ci')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('surface-row-watch-ci')
+    ).not.toBeInTheDocument();
   });
 });

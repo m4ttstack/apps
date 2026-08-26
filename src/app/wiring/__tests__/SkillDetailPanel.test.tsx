@@ -279,7 +279,11 @@ describe('SkillDetailPanel: the History tab', () => {
         limit: 20,
         truncated: false,
         commits: [],
-        runtime: { dirtyFiles: [], moreDirtyFiles: false, packVersion: '0.4.11' },
+        runtime: {
+          dirtyFiles: [],
+          moreDirtyFiles: false,
+          packVersion: '0.4.11',
+        },
       })
     );
     const user = userEvent.setup();
@@ -297,7 +301,7 @@ describe('SkillDetailPanel: the History tab', () => {
 });
 
 describe('SkillDetailPanel: the Used-by tab', () => {
-  it('lists the binding sites of the skill\'s primary fill, single site included', async () => {
+  it("lists the binding sites of the skill's primary fill, single site included", async () => {
     const user = userEvent.setup();
     renderPanel();
 

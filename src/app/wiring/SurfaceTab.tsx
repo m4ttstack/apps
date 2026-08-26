@@ -205,7 +205,9 @@ function SurfaceGridRow({ row, next, onToggle }: SurfaceGridRowProps) {
       wrap="nowrap"
       px="sm"
       py={6}
-      bg={staged ? bg.color('accent') : next === 'public' ? bg.level3 : undefined}
+      bg={
+        staged ? bg.color('accent') : next === 'public' ? bg.level3 : undefined
+      }
       style={{
         border: `1px solid ${staged ? border.color('accent') : 'transparent'}`,
         borderRadius: ROW_RADIUS,
@@ -221,7 +223,12 @@ function SurfaceGridRow({ row, next, onToggle }: SurfaceGridRowProps) {
       <Text size="sm" fw={600} style={{ flex: 'none' }}>
         {row.name}
       </Text>
-      <Badge size="xs" variant="light" color={badge.color} style={{ flex: 'none' }}>
+      <Badge
+        size="xs"
+        variant="light"
+        color={badge.color}
+        style={{ flex: 'none' }}
+      >
         {badge.label}
       </Badge>
       <div style={{ flex: 1, minWidth: 0 }} />
@@ -259,7 +266,10 @@ export function SurfaceTab({ pack }: SurfaceTabProps) {
   const { surfaceApply } = useSkillsApply(pack);
   // Memoized so the `?? []` fallback isn't a fresh array reference on every
   // render -- `useSurfaceStaging` and the memos below key off this identity.
-  const rows = useMemo(() => surfaceQuery.data?.rows ?? [], [surfaceQuery.data]);
+  const rows = useMemo(
+    () => surfaceQuery.data?.rows ?? [],
+    [surfaceQuery.data]
+  );
   const { staged, delta, toggle, discard } = useSurfaceStaging(rows);
 
   const [filterText, setFilterText] = useState('');
@@ -271,7 +281,11 @@ export function SurfaceTab({ pack }: SurfaceTabProps) {
   const counts = useMemo(() => {
     let publicCount = 0;
     for (const row of rows) if (row.status === 'public') publicCount += 1;
-    return { all: rows.length, public: publicCount, internal: rows.length - publicCount };
+    return {
+      all: rows.length,
+      public: publicCount,
+      internal: rows.length - publicCount,
+    };
   }, [rows]);
 
   const filteredRows = useMemo(() => {
@@ -294,7 +308,8 @@ export function SurfaceTab({ pack }: SurfaceTabProps) {
   const applyError = surfaceApply.isError
     ? (surfaceApply.error as Error).message
     : surfaceApply.data && !surfaceApply.data.steps.every(step => step.ok)
-      ? (surfaceApply.data.steps.find(step => !step.ok)?.error ?? 'apply failed')
+      ? (surfaceApply.data.steps.find(step => !step.ok)?.error ??
+        'apply failed')
       : null;
 
   const stagedLabel =
@@ -339,7 +354,9 @@ export function SurfaceTab({ pack }: SurfaceTabProps) {
             key={chip.key}
             label={chip.label}
             count={
-              chip.key === 'all' || chip.key === 'public' || chip.key === 'internal'
+              chip.key === 'all' ||
+              chip.key === 'public' ||
+              chip.key === 'internal'
                 ? counts[chip.key]
                 : undefined
             }
@@ -402,7 +419,12 @@ export function SurfaceTab({ pack }: SurfaceTabProps) {
           </Text>
           {lines.length > 0 && (
             <Group gap={6} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-              <Text size="xs" c={text.muted} ff="monospace" style={{ flex: 'none' }}>
+              <Text
+                size="xs"
+                c={text.muted}
+                ff="monospace"
+                style={{ flex: 'none' }}
+              >
                 $
               </Text>
               <Text size="xs" ff="monospace" c={text.muted} truncate>
