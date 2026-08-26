@@ -316,7 +316,7 @@ export function AgentName({
     <HoverCard
       position={variant === 'row' ? 'left-start' : 'bottom-start'}
       width={300}
-      openDelay={150}
+      openDelay={500}
       closeDelay={120}
       withinPortal
       styles={{
