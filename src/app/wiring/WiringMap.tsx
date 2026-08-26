@@ -6,6 +6,7 @@ import {
   Alert,
   Anchor,
   Badge,
+  Button,
   Collapse,
   GenericError,
   Group,
@@ -683,6 +684,7 @@ export function WiringMap() {
 
   const packs = packsQuery.data?.packs ?? [];
   const pack = explicitPack ?? packs[0]?.name ?? null;
+  const packDir = packs.find(p => p.name === pack)?.dir ?? null;
 
   const snapshot = useCompositionSnapshot(pack);
   const workTypes = useMemo(
@@ -752,6 +754,18 @@ export function WiringMap() {
             command="rt skills composition"
             asOf={snapshot.dataUpdatedAt || undefined}
           />
+          {packDir && (
+            <Button
+              size="xs"
+              variant="default"
+              component="a"
+              href={`vscode://file${packDir}`}
+              leftSection={<Icons.package size={14} />}
+              data-testid="open-pack"
+            >
+              Open pack
+            </Button>
+          )}
           {packs.length > 1 && pack && (
             <Select
               size="xs"

@@ -1188,3 +1188,13 @@ describe('WiringMap: wiring the deferred surfaces', () => {
     await screen.findByText(/denied/);
   });
 });
+
+describe('WiringMap: the pack', () => {
+  it('offers an Open pack link straight to the pack directory', async () => {
+    mockHappyPath();
+    renderWiring();
+
+    const open = await screen.findByTestId('open-pack');
+    expect(open).toHaveAttribute('href', 'vscode://file/p');
+  });
+});
