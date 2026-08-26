@@ -12,6 +12,7 @@ import {
   PageShell,
   Select,
   Skeleton,
+  Stack,
   Text,
   Timeline,
 } from '@ui/core';
@@ -80,6 +81,12 @@ function AttentionFilterNotice({
 }) {
   const { text } = useSchemeColors();
   const hiddenStages = spine.stages.length - shown.stages.length;
+  // Count only the rows the Pipeline tab actually draws (orchestrator +
+  // stages). Everything outside the run order now lives on the On-demand
+  // tab, so counting `spine.outside` here would claim rows this list never
+  // renders -- "showing 2 of 6" while one row is on screen.
+  const pipelineRows = (s: WiringSpine) =>
+    (s.orchestrator ? 1 : 0) + s.stages.length;
 
   return (
     <Group gap="xs" wrap="nowrap" pb="lg" data-testid="spine-summary">
@@ -93,7 +100,7 @@ function AttentionFilterNotice({
         ·
       </Text>
       <Text size="sm" c={text.muted} data-testid="shown-of-total">
-        showing {spineRows(shown).length} of {spineRows(spine).length} rows
+        showing {pipelineRows(shown)} of {pipelineRows(spine)} rows
       </Text>
       {hiddenStages > 0 && (
         <>
@@ -246,8 +253,14 @@ function WiringSpineView({
     ...(shown.orchestrator ? [shown.orchestrator] : []),
     ...shown.stages,
   ];
-  const nothingNeedsAttention =
-    attentionOnly && spineEntries.length === 0 && shown.outside.length === 0;
+  // "Nothing needs attention" is a claim about the WHOLE pack, so it reads the
+  // pack-wide count -- not `spineEntries`, which only sees pipeline rows. An
+  // unwired verb that drifted lives outside the pipeline (On-demand/Health),
+  // and calling the compile clean while one differed would be a false all-clear.
+  const nothingNeedsAttention = attentionOnly && spine.attentionCount === 0;
+  // The pipeline itself is clean but attention is owed elsewhere: point there
+  // rather than stranding an empty Timeline under the filter.
+  const attentionElsewhere = attentionOnly && spineEntries.length === 0;
 
   return (
     <SkillSplitLayout
@@ -327,6 +340,22 @@ function WiringSpineView({
                 }
               />
             )
+          ) : attentionElsewhere ? (
+            <Stack gap={4} py="xl" data-testid="attention-elsewhere">
+              <Group gap="xs" wrap="nowrap">
+                <Icons.checkCircle size={18} color={text.highContrast('ok')} />
+                <Text fw={600} size="lg">
+                  No pipeline stage needs attention.
+                </Text>
+              </Group>
+              <Text size="xs" c={text.muted}>
+                {spine.attentionCount}{' '}
+                {spine.attentionCount === 1 ? 'skill' : 'skills'} outside the
+                run order {spine.attentionCount === 1 ? 'does' : 'do'} — open
+                the On-demand or Health tab to see{' '}
+                {spine.attentionCount === 1 ? 'it' : 'them'}.
+              </Text>
+            </Stack>
           ) : (
             <>
               {!panelOpen && spine.orchestrator && (

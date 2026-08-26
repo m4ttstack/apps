@@ -775,9 +775,11 @@ describe('WiringMap: needs-attention only', () => {
 
     const empty = await screen.findByTestId('attention-empty');
     expect(empty).toHaveTextContent('Nothing needs attention.');
-    // The header counts the rows on screen, which at empty is none of them.
+    // The header counts the pipeline rows this tab draws (orchestrator + 3
+    // stages = 4), which at empty is none of them. Rows outside the run order
+    // live on the On-demand tab and are not in this denominator.
     expect(screen.getByTestId('spine-summary')).toHaveTextContent(
-      'showing 0 of 6 rows'
+      'showing 0 of 4 rows'
     );
     expect(empty).toHaveTextContent(
       'rt skills check compared 3 roster verbs in demo against a fresh compile; none differed.'
@@ -827,9 +829,11 @@ describe('WiringMap: needs-attention only', () => {
     await screen.findByTestId('skill-row-mattstack:work');
     const summary = screen.getByTestId('spine-summary');
 
-    // Six rows in the pack: the orchestrator, three stages, and two
-    // outside it. Two of them drifted.
-    expect(summary).toHaveTextContent('showing 2 of 6 rows');
+    // The Pipeline tab draws 4 rows: the orchestrator and three stages. Of
+    // those, only the orchestrator (`work`) drifted -- the other drifted row
+    // (`rebase-worktree`) is outside the run order, on the On-demand tab, and
+    // is not counted here.
+    expect(summary).toHaveTextContent('showing 1 of 4 rows');
     // The pipeline did not vanish -- it is named, hidden, and explained.
     expect(summary).toHaveTextContent('3 stages hidden');
     expect(summary).toHaveTextContent(
@@ -882,6 +886,47 @@ describe('WiringMap: needs-attention only', () => {
       'rt skills check found no roster verbs in mattstack to compare'
     );
     expect(empty).not.toHaveTextContent('none differed');
+  });
+
+  it('points to the other tabs when the pipeline is clean but an outside skill drifted', async () => {
+    window.history.pushState(null, '', '/wiring?attention=1');
+    packsGet.mockResolvedValue(
+      ok({ packs: [{ name: 'demo', dir: '/p', layout: 'flat' }] })
+    );
+    compositionGet.mockResolvedValue(ok(COMPOSITION));
+    // `work` (orchestrator) is in-sync; only `rebase-worktree` (unwired, so
+    // it lives on the On-demand/Health tabs) drifted. No pipeline row needs
+    // attention, but the pack is not clean.
+    checkGet.mockResolvedValue(
+      ok({
+        pack: 'demo',
+        packDir: '/p',
+        verbs: [
+          { name: 'work', status: 'in-sync', staleFiles: [], orphanFiles: [] },
+          {
+            name: 'watch-ci',
+            status: 'in-sync',
+            staleFiles: [],
+            orphanFiles: [],
+          },
+          {
+            name: 'rebase-worktree',
+            status: 'stale',
+            staleFiles: ['SKILL.md'],
+            orphanFiles: [],
+          },
+        ],
+      })
+    );
+    renderWiring();
+
+    const elsewhere = await screen.findByTestId('attention-elsewhere');
+    expect(elsewhere).toHaveTextContent('No pipeline stage needs attention.');
+    expect(elsewhere).toHaveTextContent('1 skill outside the run order does');
+    expect(elsewhere).toHaveTextContent('On-demand or Health tab');
+    // Not stranded on an empty Timeline, and not a false all-clear.
+    expect(screen.queryByTestId('wiring-timeline')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('attention-empty')).not.toBeInTheDocument();
   });
 });
 
