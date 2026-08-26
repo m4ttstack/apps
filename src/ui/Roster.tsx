@@ -115,9 +115,7 @@ function Tag({ handle, room }: { handle: string; room: string }) {
             ? 'color-mix(in srgb, var(--tk-purple) 45%, transparent)'
             : 'var(--tk-border-soft)'
         }`,
-        color: isDm
-          ? 'var(--tk-purple)'
-          : 'var(--tk-muted-text, var(--tk-muted))',
+        color: isDm ? 'var(--tk-purple)' : 'var(--tk-muted-text)',
       }}
     >
       {isDm ? 'dm' : `#${room}`}
@@ -153,7 +151,7 @@ function SectionHeading({
         style={{
           fontSize: '9.5px',
           letterSpacing: '0.06em',
-          color: 'var(--tk-muted-text, var(--tk-muted))',
+          color: 'var(--tk-muted-text)',
           textTransform: 'uppercase',
         }}
       >
@@ -163,7 +161,7 @@ function SectionHeading({
         component="span"
         style={{
           fontSize: '10.56px',
-          color: 'var(--tk-muted-text, var(--tk-muted))',
+          color: 'var(--tk-muted-text)',
         }}
       >
         {count}
@@ -236,7 +234,7 @@ function MemberRow({
               fontWeight: 500,
               color: reachable
                 ? STATUS_TEXT_COLOR[status]
-                : 'var(--tk-muted-text, var(--tk-muted))',
+                : 'var(--tk-muted-text)',
             }}
           >
             {reachable ? STATUS_WORD[buddy.status] : '—'}
@@ -249,7 +247,7 @@ function MemberRow({
             data-testid={`away-${handle}`}
             style={{
               fontSize: '10.56px',
-              color: 'var(--tk-muted-text, var(--tk-muted))',
+              color: 'var(--tk-muted-text)',
               fontStyle: 'italic',
             }}
           >
@@ -274,7 +272,7 @@ function MemberRow({
           data-testid={`sub-${handle}`}
           style={{
             fontSize: '10.56px',
-            color: 'var(--tk-muted-text, var(--tk-muted))',
+            color: 'var(--tk-muted-text)',
           }}
         >
           {reachable
@@ -388,7 +386,7 @@ export function Roster({
             <Icon
               name="users"
               size={14}
-              color="var(--tk-muted-text, var(--tk-muted))"
+              color="var(--tk-muted-text)"
               style={{ flex: 'none' }}
             />
             <Text
@@ -398,7 +396,7 @@ export function Roster({
                 fontSize: '10.56px',
                 fontWeight: 600,
                 letterSpacing: '0.04em',
-                color: 'var(--tk-muted-text, var(--tk-muted))',
+                color: 'var(--tk-muted-text)',
               }}
             >
               BUDDIES
@@ -407,7 +405,7 @@ export function Roster({
           <Text
             style={{
               fontSize: '10.56px',
-              color: 'var(--tk-muted-text, var(--tk-muted))',
+              color: 'var(--tk-muted-text)',
             }}
           >
             {daemonReachable ? 'the fleet, not the room' : 'last known'}

@@ -314,7 +314,7 @@ function RoomsPlaceholder({ anyBuddies }: { anyBuddies: boolean }) {
 /** Every phone header/drawer control is 44px -- `.aicon.tap`, the hit-target
     floor CONFORMANCE.md pins. */
 const PHONE_TAP = 44;
-const PHONE_MUTED = 'var(--tk-muted-text, var(--tk-muted))';
+const PHONE_MUTED = 'var(--tk-muted-text)';
 const PHONE_BORDER = 'var(--tk-border)';
 
 function tapButtonStyle(size: number) {

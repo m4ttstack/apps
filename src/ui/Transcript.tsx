@@ -236,10 +236,7 @@ function MessageRow({
           <Text size="sm" fw={600}>
             {message.handle}
           </Text>
-          <Text
-            size="xs"
-            style={{ color: 'var(--tk-muted-text, var(--tk-muted))' }}
-          >
+          <Text size="xs" style={{ color: 'var(--tk-muted-text)' }}>
             {formatLocalTime(message.postedAt)}
           </Text>
         </Group>
@@ -291,7 +288,7 @@ function OlderEdge({
         padding: '6px 0 4px',
         textAlign: 'center',
         fontSize: '10.56px',
-        color: 'var(--tk-muted-text, var(--tk-muted))',
+        color: 'var(--tk-muted-text)',
       }}
     >
       {label}
