@@ -12,7 +12,7 @@
         "@mantine/hooks": "^9.5.2",
         "@mantine/modals": "^9.5.2",
         "@mantine/notifications": "^9.5.2",
-        "@mattstack/mantine-tokyo": "^0.1.0",
+        "@mattstack/mantine-tokyo": "^0.1.1",
         "@mattstack/rt-client": "^0.6",
         "@tanstack/react-query": "^5.102.4",
         "@tanstack/react-virtual": "^3.14.6",
@@ -243,7 +243,7 @@
 
     "@mattstack/glance": ["@mattstack/glance@0.20.0", "", { "dependencies": { "@gitbeaker/rest": "^43.8.0", "@octokit/core": "^7.0.7", "@octokit/graphql": "^9.0.4", "@octokit/plugin-paginate-rest": "^15.0.0", "@octokit/plugin-retry": "^8.1.1", "@octokit/plugin-throttling": "^11.0.5", "@octokit/request-error": "^7.1.1" } }, "sha512-WaOLfpQPim4p/HHg1JdQ2wltLIU/YUkVN0Il+4Y1Df/+EQJsN1cUUWmAg+QAgd9xH6PJNOuHlVQt4t4pPecAYQ=="],
 
-    "@mattstack/mantine-tokyo": ["@mattstack/mantine-tokyo@0.1.0", "", { "peerDependencies": { "@mantine/core": "^9.5.2" } }, "sha512-urhUBWmhn/Ze1NFOkwy+MLL97uW22sapOFKmEVsLm2wEaJC+Lf6U4o2sWUPG9NM94UnPMkjeszh8531si1Nrjw=="],
+    "@mattstack/mantine-tokyo": ["@mattstack/mantine-tokyo@0.1.1", "", { "peerDependencies": { "@mantine/core": "^9.5.2" } }, "sha512-Z8BRAN2quirstbgW4lj6g64LvITjoxBeGvclWd6/3WCQVj8MxGMyXJOrRfZ3SO+AT3az4gDdgJeuenXovHo3Vg=="],
 
     "@mattstack/rt-client": ["@mattstack/rt-client@0.6.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-J8QTO+SlGYDWM7MJT0BHW+Z3eDvzDDeJTFkSKumKGWUzVSVwTUplq3xtbwvfpTilz7lIy8yAZ1wUOyCaAI2oLQ=="],
 
