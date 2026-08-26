@@ -87,12 +87,21 @@ async function unjoinedFleetRooms(
   const buddiesRes = await chatBuddies(rtOpts());
   if (!buddiesRes?.ok || !buddiesRes.data) return [];
 
+  // Memberships, not repos: a presence row names the repo a buddy works in,
+  // but a buddy can be in a room joined by name (`--room mantine-tokyo`)
+  // that no repo derives, and `chat:rooms` is listRooms(handle) for any
+  // handle, the same call the human's own half of this list comes from.
   const known = new Set(joined.map(r => r.room));
+  const perBuddy = await Promise.all(
+    buddiesRes.data.buddies.map(b =>
+      chatRooms({ handle: b.handle }, rtOpts()).catch(() => null)
+    )
+  );
   const candidates = [
     ...new Set(
-      buddiesRes.data.buddies
-        .map(b => b.repo)
-        .filter((r): r is string => !!r && !known.has(r))
+      perBuddy
+        .flatMap(r => (r?.ok && r.data ? r.data.rooms.map(x => x.room) : []))
+        .filter(r => !known.has(r))
     ),
   ];
 
