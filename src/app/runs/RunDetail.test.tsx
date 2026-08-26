@@ -220,19 +220,23 @@ describe('RunDetail', () => {
 
     renderDetail();
 
-    const outside = await screen.findByTestId('timeline-outside-pipeline');
+    // The reconciled field must NOT appear under a real stage -- it has no
+    // matching stage name, so it belongs in exactly one place. Asserted on
+    // the Pipeline tab, before switching away unmounts it.
+    expect(
+      within(
+        await screen.findByTestId('timeline-stage-provision-1')
+      ).queryByTestId('field-reconciled')
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      await screen.findByRole('tab', { name: 'Run context' })
+    );
+    const outside = await screen.findByTestId('run-context');
     expect(within(outside).getByText('rt runs abandon')).toBeInTheDocument();
     expect(within(outside).getByTestId('field-reconciled')).toHaveTextContent(
       'wedged overnight, no owning process'
     );
-
-    // The reconciled field must NOT also appear under a real stage -- it
-    // has no matching stage name, so it belongs in exactly one place.
-    expect(
-      within(screen.getByTestId('timeline-stage-provision-1')).queryByTestId(
-        'field-reconciled'
-      )
-    ).not.toBeInTheDocument();
   });
 
   it('shows a missing summary-card value as dimmed "not recorded", never an empty row', async () => {
@@ -304,7 +308,10 @@ describe('RunDetail', () => {
 
     renderDetail();
 
-    const outside = await screen.findByTestId('timeline-outside-pipeline');
+    await userEvent.click(
+      await screen.findByRole('tab', { name: 'Run context' })
+    );
+    const outside = await screen.findByTestId('run-context');
     expect(within(outside).getByText(/human-override@1/)).toBeInTheDocument();
 
     // Must not also land under a real stage -- 'rt runs abandon' matches no

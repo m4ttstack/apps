@@ -7,7 +7,6 @@ import {
   Code,
   Drawer,
   Group,
-  Paper,
   Skeleton,
   Stack,
   Text,
@@ -318,52 +317,44 @@ export function EffectiveInputs({
   runId,
   decisions,
 }: EffectiveInputsProps) {
-  const { bg, border, text } = useSchemeColors();
+  const { text } = useSchemeColors();
   const query = useEffectiveInputs(repo, runId);
   const [openStage, setOpenStage] = useState<string | null>(null);
 
   return (
-    <Paper
-      data-testid="effective-inputs"
-      bg={bg.level2}
-      p="xxxl"
-      radius="xl"
-      style={{ border: `1px solid ${border.default}` }}
-    >
-      <Stack gap="md">
-        <Text fw={700} size="sm">
-          Effective inputs — what was this run actually told?
+    <Stack gap="md" data-testid="effective-inputs">
+      <Text size="xs" c={text.muted}>
+        What this run was actually told, as of the pack sha it recorded.
+      </Text>
+      <CommandProvenance
+        command={ATTRIBUTION}
+        asOf={query.dataUpdatedAt || undefined}
+      />
+      {query.isPending && (
+        <Skeleton height={160} data-testid="effective-inputs-loading" />
+      )}
+      {query.isError && (
+        <Text
+          size="sm"
+          c={text.highContrast('bad')}
+          data-testid="effective-inputs-error"
+        >
+          Could not load effective inputs: {(query.error as Error).message}
         </Text>
-        <CommandProvenance
-          command={ATTRIBUTION}
-          asOf={query.dataUpdatedAt || undefined}
-        />
-        {query.isPending && (
-          <Skeleton height={160} data-testid="effective-inputs-loading" />
-        )}
-        {query.isError && (
-          <Text
-            size="sm"
-            c={text.highContrast('bad')}
-            data-testid="effective-inputs-error"
-          >
-            Could not load effective inputs: {(query.error as Error).message}
-          </Text>
-        )}
-        {query.data && (
-          <>
-            <PipelineSection payload={query.data} onOpenStage={setOpenStage} />
-            <DecisionsSection decisions={decisions} />
-            <ConfigSection config={query.data.config} />
-          </>
-        )}
-        <StageDocDrawer
-          repo={repo}
-          runId={runId}
-          stage={openStage}
-          onClose={() => setOpenStage(null)}
-        />
-      </Stack>
-    </Paper>
+      )}
+      {query.data && (
+        <>
+          <PipelineSection payload={query.data} onOpenStage={setOpenStage} />
+          <DecisionsSection decisions={decisions} />
+          <ConfigSection config={query.data.config} />
+        </>
+      )}
+      <StageDocDrawer
+        repo={repo}
+        runId={runId}
+        stage={openStage}
+        onClose={() => setOpenStage(null)}
+      />
+    </Stack>
   );
 }

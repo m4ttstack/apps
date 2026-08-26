@@ -12,7 +12,9 @@ import {
   Kbd,
   LazyLoader,
   PageShell,
+  Paper,
   Stack,
+  Tabs,
   Text,
 } from '@ui/core';
 import { useClipboard, useHotkeys, useSchemeColors } from '@ui/hooks';
@@ -24,7 +26,7 @@ import { CommandProvenance } from './CommandProvenance';
 import { EffectiveInputs } from './EffectiveInputs';
 import { LivenessChip, livenessSpec, Pill } from './LivenessChip';
 import { repoLabel } from './repoLabel';
-import { fieldsByKey, Timeline } from './Timeline';
+import { fieldsByKey, RunContext, Timeline } from './Timeline';
 import { useMarkSeen, useRun, useRunEvents, useRunsEnrich } from './useRuns';
 
 function formatLocalTime(ms: number): string {
@@ -350,6 +352,7 @@ function SummaryCard({
 }
 
 function RunDetailContent({ repo, runId }: { repo: string; runId: string }) {
+  const { bg, border } = useSchemeColors();
   useRunEvents();
   const runQuery = useRun(repo, runId);
   const { data } = runQuery;
@@ -370,15 +373,48 @@ function RunDetailContent({ repo, runId }: { repo: string; runId: string }) {
         asOf={runQuery.dataUpdatedAt}
       />
       <SummaryCard repo={repo} run={data.run} fields={data.fields} />
-      <Timeline
-        repo={repo}
-        runId={runId}
-        stages={data.stages}
-        fields={data.fields}
-        decisions={data.decisions}
-        currentStage={data.run.current_stage}
-      />
-      <EffectiveInputs repo={repo} runId={runId} decisions={data.decisions} />
+      {/* One surface, three readings of the same run: what it did, what was
+          recorded around it, what it was told. Stacking them made the page
+          three competing containers and buried the last one. */}
+      <Paper
+        bg={bg.level2}
+        p="xxxl"
+        radius="xl"
+        style={{ border: `1px solid ${border.default}` }}
+        data-testid="run-panels"
+      >
+        <Tabs defaultValue="pipeline" keepMounted={false}>
+          <Tabs.List mb="lg">
+            <Tabs.Tab value="pipeline">Pipeline</Tabs.Tab>
+            <Tabs.Tab value="context">Run context</Tabs.Tab>
+            <Tabs.Tab value="inputs">Effective inputs</Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value="pipeline">
+            <Timeline
+              repo={repo}
+              runId={runId}
+              stages={data.stages}
+              fields={data.fields}
+              decisions={data.decisions}
+              currentStage={data.run.current_stage}
+            />
+          </Tabs.Panel>
+          <Tabs.Panel value="context">
+            <RunContext
+              stages={data.stages}
+              fields={data.fields}
+              decisions={data.decisions}
+            />
+          </Tabs.Panel>
+          <Tabs.Panel value="inputs">
+            <EffectiveInputs
+              repo={repo}
+              runId={runId}
+              decisions={data.decisions}
+            />
+          </Tabs.Panel>
+        </Tabs>
+      </Paper>
     </Stack>
   );
 }

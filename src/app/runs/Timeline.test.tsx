@@ -25,7 +25,7 @@ vi.mock('../api', () => ({
   },
 }));
 
-const { Timeline } = await import('./Timeline');
+const { RunContext, Timeline } = await import('./Timeline');
 
 const STAGES: RunStageRow[] = [
   {
@@ -194,7 +194,9 @@ describe('Timeline', () => {
     ).toBeInTheDocument();
   });
 
-  it('leaves the outside-the-pipeline section unchanged, nested inside the surface', () => {
+  // The records with no matching stage moved out of the timeline into their
+  // own tab; the rule they prove -- never silently dropped -- is unchanged.
+  it('keeps stage-less records out of the timeline and in RunContext', () => {
     artifactGet.mockResolvedValue({
       ok: true,
       status: 200,
@@ -202,14 +204,20 @@ describe('Timeline', () => {
     });
 
     renderTimeline();
+    expect(
+      screen.queryByTestId('timeline-outside-pipeline')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('field-reconciled')).not.toBeInTheDocument();
 
-    const surface = screen.getByTestId('timeline-surface');
-    const outside = within(surface).getByTestId('timeline-outside-pipeline');
-    expect(within(outside).getByText('rt runs abandon')).toBeInTheDocument();
-    expect(within(outside).getByTestId('field-reconciled')).toHaveTextContent(
+    renderWithProviders(
+      <RunContext stages={STAGES} fields={FIELDS} decisions={DECISIONS} />
+    );
+    const context = screen.getByTestId('run-context');
+    expect(within(context).getByText('rt runs abandon')).toBeInTheDocument();
+    expect(within(context).getByTestId('field-reconciled')).toHaveTextContent(
       'wedged overnight, no owning process'
     );
-    expect(within(outside).getByText(/human-override@1/)).toBeInTheDocument();
+    expect(within(context).getByText(/human-override@1/)).toBeInTheDocument();
   });
 
   it('renders no current-stage tint when currentStage matches nothing', () => {

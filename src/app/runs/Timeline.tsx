@@ -5,11 +5,11 @@ import type {
 } from '@mattstack/rt-client';
 
 import {
+  Anchor,
   Badge,
   Box,
   Group,
   Timeline as MantineTimeline,
-  Paper,
   Stack,
   Text,
 } from '@ui/core';
@@ -120,6 +120,19 @@ function StageBullet({ status }: { status: string }) {
   return null;
 }
 
+/** Several recorded fields ARE forge URLs -- `mr` is the merge request, and
+    stages are free to record any other link. Rendering them as text makes the
+    reader copy-paste a URL that is already sitting in front of them. */
+function FieldValue({ value }: { value: string }) {
+  const url = /^https?:\/\/\S+$/.test(value.trim()) ? value.trim() : null;
+  if (!url) return <>{value}</>;
+  return (
+    <Anchor href={url} target="_blank" rel="noopener noreferrer">
+      {url}
+    </Anchor>
+  );
+}
+
 function FieldRow({ field }: { field: RunFieldRow }) {
   const { text } = useSchemeColors();
   return (
@@ -128,7 +141,7 @@ function FieldRow({ field }: { field: RunFieldRow }) {
         <Text span fw={600} c={text.muted}>
           {field.key}:
         </Text>{' '}
-        {field.value}
+        <FieldValue value={field.value} />
       </Text>
     </Group>
   );
@@ -175,6 +188,53 @@ function findCurrentIndex(
  * a separate tab -- provenance in place is the entire point of stamping an
  * event with its stage.
  */
+/**
+ * Everything recorded against the run by something other than a pipeline
+ * stage: the skill that started it, the run's own identity, and decisions a
+ * person made. Grouped by writer, which is the only thing these records have
+ * in common.
+ */
+export function RunContext({
+  fields,
+  decisions,
+  stages,
+}: Pick<TimelineProps, 'fields' | 'decisions' | 'stages'>) {
+  const { text } = useSchemeColors();
+  const { outsideGroups } = groupTimeline(stages, fields, decisions);
+
+  if (outsideGroups.length === 0) {
+    return (
+      <Text size="sm" c={text.muted} data-testid="run-context-empty">
+        Everything on this run was recorded by a pipeline stage.
+      </Text>
+    );
+  }
+
+  return (
+    <Stack gap="md" data-testid="run-context">
+      <Text size="xs" c={text.muted}>
+        Recorded against the run itself, not by a pipeline stage.
+      </Text>
+      {outsideGroups.map(group => (
+        <Stack key={group.producedBy} gap={4}>
+          <Text size="xs" fw={600} c={text.muted}>
+            {group.producedBy}
+          </Text>
+          {group.fields.map(field => (
+            <FieldRow key={field.key} field={field} />
+          ))}
+          {group.decisions.map(decision => (
+            <DecisionRow
+              key={`${decision.contract}-${decision.scope}-${decision.decided_at}`}
+              decision={decision}
+            />
+          ))}
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
 export function Timeline({
   repo,
   runId,
@@ -184,22 +244,12 @@ export function Timeline({
   currentStage,
 }: TimelineProps) {
   const { text, bg, border } = useSchemeColors();
-  const { stageGroups, outsideGroups } = groupTimeline(
-    stages,
-    fields,
-    decisions
-  );
+  const { stageGroups } = groupTimeline(stages, fields, decisions);
   const currentIndex = findCurrentIndex(stageGroups, currentStage);
 
   return (
-    <Paper
-      data-testid="timeline-surface"
-      bg={bg.level2}
-      p="xxxl"
-      radius="xl"
-      style={{ border: `1px solid ${border.default}` }}
-    >
-      <Text fw={700} size="sm" mb="sm">
+    <Stack gap="sm" data-testid="timeline-surface">
+      <Text fw={700} size="sm">
         Pipeline
       </Text>
       <MantineTimeline
@@ -318,34 +368,7 @@ export function Timeline({
             );
           }
         )}
-        {outsideGroups.length > 0 && (
-          <MantineTimeline.Item
-            bullet={<Icons.link size={12} />}
-            color="gray"
-            title="Outside the pipeline"
-            data-testid="timeline-outside-pipeline"
-          >
-            <Stack gap="sm" mt={4}>
-              {outsideGroups.map(group => (
-                <Stack key={group.producedBy} gap={4}>
-                  <Text size="xs" c={text.muted}>
-                    {group.producedBy}
-                  </Text>
-                  {group.fields.map(field => (
-                    <FieldRow key={field.key} field={field} />
-                  ))}
-                  {group.decisions.map(decision => (
-                    <DecisionRow
-                      key={`${decision.contract}-${decision.scope}-${decision.decided_at}`}
-                      decision={decision}
-                    />
-                  ))}
-                </Stack>
-              ))}
-            </Stack>
-          </MantineTimeline.Item>
-        )}
       </MantineTimeline>
-    </Paper>
+    </Stack>
   );
 }
