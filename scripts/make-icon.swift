@@ -78,6 +78,17 @@ func render(_ slot: Slot) {
     ctx.fillPath()
 
     let fgColor = CGColor(red: fg.0, green: fg.1, blue: fg.2, alpha: 1)
+
+    // Favicon sizes: the bubble alone, large. At 16px the "m" plus bubble
+    // pair reads as two smudges; one mark filling the canvas still reads.
+    if px <= 64 {
+        let side = size * 0.66
+        drawBubbleGlyph(ctx, in: CGRect(x: (size - side) / 2.0, y: (size - side) / 2.0 - size * 0.02,
+                                        width: side, height: side), color: fgColor)
+        write(ctx, slot)
+        return
+    }
+
     let font = makeFont(size: size * 0.40) as NSFont
     let attrs: [NSAttributedString.Key: Any] = [
         .font: font,
@@ -96,12 +107,16 @@ func render(_ slot: Slot) {
     drawBubbleGlyph(ctx, in: CGRect(x: startX + lineW + gap, y: (size - glyphSide) / 2.0,
                                     width: glyphSide, height: glyphSide), color: fgColor)
 
+    write(ctx, slot)
+}
+
+func write(_ ctx: CGContext, _ slot: Slot) {
     guard let image = ctx.makeImage() else { return }
     let rep = NSBitmapImageRep(cgImage: image)
     guard let data = rep.representation(using: .png, properties: [:]) else { return }
     do {
         try data.write(to: URL(fileURLWithPath: slot.filename))
-        print("  wrote \(slot.filename) (\(px)px)")
+        print("  wrote \(slot.filename) (\(slot.pixels)px)")
     } catch {
         print("  x \(slot.filename): \(error)")
     }
