@@ -11,7 +11,8 @@ export function useSiteHeaderProps() {
 
   return {
     style: {
-      backgroundColor: `color-mix(in srgb, ${bg.level2} 88%, transparent)`,
+      // The rail's surface, so header and rail read as one piece of chrome.
+      backgroundColor: bg.level1,
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
     },

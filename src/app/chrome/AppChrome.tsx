@@ -8,6 +8,7 @@ import {
 } from '@ui/core';
 import { useColorScheme, useSchemeColors } from '@ui/hooks';
 import { Icon } from '@ui/icons';
+import { AppMark } from './AppMark';
 import { useSiteHeaderProps } from './layout';
 
 /** Height of the app's slim fixed header, in px. */
@@ -126,9 +127,12 @@ export function AppChrome({
       railProps={{ style: { backgroundColor: bg.level1 } }}
       header={
         <Group justify="space-between" wrap="nowrap" gap="xs" w="100%">
-          <Text fw={700} style={{ whiteSpace: 'nowrap' }}>
-            chat
-          </Text>
+          <Group gap="xs" wrap="nowrap">
+            <AppMark size={24} />
+            <Text fw={700} fz={16} style={{ whiteSpace: 'nowrap' }}>
+              chat
+            </Text>
+          </Group>
           {status && <HeaderStatus status={status} />}
         </Group>
       }
