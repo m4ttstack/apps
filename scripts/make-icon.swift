@@ -110,7 +110,7 @@ func render(_ slot: Slot) {
     // Favicon sizes: the bubble alone, large. At 16px the "m" plus bubble
     // pair reads as two smudges; one mark filling the canvas still reads.
     if px <= 64 {
-        let side = size * 0.82
+        let side = size * 0.75
         // The tail hangs below the body, so the box is nudged down until the
         // body, the mass the eye centres, sits on the canvas centre.
         drawBubbleGlyph(ctx, in: CGRect(x: (size - side) / 2.0, y: (size - side) / 2.0 - size * 0.14,
