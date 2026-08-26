@@ -395,11 +395,14 @@ def desktop(down=False):
 {banner}
         <div style="display: flex; flex: 1; min-height: 0; align-items: stretch;">
 
-          <div class="stack" style="flex: 1; min-width: 0; padding: 11.2px 14.4px 11.2px 31.4px; background: var(--bg3);">
-            <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
+          <div class="stack" style="flex: 1; min-width: 0; padding: 11.2px 0; background: var(--bg3);">
+            <!-- horizontal insets live inside the scroller so its bar hugs the panel edge -->
+            <div class="stack" style="flex: 1; min-height: 0; overflow: auto; padding: 0 14.4px 0 31.4px;">
 {transcript()}
             </div>
+            <div class="stack" style="padding: 0 14.4px 0 31.4px;">
 {composer(down)}
+            </div>
           </div>
 
           <div class="stack roster-panel" style="{mem_style}">

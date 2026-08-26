@@ -8,6 +8,12 @@ import { AgentName } from './AgentName';
 import scrollClasses from './transcript-scroll.module.css';
 
 const BORDER_SOFT = 'var(--tk-border-soft)';
+/** The panel's horizontal insets, applied to the list content and the
+    footer rather than the panel: the extra 17px on the left clears the
+    sidebar's collapse trigger, which is a 34px button centred on the
+    sidebar edge. */
+const INNER_LEFT = 'calc(var(--mantine-spacing-xl) + 17px)';
+const INNER_RIGHT = 'var(--mantine-spacing-xl)';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
 const ACCENT_WASH = `color-mix(in srgb, ${ACCENT_TEXT} var(--tk-wash), transparent)`;
 
@@ -482,9 +488,10 @@ export function Transcript({
         // The sidebar's collapse trigger is a 34px button centred on the
         // sidebar edge, so 17px of it rides over this panel: the left
         // padding clears it, and nothing else, so text never sits under it.
-        padding: bare
-          ? undefined
-          : 'var(--mantine-spacing-lg) var(--mantine-spacing-xl) var(--mantine-spacing-lg) calc(var(--mantine-spacing-xl) + 17px)',
+        // Vertical padding only: the horizontal padding lives INSIDE the
+        // scroll view (and on the footer), so the scrollbar hugs the panel's
+        // edge instead of sitting inset beside the text.
+        padding: bare ? undefined : 'var(--mantine-spacing-lg) 0',
       }}
       data-testid="transcript"
     >
@@ -504,67 +511,81 @@ export function Transcript({
           followButtonClassName={scrollClasses.follow}
           initialScrollBehavior="auto"
         >
-          {messages.length > 0 && (
-            <OlderEdge
-              loading={loadingOlder}
-              exhausted={olderExhausted}
-              scrollView={scrollView}
-              onLoad={() => void loadOlder()}
-            />
-          )}
+          <Box
+            style={
+              bare ? undefined : { padding: `0 ${INNER_RIGHT} 0 ${INNER_LEFT}` }
+            }
+          >
+            {messages.length > 0 && (
+              <OlderEdge
+                loading={loadingOlder}
+                exhausted={olderExhausted}
+                scrollView={scrollView}
+                onLoad={() => void loadOlder()}
+              />
+            )}
 
-          <Stack gap={0}>
-            {messages.map((message, i) => (
-              <Fragment key={message.id}>
-                {i === dividerAt && (
-                  <Group
-                    gap="sm"
-                    wrap="nowrap"
-                    align="center"
-                    data-testid="transcript-divider"
-                    style={{
-                      color: ACCENT_TEXT,
-                      fontSize: '10.56px',
-                      fontWeight: 600,
-                      padding: 'var(--mantine-spacing-xs) 0',
-                    }}
-                  >
-                    <Box
+            <Stack gap={0}>
+              {messages.map((message, i) => (
+                <Fragment key={message.id}>
+                  {i === dividerAt && (
+                    <Group
+                      gap="sm"
+                      wrap="nowrap"
+                      align="center"
+                      data-testid="transcript-divider"
                       style={{
-                        flex: 1,
-                        height: 1,
-                        background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
+                        color: ACCENT_TEXT,
+                        fontSize: '10.56px',
+                        fontWeight: 600,
+                        padding: 'var(--mantine-spacing-xs) 0',
                       }}
-                    />
-                    <span>{unreadCount} new</span>
-                    <span>·</span>
-                    <UnstyledButton
-                      data-testid="transcript-mark-read"
-                      onClick={onMarkRead}
-                      style={{ color: ACCENT_TEXT, fontWeight: 600 }}
                     >
-                      mark read
-                    </UnstyledButton>
-                    <Box
-                      style={{
-                        flex: 1,
-                        height: 1,
-                        background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
-                      }}
-                    />
-                  </Group>
-                )}
-                <MessageRow
-                  message={message}
-                  humanHandle={humanHandle}
-                  isFirst={i === 0}
-                />
-              </Fragment>
-            ))}
-          </Stack>
+                      <Box
+                        style={{
+                          flex: 1,
+                          height: 1,
+                          background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
+                        }}
+                      />
+                      <span>{unreadCount} new</span>
+                      <span>·</span>
+                      <UnstyledButton
+                        data-testid="transcript-mark-read"
+                        onClick={onMarkRead}
+                        style={{ color: ACCENT_TEXT, fontWeight: 600 }}
+                      >
+                        mark read
+                      </UnstyledButton>
+                      <Box
+                        style={{
+                          flex: 1,
+                          height: 1,
+                          background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
+                        }}
+                      />
+                    </Group>
+                  )}
+                  <MessageRow
+                    message={message}
+                    humanHandle={humanHandle}
+                    isFirst={i === 0}
+                  />
+                </Fragment>
+              ))}
+            </Stack>
+          </Box>
         </ScrollToBottom>
       </Box>
-      {footer}
+      {footer && (
+        <Box
+          style={
+            bare ? undefined : { padding: `0 ${INNER_RIGHT} 0 ${INNER_LEFT}` }
+          }
+        >
+          {footer}
+        </Box>
+      )}
     </Box>
   );
 }
