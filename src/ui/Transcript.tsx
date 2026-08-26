@@ -236,7 +236,10 @@ function MessageRow({
           <Text size="sm" fw={600}>
             {message.handle}
           </Text>
-          <Text size="xs" style={{ color: 'var(--tk-muted)' }}>
+          <Text
+            size="xs"
+            style={{ color: 'var(--tk-muted-text, var(--tk-muted))' }}
+          >
             {formatLocalTime(message.postedAt)}
           </Text>
         </Group>
@@ -387,7 +390,9 @@ export function Transcript({
         minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        background: bare ? undefined : 'var(--tk-panel)',
+        // The lightest surface, so the transcript reads a step above the
+        // sidebar and roster panels on `bg2` either side of it.
+        background: bare ? undefined : 'var(--tk-card)',
         // The sidebar's collapse trigger is a 34px button centred on the
         // sidebar edge, so 17px of it rides over this panel: the left
         // padding clears it, and nothing else, so text never sits under it.
@@ -425,7 +430,7 @@ export function Transcript({
                 padding: '6px 0 4px',
                 textAlign: 'center',
                 fontSize: '10.56px',
-                color: 'var(--tk-muted)',
+                color: 'var(--tk-muted-text, var(--tk-muted))',
               }}
             >
               {loadingOlder ? 'Loading older…' : 'Load older messages'}

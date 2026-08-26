@@ -81,11 +81,14 @@ function HeaderStatus({ status }: { status: AppChromeStatus }) {
     <Group
       gap={6}
       wrap="nowrap"
-      style={{ color: 'var(--tk-muted)', flex: 'none' }}
+      style={{ color: 'var(--tk-muted-text, var(--tk-muted))', flex: 'none' }}
       data-testid="header-status"
     >
       <Icon name="terminal" size={12} />
-      <Text size="xs" style={{ color: 'var(--tk-muted)' }}>
+      <Text
+        size="xs"
+        style={{ color: 'var(--tk-muted-text, var(--tk-muted))' }}
+      >
         rt chat · rt.sock
       </Text>
       {(() => {

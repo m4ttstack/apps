@@ -27,7 +27,7 @@ const CHIP_BASE = {
   fontWeight: 500,
   whiteSpace: 'nowrap',
   border: '1px solid var(--mantine-color-default-border)',
-  color: 'var(--tk-muted)',
+  color: 'var(--tk-muted-text, var(--tk-muted))',
 } as const;
 
 /** The artboard's two 30px controls sit on `bg1` with the hairline border,
@@ -48,7 +48,7 @@ const UNREAD_BADGE = {
   fontWeight: 500,
   lineHeight: 1,
   border: '1px solid var(--tk-border)',
-  color: 'var(--tk-muted)',
+  color: 'var(--tk-muted-text, var(--tk-muted))',
   whiteSpace: 'nowrap',
 } as const;
 
@@ -135,7 +135,7 @@ export function PageBar({
           style={{
             display: 'inline-flex',
             flex: 'none',
-            color: 'var(--tk-muted)',
+            color: 'var(--tk-muted-text, var(--tk-muted))',
           }}
           data-testid="page-bar-hash"
         >

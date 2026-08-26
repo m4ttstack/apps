@@ -82,7 +82,7 @@ function NotJoinedBadge() {
         fontWeight: 500,
         whiteSpace: 'nowrap',
         border: '1px solid var(--tk-border)',
-        color: 'var(--tk-muted)',
+        color: 'var(--tk-muted-text, var(--tk-muted))',
       }}
     >
       not joined
@@ -108,7 +108,7 @@ function UnreadBadge({ count }: { count: number }) {
         fontWeight: 500,
         whiteSpace: 'nowrap',
         border: `1px solid ${BORDER_DEFAULT}`,
-        color: 'var(--tk-muted)',
+        color: 'var(--tk-muted-text, var(--tk-muted))',
       }}
     >
       {count}
@@ -179,7 +179,7 @@ function RoomRow({
         <Icon
           name="hash"
           size={14}
-          color={active ? ACCENT_TEXT : 'var(--tk-muted)'}
+          color={active ? ACCENT_TEXT : 'var(--tk-muted-text, var(--tk-muted))'}
           style={{ flex: 'none' }}
         />
       )}
@@ -248,13 +248,16 @@ export function RoomRail({
           fw={600}
           style={{
             margin: 0,
-            color: 'var(--tk-muted)',
+            color: 'var(--tk-muted-text, var(--tk-muted))',
             letterSpacing: '0.04em',
           }}
         >
           ROOMS
         </Text>
-        <Text size="xs" style={{ color: 'var(--tk-muted)' }}>
+        <Text
+          size="xs"
+          style={{ color: 'var(--tk-muted-text, var(--tk-muted))' }}
+        >
           {channelRooms.length}
         </Text>
       </Group>
@@ -284,7 +287,7 @@ export function RoomRail({
               style={{
                 margin: 0,
                 fontSize: '9.5px',
-                color: 'var(--tk-muted)',
+                color: 'var(--tk-muted-text, var(--tk-muted))',
                 letterSpacing: '0.06em',
               }}
             >
@@ -304,7 +307,7 @@ export function RoomRail({
           <Text
             size="xs"
             style={{
-              color: 'var(--tk-muted)',
+              color: 'var(--tk-muted-text, var(--tk-muted))',
               padding: '4px var(--mantine-spacing-md) 0',
             }}
           >
