@@ -120,12 +120,13 @@ export function AppChrome({
     <RailShell
       headerHeight={APP_HEADER_HEIGHT}
       headerProps={headerProps}
-      headerPx="lg"
       header={
         <Group justify="space-between" wrap="nowrap" gap="xs" w="100%">
-          <Group gap="xs" wrap="nowrap">
-            <AppMark size={24} />
-            <Text fw={700} fz={16} style={{ whiteSpace: 'nowrap' }}>
+          {/* Same recipe as console's header: a 30px mark, sm gap, 22px/700
+              wordmark on line-height 1. */}
+          <Group gap="sm" wrap="nowrap">
+            <AppMark size={30} />
+            <Text fw={700} fz={22} lh={1} style={{ whiteSpace: 'nowrap' }}>
               chat
             </Text>
           </Group>
