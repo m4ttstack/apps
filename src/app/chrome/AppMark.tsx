@@ -11,7 +11,7 @@ export function AppMark({ size = 24 }: { size?: number }) {
       style={{ flex: 'none', display: 'block' }}
     >
       <rect width="64" height="64" rx="14.4" fill="#161224" />
-      <g transform="translate(7.04 13.4) scale(2.08)" fill="#FF6B9D">
+      <g transform="translate(7.04 10) scale(2.08)" fill="#FF6B9D">
         <path d="M6.5 2h11A4.5 4.5 0 0 1 22 6.5v5a4.5 4.5 0 0 1-4.5 4.5H13l-8.5 6.5L6 16a4.5 4.5 0 0 1-4-4.5v-5A4.5 4.5 0 0 1 6.5 2z" />
       </g>
     </svg>
