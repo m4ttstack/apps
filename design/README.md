@@ -28,8 +28,7 @@ per-session buddies), the rail gains a DIRECT section, the page bar counts the f
 room's wake mode, and the picker offers DM-instead for buddies outside the room.
 
 Rooms, handles and paths are the shape of this machine's worktree pool; the conversations are
-illustrative. Two drawn affordances are not in plan 2 and are marked as such there: the
-`not joined` badge on a room (needs an all-rooms source the store does not have yet) and
+illustrative. One drawn affordance is not in plan 2 and is marked as such there:
 focusing a herdr pane from a member row (no route addresses a pane by id).
 
 Revised 2026-08-26 for the kit's `PageShell` layout: the three floating cards on

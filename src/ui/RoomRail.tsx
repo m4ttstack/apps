@@ -62,35 +62,6 @@ function MentionBadge({ count }: { count: number }) {
   );
 }
 
-/**
- * `not joined`, per the artboard's `.badge-outline`. A room the FLEET is in
- * that the human is not a member of, so it has no unread cursor and shows no
- * counts. Posting into it still works: the server joins first.
- */
-function NotJoinedBadge() {
-  return (
-    <Box
-      component="span"
-      data-testid="not-joined-badge"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        height: 16,
-        lineHeight: 1,
-        borderRadius: 'var(--mantine-radius-xl)',
-        padding: '0 6px',
-        fontSize: 9,
-        fontWeight: 500,
-        whiteSpace: 'nowrap',
-        border: '1px solid var(--tk-border)',
-        color: 'var(--tk-muted-text)',
-      }}
-    >
-      not joined
-    </Box>
-  );
-}
-
 /** Plain `N`, outlined -- the difference from `MentionBadge` is the glyph. */
 function UnreadBadge({ count }: { count: number }) {
   return (
@@ -197,14 +168,8 @@ function RoomRow({
           {room.room}
         </Text>
       )}
-      {room.joined === false ? (
-        <NotJoinedBadge />
-      ) : (
-        <>
-          {room.mentions > 0 && <MentionBadge count={room.mentions} />}
-          {room.unread > 0 && <UnreadBadge count={room.unread} />}
-        </>
-      )}
+      {room.mentions > 0 && <MentionBadge count={room.mentions} />}
+      {room.unread > 0 && <UnreadBadge count={room.unread} />}
     </UnstyledButton>
   );
 }
