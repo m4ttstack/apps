@@ -3,7 +3,7 @@
  * built-ins. Naming them identically on both sides is what lets a component
  * written against `color="ok"` survive a move to tui-kit unedited.
  */
-export type AppCustomColors =
+export type TokyoColorName =
   | 'accent'
   | 'ok'
   | 'warn'

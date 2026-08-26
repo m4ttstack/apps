@@ -27,7 +27,7 @@
   font-style: normal;
   font-weight: 100 800;
   font-display: swap;
-  src: url('/fonts/jetbrains-mono.woff2') format('woff2');
+  src: url('./fonts/jetbrains-mono.woff2') format('woff2');
 }
 
 :root[data-mantine-color-scheme='light'] {
@@ -106,7 +106,7 @@
  *
  * Two of them land on the intended value regardless, and neither is this
  * block's doing. `anchor` is derived by Mantine from `theme.primaryColor`,
- * which `app-theme.ts` sets to `accent` -- the shades it reads (6 in light, a
+ * which this package's `theme.ts` sets to `accent` -- the shades it reads (6 in light, a
  * hard-coded 4 in dark) are the two the ramps are anchored on, so it resolves
  * to the canonical hex either way. `text` lands in dark because the
  * `--mantine-color-dark-*` remap further down IS scheme-scoped, so Mantine's
