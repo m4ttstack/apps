@@ -97,13 +97,20 @@ async function unjoinedFleetRooms(
       chatRooms({ handle: b.handle }, rtOpts()).catch(() => null)
     )
   );
-  const candidates = [
-    ...new Set(
-      perBuddy
-        .flatMap(r => (r?.ok && r.data ? r.data.rooms.map(x => x.room) : []))
-        .filter(r => !known.has(r))
-    ),
-  ];
+  // A DM room is listed too: the human is the silent third party in every
+  // agent-to-agent DM by design (the rail's DIRECT section). Its summary
+  // keeps `kind` and `participants` so the rail names the pair, never the
+  // hashed room.
+  const byRoom = new Map<string, RoomSummary>();
+  for (const r of perBuddy) {
+    if (!r?.ok || !r.data) continue;
+    for (const summary of r.data.rooms) {
+      if (!known.has(summary.room) && !byRoom.has(summary.room)) {
+        byRoom.set(summary.room, summary);
+      }
+    }
+  }
+  const candidates = [...byRoom.keys()];
 
   const whos = await Promise.all(
     candidates.map(room => chatWho({ room }, rtOpts()))
@@ -112,9 +119,12 @@ async function unjoinedFleetRooms(
   return candidates.flatMap((room, i) => {
     const who = whos[i];
     if (!who?.ok || !who.data) return [];
+    const summary = byRoom.get(room)!;
     return [
       {
         room,
+        kind: summary.kind,
+        participants: summary.participants,
         memberCount: who.data.members.length,
         // The human has no read cursor in a room he never joined, so there
         // is no honest unread count to report. Zero, not a guess.

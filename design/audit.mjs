@@ -129,9 +129,15 @@ export const TARGETS = [
   // now point at the real component's own testids. `find` targets a
   // fixture handle (CHAT_FIXTURES=1) rather than a class, same convention
   // RoomRail/PageBar's entries use.
-  // No `.card` target: the desktop artboards became PageShell panels
-  // (sidebar, header, content) on 2026-08-26, so nothing on the page is a
-  // card any more. The phone drawers never were.
+  // The roster is a PageShell panel since 2026-08-26 (no `.card` on the
+  // desktop page any more): its width, surface, hairline and padding are
+  // the container-level contract the member rows sit inside.
+  {
+    spec: '.roster-panel',
+    find: '[data-testid="roster"]',
+    props: ['width', 'background-color', 'border-left-width', 'border-left-style', 'border-left-color', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left'],
+    why: { flex: 'shorthand keyword (none), verified by eye', 'min-height': 'verified by eye: the panel scrolls its own sections' },
+  },
   {
     spec: '.member',
     find: '[data-testid="row-rt-chat-wt"]',

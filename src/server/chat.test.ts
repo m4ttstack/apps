@@ -262,7 +262,7 @@ test('rooms includes rooms the FLEET is in that the human has not joined', async
   // derives, which is the case a repo-based union could never show.
   const roomsByHandle: Record<string, string[]> = {
     matt: ['build'],
-    a: ['forge-leaderboard', 'mantine-tokyo'],
+    a: ['forge-leaderboard', 'mantine-tokyo', 'dm-a1b2'],
     b: ['forge-leaderboard'],
     c: ['build'],
   };
@@ -274,6 +274,9 @@ test('rooms includes rooms the FLEET is in that the human has not joined', async
         memberCount: 2,
         unread: handle === 'matt' ? 1 : 0,
         mentions: 0,
+        ...(room.startsWith('dm-')
+          ? { kind: 'dm' as const, participants: { a: 'a', b: 'b' } }
+          : {}),
       })),
     },
   }));
@@ -316,7 +319,16 @@ test('rooms includes rooms the FLEET is in that the human has not joined', async
     'build',
     'forge-leaderboard',
     'mantine-tokyo',
+    'dm-a1b2',
   ]);
+  // An agent-to-agent DM is the human's to read by design; the rail names
+  // it by its pair, so the pair travels with it.
+  expect(body.rooms[3]).toMatchObject({
+    room: 'dm-a1b2',
+    kind: 'dm',
+    participants: { a: 'a', b: 'b' },
+    joined: false,
+  });
   expect(body.rooms[2]).toMatchObject({
     room: 'mantine-tokyo',
     memberCount: 1,

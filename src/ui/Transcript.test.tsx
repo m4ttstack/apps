@@ -153,3 +153,26 @@ test('an empty older page marks the top edge exhausted and stops paging', async 
     fetchMock.mock.calls.filter(([url]) => String(url).includes('before='))
   ).toHaveLength(1);
 });
+
+test('an error page leaves the top edge retryable instead of exhausting it', async () => {
+  renderTranscriptWithFakeSocket({
+    room: 'build',
+    messages: [
+      {
+        id: 7,
+        room: 'build',
+        handle: 'deck-main',
+        body: 'first',
+        mentions: [],
+        postedAt: 1,
+      },
+    ],
+  });
+  fetchMock.mockImplementationOnce(
+    async () => new Response('{}', { status: 502 })
+  );
+  fireEvent.click(screen.getByTestId('transcript-edge'));
+  await screen.findByText('older messages · load on scroll');
+  expect(screen.queryByText('no older messages')).toBeNull();
+  expect(screen.getByTestId('transcript-edge')).not.toBeDisabled();
+});

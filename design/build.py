@@ -86,6 +86,7 @@ CSS = r"""
     .away { font-size: 10.56px; color: var(--muted-text); font-style: italic; }
     .tag { display: inline-flex; align-items: center; height: 14px; padding: 0 5px; border-radius: 7px; font-size: 8.5px; font-weight: 500; border: 1px solid var(--border-soft); color: var(--muted-text); white-space: nowrap; }
     .tag.dm { color: var(--purple); border-color: color-mix(in srgb, var(--purple) 45%, transparent); }
+    .roster-panel { width: 300px; flex: none; padding: 11.2px 14.4px; background: var(--bg2); border-left: 1px solid var(--border); min-height: 0; }
     .sect { display: flex; align-items: center; gap: 6px; padding: 8px 0 4px; }
     .sect .lbl { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted-text); }
     .sect::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
@@ -156,7 +157,7 @@ def rail():
 def rooms_rail(stale=False):
     st = ' <span class="badge-outline">last known</span>' if stale else ''
     return f"""
-      <div class="stack" style="width: 232px; flex: none; gap: 2px;">
+      <div class="stack" style="width: 100%; gap: 2px;">
         <div class="row" style="justify-content: space-between; padding: 0 9.6px 6px;">
           <span class="xs muted" style="font-weight: 600; letter-spacing: 0.04em;">ROOMS</span>
           <span class="xs muted">3{st}</span>
@@ -386,7 +387,7 @@ def desktop(down=False):
 {composer(down)}
           </div>
 
-          <div class="stack" style="width: 300px; flex: none; padding: 11.2px 14.4px; background: var(--bg2); border-left: 1px solid var(--border); {mem_style} min-height: 0;">
+          <div class="stack roster-panel" style="{mem_style}">
             <div class="row" style="justify-content: space-between; padding-bottom: 7.2px; border-bottom: 1px solid var(--border-soft); flex: none;">
               <div class="row" style="gap: 6px;"><span class="muted">{ic('users', 14)}</span><span class="xs muted" style="font-weight: 600; letter-spacing: 0.04em;">BUDDIES</span></div>
               <span class="xs muted">{'last known' if down else 'the fleet, not the room'}</span>

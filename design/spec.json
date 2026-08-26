@@ -367,6 +367,14 @@
   ".room:hover": {
     "background": "var(--bg4)"
   },
+  ".roster-panel": {
+    "background": "var(--bg2)",
+    "border-left": "1px solid var(--border)",
+    "flex": "none",
+    "min-height": "0",
+    "padding": "11.2px 14.4px",
+    "width": "300px"
+  },
   ".row": {
     "align-items": "center",
     "display": "flex",

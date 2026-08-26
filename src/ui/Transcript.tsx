@@ -363,6 +363,7 @@ export function Transcript({
 
   useEffect(() => {
     setOlderExhausted(false);
+    setLoadingOlder(false);
   }, [room]);
 
   // The `#m-<id>` anchor rt prints after a post and on a wake line. Scrolls
@@ -427,9 +428,18 @@ export function Transcript({
     const oldest = messages[0];
     if (!oldest || loadingOlder || olderExhausted) return;
     setLoadingOlder(true);
+    // The request belongs to the room it was started for: a switch while it
+    // is in flight must neither prepend its page to the new room nor leave
+    // `loadingOlder` stuck.
+    const forRoom = room;
+    const current = () => roomRef.current === forRoom;
     try {
       const res = await fetch(`/api/chat/messages/${room}?before=${oldest.id}`);
+      if (!current()) return;
+      // An error page is not an empty page: the edge stays retryable.
+      if (!res.ok) return;
       const data = (await res.json()) as { messages?: ChatMessage[] };
+      if (!current()) return;
       const older = data.messages ?? [];
       if (older.length === 0) setOlderExhausted(true);
       if (older.length > 0) {
@@ -446,7 +456,7 @@ export function Transcript({
       // The daemon being down is silence, not a crash -- the edge control
       // just stays put for a retry.
     } finally {
-      setLoadingOlder(false);
+      if (current()) setLoadingOlder(false);
     }
   }
 

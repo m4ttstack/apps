@@ -18,8 +18,8 @@ button.
 
 ## Rooms rail — Task 5
 
-**`PageShell.Sidebar`, 244px wide (232px of rows inside 6px of padding), on
-`bg2` with a `border-right`; a drawer on phones.** `gap: 2px`.
+**`PageShell.Sidebar`, 244px border-box (231px of rows inside 6px of padding
+and the 1px hairline), on `bg2` with a `border-right`; a drawer on phones.** `gap: 2px`.
 
 Header row: `justify-content: space-between; padding: 0 9.6px 6px`, label
 `ROOMS` in `.xs.muted` at `font-weight: 600; letter-spacing: 0.04em`, count on
