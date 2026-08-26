@@ -7,7 +7,7 @@ estate share with Matt. Read in this order before changing anything:
    the `/api` and `/ws` surface, the `/r/<room>#m-<id>` link contract with
    rt, what a message body renders, how to run it with real or fixture data
    (`CHAT_FIXTURES=1`), and the deploy loop (`bun run build && deck restart
-   chat`, port 11002).
+chat`, port 11002).
 2. `design/CONFORMANCE.md` then `design/ANATOMY.md`: the UI contract. The
    artboards under `design/artboards` are the authority on layout and values,
    and no UI task is done until `design/audit.mjs` passes against them.
