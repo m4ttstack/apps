@@ -125,6 +125,97 @@ function renderMentions(
   return out;
 }
 
+const URL_RE = /(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/g;
+
+/** `**bold**` and bare URLs inside a prose chunk that has already been split
+    away from code spans, so neither markup form is ever read inside code. */
+function renderInline(
+  text: string,
+  mentions: string[],
+  humanHandle: string | undefined,
+  keyPrefix: string
+): React.ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*)/g).flatMap((chunk, i) => {
+    if (chunk.length > 4 && chunk.startsWith('**') && chunk.endsWith('**')) {
+      return [
+        <Text key={`${keyPrefix}-b-${i}`} component="strong" fw={600} inherit>
+          {chunk.slice(2, -2)}
+        </Text>,
+      ];
+    }
+    return chunk.split(URL_RE).map((piece, j) =>
+      URL_RE.test(piece) && piece.startsWith('http') ? (
+        <a
+          key={`${keyPrefix}-u-${i}-${j}`}
+          href={piece}
+          target="_blank"
+          rel="noreferrer"
+          style={{ color: ACCENT_TEXT, overflowWrap: 'anywhere' }}
+        >
+          {piece}
+        </a>
+      ) : (
+        <span key={`${keyPrefix}-t-${i}-${j}`}>
+          {renderMentions(
+            piece,
+            mentions,
+            humanHandle,
+            `${keyPrefix}-${i}-${j}`
+          )}
+        </span>
+      )
+    );
+  });
+}
+
+/** Blank-line paragraphs and `- ` lists inside a prose part. Agents write
+    markdown by reflex; this is the subset that gives their structure a
+    place to land without rendering HTML. */
+function renderBlocks(
+  text: string,
+  mentions: string[],
+  humanHandle: string | undefined,
+  keyPrefix: string
+): React.ReactNode[] {
+  const blocks = text.split(/\n{2,}/).filter(b => b.trim().length > 0);
+  return blocks.map((block, i) => {
+    const lines = block.split('\n');
+    const isList = lines.every(l => /^\s*[-*] /.test(l));
+    const key = `${keyPrefix}-blk-${i}`;
+    if (isList) {
+      return (
+        <Box
+          key={key}
+          component="ul"
+          data-testid="message-list"
+          style={{ margin: '4px 0', paddingLeft: 18 }}
+        >
+          {lines.map((l, j) => (
+            <li key={`${key}-${j}`}>
+              {renderTextPart(
+                l.replace(/^\s*[-*] /, ''),
+                mentions,
+                humanHandle,
+                `${key}-${j}`
+              )}
+            </li>
+          ))}
+        </Box>
+      );
+    }
+    return (
+      <Box
+        key={key}
+        component="p"
+        data-testid="message-paragraph"
+        style={{ margin: i === 0 ? 0 : '8px 0 0' }}
+      >
+        {renderTextPart(block, mentions, humanHandle, key)}
+      </Box>
+    );
+  });
+}
+
 /** Inline `` `code` `` spans within prose -- split first, so an `@` inside a
     code span is never mistaken for a mention. */
 function renderTextPart(
@@ -155,7 +246,7 @@ function renderTextPart(
     }
     return (
       <span key={`${keyPrefix}-t-${i}`}>
-        {renderMentions(chunk, mentions, humanHandle, `${keyPrefix}-${i}`)}
+        {renderInline(chunk, mentions, humanHandle, `${keyPrefix}-${i}`)}
       </span>
     );
   });
@@ -206,12 +297,7 @@ function MessageBody({
           </Box>
         ) : (
           <span key={`part-${i}`}>
-            {renderTextPart(
-              part.content,
-              message.mentions,
-              humanHandle,
-              `p${i}`
-            )}
+            {renderBlocks(part.content, message.mentions, humanHandle, `p${i}`)}
           </span>
         )
       )}

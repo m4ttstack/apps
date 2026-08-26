@@ -176,3 +176,28 @@ test('an error page leaves the top edge retryable instead of exhausting it', asy
   expect(screen.queryByText('no older messages')).toBeNull();
   expect(screen.getByTestId('transcript-edge')).not.toBeDisabled();
 });
+
+test('a body renders its paragraphs, lists, bold and links, and leaves code alone', () => {
+  renderWithProviders(
+    <Transcript
+      room="build"
+      messages={[
+        {
+          id: 1,
+          room: 'build',
+          handle: 'deck-main',
+          body: 'first **point**\n\n- one\n- two http://x.test/a\n\nsee `**not bold**`',
+          mentions: [],
+          postedAt: 1,
+        },
+      ]}
+    />
+  );
+  expect(screen.getAllByTestId('message-paragraph')).toHaveLength(2);
+  expect(screen.getByText('point').tagName).toBe('STRONG');
+  const list = screen.getByTestId('message-list');
+  expect(list.querySelectorAll('li')).toHaveLength(2);
+  const link = screen.getByRole('link', { name: 'http://x.test/a' });
+  expect(link).toHaveAttribute('href', 'http://x.test/a');
+  expect(screen.getByText('**not bold**').tagName).toBe('CODE');
+});
