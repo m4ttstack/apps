@@ -6,7 +6,7 @@
       "name": "mr-board",
       "dependencies": {
         "@mattstack/glance": "^0.19.0",
-        "@mattstack/rt-client": "^0.5.0",
+        "@mattstack/rt-client": "^0.6.1",
         "@mattstack/settings-kit": "^0.1.2",
         "@mattstack/tui-kit": "file:../tui-kit",
         "invadrs": "^0.2.0",
@@ -42,7 +42,7 @@
 
     "@mattstack/glance": ["@mattstack/glance@0.19.0", "", { "dependencies": { "@gitbeaker/rest": "^43.8.0", "@octokit/core": "^7.0.7", "@octokit/graphql": "^9.0.4", "@octokit/plugin-paginate-rest": "^15.0.0", "@octokit/plugin-retry": "^8.1.1", "@octokit/plugin-throttling": "^11.0.5", "@octokit/request-error": "^7.1.1" } }, "sha512-H+QMuyC3IZ3SXl8TpdjIKVhZvx+vP2ltVdt88CDz8e6YFponB2fplyOrHXLvGFITN1EnnEM6DQyYTcQ06F+7fg=="],
 
-    "@mattstack/rt-client": ["@mattstack/rt-client@0.5.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-wDwoq1okNAJA+JBlZhIxYSxcl1+O6xC4FQg98/RsXNoU4fHtPQzoLnWf+S7kbKNMnm6YpEn9JKK8+VYeIXtgPg=="],
+    "@mattstack/rt-client": ["@mattstack/rt-client@0.6.1", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-q7ffyXHDP0nRL2622itPG9uWdLS89t3qxHQbeU2SVTpMoW/d/UHxzr9/Pk0mffPXdqVLx3r33x8Z9Ae5B3YhOQ=="],
 
     "@mattstack/settings-kit": ["@mattstack/settings-kit@0.1.2", "", { "peerDependencies": { "@mattstack/rt-client": "^0.4.1", "react": ">=18" }, "optionalPeers": ["react"] }, "sha512-OjeE8GwP2OSjt82kM+zfFDFfzyujWPD0Epg/wxq8+p7aIkMRMudLEMMWTe6VmEx4QPPT73kVxxHB1sBt0E6zbA=="],
 
