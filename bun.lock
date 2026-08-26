@@ -18,6 +18,7 @@
         "@mantine/modals": "^9.5.2",
         "@mantine/notifications": "^9.5.2",
         "@mantine/spotlight": "^9.5.2",
+        "@mattstack/mantine-tokyo": "file:./packages/mantine-tokyo",
         "@mattstack/rt-client": "file:../repo-tools/packages/rt-client",
         "@tanstack/react-query": "^5.102.0",
         "@tanstack/react-virtual": "^3.14.6",
@@ -290,6 +291,8 @@
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.3", "", {}, "sha512-FY+MKLBoTsLNJF/eLWaOsXGdz6uh3Iu1axjPf6TUq92IYumcTcXWHoS747JARLkcdlJ/Waiaxc5wQfFO8jC6NA=="],
 
     "@mattstack/glance": ["@mattstack/glance@0.19.0", "", { "dependencies": { "@gitbeaker/rest": "^43.8.0", "@octokit/core": "^7.0.7", "@octokit/graphql": "^9.0.4", "@octokit/plugin-paginate-rest": "^15.0.0", "@octokit/plugin-retry": "^8.1.1", "@octokit/plugin-throttling": "^11.0.5", "@octokit/request-error": "^7.1.1" } }, "sha512-H+QMuyC3IZ3SXl8TpdjIKVhZvx+vP2ltVdt88CDz8e6YFponB2fplyOrHXLvGFITN1EnnEM6DQyYTcQ06F+7fg=="],
+
+    "@mattstack/mantine-tokyo": ["@mattstack/mantine-tokyo@file:packages/mantine-tokyo", { "peerDependencies": { "@mantine/core": "^9.5.2" } }],
 
     "@mattstack/rt-client": ["@mattstack/rt-client@file:../repo-tools/packages/rt-client", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }],
 
