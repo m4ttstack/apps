@@ -1,5 +1,12 @@
 import { Fragment } from 'react';
-import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
+import {
+  Box,
+  Group,
+  Stack,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from '@mantine/core';
 import type { BuddyStatus, PresenceRow } from '@mattstack/rt-client';
 
 import { Icon } from '@ui/icons';
@@ -153,6 +160,9 @@ function MemberRow({
 }) {
   const { handle } = buddy;
   const status = buddy.status as 'live' | 'idle' | 'deaf';
+  const statusLabel = reachable
+    ? `${STATUS_WORD[buddy.status]} · ${statusDetail(buddy, now)}`
+    : 'presence withheld while the daemon is down';
   return (
     <UnstyledButton
       data-testid={`row-${handle}`}
@@ -168,16 +178,32 @@ function MemberRow({
         cursor: 'pointer',
       }}
     >
-      <Dot
-        hollow={!reachable}
-        color={DOT_COLOR[status]}
-        testId={`dot-${handle}`}
-      />
+      {/* The dot is the status; the word moved off the row into a tooltip
+          (and the card header) so a long `name • repo` has the width. */}
+      <Tooltip
+        label={statusLabel}
+        position="left"
+        openDelay={300}
+        withArrow
+        disabled={compact}
+      >
+        <Box
+          component="span"
+          data-testid={`status-${handle}`}
+          aria-label={statusLabel}
+          style={{ display: 'inline-flex', flex: 'none' }}
+        >
+          <Dot
+            hollow={!reachable}
+            color={DOT_COLOR[status]}
+            testId={`dot-${handle}`}
+          />
+        </Box>
+      </Tooltip>
       <Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
         <AgentName
           handle={handle}
           variant="row"
-          status={buddy.status}
           buddy={buddy}
           reachable={reachable}
           now={now}

@@ -133,7 +133,8 @@ tags) and `@mention` / `DM` buttons. Row contents, top to bottom (the row is
 one line plus the away message; only the phone drawer keeps item 5 on the
 row, it has no hover):
 
-1. 8px dot + handle (`.sm`, 600) + `STATUS_WORD[status]` in `.status.<status>`
+1. 8px dot (its tooltip carries `STATUS_WORD[status] · <heartbeat>`) + handle
+   (`.sm`, 600) + `• repo`; the status word itself appears only in the card
 2. the away message when `statusText` is set, as `.away` (10.56px, muted,
    *italic*, in curly quotes: `“waiting on CI”`)
 3. `branch · pane N` — either half omitted when absent

@@ -250,12 +250,12 @@ def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
     # heartbeat line.
     detail = f'<span class="xs muted">{subl}</span>' if compact else ''
     parts = [
-        f'<div class="row" style="gap: 7.2px;"><span class="name row" style="gap: 0; align-items: baseline;"><span class="sm" style="font-weight: 600; flex: none;">{h}</span>{repo_token(h)}</span><span style="flex: 1;"></span>{stw}</div>',
+        f'<div class="row" style="gap: 7.2px;"><span class="name row" style="gap: 0; align-items: baseline;"><span class="sm" style="font-weight: 600; flex: none;">{h}</span>{repo_token(h)}</span></div>',
         awayline,
         detail,
     ]
     inner = "\n            ".join(x for x in parts if x)
-    return ('        <div class="member">\n          <div class="dot ' + dot + '"></div>\n'
+    return ('        <div class="member">\n          <div class="dot ' + dot + '" title="' + ('presence withheld' if down else STATUS_WORD[st] + ' · ' + sub) + '"></div>\n'
             '          <div class="stack" style="gap: 1px; flex: 1; min-width: 0;">\n            ' + inner + '\n          </div>\n        </div>')
 
 def detail_card(h, st, br, pane, cwd, sub, away, tags):

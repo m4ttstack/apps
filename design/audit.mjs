@@ -165,6 +165,9 @@ export const TARGETS = [
       border: 'full shorthand (width/style/colour combined); not separately enumerated, verified by eye',
     },
   },
+  // `.status*`: the status word lives in the hover card header now (the row
+  // shows the dot, with the word in its tooltip), so these match only with a
+  // card open, like `.tag*` and `.pop`.
   {
     spec: '.status',
     find: '[data-testid="status-rt-chat-wt"]',

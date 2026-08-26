@@ -1,5 +1,4 @@
 import { Box, Button, Group, HoverCard, Stack, Text } from '@mantine/core';
-import type { BuddyStatus } from '@mattstack/rt-client';
 
 import classes from './agent-name.module.css';
 import { useBuddies } from './buddies-context';
@@ -20,8 +19,6 @@ export interface AgentNameProps {
       message sender (lg name, repo token). `name`: the bare name at the
       surrounding size, for chips and DM pairs. */
   variant?: AgentNameVariant;
-  /** The row variant's status word; the roster passes what it sectioned by. */
-  status?: BuddyStatus;
   /** `false` for touch surfaces (the phone drawer): no hover, no card. */
   withCard?: boolean;
   /** The roster already holds the buddy and its room membership; these
@@ -226,7 +223,6 @@ export function AgentCard({
 export function AgentName({
   handle,
   variant = 'name',
-  status,
   withCard = true,
   buddy: buddyProp,
   reachable: reachableProp,
@@ -240,7 +236,6 @@ export function AgentName({
 
   let label: React.ReactNode;
   if (variant === 'row') {
-    const s = (status ?? buddy?.status ?? 'idle') as 'live' | 'idle' | 'deaf';
     label = (
       <Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
         <Group gap={0} wrap="nowrap" align="baseline" style={{ minWidth: 0 }}>
@@ -261,19 +256,6 @@ export function AgentName({
             </Text>
             {repo && <RepoToken repo={repo} />}
           </Group>
-          <Text
-            component="span"
-            data-testid={`status-${handle}`}
-            style={{
-              fontSize: '10.56px',
-              fontWeight: 500,
-              flex: 'none',
-              marginLeft: 'auto',
-              color: reachable ? STATUS_TEXT_COLOR[s] : 'var(--tk-muted-text)',
-            }}
-          >
-            {reachable && status ? STATUS_WORD[status] : reachable ? '' : '—'}
-          </Text>
         </Group>
         {reachable && buddy?.statusText && (
           <Text
