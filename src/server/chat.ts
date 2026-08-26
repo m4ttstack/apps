@@ -167,33 +167,27 @@ export const chat = new Hono()
       return c.json({ error: buddiesRes.error ?? 'buddies: no data' }, 502);
     }
 
-    const roomsRes = await chatRooms({ handle: humanHandle(c) }, rtOpts());
-    if (!roomsRes.ok || !roomsRes.data) {
-      return c.json({ error: roomsRes.error ?? 'rooms: no data' }, 502);
-    }
-
-    // One wave, not a ladder: the per-room lookups share no state, so
-    // awaiting them in sequence would pay N round trips of latency for
-    // the same N calls. Kicked off in array order, so the tags below land
-    // in room order regardless of which reply arrives first.
-    const whoResults = await Promise.all(
-      roomsRes.data.rooms.map(room => chatWho({ room: room.room }, rtOpts()))
+    // Each buddy's rooms come from its own memberships (`chat:rooms` is
+    // listRooms(handle) for any handle), not from inverting `who` over the
+    // human's rooms: the human is in no room he never joined, which was
+    // every fleet room, so every buddy read as being nowhere. One wave of
+    // calls, in buddy order, so a failure is that buddy's alone.
+    const perBuddy = await Promise.all(
+      buddiesRes.data.buddies.map(b =>
+        chatRooms({ handle: b.handle }, rtOpts()).catch(() => null)
+      )
     );
-
     const roomsByHandle = new Map<string, string[]>();
-    for (const [i, room] of roomsRes.data.rooms.entries()) {
-      const whoRes = whoResults[i]!;
-      if (!whoRes.ok || !whoRes.data) {
-        return c.json({ error: whoRes.error ?? 'who: no data' }, 502);
-      }
-
-      const tag = roomTag(room);
-      for (const member of whoRes.data.members) {
-        const tags = roomsByHandle.get(member.handle) ?? [];
+    buddiesRes.data.buddies.forEach((b, i) => {
+      const r = perBuddy[i];
+      if (!r?.ok || !r.data) return;
+      const tags: string[] = [];
+      for (const room of r.data.rooms) {
+        const tag = roomTag(room);
         if (!tags.includes(tag)) tags.push(tag);
-        roomsByHandle.set(member.handle, tags);
       }
-    }
+      roomsByHandle.set(b.handle, tags);
+    });
 
     const buddies = buddiesRes.data.buddies.map(buddy => ({
       ...buddy,
