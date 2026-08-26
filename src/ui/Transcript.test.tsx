@@ -1,8 +1,9 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 import { renderWithProviders } from '@ui/storybook/test-utils';
 import {
+  fetchMock,
   installFakeWebSocket,
   longCodeBlockMessage,
   renderTranscriptWithFakeSocket,
@@ -123,4 +124,32 @@ test('the anchor scrolls once, and a later live merge does not repeat it', async
   } finally {
     Element.prototype.scrollIntoView = original;
   }
+});
+
+test('an empty older page marks the top edge exhausted and stops paging', async () => {
+  renderTranscriptWithFakeSocket({
+    room: 'build',
+    messages: [
+      {
+        id: 7,
+        room: 'build',
+        handle: 'deck-main',
+        body: 'first',
+        mentions: [],
+        postedAt: 1,
+      },
+    ],
+  });
+  const edge = screen.getByTestId('transcript-edge');
+  expect(edge).toHaveTextContent('older messages');
+  fireEvent.click(edge);
+  await screen.findByText('no older messages');
+  const calls = fetchMock.mock.calls.filter(([url]) =>
+    String(url).includes('before=')
+  );
+  expect(calls).toHaveLength(1);
+  fireEvent.click(screen.getByTestId('transcript-edge'));
+  expect(
+    fetchMock.mock.calls.filter(([url]) => String(url).includes('before='))
+  ).toHaveLength(1);
 });

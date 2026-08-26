@@ -1,8 +1,8 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import type { ChatMessage } from '@mattstack/rt-client';
-import ScrollToBottom from 'react-scroll-to-bottom';
+import ScrollToBottom, { useAtTop } from 'react-scroll-to-bottom';
 
 import scrollClasses from './transcript-scroll.module.css';
 
@@ -249,6 +249,56 @@ function MessageRow({
   );
 }
 
+/** The top edge of the list. Older pages load when the viewer scrolls to
+    the top of a list that actually scrolls (`useAtTop` is also true for a
+    list too short to scroll, which would page until the room ran dry);
+    the row stays a button for short lists and for tests. */
+function OlderEdge({
+  loading,
+  exhausted,
+  scrollView,
+  onLoad,
+}: {
+  loading: boolean;
+  exhausted: boolean;
+  scrollView: () => HTMLElement | null;
+  onLoad: () => void;
+}) {
+  const [atTop] = useAtTop();
+  useEffect(() => {
+    if (!atTop || loading || exhausted) return;
+    const view = scrollView();
+    if (!view || view.scrollHeight <= view.clientHeight) return;
+    onLoad();
+  }, [atTop, loading, exhausted, scrollView, onLoad]);
+  const label = exhausted
+    ? 'no older messages'
+    : loading
+      ? 'Loading older…'
+      : 'older messages · load on scroll';
+  return (
+    <Box
+      component="button"
+      type="button"
+      data-testid="transcript-edge"
+      onClick={onLoad}
+      disabled={exhausted}
+      style={{
+        width: '100%',
+        border: 0,
+        background: 'transparent',
+        cursor: exhausted ? 'default' : 'pointer',
+        padding: '6px 0 4px',
+        textAlign: 'center',
+        fontSize: '10.56px',
+        color: 'var(--tk-muted-text, var(--tk-muted))',
+      }}
+    >
+      {label}
+    </Box>
+  );
+}
+
 function wsUrl(): string {
   if (typeof window === 'undefined') return '';
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -292,6 +342,11 @@ export function Transcript({
 }: TranscriptProps) {
   const [messages, setMessages] = useState(initialMessages);
   const [loadingOlder, setLoadingOlder] = useState(false);
+  const [olderExhausted, setOlderExhausted] = useState(false);
+  const scrollBoxRef = useRef<HTMLDivElement>(null);
+  // Set before an older page is prepended; consumed once the DOM has the
+  // new rows, so the viewport stays on the message the viewer was reading.
+  const anchorHeight = useRef<number | null>(null);
   const roomRef = useRef(room);
   roomRef.current = room;
 
@@ -304,6 +359,10 @@ export function Transcript({
   useEffect(() => {
     setMessages(initialMessages);
   }, [room, initialMessages]);
+
+  useEffect(() => {
+    setOlderExhausted(false);
+  }, [room]);
 
   // The `#m-<id>` anchor rt prints after a post and on a wake line. Scrolls
   // once per room+anchor, the first time the message is in the list, so a
@@ -347,15 +406,33 @@ export function Transcript({
     return () => socket.close();
   }, [room]);
 
+  function scrollView(): HTMLElement | null {
+    return (
+      scrollBoxRef.current?.querySelector<HTMLElement>(
+        `.${scrollClasses.view}`
+      ) ?? null
+    );
+  }
+
+  useLayoutEffect(() => {
+    const before = anchorHeight.current;
+    const view = scrollView();
+    if (before === null || !view) return;
+    anchorHeight.current = null;
+    view.scrollTop += view.scrollHeight - before;
+  }, [messages]);
+
   async function loadOlder() {
     const oldest = messages[0];
-    if (!oldest || loadingOlder) return;
+    if (!oldest || loadingOlder || olderExhausted) return;
     setLoadingOlder(true);
     try {
       const res = await fetch(`/api/chat/messages/${room}?before=${oldest.id}`);
       const data = (await res.json()) as { messages?: ChatMessage[] };
       const older = data.messages ?? [];
+      if (older.length === 0) setOlderExhausted(true);
       if (older.length > 0) {
+        anchorHeight.current = scrollView()?.scrollHeight ?? null;
         setMessages(prev => {
           const known = new Set(prev.map(m => m.id));
           const additions = older.filter(m => !known.has(m.id));
@@ -407,6 +484,7 @@ export function Transcript({
           follow button appears once they scroll up. The wrapper is the
           positioned box the absolute root fills. */}
       <Box
+        ref={scrollBoxRef}
         data-testid="transcript-scroll"
         style={{ flex: 1, minHeight: 0, position: 'relative' }}
       >
@@ -417,24 +495,12 @@ export function Transcript({
           initialScrollBehavior="auto"
         >
           {messages.length > 0 && (
-            <Box
-              component="button"
-              type="button"
-              data-testid="transcript-edge"
-              onClick={() => void loadOlder()}
-              style={{
-                width: '100%',
-                border: 0,
-                background: 'transparent',
-                cursor: 'pointer',
-                padding: '6px 0 4px',
-                textAlign: 'center',
-                fontSize: '10.56px',
-                color: 'var(--tk-muted-text, var(--tk-muted))',
-              }}
-            >
-              {loadingOlder ? 'Loading older…' : 'Load older messages'}
-            </Box>
+            <OlderEdge
+              loading={loadingOlder}
+              exhausted={olderExhausted}
+              scrollView={scrollView}
+              onLoad={() => void loadOlder()}
+            />
           )}
 
           <Stack gap={0}>
