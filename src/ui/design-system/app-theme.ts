@@ -102,10 +102,11 @@ export const appTheme = /* @__PURE__ */ createTheme({
     lg: '0.7rem',
     xl: '0.9rem',
     // The ladder above is tui-kit's dense scale, sized for text rows inside a
-    // panel. A card that carries its own border needs one step past it before
-    // its content stops touching that border; this is that step, and it is
-    // the widest the system offers on purpose.
+    // panel. Bordered surfaces need more room than that before their content
+    // stops touching the border: `xxl` is what a row-sized card takes, `xxxl`
+    // what a full panel takes.
     xxl: '1.125rem',
+    xxxl: '1.5rem',
   },
   lineHeights: { md: '1.55' },
   // Both slots are the same family on purpose: tui-kit names a monospace

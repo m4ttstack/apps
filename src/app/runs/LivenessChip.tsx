@@ -13,6 +13,8 @@ export const pillInk = (color: MantineColor) =>
 
 export interface PillProps {
   color: MantineColor;
+  /** `sm` annotates a dense row; `md` is the one a card header carries. */
+  size?: 'sm' | 'md';
   children: ReactNode;
   'data-testid'?: string;
   'data-state'?: string;
@@ -23,6 +25,7 @@ export interface PillProps {
     text treatment, differing only in color and label. */
 export function Pill({
   color,
+  size = 'sm',
   children,
   'data-testid': dataTestId,
   'data-state': dataState,
@@ -35,8 +38,8 @@ export function Pill({
         display: 'inline-flex',
         alignItems: 'center',
         borderRadius: 999,
-        padding: '2px 10px',
-        fontSize: 11,
+        padding: size === 'md' ? '5px 14px' : '2px 10px',
+        fontSize: size === 'md' ? 12 : 11,
         fontWeight: 600,
         // The pill sits on a white card, so the tint has to carry real
         // contrast against white -- the palest ramp step disappears there.
@@ -120,13 +123,19 @@ export function livenessSpec(run: RunSummary): LivenessSpec {
 
 export interface LivenessChipProps {
   run: RunSummary;
+  size?: PillProps['size'];
 }
 
-export function LivenessChip({ run }: LivenessChipProps) {
+export function LivenessChip({ run, size }: LivenessChipProps) {
   const { state, color, label } = livenessSpec(run);
 
   return (
-    <Pill color={color} data-testid="liveness-chip" data-state={state}>
+    <Pill
+      color={color}
+      size={size}
+      data-testid="liveness-chip"
+      data-state={state}
+    >
       {label}
     </Pill>
   );

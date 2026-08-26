@@ -326,8 +326,8 @@ export function EffectiveInputs({
     <Paper
       data-testid="effective-inputs"
       bg={bg.level2}
-      p="md"
-      radius={10}
+      p="xxxl"
+      radius="xl"
       style={{ border: `1px solid ${border.default}` }}
     >
       <Stack gap="md">

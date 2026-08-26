@@ -195,8 +195,8 @@ export function Timeline({
     <Paper
       data-testid="timeline-surface"
       bg={bg.level2}
-      p="md"
-      radius={10}
+      p="xxxl"
+      radius="xl"
       style={{ border: `1px solid ${border.default}` }}
     >
       <Text fw={700} size="sm" mb="sm">

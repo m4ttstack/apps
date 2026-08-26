@@ -194,10 +194,10 @@ function SummaryCard({
     <Stack
       gap="sm"
       bg={bg.level2}
-      p="md"
+      p="xxxl"
       data-testid="summary-card"
       style={{
-        borderRadius: 8,
+        borderRadius: 'var(--mantine-radius-xl)',
         border: `1px solid ${border.default}`,
         flex: 1,
       }}
@@ -216,11 +216,11 @@ function SummaryCard({
         </Group>
         <Group gap="xs" wrap="nowrap">
           {showStagePill ? (
-            <Pill color="accent" data-testid="stage-status-pill">
+            <Pill color="accent" size="md" data-testid="stage-status-pill">
               {run.current_stage ?? 'not started'} · {run.status}
             </Pill>
           ) : (
-            <LivenessChip run={run} />
+            <LivenessChip run={run} size="md" />
           )}
           {showAbandon && <AbandonAction repo={repo} runId={run.id} />}
         </Group>
