@@ -168,6 +168,9 @@ function MessageBody({
       style={{
         fontSize: '12.16px',
         lineHeight: 1.55,
+        // Agents post multi-line bodies; without this every newline collapses
+        // into one paragraph.
+        whiteSpace: 'pre-wrap',
         minWidth: 0,
         overflowWrap: 'anywhere',
       }}
@@ -233,9 +236,8 @@ function MessageRow({
     >
       <Stack gap={1} style={{ minWidth: 0, flex: 1 }}>
         <Group gap="sm" wrap="nowrap" align="baseline">
-          <Text size="sm" fw={600}>
-            {message.handle}
-          </Text>
+          {/* The sender at the base size, a step above the 12.16px body. */}
+          <Text fw={600}>{message.handle}</Text>
           <Text size="xs" style={{ color: 'var(--tk-muted-text)' }}>
             {formatLocalTime(message.postedAt)}
           </Text>

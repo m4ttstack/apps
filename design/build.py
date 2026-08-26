@@ -65,7 +65,7 @@ CSS = r"""
     .unread { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 10px; font-size: 10px; font-weight: 500; line-height: 1; border: 1px solid var(--border); color: var(--muted-text); white-space: nowrap; }
     .msg { display: flex; gap: 9.6px; padding: 8.4px 0; min-width: 0; }
     .msg + .msg { border-top: 1px solid var(--border-soft); }
-    .msg-body { font-size: 12.16px; line-height: 1.55; min-width: 0; overflow-wrap: anywhere; }
+    .msg-body { font-size: 12.16px; line-height: 1.55; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
     .msg-body code { font-family: inherit; font-size: 11.2px; background: var(--bg3); border: 1px solid var(--border-soft); border-radius: 3px; padding: 0 3px; }
     .at { color: var(--accent); font-weight: 600; }
     .at.me { background: color-mix(in srgb, var(--accent) var(--wash), transparent); border-radius: 3px; padding: 0 3px; }
@@ -192,7 +192,7 @@ def transcript(msgs=MSGS, edge=True):
         codeblk = f'\n            <span class="code">{code}</span>' if code else ''
         out.append(f"""        <div class="msg">
           <div class="stack" style="gap: 1px; flex: 1; min-width: 0;">
-            <div class="row" style="gap: 7.2px;"><span class="sm" style="font-weight: 600;">{h}</span><span class="xs muted">{t}</span></div>
+            <div class="row" style="gap: 7.2px;"><span style="font-weight: 600;">{h}</span><span class="xs muted">{t}</span></div>
             <span class="msg-body">{body}</span>{codeblk}
           </div>
         </div>""")
