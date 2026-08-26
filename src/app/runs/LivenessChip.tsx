@@ -7,9 +7,9 @@ import type { MantineColor } from '@ui/core';
 /** The pill's tint/ink pair. Exported so surfaces and their tests read the
     same definition rather than each spelling the CSS out. */
 export const pillTint = (color: MantineColor) =>
-  `light-dark(var(--mantine-color-${color}-0), var(--mantine-color-${color}-light))`;
+  `var(--mantine-color-${color}-light)`;
 export const pillInk = (color: MantineColor) =>
-  `light-dark(var(--mantine-color-${color}-6), var(--mantine-color-${color}-1))`;
+  `light-dark(var(--mantine-color-${color}-9), var(--mantine-color-${color}-1))`;
 
 export interface PillProps {
   color: MantineColor;
@@ -38,11 +38,9 @@ export function Pill({
         padding: '2px 10px',
         fontSize: 11,
         fontWeight: 600,
-        // The palest tint the ramp offers under mid-weight text. Mantine's
-        // `light` fill paired with `highContrast` text reads as a solid block
-        // of color at pill size; a status mark has to stay quiet next to the
-        // row it annotates. Shades flip per scheme so the tint stays behind
-        // the text in both.
+        // The pill sits on a white card, so the tint has to carry real
+        // contrast against white -- the palest ramp step disappears there.
+        // Ink flips per scheme so the label stays readable on both fills.
         backgroundColor: pillTint(color),
         color: pillInk(color),
         whiteSpace: 'nowrap',

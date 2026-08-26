@@ -132,10 +132,10 @@ export function RunRow({ run, pruneDays, enrichment }: RunRowProps) {
         borderRadius: 'var(--mantine-radius-lg)',
         border: `1px solid ${border.default}`,
         cursor: 'pointer',
-        // Seen-but-unresolved rows sink to the bottom of their band; opacity
-        // (not a different color) is what marks them de-emphasised so the
-        // palette stays intact.
-        opacity: run.seen ? 0.6 : 1,
+        // Seen rows sink to the bottom of their band, which is the real
+        // de-emphasis. A light touch of transparency on top of that is all
+        // the row can carry before its ticket and status stop being legible.
+        opacity: run.seen ? 0.92 : 1,
       }}
     >
       <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
