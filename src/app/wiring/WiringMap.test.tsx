@@ -875,14 +875,17 @@ describe('WiringMap: needs-attention only', () => {
 
     // `work` drifted; the three stages carry no health and nothing else is
     // wrong with them, so only the orchestrator survives above the terminal
-    // item.
-    expect(
-      screen.getAllByTestId(/^timeline-item-/).map(el => el.dataset.testid)
-    ).toEqual(['timeline-item-mattstack:work', 'timeline-item-outside']);
+    // item. The outside attention row mounts a commit after `work`, so wait
+    // for the filtered set to settle rather than reading it synchronously.
+    await waitFor(() =>
+      expect(
+        screen.getAllByTestId(/^timeline-item-/).map(el => el.dataset.testid)
+      ).toEqual(['timeline-item-mattstack:work', 'timeline-item-outside'])
+    );
 
-    const outside = screen.getByTestId('outside-the-pipeline');
+    const outside = await screen.findByTestId('outside-the-pipeline');
     expect(
-      within(outside).getByTestId('skill-row-mattstack:rebase-worktree')
+      await within(outside).findByTestId('skill-row-mattstack:rebase-worktree')
     ).toBeInTheDocument();
     // In sync, so it is not in the inbox.
     expect(
@@ -901,7 +904,11 @@ describe('WiringMap: needs-attention only', () => {
     renderWiring();
 
     await screen.findByTestId('skill-row-mattstack:work');
-    expect(screen.getAllByTestId(/^skill-row-/)).toHaveLength(2);
+    // The second attention row (an outside verb) mounts a commit after `work`;
+    // wait for the count to settle instead of reading it on the first render.
+    await waitFor(() =>
+      expect(screen.getAllByTestId(/^skill-row-/)).toHaveLength(2)
+    );
   });
 
   it('is reachable from the count on the header, and reversible from there', async () => {
