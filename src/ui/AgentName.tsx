@@ -47,6 +47,35 @@ const MUTED_XS = {
 
 const RULE = { height: 1, background: 'var(--tk-border-soft)' } as const;
 
+/** `• repo` after a name: a real bullet (a middle dot reads as a speck at
+    10px), 3px either side, the repo truncating before the name ever does. */
+function RepoToken({ repo }: { repo: string }) {
+  return (
+    <Text
+      component="span"
+      truncate
+      style={{
+        ...MUTED_XS,
+        minWidth: 0,
+        display: 'inline-flex',
+        alignItems: 'baseline',
+      }}
+    >
+      <span
+        style={{
+          fontSize: '12px',
+          lineHeight: 1,
+          margin: '0 3px',
+          flex: 'none',
+        }}
+      >
+        •
+      </span>
+      {repo}
+    </Text>
+  );
+}
+
 /** The repo label a buddy works in: the one token that tells you what a
     first name is doing, short enough to sit inline. */
 function repoToken(buddy: RosterBuddy | undefined): string | undefined {
@@ -227,19 +256,11 @@ export function AgentName({
     const s = (status ?? buddy?.status ?? 'idle') as 'live' | 'idle' | 'deaf';
     label = (
       <Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
-        <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+        <Group gap={0} wrap="nowrap" style={{ minWidth: 0 }}>
           <Text size="sm" fw={600} style={{ flex: 'none' }}>
             {handle}
           </Text>
-          {repo && (
-            <Text
-              component="span"
-              truncate
-              style={{ ...MUTED_XS, minWidth: 0 }}
-            >
-              ·&nbsp;{repo}
-            </Text>
-          )}
+          {repo && <RepoToken repo={repo} />}
           <Text
             component="span"
             data-testid={`status-${handle}`}
@@ -267,15 +288,11 @@ export function AgentName({
     );
   } else if (variant === 'inline') {
     label = (
-      <Group gap={6} wrap="nowrap" component="span" style={{ minWidth: 0 }}>
+      <Group gap={0} wrap="nowrap" component="span" style={{ minWidth: 0 }}>
         <Text component="span" size="lg" fw={600} style={{ flex: 'none' }}>
           {handle}
         </Text>
-        {repo && (
-          <Text component="span" truncate style={{ ...MUTED_XS, minWidth: 0 }}>
-            ·&nbsp;{repo}
-          </Text>
-        )}
+        {repo && <RepoToken repo={repo} />}
       </Group>
     );
   } else {

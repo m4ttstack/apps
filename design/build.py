@@ -233,7 +233,7 @@ REPO = {'rt-chat-wt': 'repo-tools', 'rt-chat-wt-2': 'repo-tools', 'deck-main': '
 
 def repo_token(h):
     r = REPO.get(h)
-    return f'<span class="xs muted truncate" style="margin-left: -1.2px;">·&nbsp;{r}</span>' if r else ''
+    return f'<span class="xs muted truncate" style="margin-left: -7.2px;"><span style="font-size: 12px; line-height: 1; margin: 0 3px;">•</span>{r}</span>' if r else ''
 
 def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
     dot = 'off' if down else st
