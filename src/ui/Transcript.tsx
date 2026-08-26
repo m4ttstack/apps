@@ -2,6 +2,9 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import type { ChatMessage } from '@mattstack/rt-client';
+import ScrollToBottom from 'react-scroll-to-bottom';
+
+import scrollClasses from './transcript-scroll.module.css';
 
 const BORDER_SOFT = 'var(--tk-border-soft)';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
@@ -381,88 +384,101 @@ export function Transcript({
         // than widening the whole row.
         flex: 1,
         minWidth: 0,
-        background: bare ? undefined : 'var(--ui-bg-2)',
-        border: bare
-          ? undefined
-          : '1px solid var(--mantine-color-default-border)',
-        borderRadius: bare ? undefined : 'var(--mantine-radius-md)',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
         padding: bare
           ? undefined
           : 'var(--mantine-spacing-lg) var(--mantine-spacing-xl)',
       }}
       data-testid="transcript"
     >
-      {messages.length > 0 && (
-        <Box
-          component="button"
-          type="button"
-          data-testid="transcript-edge"
-          onClick={() => void loadOlder()}
-          style={{
-            width: '100%',
-            border: 0,
-            background: 'transparent',
-            cursor: 'pointer',
-            padding: '6px 0 4px',
-            textAlign: 'center',
-            fontSize: '10.56px',
-            color: 'var(--tk-muted)',
-          }}
+      {/* Sticky-bottom scrolling, as console's chat does it: the
+          list follows new messages while the viewer is at the bottom, and a
+          follow button appears once they scroll up. The wrapper is the
+          positioned box the absolute root fills. */}
+      <Box
+        data-testid="transcript-scroll"
+        style={{ flex: 1, minHeight: 0, position: 'relative' }}
+      >
+        <ScrollToBottom
+          className={scrollClasses.root}
+          scrollViewClassName={scrollClasses.view}
+          followButtonClassName={scrollClasses.follow}
+          initialScrollBehavior="auto"
         >
-          {loadingOlder ? 'Loading older…' : 'Load older messages'}
-        </Box>
-      )}
+          {messages.length > 0 && (
+            <Box
+              component="button"
+              type="button"
+              data-testid="transcript-edge"
+              onClick={() => void loadOlder()}
+              style={{
+                width: '100%',
+                border: 0,
+                background: 'transparent',
+                cursor: 'pointer',
+                padding: '6px 0 4px',
+                textAlign: 'center',
+                fontSize: '10.56px',
+                color: 'var(--tk-muted)',
+              }}
+            >
+              {loadingOlder ? 'Loading older…' : 'Load older messages'}
+            </Box>
+          )}
 
-      <Stack gap={0}>
-        {messages.map((message, i) => (
-          <Fragment key={message.id}>
-            {i === dividerAt && (
-              <Group
-                gap="sm"
-                wrap="nowrap"
-                align="center"
-                data-testid="transcript-divider"
-                style={{
-                  color: ACCENT_TEXT,
-                  fontSize: '10.56px',
-                  fontWeight: 600,
-                  padding: 'var(--mantine-spacing-xs) 0',
-                }}
-              >
-                <Box
-                  style={{
-                    flex: 1,
-                    height: 1,
-                    background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
-                  }}
+          <Stack gap={0}>
+            {messages.map((message, i) => (
+              <Fragment key={message.id}>
+                {i === dividerAt && (
+                  <Group
+                    gap="sm"
+                    wrap="nowrap"
+                    align="center"
+                    data-testid="transcript-divider"
+                    style={{
+                      color: ACCENT_TEXT,
+                      fontSize: '10.56px',
+                      fontWeight: 600,
+                      padding: 'var(--mantine-spacing-xs) 0',
+                    }}
+                  >
+                    <Box
+                      style={{
+                        flex: 1,
+                        height: 1,
+                        background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
+                      }}
+                    />
+                    <span>{unreadCount} new</span>
+                    <span>·</span>
+                    <UnstyledButton
+                      data-testid="transcript-mark-read"
+                      onClick={onMarkRead}
+                      style={{ color: ACCENT_TEXT, fontWeight: 600 }}
+                    >
+                      mark read
+                    </UnstyledButton>
+                    <Box
+                      style={{
+                        flex: 1,
+                        height: 1,
+                        background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
+                      }}
+                    />
+                  </Group>
+                )}
+                <MessageRow
+                  message={message}
+                  humanHandle={humanHandle}
+                  isFirst={i === 0}
                 />
-                <span>{unreadCount} new</span>
-                <span>·</span>
-                <UnstyledButton
-                  data-testid="transcript-mark-read"
-                  onClick={onMarkRead}
-                  style={{ color: ACCENT_TEXT, fontWeight: 600 }}
-                >
-                  mark read
-                </UnstyledButton>
-                <Box
-                  style={{
-                    flex: 1,
-                    height: 1,
-                    background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
-                  }}
-                />
-              </Group>
-            )}
-            <MessageRow
-              message={message}
-              humanHandle={humanHandle}
-              isFirst={i === 0}
-            />
-          </Fragment>
-        ))}
-      </Stack>
-
+              </Fragment>
+            ))}
+          </Stack>
+        </ScrollToBottom>
+      </Box>
       {footer}
     </Box>
   );
