@@ -227,7 +227,7 @@ export function AgentName({
     const s = (status ?? buddy?.status ?? 'idle') as 'live' | 'idle' | 'deaf';
     label = (
       <Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
-        <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+        <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
           <Text size="sm" fw={600} style={{ flex: 'none' }}>
             {handle}
           </Text>
@@ -237,7 +237,7 @@ export function AgentName({
               truncate
               style={{ ...MUTED_XS, minWidth: 0 }}
             >
-              · {repo}
+              ·&nbsp;{repo}
             </Text>
           )}
           <Text
@@ -273,7 +273,7 @@ export function AgentName({
         </Text>
         {repo && (
           <Text component="span" truncate style={{ ...MUTED_XS, minWidth: 0 }}>
-            · {repo}
+            ·&nbsp;{repo}
           </Text>
         )}
       </Group>
