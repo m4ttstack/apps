@@ -309,10 +309,10 @@
   },
   ".name:hover": {
     "background": "color-mix(in srgb, var(--accent) var(--wash), transparent)",
-    "border-radius": "3px",
+    "border-radius": "4px",
     "color": "var(--accent)",
-    "margin": "0 -3px",
-    "padding": "0 3px"
+    "margin": "-2px -5px",
+    "padding": "2px 5px"
   },
   ".opt": {
     "align-items": "center",

@@ -55,23 +55,9 @@ function RepoToken({ repo }: { repo: string }) {
     <Text
       component="span"
       truncate
-      style={{
-        ...MUTED_XS,
-        minWidth: 0,
-        display: 'inline-flex',
-        alignItems: 'baseline',
-      }}
+      style={{ ...MUTED_XS, minWidth: 0, alignSelf: 'baseline' }}
     >
-      <span
-        style={{
-          fontSize: '12px',
-          lineHeight: 1,
-          margin: '0 3px',
-          flex: 'none',
-        }}
-      >
-        •
-      </span>
+      <span style={{ fontSize: '12px', margin: '0 3px' }}>•</span>
       {repo}
     </Text>
   );
@@ -257,7 +243,7 @@ export function AgentName({
     const s = (status ?? buddy?.status ?? 'idle') as 'live' | 'idle' | 'deaf';
     label = (
       <Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
-        <Group gap={0} wrap="nowrap" style={{ minWidth: 0 }}>
+        <Group gap={0} wrap="nowrap" align="baseline" style={{ minWidth: 0 }}>
           <Text
             size="sm"
             fw={600}
@@ -294,7 +280,13 @@ export function AgentName({
     );
   } else if (variant === 'inline') {
     label = (
-      <Group gap={0} wrap="nowrap" component="span" style={{ minWidth: 0 }}>
+      <Group
+        gap={0}
+        wrap="nowrap"
+        align="baseline"
+        component="span"
+        style={{ minWidth: 0 }}
+      >
         <Text
           component="span"
           size="lg"

@@ -7,9 +7,9 @@
 }
 
 .target .name {
-  border-radius: 3px;
-  padding: 0 3px;
-  margin: 0 -3px;
+  border-radius: 4px;
+  padding: 2px 5px;
+  margin: -2px -5px;
   transition:
     color 120ms ease,
     background-color 120ms ease;

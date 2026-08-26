@@ -67,7 +67,7 @@ CSS = r"""
     .msg + .msg { border-top: 1px solid var(--border-soft); }
     .msg-body { font-size: 12.16px; line-height: 1.55; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
     .msg-body code { font-family: inherit; font-size: 11.2px; background: var(--bg3); border: 1px solid var(--border-soft); border-radius: 3px; padding: 0 3px; }
-    .name:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) var(--wash), transparent); border-radius: 3px; padding: 0 3px; margin: 0 -3px; }
+    .name:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) var(--wash), transparent); border-radius: 4px; padding: 2px 5px; margin: -2px -5px; }
     .at { color: var(--accent); font-weight: 600; }
     .at.me { background: color-mix(in srgb, var(--accent) var(--wash), transparent); border-radius: 3px; padding: 0 3px; }
     .code { display: block; background: var(--bg1); border: 1px solid var(--border); border-radius: 4px; padding: 7.2px 9.6px; font-size: 11.2px; line-height: 1.5; white-space: pre; overflow-x: auto; margin-top: 4.8px; }
@@ -234,7 +234,7 @@ REPO = {'rt-chat-wt': 'repo-tools', 'rt-chat-wt-2': 'repo-tools', 'deck-main': '
 
 def repo_token(h):
     r = REPO.get(h)
-    return f'<span class="xs muted truncate" style="margin-left: -7.2px;"><span style="font-size: 12px; line-height: 1; margin: 0 3px;">•</span>{r}</span>' if r else ''
+    return f'<span class="xs muted truncate" style="margin-left: -7.2px; align-self: baseline;"><span style="font-size: 12px; margin: 0 3px;">•</span>{r}</span>' if r else ''
 
 def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
     dot = 'off' if down else st
