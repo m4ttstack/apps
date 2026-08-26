@@ -311,10 +311,9 @@ export function Roster({
         <Group
           justify="space-between"
           wrap="nowrap"
-          style={{
-            paddingBottom: 'var(--mantine-spacing-sm)',
-            borderBottom: '1px solid var(--tk-border-soft)',
-          }}
+          // No rule under the header: the first section heading draws its own
+          // hairline right beneath, and two rules 8px apart read as a mistake.
+          style={{ paddingBottom: 'var(--mantine-spacing-xs)' }}
         >
           <Group gap={6} wrap="nowrap">
             <Icon
