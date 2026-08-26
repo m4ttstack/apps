@@ -6,7 +6,7 @@ import {
   Text,
   useRailState,
 } from '@ui/core';
-import { useColorScheme, useSchemeColors } from '@ui/hooks';
+import { useColorScheme } from '@ui/hooks';
 import { Icon } from '@ui/icons';
 import { AppMark } from './AppMark';
 import { useSiteHeaderProps } from './layout';
@@ -115,16 +115,12 @@ export function AppChrome({
 }) {
   const headerProps = useSiteHeaderProps();
   const rail = useRailState();
-  const { bg } = useSchemeColors();
 
   return (
     <RailShell
       headerHeight={APP_HEADER_HEIGHT}
       headerProps={headerProps}
       headerPx="lg"
-      // Three steps, as console layers them: rail on the page surface, header
-      // and sidebar a step up, the transcript a step above those.
-      railProps={{ style: { backgroundColor: bg.level1 } }}
       header={
         <Group justify="space-between" wrap="nowrap" gap="xs" w="100%">
           <Group gap="xs" wrap="nowrap">
