@@ -412,7 +412,13 @@ function WiringSpineView({
       ? (spineRows(spine).find(entry => entry.key === selectedKey) ?? null)
       : null;
   const panelOpen = selectedEntry !== null;
-  const showOutside = !attentionOnly || shown.outside.length > 0;
+  // Only render the section when it has something in it: in the normal view an
+  // empty section would otherwise draw its "0" header next to the
+  // "Nothing outside the pipeline" empty-state below. Attention mode never
+  // shows orphans, so it keys on the filtered outside list alone.
+  const showOutside = attentionOnly
+    ? shown.outside.length > 0
+    : spine.outside.length > 0 || spine.orphans.length > 0;
   const nothingNeedsAttention =
     attentionOnly && spineEntries.length === 0 && shown.outside.length === 0;
 

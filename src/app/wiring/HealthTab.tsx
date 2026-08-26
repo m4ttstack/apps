@@ -2,7 +2,6 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import { useMemo } from 'react';
 
 import {
-  Alert,
   Badge,
   GenericError,
   Group,
@@ -306,14 +305,13 @@ export function HealthTab({ pack, onOpenSkill }: HealthTabProps) {
   const compositionQuery = useCompositionSnapshot(pack);
   const checkQuery = useSkillsCheck(pack);
 
+  // Both inputs are required: buildSpine with an empty check would report
+  // every verb as healthy, so a failed or pending `check` must NOT produce
+  // stat cards -- it stays null until real health data lands.
   const spine = useMemo(
     () =>
-      compositionQuery.data
-        ? buildSpine(
-            compositionQuery.data,
-            checkQuery.data ?? { verbs: [] },
-            null
-          )
+      compositionQuery.data && checkQuery.data
+        ? buildSpine(compositionQuery.data, checkQuery.data, null)
         : null,
     [compositionQuery.data, checkQuery.data]
   );
@@ -328,6 +326,16 @@ export function HealthTab({ pack, onOpenSkill }: HealthTabProps) {
         title="Couldn't load this pack's composition"
         message={(compositionQuery.error as Error).message}
         onRetry={() => void compositionQuery.refetch()}
+      />
+    );
+  }
+
+  if (checkQuery.isError) {
+    return (
+      <GenericError
+        title="Couldn't measure this pack's health"
+        message={(checkQuery.error as Error).message}
+        onRetry={() => void checkQuery.refetch()}
       />
     );
   }
@@ -347,21 +355,6 @@ export function HealthTab({ pack, onOpenSkill }: HealthTabProps) {
 
   return (
     <Stack gap={0} data-testid="health-tab">
-      {checkQuery.isError && (
-        <Alert
-          variant="light"
-          color="warn"
-          icon={<Icons.warning size={14} />}
-          mb="lg"
-          data-testid="health-check-error"
-        >
-          <Text size="xs">
-            rt skills check failed, so these counts cannot state drift:{' '}
-            {(checkQuery.error as Error).message}
-          </Text>
-        </Alert>
-      )}
-
       <div
         // Health.dc.html `.stats` gap (14px) has no matching spacing step.
         style={{

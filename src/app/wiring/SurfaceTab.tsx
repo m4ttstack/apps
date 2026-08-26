@@ -80,15 +80,17 @@ function rowsSignature(rows: SkillsSurfaceRow[]): string {
  * successful apply, a pack switch) clears the whole map since it is no
  * longer a delta against what is on screen.
  */
-function useSurfaceStaging(rows: SkillsSurfaceRow[]) {
+function useSurfaceStaging(rows: SkillsSurfaceRow[], pack: string) {
   const [staged, setStaged] = useState<Map<string, 'public' | 'internal'>>(
     new Map()
   );
 
+  // Clear on a pack switch as well as a row change: two packs can share a row
+  // signature, and a stale delta must never be applied against a different pack.
   const signature = rowsSignature(rows);
   useEffect(() => {
     setStaged(new Map());
-  }, [signature]);
+  }, [signature, pack]);
 
   const delta = useMemo<SurfaceDelta>(() => {
     const toPublic: string[] = [];
@@ -103,7 +105,9 @@ function useSurfaceStaging(rows: SkillsSurfaceRow[]) {
 
   function toggle(name: string) {
     const row = rows.find(r => r.name === name);
-    if (!row) return;
+    // A `missing` skill has no files on disk; rt rejects it either direction,
+    // so it can be read but never staged.
+    if (!row || row.kind === 'missing') return;
     setStaged(prev => {
       const next = new Map(prev);
       const current = next.get(name) ?? row.status;
@@ -270,7 +274,7 @@ export function SurfaceTab({ pack }: SurfaceTabProps) {
     () => surfaceQuery.data?.rows ?? [],
     [surfaceQuery.data]
   );
-  const { staged, delta, toggle, discard } = useSurfaceStaging(rows);
+  const { staged, delta, toggle, discard } = useSurfaceStaging(rows, pack);
 
   const [filterText, setFilterText] = useState('');
   const [filterKind, setFilterKind] = useState<SurfaceFilterKind>('all');

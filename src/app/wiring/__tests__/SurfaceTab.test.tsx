@@ -279,3 +279,39 @@ describe('SurfaceTab: filters', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('SurfaceTab: staging resets on pack switch', () => {
+  it('drops a staged change when the pack changes, even if the new pack shares the row signature', async () => {
+    const user = userEvent.setup();
+    surfaceGet.mockResolvedValue(
+      ok({ pack: 'demo', packDir: '/p', rows: ROWS })
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { rerender } = renderWithProviders(
+      <QueryClientProvider client={queryClient}>
+        <SurfaceTab pack="demo" />
+      </QueryClientProvider>
+    );
+
+    await screen.findByTestId('surface-row-watch-ci');
+    await user.click(screen.getByRole('switch', { name: /^watch-ci$/ }));
+    expect(await screen.findByText('1 change staged')).toBeInTheDocument();
+
+    // A different pack that happens to return the SAME rows (identical
+    // signature): only `pack` changed, so a signature-only reset would leak the
+    // stale delta. The reset must fire on the pack change.
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <SurfaceTab pack="other" />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText('Nothing staged')).toBeInTheDocument()
+    );
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    expect(surfaceApplyPost).not.toHaveBeenCalled();
+  });
+});
