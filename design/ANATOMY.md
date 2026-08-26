@@ -18,7 +18,8 @@ button.
 
 ## Rooms rail — Task 5
 
-**Width 232px, `flex: none`, `gap: 2px`.**
+**`PageShell.Sidebar`, 244px wide (232px of rows inside 6px of padding), on
+`bg2` with a `border-right`; a drawer on phones.** `gap: 2px`.
 
 Header row: `justify-content: space-between; padding: 0 9.6px 6px`, label
 `ROOMS` in `.xs.muted` at `font-weight: 600; letter-spacing: 0.04em`, count on
@@ -56,7 +57,7 @@ Footnote under the section, `.xs.muted`, `padding: 4px 9.6px 0`:
 
 ## Page bar — Task 5
 
-Console's second 64px bar. Title at **26px / 700** (`#build`, or the
+Console's second 64px bar. Title at **20px / 700** (`#build`, or the
 `a ↔ b` pair plus a `dm` tag for a DM).
 
 Then the fleet chips, all `.chip` (22px tall, radius 6px, `gap: 4.8px`,
@@ -77,7 +78,9 @@ Daemon down: exactly two plain chips, `N signed in · last known` and
 
 ## Transcript — Task 5
 
-One card. Top edge row `.edge` (`.xs.muted`): `41 older messages · load on
+The main panel on `bg3`, `padding: 11.2px 14.4px`, inside the scroll-clamped
+`PageShell.Content`; the list scrolls in a sticky-bottom scroller
+(react-scroll-to-bottom) with the composer pinned beneath it. Top edge row `.edge` (`.xs.muted`): `41 older messages · load on
 scroll`, becoming `Loading older…` while a `before` page is in flight.
 
 Each message is a `.msg` (`display: flex; gap: 9.6px; padding: 8.4px 0`),
@@ -107,6 +110,9 @@ The read cursor is a `.divider` (accent, 10.56px / 600, rules on both sides at
 A DM transcript opens with `start of this conversation · <day>`.
 
 ## Roster — Task 6
+
+A 300px panel on `bg2` with a `border-left`, `padding: 11.2px 14.4px`,
+scrolling on its own to the right of the transcript.
 
 Heading `BUDDIES`, caption `the fleet, not the room`.
 

@@ -299,7 +299,7 @@ def members(down=False):
 
 def desktop(down=False):
     banner = "" if not down else f"""
-      <div class="alert" style="margin-bottom: 11.2px;">
+      <div class="alert" style="margin: 11.2px 11.2px 0;">
         <span style="flex: none; margin-top: 1px;">{ic('warning', 14)}</span>
         <div class="stack" style="gap: 1px; flex: 1;">
           <span class="sm" style="font-weight: 600;">rt daemon unreachable — down 4m · 48 probes</span>
@@ -312,7 +312,6 @@ def desktop(down=False):
     else:
         chips = '<span class="chip">6 signed in</span><span class="chip live"><span class="dot live"></span>3 listening</span><span class="chip idle"><span class="dot idle"></span>2 idle</span><span class="chip deaf"><span class="dot deaf"></span>1 deaf: gitq-main</span>'
     mem_style = 'opacity: 0.6;' if down else ''
-    row_h = '650px' if down else '740px'
     return head() + f"""
 <div class="app {{{{schemeClass}}}}" style="width: 1440px; min-height: 900px; display: flex;">
 {rail()}
@@ -331,7 +330,7 @@ def desktop(down=False):
     <!-- Page bar: console's second 64px bar. The room, and the one question this page exists to answer. -->
     <div class="row" style="height: 64px; flex: none; padding: 0 11.2px; background: var(--bg2); border-bottom: 1px solid var(--border); gap: 9.6px;">
       <span class="muted">{ic('hash', 18)}</span>
-      <span style="font-size: 26px; font-weight: 700; line-height: 1.35;">build</span>
+      <span style="font-size: 20px; font-weight: 700; line-height: 1.35;">build</span>
       <div style="width: 4.8px;"></div>
       {chips}
       <span class="chip">wakes: mention ▾</span>
@@ -345,29 +344,35 @@ def desktop(down=False):
       </div>
     </div>
 
-    <div class="grid" style="flex: 1; padding: 14.4px 11.2px;">
-{banner}
-      <div style="display: flex; gap: 11.2px; align-items: stretch; height: {row_h};">
+    <!-- PageShell's compound layout: rooms in the sidebar, the page bar as its
+         header, the banner in the content notch, transcript and roster as
+         edge-to-edge panels inside the scroll-clamped content. No moat. -->
+    <div style="display: flex; flex: 1; min-height: 0; height: 772px;">
 
-        <div class="card stack" style="padding: 11.2px 6px; flex: none;">
+      <div class="stack" style="width: 244px; flex: none; background: var(--bg2); border-right: 1px solid var(--border); padding: 11.2px 6px; overflow: auto;">
 {rooms_rail(down)}
-        </div>
+      </div>
 
-        <div class="card stack" style="flex: 1; min-width: 0; padding: 11.2px 14.4px;">
-          <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
+      <div class="stack" style="flex: 1; min-width: 0; min-height: 0;">
+{banner}
+        <div style="display: flex; flex: 1; min-height: 0; align-items: stretch;">
+
+          <div class="stack grid" style="flex: 1; min-width: 0; padding: 11.2px 14.4px;">
+            <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
 {transcript()}
-          </div>
+            </div>
 {composer(down)}
-        </div>
-
-        <div class="card stack" style="width: 300px; flex: none; padding: 11.2px 14.4px; {mem_style} overflow: auto;">
-          <div class="row" style="justify-content: space-between; padding-bottom: 7.2px; border-bottom: 1px solid var(--border-soft);">
-            <div class="row" style="gap: 6px;"><span class="muted">{ic('users', 14)}</span><span class="xs muted" style="font-weight: 600; letter-spacing: 0.04em;">BUDDIES</span></div>
-            <span class="xs muted">{'last known' if down else 'the fleet, not the room'}</span>
           </div>
-{roster(down, compact=True)}
-        </div>
 
+          <div class="stack" style="width: 300px; flex: none; padding: 11.2px 14.4px; background: var(--bg2); border-left: 1px solid var(--border); {mem_style} overflow: auto;">
+            <div class="row" style="justify-content: space-between; padding-bottom: 7.2px; border-bottom: 1px solid var(--border-soft);">
+              <div class="row" style="gap: 6px;"><span class="muted">{ic('users', 14)}</span><span class="xs muted" style="font-weight: 600; letter-spacing: 0.04em;">BUDDIES</span></div>
+              <span class="xs muted">{'last known' if down else 'the fleet, not the room'}</span>
+            </div>
+{roster(down, compact=True)}
+          </div>
+
+        </div>
       </div>
     </div>
   </div>
