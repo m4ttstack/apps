@@ -33,8 +33,10 @@ func makeFont(size: CGFloat) -> CTFont {
     return CTFontCreateWithName("Menlo" as CFString, size, nil)
 }
 
-/// A speech bubble on the same 24-unit grid the layers glyph uses.
-func drawBubbleGlyph(_ ctx: CGContext, in rect: CGRect, color: CGColor) {
+/// A speech bubble on the same 24-unit grid the layers glyph uses. Stroked
+/// beside the "m" on the large sizes; filled solid on the favicon sizes,
+/// where an outline is a thin ring nobody can read.
+func drawBubbleGlyph(_ ctx: CGContext, in rect: CGRect, color: CGColor, filled: Bool = false) {
     func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
         CGPoint(x: rect.minX + x / 24 * rect.width, y: rect.minY + (1 - y / 24) * rect.height)
     }
@@ -55,11 +57,16 @@ func drawBubbleGlyph(_ ctx: CGContext, in rect: CGRect, color: CGColor) {
     path.closeSubpath()
     ctx.saveGState()
     ctx.addPath(path)
-    ctx.setStrokeColor(color)
-    ctx.setLineWidth(max(1.0, rect.width * 2 / 24))
-    ctx.setLineCap(.round)
-    ctx.setLineJoin(.round)
-    ctx.strokePath()
+    if filled {
+        ctx.setFillColor(color)
+        ctx.fillPath()
+    } else {
+        ctx.setStrokeColor(color)
+        ctx.setLineWidth(max(1.0, rect.width * 2 / 24))
+        ctx.setLineCap(.round)
+        ctx.setLineJoin(.round)
+        ctx.strokePath()
+    }
     ctx.restoreGState()
 }
 
@@ -82,9 +89,9 @@ func render(_ slot: Slot) {
     // Favicon sizes: the bubble alone, large. At 16px the "m" plus bubble
     // pair reads as two smudges; one mark filling the canvas still reads.
     if px <= 64 {
-        let side = size * 0.66
+        let side = size * 0.72
         drawBubbleGlyph(ctx, in: CGRect(x: (size - side) / 2.0, y: (size - side) / 2.0 - size * 0.02,
-                                        width: side, height: side), color: fgColor)
+                                        width: side, height: side), color: fgColor, filled: true)
         write(ctx, slot)
         return
     }
