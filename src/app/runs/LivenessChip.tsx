@@ -3,7 +3,13 @@ import type { RunSummary } from '@mattstack/rt-client';
 
 import { Box } from '@ui/core';
 import type { MantineColor } from '@ui/core';
-import { useSchemeColors } from '@ui/hooks';
+
+/** The pill's tint/ink pair. Exported so surfaces and their tests read the
+    same definition rather than each spelling the CSS out. */
+export const pillTint = (color: MantineColor) =>
+  `light-dark(var(--mantine-color-${color}-0), var(--mantine-color-${color}-light))`;
+export const pillInk = (color: MantineColor) =>
+  `light-dark(var(--mantine-color-${color}-6), var(--mantine-color-${color}-1))`;
 
 export interface PillProps {
   color: MantineColor;
@@ -21,8 +27,6 @@ export function Pill({
   'data-testid': dataTestId,
   'data-state': dataState,
 }: PillProps) {
-  const { bg, text } = useSchemeColors();
-
   return (
     <Box
       data-testid={dataTestId}
@@ -31,11 +35,16 @@ export function Pill({
         display: 'inline-flex',
         alignItems: 'center',
         borderRadius: 999,
-        padding: '2px 8px',
+        padding: '2px 10px',
         fontSize: 11,
         fontWeight: 600,
-        backgroundColor: bg.color(color),
-        color: text.highContrast(color),
+        // The palest tint the ramp offers under mid-weight text. Mantine's
+        // `light` fill paired with `highContrast` text reads as a solid block
+        // of color at pill size; a status mark has to stay quiet next to the
+        // row it annotates. Shades flip per scheme so the tint stays behind
+        // the text in both.
+        backgroundColor: pillTint(color),
+        color: pillInk(color),
         whiteSpace: 'nowrap',
       }}
     >

@@ -2,8 +2,8 @@ import type { RunSummary } from '@mattstack/rt-client';
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { staticSchemeColors } from '@ui/hooks';
 import { renderWithProviders } from '@ui/storybook/test-utils';
+import { pillTint } from './LivenessChip';
 
 const { LivenessChip } = await import('./LivenessChip');
 
@@ -47,7 +47,7 @@ describe('LivenessChip', () => {
     expect(el).toHaveAttribute('data-state', 'blocked');
     expect(el).toHaveTextContent('waiting on you · pane-3');
     expect(el).toHaveStyle({
-      backgroundColor: staticSchemeColors.bg.color('bad'),
+      backgroundColor: pillTint('bad'),
     });
   });
 
@@ -94,7 +94,7 @@ describe('LivenessChip', () => {
     expect(el).toHaveAttribute('data-state', 'failed');
     expect(el).toHaveTextContent('failed');
     expect(el).toHaveStyle({
-      backgroundColor: staticSchemeColors.bg.color('bad'),
+      backgroundColor: pillTint('bad'),
     });
   });
 
@@ -125,7 +125,7 @@ describe('LivenessChip', () => {
     const el = chip(run);
     expect(el).toHaveAttribute('data-state', 'stranded');
     expect(el).toHaveStyle({
-      backgroundColor: staticSchemeColors.bg.color('warn'),
+      backgroundColor: pillTint('warn'),
     });
   });
 
@@ -138,7 +138,7 @@ describe('LivenessChip', () => {
     expect(el).toHaveAttribute('data-state', 'driven');
     expect(el).toHaveTextContent('driven · agent working');
     expect(el).toHaveStyle({
-      backgroundColor: staticSchemeColors.bg.color('ok'),
+      backgroundColor: pillTint('ok'),
     });
   });
 
@@ -151,7 +151,7 @@ describe('LivenessChip', () => {
     expect(el).toHaveAttribute('data-state', 'idle');
     expect(el).toHaveTextContent('idle');
     expect(el).toHaveStyle({
-      backgroundColor: staticSchemeColors.bg.color('warn'),
+      backgroundColor: pillTint('warn'),
     });
   });
 
@@ -161,7 +161,7 @@ describe('LivenessChip', () => {
     expect(el).toHaveAttribute('data-state', 'running');
     expect(el).toHaveTextContent('running');
     expect(el).toHaveStyle({
-      backgroundColor: staticSchemeColors.bg.color('accent'),
+      backgroundColor: pillTint('accent'),
     });
   });
 
@@ -186,7 +186,7 @@ describe('LivenessChip', () => {
     expect(el).toHaveAttribute('data-state', 'done');
     expect(el).toHaveTextContent('done');
     expect(el).toHaveStyle({
-      backgroundColor: staticSchemeColors.bg.color('ok'),
+      backgroundColor: pillTint('ok'),
     });
   });
 
@@ -201,7 +201,7 @@ describe('LivenessChip', () => {
     expect(el).toHaveAttribute('data-state', 'finished-other');
     expect(el).toHaveTextContent('abandoned');
     expect(el).toHaveStyle({
-      backgroundColor: staticSchemeColors.bg.color('warn'),
+      backgroundColor: pillTint('warn'),
     });
   });
 });

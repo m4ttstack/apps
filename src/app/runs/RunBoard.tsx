@@ -201,7 +201,7 @@ export function RunBoard() {
                   {BAND_META[band].empty}
                 </Text>
               ) : (
-                <Stack gap="xs">
+                <Stack gap="sm">
                   {displayRuns.map(run => (
                     <RunRow
                       key={run.id}

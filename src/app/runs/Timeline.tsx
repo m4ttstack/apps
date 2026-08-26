@@ -92,6 +92,21 @@ export function groupTimeline(
   return { stageGroups, outsideGroups: [...outsideByProducer.values()] };
 }
 
+/** How long a stage took, once it has both ends; a running stage measures
+    against now so the number keeps moving while you watch it. */
+function stageElapsed(stage: {
+  started_at: number | null;
+  ended_at: number | null;
+}): string | null {
+  if (stage.started_at == null) return null;
+  const ms = (stage.ended_at ?? Date.now()) - stage.started_at;
+  if (ms < 0) return null;
+  const mins = Math.round(ms / 60_000);
+  if (mins < 1) return '<1m';
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
+
 const STAGE_STATUS_COLOR: Record<string, MantineColor> = {
   done: 'ok',
   failed: 'bad',
@@ -198,19 +213,35 @@ export function Timeline({
             const isCurrent = i === currentIndex;
             const summary = (
               <Group gap="xs" wrap="nowrap">
-                <Text fw={600}>{stage.name}</Text>
+                {/* Fixed width: without it a long name wraps and pushes its
+                    own status badge into an ellipsis, and every row's detail
+                    text starts at a different x. */}
+                <Text fw={600} w={104} style={{ flex: 'none' }}>
+                  {stage.name}
+                </Text>
                 {stage.attempt > 1 && (
                   <Badge size="xs" variant="light" color="gray">
                     attempt {stage.attempt}
                   </Badge>
                 )}
-                <Badge
-                  size="xs"
-                  variant="light"
-                  color={STAGE_STATUS_COLOR[stage.status] ?? 'gray'}
-                >
-                  {stage.status}
-                </Badge>
+                {/* The check mark on the rail already says "done"; a badge
+                    repeating it on every completed row is the noise the
+                    condensed timeline exists to remove. Anything else still
+                    earns a badge. */}
+                {stage.status !== 'done' && (
+                  <Badge
+                    size="xs"
+                    variant="light"
+                    color={STAGE_STATUS_COLOR[stage.status] ?? 'gray'}
+                  >
+                    {stage.status}
+                  </Badge>
+                )}
+                {stageElapsed(stage) && (
+                  <Text span c={text.muted} fz={11}>
+                    {stageElapsed(stage)}
+                  </Text>
+                )}
               </Group>
             );
 

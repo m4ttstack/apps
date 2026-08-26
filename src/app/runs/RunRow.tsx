@@ -124,11 +124,12 @@ export function RunRow({ run, pruneDays, enrichment }: RunRowProps) {
       wrap="nowrap"
       justify="space-between"
       align="center"
-      bg={bg.level2}
-      p="sm"
+      bg={bg.monochrome}
+      px="xxl"
+      py="xl"
       onClick={() => navigate(detailHref)}
       style={{
-        borderRadius: 6,
+        borderRadius: 'var(--mantine-radius-lg)',
         border: `1px solid ${border.default}`,
         cursor: 'pointer',
         // Seen-but-unresolved rows sink to the bottom of their band; opacity
@@ -176,19 +177,26 @@ export function RunRow({ run, pruneDays, enrichment }: RunRowProps) {
         )}
       </Stack>
 
-      <Stack gap={4} style={{ width: 300, flexShrink: 0 }}>
+      <Stack gap={6} style={{ width: 300, flexShrink: 0 }}>
         <Group gap="xs" wrap="nowrap">
           <Text fw={700} fz={14}>
             {stageName}
           </Text>
-          <Text c={text.muted} fz={12}>
+          <Text c={text.muted} fz={11}>
             {stageElapsed}
           </Text>
         </Group>
         <StageProgress stages={run.stages} />
       </Stack>
 
-      <Group gap="xs" wrap="nowrap">
+      {/* Fixed width: the chip's label length varies per state, and without
+          this the stage column above lands at a different x on every row. */}
+      <Group
+        gap="xs"
+        wrap="nowrap"
+        justify="flex-end"
+        style={{ width: 232, flexShrink: 0 }}
+      >
         <LivenessChip run={run} />
         <Menu position="bottom-end">
           <Menu.Target>

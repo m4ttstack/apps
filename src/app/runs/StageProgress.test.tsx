@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { staticSchemeColors } from '@ui/hooks';
 import { renderWithProviders } from '@ui/storybook/test-utils';
+import { segmentColor } from './StageProgress';
 
 const { StageProgress } = await import('./StageProgress');
 
@@ -36,17 +37,17 @@ describe('StageProgress', () => {
 
     expect(segments[0]).toHaveAttribute('data-status', 'done');
     expect(segments[0]).toHaveStyle({
-      backgroundColor: staticSchemeColors.text.highContrast('ok'),
+      backgroundColor: segmentColor('ok'),
     });
 
     expect(segments[1]).toHaveAttribute('data-status', 'running');
     expect(segments[1]).toHaveStyle({
-      backgroundColor: staticSchemeColors.text.highContrast('accent'),
+      backgroundColor: segmentColor('accent'),
     });
 
     expect(segments[2]).toHaveAttribute('data-status', 'failed');
     expect(segments[2]).toHaveStyle({
-      backgroundColor: staticSchemeColors.text.highContrast('bad'),
+      backgroundColor: segmentColor('bad'),
     });
 
     // An unmapped status (not done/failed/running) falls back to the

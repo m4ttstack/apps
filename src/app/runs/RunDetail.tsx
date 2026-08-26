@@ -104,6 +104,39 @@ function AbandonAction({ repo, runId }: { repo: string; runId: string }) {
   );
 }
 
+/** The fact strip's column labels: small caps, tracked out, so four of them
+    read as one header band rather than four sentences. */
+function FactLabel({ children }: { children: ReactNode }) {
+  const { text } = useSchemeColors();
+  return (
+    <Text
+      c={text.muted}
+      fz={10}
+      fw={600}
+      tt="uppercase"
+      style={{ letterSpacing: '0.06em' }}
+    >
+      {children}
+    </Text>
+  );
+}
+
+/** GitLab reports pipeline state as an enum; the card shows prose. */
+function ciStatusLabel(status: string): string {
+  return status.replace(/_/g, ' ');
+}
+
+/** `commits` is written as a sentence by the pipeline ("<sha> (5 commits:
+    badge, jsdoc, ...)"); the card has room for the count and the sha only,
+    and truncating the sentence cuts mid-word instead. */
+function commitsSummary(value: string): string {
+  const sha = value.match(/^([0-9a-f]{7,40})/i)?.[1];
+  const count = value.match(/(\d+)\s+commits?/i)?.[1];
+  if (sha && count) return `${count} commits @ ${sha.slice(0, 7)}`;
+  if (sha) return sha.slice(0, 7);
+  return value;
+}
+
 function SummaryCard({
   repo,
   run,
@@ -200,9 +233,7 @@ function SummaryCard({
 
       <Group gap="lg" align="flex-start" wrap="nowrap">
         <Stack gap={4} style={{ flex: 1, minWidth: 0 }} data-testid="fact-mr">
-          <Text c={text.muted} fz={11}>
-            MR · CI
-          </Text>
+          <FactLabel>MR · CI</FactLabel>
           <Group gap={4} wrap="nowrap">
             {mr ? (
               mr.webUrl ? (
@@ -229,7 +260,7 @@ function SummaryCard({
           </Group>
           {mr?.pipeline?.status && (
             <Text c={text.muted} fz={11}>
-              {mr.pipeline.status}
+              {ciStatusLabel(mr.pipeline.status)}
             </Text>
           )}
         </Stack>
@@ -244,9 +275,7 @@ function SummaryCard({
           }}
           data-testid="fact-branch"
         >
-          <Text c={text.muted} fz={11}>
-            Branch
-          </Text>
+          <FactLabel>Branch</FactLabel>
           <Group gap={4} wrap="nowrap">
             <Text fz={13} truncate style={{ minWidth: 0 }}>
               {branchValue ?? 'not recorded'}
@@ -262,7 +291,7 @@ function SummaryCard({
           </Group>
           <Group gap={4} wrap="nowrap">
             <Text c={text.muted} fz={11} truncate style={{ minWidth: 0 }}>
-              {commitsValue ?? 'not recorded'}
+              {commitsValue ? commitsSummary(commitsValue) : 'not recorded'}
             </Text>
             <Kbd size="xs">c</Kbd>
           </Group>
@@ -278,11 +307,9 @@ function SummaryCard({
           }}
           data-testid="fact-worktree"
         >
-          <Text c={text.muted} fz={11}>
-            Worktree
-          </Text>
+          <FactLabel>Worktree</FactLabel>
           <Group gap={4} wrap="nowrap">
-            <Text fz={13} truncate style={{ minWidth: 0 }}>
+            <Text fz={13} truncate="start" style={{ minWidth: 0 }}>
               {worktreeValue ?? 'not recorded'}
             </Text>
             <Kbd size="xs">w</Kbd>
@@ -309,9 +336,7 @@ function SummaryCard({
           }}
           data-testid="fact-liveness"
         >
-          <Text c={text.muted} fz={11}>
-            Liveness
-          </Text>
+          <FactLabel>Liveness</FactLabel>
           <Text fw={600} fz={13} c={text.highContrast(livenessColor)}>
             {livenessLabel}
           </Text>
@@ -397,9 +422,26 @@ class RunDetailErrorBoundary extends Component<
   }
 }
 
+/** The run id rides the page title but is not its subject: the repo names
+    the place, the id only disambiguates within it. */
+function RunIdInTitle({ runId }: { runId: string }) {
+  const { text } = useSchemeColors();
+  return (
+    <Text span c={text.muted} fw={500} fz="md" style={{ letterSpacing: 0 }}>
+      {`/ ${runId}`}
+    </Text>
+  );
+}
+
 export function RunDetail({ repo, runId }: { repo: string; runId: string }) {
   return (
-    <PageShell title={`${repoLabel(repo)} / ${runId}`}>
+    <PageShell
+      title={
+        <>
+          {repoLabel(repo)} <RunIdInTitle runId={runId} />
+        </>
+      }
+    >
       <RunDetailErrorBoundary repo={repo} runId={runId}>
         <LazyLoader>
           <RunDetailContent repo={repo} runId={runId} />
