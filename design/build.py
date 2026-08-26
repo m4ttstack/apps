@@ -142,7 +142,7 @@ class Component extends DCLogic {{
 def rail():
     return f"""
   <!-- Rail: 68px, RailShell's RAIL_WIDTH; 28px/16px icons as console's wiring artboards draw them -->
-  <div style="width: 68px; flex: none; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 11.2px 0;">
+  <div style="width: 68px; flex: none; background: var(--bg1); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 11.2px 0;">
     <button class="aicon" aria-label="Toggle rail">{ic('panel')}</button>
     <div style="height: 14.4px;"></div>
     <div class="stack" style="gap: 4.8px; align-items: center;">
