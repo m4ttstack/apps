@@ -333,7 +333,16 @@ export function AgentName({
         {variant === 'name' ? (
           <span className={classes.target}>{label}</span>
         ) : (
-          <Box className={classes.target} style={{ minWidth: 0, flex: 1 }}>
+          <Box
+            className={classes.target}
+            // The row fills its line (the status word rides its right edge);
+            // a sender sizes to its text, or the wash would run to the margin.
+            style={
+              variant === 'row'
+                ? { minWidth: 0, flex: 1 }
+                : { minWidth: 0, width: 'fit-content', maxWidth: '100%' }
+            }
+          >
             {label}
           </Box>
         )}
