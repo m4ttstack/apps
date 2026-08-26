@@ -7,8 +7,8 @@ import {
   useRailState,
 } from '@ui/core';
 import { useColorScheme } from '@ui/hooks';
+import { Icon } from '@ui/icons';
 import { useSiteHeaderProps } from './layout';
-import { LogoMark } from './LogoMark';
 
 /** Height of the app's slim fixed header, in px. */
 export const APP_HEADER_HEIGHT = 64;
@@ -62,7 +62,56 @@ function AppRail({
  * always-on -- for shell consistency with console -- even though there is
  * only one destination behind it today.
  */
-export function AppChrome({ children }: { children: React.ReactNode }) {
+export interface AppChromeStatus {
+  reachable: boolean;
+  lastAnsweredAt?: number;
+  downSince?: number;
+}
+
+function clock(ts: number): string {
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/** The header's right edge on the Main and DaemonDown artboards: what the
+    page is talking to, and the last moment that was true. */
+function HeaderStatus({ status }: { status: AppChromeStatus }) {
+  return (
+    <Group
+      gap={6}
+      wrap="nowrap"
+      style={{ color: 'var(--tk-muted)', flex: 'none' }}
+      data-testid="header-status"
+    >
+      <Icon name="terminal" size={12} />
+      <Text size="xs" style={{ color: 'var(--tk-muted)' }}>
+        rt chat · rt.sock
+      </Text>
+      {(() => {
+        const when = status.reachable
+          ? status.lastAnsweredAt
+          : status.downSince;
+        if (when === undefined) return null;
+        return (
+          <Text size="xs" style={{ opacity: 0.75 }}>
+            {status.reachable
+              ? `as of ${clock(when)}`
+              : `no answer since ${clock(when)}`}
+          </Text>
+        );
+      })()}
+    </Group>
+  );
+}
+
+export function AppChrome({
+  children,
+  status,
+}: {
+  children: React.ReactNode;
+  status?: AppChromeStatus;
+}) {
   const headerProps = useSiteHeaderProps();
   const rail = useRailState();
 
@@ -70,12 +119,13 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
     <RailShell
       headerHeight={APP_HEADER_HEIGHT}
       headerProps={headerProps}
+      headerPx="lg"
       header={
-        <Group gap="xs" wrap="nowrap">
-          <LogoMark />
+        <Group justify="space-between" wrap="nowrap" gap="xs" w="100%">
           <Text fw={700} style={{ whiteSpace: 'nowrap' }}>
             chat
           </Text>
+          {status && <HeaderStatus status={status} />}
         </Group>
       }
       rail={

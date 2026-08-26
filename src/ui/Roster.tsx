@@ -27,6 +27,9 @@ export interface RosterProps {
   daemonReachable?: boolean;
   /** Drops the path line for the phone drawer (Task 7). @default false */
   compact?: boolean;
+  /** The desktop right column: edge-to-edge panel on the sidebar surface,
+      a hairline on its left, no card. */
+  panel?: boolean;
   onPick?: (handle: string, info: { inRoom: boolean }) => void;
 }
 
@@ -328,6 +331,7 @@ export function Roster({
   roomMembers,
   daemonReachable = true,
   compact = false,
+  panel = false,
   onPick,
 }: RosterProps) {
   const sections = SECTIONS.filter(
@@ -351,12 +355,14 @@ export function Roster({
         flex: compact ? 1 : 'none',
         alignSelf: 'stretch',
         minWidth: 0,
+        minHeight: 0,
         background: compact ? undefined : 'var(--tk-panel)',
-        border: compact ? undefined : '1px solid var(--tk-border)',
-        borderRadius: compact ? undefined : 'var(--mantine-radius-md)',
+        border: compact || panel ? undefined : '1px solid var(--tk-border)',
+        borderLeft: panel ? '1px solid var(--tk-border)' : undefined,
+        borderRadius: compact || panel ? undefined : 'var(--mantine-radius-md)',
         padding: compact
           ? undefined
-          : 'var(--mantine-spacing-lg) var(--mantine-spacing-md)',
+          : 'var(--mantine-spacing-lg) var(--mantine-spacing-xl)',
         overflowY: 'auto',
       }}
     >

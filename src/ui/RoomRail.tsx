@@ -27,6 +27,8 @@ export interface RoomRailProps {
   /** The human's own handle, bolded inside a DM pair when it appears there. */
   humanHandle?: string;
   onSelectRoom?: (room: string) => void;
+  /** Inside `PageShell.Sidebar`: the sidebar is the surface, so no card. */
+  sidebar?: boolean;
 }
 
 /**
@@ -210,7 +212,12 @@ function RoomRow({
  * rows and a footnote. `RoomSummary` (the read routes' own shape) is used
  * directly as the room prop type, so no separate DTO drifts from it.
  */
-export function RoomRail({ rooms, activeRoom, onSelectRoom }: RoomRailProps) {
+export function RoomRail({
+  rooms,
+  activeRoom,
+  onSelectRoom,
+  sidebar = false,
+}: RoomRailProps) {
   const channelRooms = rooms.filter(r => r.kind !== 'dm');
   const directRooms = rooms.filter(r => r.kind === 'dm');
 
@@ -218,19 +225,15 @@ export function RoomRail({ rooms, activeRoom, onSelectRoom }: RoomRailProps) {
     <Stack
       gap={2}
       style={{
-        // The Main artboard puts each of the three columns in its own
-        // `.card`: panel surface, hairline border, 6px radius, and 11.2px/6px
-        // padding. Without it the rail's rows sit on the page grid and the
-        // column stops reading as a surface at all.
-        width: 232,
-        flex: 'none',
+        width: sidebar ? '100%' : 232 + 12,
+        flex: sidebar ? 1 : 'none',
         minWidth: 0,
-        background: 'var(--tk-panel)',
-        border: '1px solid var(--tk-border)',
-        borderRadius: 'var(--mantine-radius-md)',
+        background: sidebar ? undefined : 'var(--tk-panel)',
+        border: sidebar ? undefined : '1px solid var(--tk-border)',
+        borderRadius: sidebar ? undefined : 'var(--mantine-radius-md)',
         padding: 'var(--mantine-spacing-lg) 6px',
         alignSelf: 'stretch',
-        overflowY: 'auto',
+        overflowY: sidebar ? undefined : 'auto',
       }}
       data-testid="room-rail"
     >

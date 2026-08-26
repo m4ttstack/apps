@@ -1,51 +1,20 @@
-import { Box, Group, Text, UnstyledButton } from '@mantine/core';
+import { Box, Button, Group, NativeSelect, Text } from '@mantine/core';
 import type { BuddyStatus, RoomSummary } from '@mattstack/rt-client';
 
+import { Icon } from '@ui/icons';
 import { STATUS_WORD } from '@ui/statusDetail';
 
-/**
- * Console's second 64px bar, per the Main artboard: its own surface with a
- * hairline under it, so it reads as chrome rather than as the first row of
- * the content beneath. Without the background and border it floats, which
- * is what it did before this was pulled out.
- */
-/**
- * "Signed in" means the same population in both branches: everyone whose
- * session is still open. `buddies.length` counts signed-OUT agents too, so
- * the daemon-down chip read a larger fleet than the reachable one did for
- * the same roster -- the one moment the number is least checkable.
- */
 function signedInCount(buddies: { status: BuddyStatus }[]): number {
   return buddies.filter(b => b.status !== 'offline').length;
 }
 
-const PAGE_BAR_SURFACE = {
-  height: 64,
-  flex: 'none',
-  padding: '0 var(--mantine-spacing-lg)',
-  background: 'var(--tk-panel)',
-  borderBottom: '1px solid var(--tk-border)',
+/** Rendered inside `PageShell.Header`, which owns the 64px surface, its
+    padding and its border; this is the row's content. */
+const PAGE_BAR_ROW = {
+  height: '100%',
+  width: '100%',
+  minWidth: 0,
 } as const;
-
-/**
- * The narrow shape `PageBar` (and Task 7's `Composer`) actually read off a
- * buddy row -- not the full `PresenceRow`, so a test can seed four handles
- * without inventing `sessionId`/`signedInAt`/etc.
- */
-export interface PageBarBuddy {
-  handle: string;
-  status: BuddyStatus;
-}
-
-export interface PageBarProps {
-  room: RoomSummary;
-  buddies: PageBarBuddy[];
-  /** Daemon reachability. Down means exactly two plain chips (last-known
-      count, presence withheld) -- Task 4's rule, reused rather than
-      reimplemented. @default true */
-  reachable?: boolean;
-  onMarkRead?: (room: string) => void;
-}
 
 const CHIP_BASE = {
   display: 'inline-flex',
@@ -60,6 +29,47 @@ const CHIP_BASE = {
   border: '1px solid var(--mantine-color-default-border)',
   color: 'var(--tk-muted)',
 } as const;
+
+/** The artboard's two 30px controls sit on `bg1` with the hairline border,
+    which is Mantine's `default` variant on the tokyo surface tokens. */
+const CONTROL_SURFACE = {
+  background: 'var(--tk-bg)',
+  borderColor: 'var(--tk-border)',
+  fontSize: '12.16px',
+} as const;
+
+const UNREAD_BADGE = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  height: 18,
+  padding: '0 7px',
+  borderRadius: 10,
+  fontSize: 10,
+  fontWeight: 500,
+  lineHeight: 1,
+  border: '1px solid var(--tk-border)',
+  color: 'var(--tk-muted)',
+  whiteSpace: 'nowrap',
+} as const;
+
+export type RoomOrder = 'join' | 'name';
+
+export interface PageBarBuddy {
+  handle: string;
+  status: BuddyStatus;
+}
+
+export interface PageBarProps {
+  room: RoomSummary;
+  buddies: PageBarBuddy[];
+  /** Daemon reachable. When false the bar shows only the last-known signed-in
+      count and "presence withheld": status is the daemon's, never inferred. */
+  reachable?: boolean;
+  onMarkRead?: (room: string) => void;
+  /** The rail's sort, the artboard's `join order` select. */
+  order?: RoomOrder;
+  onOrderChange?: (order: RoomOrder) => void;
+}
 
 function Dot({ color, testId }: { color: string; testId: string }) {
   return (
@@ -78,18 +88,20 @@ function Dot({ color, testId }: { color: string; testId: string }) {
   );
 }
 
-/** A chip whose count is <=2 names its handles: the point is that the stuck
-    agent is read first rather than found last. */
+/** A chip whose count is at most two names its handles, so the stuck agent
+    is read first rather than found last. */
 function namesSuffix(handles: string[]): string {
   return handles.length > 0 && handles.length <= 2
     ? `: ${handles.join(', ')}`
     : '';
 }
 
+/** The hash is an icon beside the title, as the artboard draws it, not a
+    character in it; a DM is named by its pair. */
 function roomTitle(room: RoomSummary): string {
   return room.kind === 'dm' && room.participants
     ? `${room.participants.a} ↔ ${room.participants.b}`
-    : `#${room.room}`;
+    : room.room;
 }
 
 function markReadLabel(room: RoomSummary): string {
@@ -98,22 +110,16 @@ function markReadLabel(room: RoomSummary): string {
     : `Mark #${room.room} read`;
 }
 
-/**
- * Console's second 64px bar: the room title, then the fleet chips. Rendering
- * never advances the read cursor -- only the mark-read button POSTs
- * `/api/chat/mark`, so a test can assert zero network calls on mount.
- */
 export function PageBar({
   room,
   buddies,
   reachable = true,
   onMarkRead,
+  order = 'join',
+  onOrderChange,
 }: PageBarProps) {
   const handleMarkRead = () => {
     onMarkRead?.(room.room);
-    // A rejected fetch (daemon gone between render and click) must not become
-    // an unhandled rejection: the cursor simply does not advance, which is
-    // the safe direction to fail. The next poll re-renders the true count.
     void fetch('/api/chat/mark', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -121,34 +127,88 @@ export function PageBar({
     }).catch(() => {});
   };
 
-  // `flex: none` + a capped max-width: the title always renders at its own
-  // size (truncating past the cap) instead of sharing a `flex: 1` grow/
-  // shrink budget with the chips row -- which starves it to a literal
-  // zero-width, invisible element the moment the chips (especially with
-  // handles named behind a small count) outgrow the remaining space.
   const title = (
-    <Text
-      fw={700}
-      size="26px"
-      truncate
-      style={{ flex: 'none', maxWidth: '38%', minWidth: 0 }}
-    >
-      {roomTitle(room)}
-    </Text>
+    <>
+      {room.kind !== 'dm' && (
+        <Box
+          component="span"
+          style={{
+            display: 'inline-flex',
+            flex: 'none',
+            color: 'var(--tk-muted)',
+          }}
+          data-testid="page-bar-hash"
+        >
+          <Icon name="hash" size={18} />
+        </Box>
+      )}
+      <Text
+        fw={700}
+        size="20px"
+        lh={1.35}
+        truncate
+        style={{ flex: 'none', maxWidth: '38%', minWidth: 0 }}
+      >
+        {roomTitle(room)}
+      </Text>
+      <Box style={{ width: 4.8, flex: 'none' }} />
+    </>
+  );
+
+  const controls = (
+    <>
+      {room.unread > 0 && (
+        <Button
+          variant="default"
+          size="xs"
+          radius="md"
+          data-testid="mark-read-button"
+          aria-label={markReadLabel(room)}
+          onClick={handleMarkRead}
+          leftSection={<Icon name="check" size={14} />}
+          rightSection={
+            <Box component="span" style={UNREAD_BADGE}>
+              {room.unread}
+            </Box>
+          }
+          styles={{ root: CONTROL_SURFACE }}
+        >
+          mark read
+        </Button>
+      )}
+      {onOrderChange && (
+        <NativeSelect
+          size="xs"
+          radius="md"
+          w={168}
+          ml={7.2}
+          aria-label="Room order"
+          data-testid="room-order"
+          value={order}
+          onChange={e => onOrderChange(e.currentTarget.value as RoomOrder)}
+          data={[
+            { value: 'join', label: 'join order' },
+            { value: 'name', label: 'by name' },
+          ]}
+          rightSection={<Icon name="chevronDown" size={14} />}
+          styles={{ input: CONTROL_SURFACE }}
+        />
+      )}
+    </>
   );
 
   if (!reachable) {
     return (
       <Group
-        justify="space-between"
         align="center"
         wrap="nowrap"
-        style={{ ...PAGE_BAR_SURFACE }}
+        gap="sm"
+        style={PAGE_BAR_ROW}
         data-testid="page-bar"
       >
         {title}
         <Group
-          gap="xs"
+          gap="sm"
           wrap="nowrap"
           style={{ flex: '1 1 0%', minWidth: 0, overflowX: 'auto' }}
         >
@@ -158,6 +218,9 @@ export function PageBar({
           <Box component="span" style={CHIP_BASE} data-testid="chip-withheld">
             presence withheld
           </Box>
+        </Group>
+        <Group gap={0} ml="auto" wrap="nowrap">
+          {controls}
         </Group>
       </Group>
     );
@@ -171,23 +234,21 @@ export function PageBar({
 
   return (
     <Group
-      justify="space-between"
       align="center"
       wrap="nowrap"
-      style={{ ...PAGE_BAR_SURFACE }}
+      gap="sm"
+      style={PAGE_BAR_ROW}
       data-testid="page-bar"
     >
       {title}
-
       <Group
-        gap="xs"
+        gap="sm"
         wrap="nowrap"
         style={{ flex: '1 1 0%', minWidth: 0, overflowX: 'auto' }}
       >
         <Box component="span" style={CHIP_BASE} data-testid="chip-signed-in">
           {signedInTotal} signed in
         </Box>
-
         {live.length > 0 && (
           <Box
             component="span"
@@ -204,7 +265,6 @@ export function PageBar({
             {namesSuffix(live.map(b => b.handle))}
           </Box>
         )}
-
         {idle.length > 0 && (
           <Box
             component="span"
@@ -221,7 +281,6 @@ export function PageBar({
             {namesSuffix(idle.map(b => b.handle))}
           </Box>
         )}
-
         {deaf.length > 0 && (
           <Box
             component="span"
@@ -240,27 +299,12 @@ export function PageBar({
             {namesSuffix(deaf.map(b => b.handle))}
           </Box>
         )}
-
         <Box component="span" style={CHIP_BASE} data-testid="chip-wakes">
           wakes: {wakeMode}
         </Box>
-
-        {room.unread > 0 && (
-          <UnstyledButton
-            data-testid="mark-read-button"
-            aria-label={markReadLabel(room)}
-            onClick={handleMarkRead}
-            style={{
-              ...CHIP_BASE,
-              cursor: 'pointer',
-              color: 'var(--mantine-color-accent-text)',
-              borderColor:
-                'color-mix(in srgb, var(--mantine-color-accent-text) 45%, transparent)',
-            }}
-          >
-            mark read
-          </UnstyledButton>
-        )}
+      </Group>
+      <Group gap={0} ml="auto" wrap="nowrap">
+        {controls}
       </Group>
     </Group>
   );
