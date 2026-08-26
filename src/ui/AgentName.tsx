@@ -244,15 +244,23 @@ export function AgentName({
     label = (
       <Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
         <Group gap={0} wrap="nowrap" align="baseline" style={{ minWidth: 0 }}>
-          <Text
-            size="sm"
-            fw={600}
+          <Group
+            gap={0}
+            wrap="nowrap"
+            align="baseline"
             className={classes.name}
-            style={{ flex: 'none' }}
+            style={{ minWidth: 0 }}
           >
-            {handle}
-          </Text>
-          {repo && <RepoToken repo={repo} />}
+            <Text
+              size="sm"
+              fw={600}
+
+              style={{ flex: 'none' }}
+            >
+              {handle}
+            </Text>
+            {repo && <RepoToken repo={repo} />}
+          </Group>
           <Text
             component="span"
             data-testid={`status-${handle}`}
@@ -285,15 +293,10 @@ export function AgentName({
         wrap="nowrap"
         align="baseline"
         component="span"
+        className={classes.name}
         style={{ minWidth: 0 }}
       >
-        <Text
-          component="span"
-          size="lg"
-          fw={600}
-          className={classes.name}
-          style={{ flex: 'none' }}
-        >
+        <Text component="span" size="lg" fw={600} style={{ flex: 'none' }}>
           {handle}
         </Text>
         {repo && <RepoToken repo={repo} />}
