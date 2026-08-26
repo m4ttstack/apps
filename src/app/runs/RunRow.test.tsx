@@ -144,8 +144,8 @@ describe('RunRow board redesign', () => {
       ...baseRun,
       current_stage: 'implement',
       stages: [
-        { name: 'plan', status: 'done' },
-        { name: 'implement', status: 'running' },
+        { name: 'plan', status: 'done', started_at: 1_000 },
+        { name: 'implement', status: 'running', started_at: 2_000 },
       ],
     };
     renderRow(run);
