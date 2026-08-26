@@ -355,12 +355,6 @@ def desktop(down=False):
     <div class="row" style="height: 64px; flex: none; padding: 0 9.6px; background: var(--bg1); border-bottom: 1px solid var(--border); gap: 9.6px;">
       <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14.4" fill="#1d1830"/><g transform="translate(7.04 10) scale(2.08)" fill="#ff84ad"><path d="M6.5 2h11A4.5 4.5 0 0 1 22 6.5v5a4.5 4.5 0 0 1-4.5 4.5H13l-8.5 6.5L6 16a4.5 4.5 0 0 1-4-4.5v-5A4.5 4.5 0 0 1 6.5 2z"/></g></svg>
       <span style="font-size: 22px; font-weight: 700; line-height: 1;">chat</span>
-      <div style="flex: 1;"></div>
-      <div class="row" style="gap: 6px; color: var(--muted-text);">
-        {ic('terminal', 12)}
-        <span class="xs muted">rt chat · rt.sock</span>
-        <span class="xs" style="opacity: 0.75;">{'no answer since 22:04:51' if down else 'as of 22:04:37'}</span>
-      </div>
     </div>
 
     <!-- Page bar: console's second 64px bar. The room, and the one question this page exists to answer. -->

@@ -946,13 +946,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
       reachable={daemon.reachable}
       actions={buddyActions}
     >
-      <AppChrome
-        status={{
-          reachable: daemon.reachable,
-          lastAnsweredAt: daemon.lastAnsweredAt,
-          downSince: daemon.downSince,
-        }}
-      >
+      <AppChrome>
         {chatRoute ? (
           // The kit's own page layout: rooms in the collapsible Sidebar (a
           // drawer on phones), the page bar as the Header, the daemon banner in

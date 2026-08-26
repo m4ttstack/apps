@@ -7,7 +7,6 @@ import {
   useRailState,
 } from '@ui/core';
 import { useColorScheme } from '@ui/hooks';
-import { Icon } from '@ui/icons';
 import { AppMark } from './AppMark';
 import { useSiteHeaderProps } from './layout';
 
@@ -63,56 +62,7 @@ function AppRail({
  * always-on -- for shell consistency with console -- even though there is
  * only one destination behind it today.
  */
-export interface AppChromeStatus {
-  reachable: boolean;
-  lastAnsweredAt?: number;
-  downSince?: number;
-}
-
-function clock(ts: number): string {
-  const d = new Date(ts);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
-/** The header's right edge on the Main and DaemonDown artboards: what the
-    page is talking to, and the last moment that was true. */
-function HeaderStatus({ status }: { status: AppChromeStatus }) {
-  return (
-    <Group
-      gap={6}
-      wrap="nowrap"
-      style={{ color: 'var(--tk-muted-text)', flex: 'none' }}
-      data-testid="header-status"
-    >
-      <Icon name="terminal" size={12} />
-      <Text size="xs" style={{ color: 'var(--tk-muted-text)' }}>
-        rt chat · rt.sock
-      </Text>
-      {(() => {
-        const when = status.reachable
-          ? status.lastAnsweredAt
-          : status.downSince;
-        if (when === undefined) return null;
-        return (
-          <Text size="xs" style={{ opacity: 0.75 }}>
-            {status.reachable
-              ? `as of ${clock(when)}`
-              : `no answer since ${clock(when)}`}
-          </Text>
-        );
-      })()}
-    </Group>
-  );
-}
-
-export function AppChrome({
-  children,
-  status,
-}: {
-  children: React.ReactNode;
-  status?: AppChromeStatus;
-}) {
+export function AppChrome({ children }: { children: React.ReactNode }) {
   const headerProps = useSiteHeaderProps();
   const rail = useRailState();
 
@@ -121,7 +71,7 @@ export function AppChrome({
       headerHeight={APP_HEADER_HEIGHT}
       headerProps={headerProps}
       header={
-        <Group justify="space-between" wrap="nowrap" gap="xs" w="100%">
+        <Group wrap="nowrap" gap="xs" w="100%">
           {/* Same recipe as console's header: a 30px mark, sm gap, 22px/700
               wordmark on line-height 1. */}
           <Group gap="sm" wrap="nowrap">
@@ -130,7 +80,6 @@ export function AppChrome({
               chat
             </Text>
           </Group>
-          {status && <HeaderStatus status={status} />}
         </Group>
       }
       rail={
