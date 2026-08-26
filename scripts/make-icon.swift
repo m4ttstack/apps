@@ -40,21 +40,40 @@ func drawBubbleGlyph(_ ctx: CGContext, in rect: CGRect, color: CGColor, filled: 
     func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
         CGPoint(x: rect.minX + x / 24 * rect.width, y: rect.minY + (1 - y / 24) * rect.height)
     }
-    let r = rect.width * 2.4 / 24
+    // Stroked (large sizes): the lucide-style bubble with a nick of a tail.
+    // Filled (favicon sizes): a rounder, shorter body and a wedge tail wide
+    // enough to still be a tail at 16px, where the nick reads as a corner.
     let path = CGMutablePath()
-    path.move(to: p(4.4, 3))
-    path.addLine(to: p(19.6, 3))
-    path.addArc(tangent1End: p(22, 3), tangent2End: p(22, 5.4), radius: r)
-    path.addLine(to: p(22, 14.6))
-    path.addArc(tangent1End: p(22, 17), tangent2End: p(19.6, 17), radius: r)
-    path.addLine(to: p(9.5, 17))
-    path.addLine(to: p(5, 21.5))
-    path.addLine(to: p(5, 17))
-    path.addLine(to: p(4.4, 17))
-    path.addArc(tangent1End: p(2, 17), tangent2End: p(2, 14.6), radius: r)
-    path.addLine(to: p(2, 5.4))
-    path.addArc(tangent1End: p(2, 3), tangent2End: p(4.4, 3), radius: r)
-    path.closeSubpath()
+    if filled {
+        let r = rect.width * 4.5 / 24
+        path.move(to: p(6.5, 2))
+        path.addLine(to: p(17.5, 2))
+        path.addArc(tangent1End: p(22, 2), tangent2End: p(22, 6.5), radius: r)
+        path.addLine(to: p(22, 11.5))
+        path.addArc(tangent1End: p(22, 16), tangent2End: p(17.5, 16), radius: r)
+        path.addLine(to: p(13, 16))
+        path.addLine(to: p(4.5, 22.5))
+        path.addLine(to: p(6, 16))
+        path.addArc(tangent1End: p(2, 16), tangent2End: p(2, 11.5), radius: r)
+        path.addLine(to: p(2, 6.5))
+        path.addArc(tangent1End: p(2, 2), tangent2End: p(6.5, 2), radius: r)
+        path.closeSubpath()
+    } else {
+        let r = rect.width * 2.4 / 24
+        path.move(to: p(4.4, 3))
+        path.addLine(to: p(19.6, 3))
+        path.addArc(tangent1End: p(22, 3), tangent2End: p(22, 5.4), radius: r)
+        path.addLine(to: p(22, 14.6))
+        path.addArc(tangent1End: p(22, 17), tangent2End: p(19.6, 17), radius: r)
+        path.addLine(to: p(9.5, 17))
+        path.addLine(to: p(5, 21.5))
+        path.addLine(to: p(5, 17))
+        path.addLine(to: p(4.4, 17))
+        path.addArc(tangent1End: p(2, 17), tangent2End: p(2, 14.6), radius: r)
+        path.addLine(to: p(2, 5.4))
+        path.addArc(tangent1End: p(2, 3), tangent2End: p(4.4, 3), radius: r)
+        path.closeSubpath()
+    }
     ctx.saveGState()
     ctx.addPath(path)
     if filled {
@@ -89,7 +108,7 @@ func render(_ slot: Slot) {
     // Favicon sizes: the bubble alone, large. At 16px the "m" plus bubble
     // pair reads as two smudges; one mark filling the canvas still reads.
     if px <= 64 {
-        let side = size * 0.72
+        let side = size * 0.78
         drawBubbleGlyph(ctx, in: CGRect(x: (size - side) / 2.0, y: (size - side) / 2.0 - size * 0.02,
                                         width: side, height: side), color: fgColor, filled: true)
         write(ctx, slot)
