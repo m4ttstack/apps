@@ -194,7 +194,7 @@ def transcript(msgs=MSGS, edge=True):
         codeblk = f'\n            <span class="code">{code}</span>' if code else ''
         out.append(f"""        <div class="msg">
           <div class="stack" style="gap: 1px; flex: 1; min-width: 0;">
-            <div class="row" style="gap: 7.2px;"><span style="font-size: 13.6px; font-weight: 600;">{h}</span>{repo_token(h)}<span class="xs muted">{t}</span></div>
+            <div class="row" style="gap: 7.2px;"><span class="name row" style="gap: 0; align-items: baseline;"><span style="font-size: 13.6px; font-weight: 600;">{h}</span>{repo_token(h)}</span><span class="xs muted">{t}</span></div>
             <span class="msg-body">{body}</span>{codeblk}
           </div>
         </div>""")
@@ -234,7 +234,7 @@ REPO = {'rt-chat-wt': 'repo-tools', 'rt-chat-wt-2': 'repo-tools', 'deck-main': '
 
 def repo_token(h):
     r = REPO.get(h)
-    return f'<span class="xs muted truncate" style="margin-left: -7.2px; align-self: baseline;"><span style="font-size: 12px; margin: 0 3px;">•</span>{r}</span>' if r else ''
+    return f'<span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>{r}</span>' if r else ''
 
 def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
     dot = 'off' if down else st
@@ -250,7 +250,7 @@ def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
     # heartbeat line.
     detail = f'<span class="xs muted">{subl}</span>' if compact else ''
     parts = [
-        f'<div class="row" style="gap: 7.2px;"><span class="sm" style="font-weight: 600; flex: none;">{h}</span>{repo_token(h)}<span style="flex: 1;"></span>{stw}</div>',
+        f'<div class="row" style="gap: 7.2px;"><span class="name row" style="gap: 0; align-items: baseline;"><span class="sm" style="font-weight: 600; flex: none;">{h}</span>{repo_token(h)}</span><span style="flex: 1;"></span>{stw}</div>',
         awayline,
         detail,
     ]
