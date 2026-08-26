@@ -58,7 +58,7 @@ test("four sections in the spec's order, offline collapsed to one line", async (
   expect(screen.getByTestId('status-rt-chat-wt')).toHaveTextContent(
     'listening'
   );
-  await userEvent.hover(screen.getByTestId('row-gitq-main'));
+  await userEvent.hover(screen.getByText('gitq-main'));
   expect(await screen.findByTestId('sub-gitq-main')).toHaveTextContent(
     /armed, silent 22m — tail died/
   );
@@ -88,7 +88,7 @@ test('a buddy is identified by what it is: branch, pane, path, and its rooms as 
       ]}
     />
   );
-  await userEvent.hover(screen.getByTestId('row-acme-dev-42'));
+  await userEvent.hover(screen.getByText('acme-dev-42'));
   expect(
     await screen.findByText(/…\/acme-wt-invite-onboarding/)
   ).toBeInTheDocument();
@@ -126,7 +126,7 @@ test('withheld: no status word or colour while the daemon is unreachable', async
     />
   );
   expect(screen.getByTestId('status-a')).toHaveTextContent('—');
-  await userEvent.hover(screen.getByTestId('row-a'));
+  await userEvent.hover(screen.getByText('a'));
   expect(await screen.findByTestId('sub-a')).toHaveTextContent(
     /presence unknown while the daemon is down/
   );

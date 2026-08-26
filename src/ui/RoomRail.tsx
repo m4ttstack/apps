@@ -2,6 +2,7 @@ import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import type { RoomSummary } from '@mattstack/rt-client';
 
 import { Icon } from '@ui/icons';
+import { AgentName } from './AgentName';
 
 /**
  * `.accent-deep` has no direct `--tk-*` token: the artboard's own palette
@@ -134,7 +135,9 @@ function DmPairName({ room, active }: { room: RoomSummary; active: boolean }) {
       truncate
       style={{ flex: 1, minWidth: 0 }}
     >
-      {a} <span style={{ color: 'var(--tk-purple)', flex: 'none' }}>↔</span> {b}
+      <AgentName handle={a} />{' '}
+      <span style={{ color: 'var(--tk-purple)', flex: 'none' }}>↔</span>{' '}
+      <AgentName handle={b} />
     </Text>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import type {
   ChatMember,
@@ -7,6 +7,7 @@ import type {
 } from '@mattstack/rt-client';
 import { useInterval } from 'react-interval-hook';
 
+import { BuddiesProvider } from '@ui/buddies-context';
 import { Composer, type ComposerHandle } from '@ui/Composer';
 import {
   Box,
@@ -886,6 +887,13 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
     navigate(`/r/${encodeURIComponent(room)}`);
   }
 
+  const buddyActions = useMemo(
+    () => ({
+      mention: (handle: string) => composerRef.current?.insertMention(handle),
+      dm: (handle: string) => composerRef.current?.startDm(handle),
+    }),
+    []
+  );
   const [roomOrder, setRoomOrder] = useState<RoomOrder>('join');
   const orderedRooms =
     roomOrder === 'name'
@@ -931,119 +939,127 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
   }
 
   return (
-    <AppChrome
-      status={{
-        reachable: daemon.reachable,
-        lastAnsweredAt: daemon.lastAnsweredAt,
-        downSince: daemon.downSince,
-      }}
+    <BuddiesProvider
+      buddies={buddies}
+      roomMembers={roomMembers}
+      now={Date.now()}
+      reachable={daemon.reachable}
+      actions={buddyActions}
     >
-      {chatRoute ? (
-        // The kit's own page layout: rooms in the collapsible Sidebar (a
-        // drawer on phones), the page bar as the Header, the daemon banner in
-        // Content's notch slot, and a scroll-clamped Content whose transcript
-        // and roster manage their own scrolling. No ContentContainer: the
-        // capped, centred column is what boxed this page before.
-        <PageShell
-          scrollClamp
-          sidebarWidth={244}
-          drawerStateKey="chat-rooms-sidebar"
-        >
-          {rooms.length > 0 && (
-            <PageShell.Sidebar>
-              <RoomRail
-                sidebar
-                rooms={orderedRooms}
-                activeRoom={activeRoom}
-                onSelectRoom={selectRoom}
-              />
-            </PageShell.Sidebar>
-          )}
-          <PageShell.Main>
-            {rooms.length > 0 && activeRoomSummary && (
-              <PageShell.Header>
-                <PageBar
-                  room={activeRoomSummary}
-                  buddies={buddies}
-                  reachable={daemon.reachable}
-                  order={roomOrder}
-                  onOrderChange={setRoomOrder}
+      <AppChrome
+        status={{
+          reachable: daemon.reachable,
+          lastAnsweredAt: daemon.lastAnsweredAt,
+          downSince: daemon.downSince,
+        }}
+      >
+        {chatRoute ? (
+          // The kit's own page layout: rooms in the collapsible Sidebar (a
+          // drawer on phones), the page bar as the Header, the daemon banner in
+          // Content's notch slot, and a scroll-clamped Content whose transcript
+          // and roster manage their own scrolling. No ContentContainer: the
+          // capped, centred column is what boxed this page before.
+          <PageShell
+            scrollClamp
+            sidebarWidth={244}
+            drawerStateKey="chat-rooms-sidebar"
+          >
+            {rooms.length > 0 && (
+              <PageShell.Sidebar>
+                <RoomRail
+                  sidebar
+                  rooms={orderedRooms}
+                  activeRoom={activeRoom}
+                  onSelectRoom={selectRoom}
                 />
-              </PageShell.Header>
+              </PageShell.Sidebar>
             )}
-            <PageShell.Content
-              contentContainer={false}
-              topNotch={{
-                opened: !daemon.reachable,
-                content: (
-                  <Box
-                    w="100%"
-                    px="lg"
-                    pt="lg"
-                    data-testid="daemon-banner-slot"
-                  >
-                    <DaemonBanner
-                      reachable={daemon.reachable}
-                      downSince={daemon.downSince}
-                      probeCount={daemon.probeCount}
-                      lastAnsweredAt={daemon.lastAnsweredAt}
-                      onProbeNow={daemon.probeNow}
-                    />
-                  </Box>
-                ),
-              }}
-            >
-              <Group
-                align="stretch"
-                wrap="nowrap"
-                gap={0}
-                style={{ flex: 1, minHeight: 0, minWidth: 0 }}
-              >
-                {rooms.length === 0 ? (
-                  <Box style={{ flex: 1, minWidth: 0 }} p="xl">
-                    <RoomsPlaceholder anyBuddies={buddies.length > 0} />
-                  </Box>
-                ) : (
-                  activeRoom && (
-                    <Transcript
-                      room={activeRoom}
-                      messages={messages}
-                      anchor={anchor}
-                      unreadCount={activeRoomSummary?.unread}
-                      footer={
-                        <Composer
-                          ref={composerRef}
-                          room={activeRoom}
-                          roomMembers={roomMembers}
-                          buddies={buddies}
-                          isDm={activeRoomSummary?.kind === 'dm'}
-                          daemonReachable={daemon.reachable}
-                          onNavigate={handleComposerNavigate}
-                        />
-                      }
-                    />
-                  )
-                )}
-                {(rooms.length > 0 || buddies.length > 0) && (
-                  <Roster
-                    panel
+            <PageShell.Main>
+              {rooms.length > 0 && activeRoomSummary && (
+                <PageShell.Header>
+                  <PageBar
+                    room={activeRoomSummary}
                     buddies={buddies}
-                    now={Date.now()}
-                    roomMembers={roomMembers}
-                    daemonReachable={daemon.reachable}
-                    onPick={(handle, { inRoom }) => {
-                      if (inRoom) composerRef.current?.insertMention(handle);
-                      else composerRef.current?.startDm(handle);
-                    }}
+                    reachable={daemon.reachable}
+                    order={roomOrder}
+                    onOrderChange={setRoomOrder}
                   />
-                )}
-              </Group>
-            </PageShell.Content>
-          </PageShell.Main>
-        </PageShell>
-      ) : (
-        <NotFoundPage />
-      )}
-    </AppChrome>
+                </PageShell.Header>
+              )}
+              <PageShell.Content
+                contentContainer={false}
+                topNotch={{
+                  opened: !daemon.reachable,
+                  content: (
+                    <Box
+                      w="100%"
+                      px="lg"
+                      pt="lg"
+                      data-testid="daemon-banner-slot"
+                    >
+                      <DaemonBanner
+                        reachable={daemon.reachable}
+                        downSince={daemon.downSince}
+                        probeCount={daemon.probeCount}
+                        lastAnsweredAt={daemon.lastAnsweredAt}
+                        onProbeNow={daemon.probeNow}
+                      />
+                    </Box>
+                  ),
+                }}
+              >
+                <Group
+                  align="stretch"
+                  wrap="nowrap"
+                  gap={0}
+                  style={{ flex: 1, minHeight: 0, minWidth: 0 }}
+                >
+                  {rooms.length === 0 ? (
+                    <Box style={{ flex: 1, minWidth: 0 }} p="xl">
+                      <RoomsPlaceholder anyBuddies={buddies.length > 0} />
+                    </Box>
+                  ) : (
+                    activeRoom && (
+                      <Transcript
+                        room={activeRoom}
+                        messages={messages}
+                        anchor={anchor}
+                        unreadCount={activeRoomSummary?.unread}
+                        footer={
+                          <Composer
+                            ref={composerRef}
+                            room={activeRoom}
+                            roomMembers={roomMembers}
+                            buddies={buddies}
+                            isDm={activeRoomSummary?.kind === 'dm'}
+                            daemonReachable={daemon.reachable}
+                            onNavigate={handleComposerNavigate}
+                          />
+                        }
+                      />
+                    )
+                  )}
+                  {(rooms.length > 0 || buddies.length > 0) && (
+                    <Roster
+                      panel
+                      buddies={buddies}
+                      now={Date.now()}
+                      roomMembers={roomMembers}
+                      daemonReachable={daemon.reachable}
+                      onPick={(handle, { inRoom }) => {
+                        if (inRoom) composerRef.current?.insertMention(handle);
+                        else composerRef.current?.startDm(handle);
+                      }}
+                    />
+                  )}
+                </Group>
+              </PageShell.Content>
+            </PageShell.Main>
+          </PageShell>
+        ) : (
+          <NotFoundPage />
+        )}
+      </AppChrome>
+    </BuddiesProvider>
   );
 }

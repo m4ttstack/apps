@@ -1,7 +1,15 @@
 /* react-scroll-to-bottom, wired the way console's chat wires it:
    the root fills its box, the scroll view gets a thin scrollbar, and the
    follow button is a small circle 30px in from the bottom-right corner. */
-.root {
+/* `.box > .root`, not `.root`: the library injects its own root rules at
+   the same specificity, later, so a bare class loses and the root sizes to
+   its content instead of the box. */
+.box {
+  position: relative;
+  overflow: hidden;
+}
+
+.box > .root {
   position: absolute;
   inset: 0;
 }

@@ -3,6 +3,7 @@ import type { BuddyStatus, RoomSummary } from '@mattstack/rt-client';
 
 import { Icon } from '@ui/icons';
 import { STATUS_WORD } from '@ui/statusDetail';
+import { AgentName } from './AgentName';
 
 function signedInCount(buddies: { status: BuddyStatus }[]): number {
   return buddies.filter(b => b.status !== 'offline').length;
@@ -89,11 +90,20 @@ function Dot({ color, testId }: { color: string; testId: string }) {
 }
 
 /** A chip whose count is at most two names its handles, so the stuck agent
-    is read first rather than found last. */
-function namesSuffix(handles: string[]): string {
-  return handles.length > 0 && handles.length <= 2
-    ? `: ${handles.join(', ')}`
-    : '';
+    is read first rather than found last; each name carries its card. */
+function NamesSuffix({ handles }: { handles: string[] }) {
+  if (handles.length === 0 || handles.length > 2) return null;
+  return (
+    <>
+      {': '}
+      {handles.map((h, i) => (
+        <span key={h}>
+          {i > 0 && ', '}
+          <AgentName handle={h} />
+        </span>
+      ))}
+    </>
+  );
 }
 
 /** The hash is an icon beside the title, as the artboard draws it, not a
@@ -266,7 +276,7 @@ export function PageBar({
           >
             <Dot color="var(--tk-dot-ok)" testId="dot-live" />
             {live.length} {STATUS_WORD.live}
-            {namesSuffix(live.map(b => b.handle))}
+            <NamesSuffix handles={live.map(b => b.handle)} />
           </Box>
         )}
         {idle.length > 0 && (
@@ -282,7 +292,7 @@ export function PageBar({
           >
             <Dot color="var(--tk-dot-warn)" testId="dot-idle" />
             {idle.length} {STATUS_WORD.idle}
-            {namesSuffix(idle.map(b => b.handle))}
+            <NamesSuffix handles={idle.map(b => b.handle)} />
           </Box>
         )}
         {deaf.length > 0 && (
@@ -300,7 +310,7 @@ export function PageBar({
           >
             <Dot color="var(--tk-dot-bad)" testId="dot-deaf" />
             {deaf.length} {STATUS_WORD.deaf}
-            {namesSuffix(deaf.map(b => b.handle))}
+            <NamesSuffix handles={deaf.map(b => b.handle)} />
           </Box>
         )}
         <Box component="span" style={CHIP_BASE} data-testid="chip-wakes">

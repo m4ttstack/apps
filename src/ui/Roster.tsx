@@ -1,15 +1,10 @@
 import { Fragment } from 'react';
-import {
-  Box,
-  Group,
-  HoverCard,
-  Stack,
-  Text,
-  UnstyledButton,
-} from '@mantine/core';
+import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import type { BuddyStatus, PresenceRow } from '@mattstack/rt-client';
 
 import { Icon } from '@ui/icons';
+import { AgentName } from './AgentName';
+import { DOT_COLOR } from './presence-bits';
 import { STATUS_WORD, statusDetail } from './statusDetail';
 
 /** `/api/chat/buddies`' own shape: the daemon's `PresenceRow` plus the
@@ -47,18 +42,6 @@ const SECTIONS: ReadonlyArray<{ status: BuddyStatus; label: string }> = [
   { status: 'offline', label: 'offline · last 24h' },
 ];
 
-const STATUS_TEXT_COLOR: Record<'live' | 'idle' | 'deaf', string> = {
-  live: 'var(--mantine-color-ok-text)',
-  idle: 'var(--mantine-color-warn-text)',
-  deaf: 'var(--mantine-color-bad-text)',
-};
-
-const DOT_COLOR: Record<'live' | 'idle' | 'deaf', string> = {
-  live: 'var(--tk-dot-ok)',
-  idle: 'var(--tk-dot-warn)',
-  deaf: 'var(--tk-dot-bad)',
-};
-
 /**
  * `…/mr-board-wt-invite-onboarding`: the leaf directory, always -- real
  * text, not a `direction: rtl` overflow trick. That CSS technique assumes
@@ -71,11 +54,6 @@ const DOT_COLOR: Record<'live' | 'idle' | 'deaf', string> = {
  * about, which is why it is deliberately absent below. `truncate` alone is
  * the safety net for a leaf name that is itself wider than the column.
  */
-function headTruncatePath(cwd: string): string {
-  const segments = cwd.split('/').filter(Boolean);
-  const leaf = segments.at(-1) ?? cwd;
-  return `…/${leaf}`;
-}
 
 function Dot({
   hollow,
@@ -99,34 +77,6 @@ function Dot({
         border: hollow ? '1px solid var(--tk-border)' : undefined,
       }}
     />
-  );
-}
-
-function Tag({ handle, room }: { handle: string; room: string }) {
-  const isDm = room === 'dm';
-  return (
-    <Box
-      component="span"
-      data-testid={`tag-${handle}-${room}`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        height: 14,
-        padding: '0 5px',
-        borderRadius: 7,
-        fontSize: '8.5px',
-        fontWeight: 500,
-        whiteSpace: 'nowrap',
-        border: `1px solid ${
-          isDm
-            ? 'color-mix(in srgb, var(--tk-purple) 45%, transparent)'
-            : 'var(--tk-border-soft)'
-        }`,
-        color: isDm ? 'var(--tk-purple)' : 'var(--tk-muted-text)',
-      }}
-    >
-      {isDm ? 'dm' : `#${room}`}
-    </Box>
   );
 }
 
@@ -180,15 +130,6 @@ function SectionHeading({
   );
 }
 
-/** `branch · pane N` -- either half omitted cleanly when absent. */
-function branchPaneLine(buddy: RosterBuddy): string | undefined {
-  const parts = [
-    buddy.branch,
-    buddy.pane !== undefined ? `pane ${buddy.pane}` : undefined,
-  ].filter((p): p is string => Boolean(p));
-  return parts.length > 0 ? parts.join(' · ') : undefined;
-}
-
 /** One line per buddy, the way a buddy list reads: dot, handle, status,
     and the away message when there is one. Where it is (branch, pane,
     path), its heartbeat and its rooms are a hover away in the detail card,
@@ -212,12 +153,7 @@ function MemberRow({
 }) {
   const { handle } = buddy;
   const status = buddy.status as 'live' | 'idle' | 'deaf';
-  const branchPane = branchPaneLine(buddy);
-  const heartbeat = reachable
-    ? statusDetail(buddy, now)
-    : 'presence unknown while the daemon is down';
-
-  const row = (
+  return (
     <UnstyledButton
       data-testid={`row-${handle}`}
       onClick={() => onPick?.(handle, { inRoom })}
@@ -238,91 +174,29 @@ function MemberRow({
         testId={`dot-${handle}`}
       />
       <Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
-        <Group gap="sm" wrap="nowrap">
-          <Text size="sm" fw={600} truncate>
-            {handle}
-          </Text>
-          <Text
-            component="span"
-            data-testid={`status-${handle}`}
-            style={{
-              fontSize: '10.56px',
-              fontWeight: 500,
-              color: reachable
-                ? STATUS_TEXT_COLOR[status]
-                : 'var(--tk-muted-text)',
-            }}
-          >
-            {reachable ? STATUS_WORD[buddy.status] : '—'}
-          </Text>
-        </Group>
-        {reachable && buddy.statusText && (
-          <Text
-            component="span"
-            data-testid={`away-${handle}`}
-            style={{
-              fontSize: '10.56px',
-              color: 'var(--tk-muted-text)',
-              fontStyle: 'italic',
-            }}
-          >
-            “{buddy.statusText}”
-          </Text>
-        )}
+        <AgentName
+          handle={handle}
+          variant="row"
+          status={buddy.status}
+          buddy={buddy}
+          reachable={reachable}
+          now={now}
+          inRoom={inRoom}
+          withCard={!compact}
+        />
         {compact && (
           <Text
             component="span"
             data-testid={`sub-${handle}`}
             style={{ fontSize: '10.56px', color: 'var(--tk-muted-text)' }}
           >
-            {heartbeat}
+            {reachable
+              ? statusDetail(buddy, now)
+              : 'presence unknown while the daemon is down'}
           </Text>
         )}
       </Stack>
     </UnstyledButton>
-  );
-
-  if (compact) return row;
-
-  return (
-    <HoverCard
-      position="left-start"
-      width={280}
-      shadow="md"
-      openDelay={150}
-      closeDelay={100}
-      withinPortal
-    >
-      <HoverCard.Target>{row}</HoverCard.Target>
-      <HoverCard.Dropdown data-testid={`detail-${handle}`} p="sm">
-        <Stack gap={2}>
-          {branchPane && (
-            <Text size="xs" c="dimmed" truncate>
-              {branchPane}
-            </Text>
-          )}
-          {buddy.cwd && (
-            <Text size="xs" c="dimmed" truncate>
-              {headTruncatePath(buddy.cwd)}
-            </Text>
-          )}
-          <Text
-            component="span"
-            data-testid={`sub-${handle}`}
-            style={{ fontSize: '10.56px', color: 'var(--tk-muted-text)' }}
-          >
-            {heartbeat}
-          </Text>
-          {reachable && buddy.rooms.length > 0 && (
-            <Group gap={3} wrap="wrap" style={{ paddingTop: 2 }}>
-              {buddy.rooms.map(room => (
-                <Tag key={room} handle={handle} room={room} />
-              ))}
-            </Group>
-          )}
-        </Stack>
-      </HoverCard.Dropdown>
-    </HoverCard>
   );
 }
 

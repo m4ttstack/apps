@@ -193,7 +193,7 @@ def transcript(msgs=MSGS, edge=True):
         codeblk = f'\n            <span class="code">{code}</span>' if code else ''
         out.append(f"""        <div class="msg">
           <div class="stack" style="gap: 1px; flex: 1; min-width: 0;">
-            <div class="row" style="gap: 7.2px;"><span style="font-size: 13.6px; font-weight: 600;">{h}</span><span class="xs muted">{t}</span></div>
+            <div class="row" style="gap: 7.2px;"><span style="font-size: 13.6px; font-weight: 600;">{h}</span>{repo_token(h)}<span class="xs muted">{t}</span></div>
             <span class="msg-body">{body}</span>{codeblk}
           </div>
         </div>""")
@@ -229,6 +229,12 @@ BUDDIES = [
 OFFLINE = [('workforest-e2e', 'signed out 2h ago')]
 STATUS_WORD = {'live': 'listening', 'idle': 'idle', 'deaf': 'deaf'}
 
+REPO = {'rt-chat-wt': 'repo-tools', 'rt-chat-wt-2': 'repo-tools', 'deck-main': 'deck', 'board-fix-auth': 'board', 'mr-board-onboard': 'mr-board', 'gitq-main': 'gitq'}
+
+def repo_token(h):
+    r = REPO.get(h)
+    return f'<span class="xs muted truncate">· {r}</span>' if r else ''
+
 def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
     dot = 'off' if down else st
     stw = '<span class="xs muted">—</span>' if down else f'<span class="status {st}">{STATUS_WORD[st]}</span>'
@@ -243,7 +249,7 @@ def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
     # heartbeat line.
     detail = f'<span class="xs muted">{subl}</span>' if compact else ''
     parts = [
-        f'<div class="row" style="gap: 7.2px;"><span class="sm truncate" style="font-weight: 600;">{h}</span>{stw}</div>',
+        f'<div class="row" style="gap: 7.2px;"><span class="sm" style="font-weight: 600; flex: none;">{h}</span>{repo_token(h)}<span style="flex: 1;"></span>{stw}</div>',
         awayline,
         detail,
     ]
@@ -251,15 +257,24 @@ def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
     return ('        <div class="member">\n          <div class="dot ' + dot + '"></div>\n'
             '          <div class="stack" style="gap: 1px; flex: 1; min-width: 0;">\n            ' + inner + '\n          </div>\n        </div>')
 
-def detail_card(h, br, pane, cwd, sub, tags):
-    tagbits = '<div class="row" style="gap: 3px; padding-top: 2px;">' + ''.join(
-        f'<span class="tag{" dm" if t == "dm" else ""}">{t}</span>' for t in tags) + '</div>'
-    return ('        <!-- the hover detail card for the row above, as HoverCard draws it: 280px, left-start -->\n'
-            '        <div class="pop stack" style="gap: 2px; width: 280px; padding: 7.2px; margin: -4px 0 8px 0;">\n'
-            f'          <span class="xs muted truncate">{br} · {pane}</span>\n'
-            f'          <span class="xs muted truncate path">&lrm;{cwd}</span>\n'
-            f'          <span class="xs muted">{sub}</span>\n'
-            f'          {tagbits}\n'
+def detail_card(h, st, br, pane, cwd, sub, away, tags):
+    tagbits = ''.join(f'<span class="tag{" dm" if t == "dm" else ""}">{t}</span>' for t in tags)
+    awayline = f'<span class="away">“{away}”</span>' if away else ''
+    lbl = 'font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-text);'
+    return ('        <!-- the hover card for the row above, as AgentName draws it: 300px, left-start -->\n'
+            '        <div class="pop stack" style="gap: 6px; width: 300px; padding: 7.2px; margin: -4px 0 8px 0;">\n'
+            f'          <div class="row" style="gap: 7.2px; justify-content: space-between;"><div class="row" style="gap: 7.2px;"><span class="dot {st}"></span><span style="font-size: 13.6px; font-weight: 600;">{h}</span></div><span class="status {st}">{STATUS_WORD[st]}</span></div>\n'
+            f'          {awayline}\n'
+            '          <div style="height: 1px; background: var(--border-soft);"></div>\n'
+            '          <div style="display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 8px; row-gap: 3px; align-items: baseline;">\n'
+            f'            <span style="{lbl}">repo</span><span class="sm">{REPO.get(h, "")}</span>\n'
+            f'            <span style="{lbl}">where</span><span class="sm">{br} · {pane}</span>\n'
+            f'            <span style="{lbl}">path</span><span class="xs muted truncate path">&lrm;{cwd}</span>\n'
+            f'            <span style="{lbl}">tail</span><span class="xs muted">{sub}</span>\n'
+            f'            <span style="{lbl}">rooms</span><div class="row" style="gap: 3px;">{tagbits}</div>\n'
+            '          </div>\n'
+            '          <div style="height: 1px; background: var(--border-soft);"></div>\n'
+            '          <div class="row" style="gap: 7.2px;"><button class="row" style="height: 30px; padding: 0 9.6px; background: var(--bg1); border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 12.16px; color: var(--fg);">@mention</button><button class="row" style="height: 30px; padding: 0 9.6px; background: var(--bg1); border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 12.16px; color: var(--fg);">DM</button></div>\n'
             '        </div>')
 
 def roster(down=False, compact=False, offline_expanded=False, with_detail=False):
@@ -270,8 +285,7 @@ def roster(down=False, compact=False, offline_expanded=False, with_detail=False)
         for r in rows:
             out.append(buddy_row(*r, down=down, compact=compact))
             if with_detail and first and not down:
-                h, st, br, pane, cwd, sub, away, tags = r
-                out.append(detail_card(h, br, pane, cwd, sub, tags))
+                out.append(detail_card(*r))
             first = False
     if down:
         return "\n".join(out)

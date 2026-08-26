@@ -4,6 +4,7 @@ import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import type { ChatMessage } from '@mattstack/rt-client';
 import ScrollToBottom, { useAtTop } from 'react-scroll-to-bottom';
 
+import { AgentName } from './AgentName';
 import scrollClasses from './transcript-scroll.module.css';
 
 const BORDER_SOFT = 'var(--tk-border-soft)';
@@ -236,10 +237,7 @@ function MessageRow({
     >
       <Stack gap={1} style={{ minWidth: 0, flex: 1 }}>
         <Group gap="sm" wrap="nowrap" align="baseline">
-          {/* The sender a step above the 12.16px body: lg is 13.6px. */}
-          <Text size="lg" fw={600}>
-            {message.handle}
-          </Text>
+          <AgentName handle={message.handle} variant="inline" />
           <Text size="xs" style={{ color: 'var(--tk-muted-text)' }}>
             {formatLocalTime(message.postedAt)}
           </Text>
@@ -497,7 +495,8 @@ export function Transcript({
       <Box
         ref={scrollBoxRef}
         data-testid="transcript-scroll"
-        style={{ flex: 1, minHeight: 0, position: 'relative' }}
+        className={scrollClasses.box}
+        style={{ flex: 1, minHeight: 0 }}
       >
         <ScrollToBottom
           className={scrollClasses.root}
