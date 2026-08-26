@@ -348,10 +348,15 @@ describe('WiringMap: the spine', () => {
 
   it('draws a drifting roster verb no binder names, instead of dropping it', async () => {
     mockHappyPath();
+    const user = userEvent.setup();
     renderWiring();
 
+    // "Not run by this pipeline" is collapsed by default; expand it before
+    // reaching for a row inside, and await the row (the section renders the
+    // container first, its rows on the next commit).
+    await user.click(await screen.findByTestId('offpipe-toggle'));
     const outside = await screen.findByTestId('outside-the-pipeline');
-    const row = within(outside).getByTestId(
+    const row = await within(outside).findByTestId(
       'skill-row-mattstack:rebase-worktree'
     );
 
