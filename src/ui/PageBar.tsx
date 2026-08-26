@@ -1,4 +1,4 @@
-import { Box, Button, Group, NativeSelect, Text } from '@mantine/core';
+import { Box, Button, Group, Select, Text } from '@mantine/core';
 import type { BuddyStatus, RoomSummary } from '@mattstack/rt-client';
 
 import { Icon } from '@ui/icons';
@@ -177,7 +177,7 @@ export function PageBar({
         </Button>
       )}
       {onOrderChange && (
-        <NativeSelect
+        <Select
           size="xs"
           radius="md"
           w={168}
@@ -185,7 +185,11 @@ export function PageBar({
           aria-label="Room order"
           data-testid="room-order"
           value={order}
-          onChange={e => onOrderChange(e.currentTarget.value as RoomOrder)}
+          onChange={value => {
+            if (value) onOrderChange(value as RoomOrder);
+          }}
+          allowDeselect={false}
+          withCheckIcon={false}
           data={[
             { value: 'join', label: 'join order' },
             { value: 'name', label: 'by name' },
