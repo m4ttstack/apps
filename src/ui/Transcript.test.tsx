@@ -257,3 +257,55 @@ test('two bare URLs in one body both render as links', () => {
     'http://y.test/b'
   );
 });
+
+test('a day divider sits between messages on different days, never between same-day ones', () => {
+  // Today at noon: `Transcript` labels against the real clock, so the
+  // fixture must be anchored to the day the test runs, never a fixed date.
+  const noon = new Date();
+  noon.setHours(12, 0, 0, 0);
+  const now = noon.getTime();
+  const msg = (id: number, postedAt: number) => ({
+    id, room: 'build', handle: 'fred', body: `m${id}`, mentions: [], postedAt,
+  });
+  renderWithProviders(
+    <Transcript
+      room="build"
+      messages={[
+        msg(1, now - 2 * 86_400_000),
+        msg(2, now - 2 * 86_400_000 + 60_000),
+        msg(3, now - 86_400_000),
+        msg(4, now),
+      ]}
+    />
+  );
+  const dividers = screen.getAllByTestId('day-divider');
+  expect(dividers.map(d => d.getAttribute('aria-label'))).toEqual(['Yesterday', 'Today']);
+  expect(screen.getByTestId('message-4').querySelector('[title]')?.getAttribute('title')).toBe(
+    new Date(now).toLocaleString()
+  );
+});
+
+test('loading an older page puts a day divider above what was the first message', async () => {
+  const now = Date.now();
+  renderTranscriptWithFakeSocket({
+    room: 'build',
+    messages: [{ id: 5, room: 'build', handle: 'fred', body: 'new', mentions: [], postedAt: now }],
+  });
+  expect(screen.queryByTestId('day-divider')).toBeNull();
+  // Queued AFTER the render: `renderTranscriptWithFakeSocket` installs the
+  // fetch mock, and the `before=` request is the next call it answers.
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      messages: [{ id: 1, room: 'build', handle: 'fred', body: 'old', mentions: [], postedAt: now - 3 * 86_400_000 }],
+    }),
+  } as Response);
+  fireEvent.click(screen.getByTestId('transcript-edge'));
+  await screen.findByTestId('message-1');
+  // Two: one above the loaded page (labelled with message 1's own day,
+  // which depends on the clock) and one at the boundary into today.
+  const labels = screen.getAllByTestId('day-divider').map(d => d.getAttribute('aria-label'));
+  expect(labels).toHaveLength(2);
+  expect(labels[1]).toBe('Today');
+});

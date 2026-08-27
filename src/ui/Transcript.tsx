@@ -5,6 +5,7 @@ import type { ChatMessage } from '@mattstack/rt-client';
 import ScrollToBottom, { useAtTop } from 'react-scroll-to-bottom';
 
 import { AgentName } from './AgentName';
+import { dayKey, dayLabel } from './day-label';
 import scrollClasses from './transcript-scroll.module.css';
 
 const BORDER_SOFT = 'var(--tk-border-soft)';
@@ -336,6 +337,35 @@ function MessageBody({
   );
 }
 
+/** A muted counterpart of the read-cursor divider: rules either side, the
+    day in the middle. */
+function DayDivider({ label }: { label: string }) {
+  const rule = {
+    flex: 1,
+    height: 1,
+    background: 'var(--tk-border-soft)',
+  } as const;
+  return (
+    <Group
+      gap="sm"
+      wrap="nowrap"
+      align="center"
+      data-testid="day-divider"
+      aria-label={label}
+      style={{
+        color: 'var(--tk-muted-text)',
+        fontSize: '10.56px',
+        fontWeight: 600,
+        padding: 'var(--mantine-spacing-xs) 0',
+      }}
+    >
+      <Box style={rule} />
+      <span>{label}</span>
+      <Box style={rule} />
+    </Group>
+  );
+}
+
 function MessageRow({
   message,
   humanHandle,
@@ -361,7 +391,11 @@ function MessageRow({
       <Stack gap={1} style={{ minWidth: 0, flex: 1 }}>
         <Group gap="sm" wrap="nowrap" align="baseline">
           <AgentName handle={message.handle} variant="inline" />
-          <Text size="xs" style={{ color: 'var(--tk-muted-text)' }}>
+          <Text
+            size="xs"
+            title={new Date(message.postedAt).toLocaleString()}
+            style={{ color: 'var(--tk-muted-text)' }}
+          >
             {formatLocalTime(message.postedAt)}
           </Text>
         </Group>
@@ -465,6 +499,7 @@ export function Transcript({
   const [messages, setMessages] = useState(initialMessages);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [olderExhausted, setOlderExhausted] = useState(false);
+  const [olderLoaded, setOlderLoaded] = useState(false);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
   // Set before an older page is prepended; consumed once the DOM has the
   // new rows, so the viewport stays on the message the viewer was reading.
@@ -485,6 +520,7 @@ export function Transcript({
   useEffect(() => {
     setOlderExhausted(false);
     setLoadingOlder(false);
+    setOlderLoaded(false);
   }, [room]);
 
   // The `#m-<id>` anchor rt prints after a post and on a wake line. Scrolls
@@ -564,6 +600,7 @@ export function Transcript({
       const older = data.messages ?? [];
       if (older.length === 0) setOlderExhausted(true);
       if (older.length > 0) {
+        setOlderLoaded(true);
         anchorHeight.current = scrollView()?.scrollHeight ?? null;
         setMessages(prev => {
           const known = new Set(prev.map(m => m.id));
@@ -645,6 +682,11 @@ export function Transcript({
             <Stack gap={0}>
               {messages.map((message, i) => (
                 <Fragment key={message.id}>
+                  {(i === 0
+                    ? olderLoaded
+                    : dayKey(messages[i - 1]!.postedAt) !== dayKey(message.postedAt)) && (
+                    <DayDivider label={dayLabel(message.postedAt)} />
+                  )}
                   {i === dividerAt && (
                     <Group
                       gap="sm"
