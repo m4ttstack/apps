@@ -1,4 +1,5 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 import {
@@ -313,4 +314,70 @@ test('the rooms rail lives in the PageShell sidebar and the roster is the right 
   expect(
     within(screen.getByTestId('page-bar')).getByText('build')
   ).toBeInTheDocument();
+});
+
+function jsonResponse(body: unknown): Response {
+  return { ok: true, status: 200, json: async () => body } as Response;
+}
+
+test('DM on a sender’s card opens the pair’s room and focuses the composer there', async () => {
+  installFetchMock();
+  const now = Date.now();
+  const dmRoom = {
+    room: 'dm-1a2b3c4d5e6f',
+    memberCount: 2,
+    unread: 0,
+    mentions: 0,
+    kind: 'dm' as const,
+    participants: { a: 'fred', b: 'matt' },
+  };
+  const build = { room: 'build', memberCount: 2, unread: 0, mentions: 0 };
+  fetchMock.mockImplementation((url: string) => {
+    if (url === '/api/chat/dm/open')
+      return Promise.resolve(jsonResponse({ room: dmRoom.room, created: true }));
+    if (url === '/api/chat/rooms')
+      return Promise.resolve(jsonResponse({ rooms: [build, dmRoom] }));
+    return Promise.resolve(jsonResponse({}));
+  });
+  window.history.replaceState(null, '', '/r/build');
+  renderWithProviders(
+    <App
+      initialState={{
+        daemonReachable: true,
+        buddies: [
+          {
+            sessionId: 's',
+            handle: 'fred',
+            baseHandle: 'fred',
+            signedInAt: now,
+            lastSeenAt: now,
+            armedAt: now,
+            tailSeenAt: now,
+            status: 'live',
+            rooms: ['build'],
+          },
+        ],
+        rooms: [build],
+        members: [
+          { room: 'build', handle: 'fred', joinedAt: now, lastReadId: 0, wakeOn: 'mention', status: 'live' },
+        ],
+        messages: [{ id: 7, room: 'build', handle: 'fred', body: 'hello', mentions: [], postedAt: now }],
+      }}
+    />
+  );
+  const transcript = await screen.findByTestId('transcript');
+  await userEvent.hover(within(transcript).getByText('fred'));
+  await userEvent.click(await screen.findByTestId('card-dm-fred'));
+
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/chat/dm/open',
+    expect.objectContaining({ method: 'POST', body: JSON.stringify({ to: 'fred' }) })
+  );
+  await screen.findByTestId(`room-row-${dmRoom.room}`);
+  expect(window.location.pathname).toBe(`/r/${dmRoom.room}`);
+  // `focus()` defers through requestAnimationFrame.
+  await waitFor(() =>
+    expect(screen.getByRole('textbox', { name: 'Message' })).toHaveFocus()
+  );
+  expect(screen.queryByText(/direct message to/)).toBeNull();
 });

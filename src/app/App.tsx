@@ -24,6 +24,7 @@ import {
 import { DaemonBanner } from '@ui/DaemonBanner';
 import { useColorScheme, useIsMobile } from '@ui/hooks';
 import { Icon } from '@ui/icons';
+import { notifications } from '@ui/notifications';
 import { PageBar, type RoomOrder } from '@ui/PageBar';
 import { RoomRail } from '@ui/RoomRail';
 import { Roster, type RosterBuddy } from '@ui/Roster';
@@ -169,9 +170,8 @@ function useBuddies(seed: Buddy[] | undefined): Buddy[] {
 /**
  * Fetches the room list on mount (skipped when `seed` replaces it) and
  * exposes `refetchRooms` for after a write that can introduce a room the
- * mount-time fetch never saw -- opening a DM through the composer's
- * DM-instead path opens or reuses a room this list has no reason to have
- * fetched yet.
+ * mount-time fetch never saw -- `openDm` opens or reuses a room this list
+ * has no reason to have fetched yet.
  */
 function useRooms(seed: RoomSummary[] | undefined) {
   const [rooms, setRooms] = useState<RoomSummary[]>(seed ?? []);
@@ -545,7 +545,7 @@ function PhoneRoomRow({
  * The rooms/roster Drawer (`PhoneRooms.dc.html`): rooms with the same
  * badges, the direct section, then buddies rendered by `Roster` with
  * `compact`. Tapping a buddy inserts `@handle` when in the room, otherwise
- * starts a DM, and closes -- same as `Roster`'s desktop-panel `onPick`.
+ * opens the DM room, and closes -- same as `Roster`'s desktop-panel `onPick`.
  */
 function PhoneDrawer({
   opened,
@@ -556,7 +556,8 @@ function PhoneDrawer({
   buddies,
   roomMembers,
   daemonReachable,
-  composerRef,
+  onMention,
+  onOpenDm,
 }: {
   opened: boolean;
   onClose: () => void;
@@ -566,7 +567,8 @@ function PhoneDrawer({
   buddies: Buddy[];
   roomMembers: string[];
   daemonReachable: boolean;
-  composerRef: RefObject<ComposerHandle | null>;
+  onMention: (handle: string) => void;
+  onOpenDm: (handle: string) => void;
 }) {
   const { computedColorScheme, setColorScheme } = useColorScheme();
   const isDark = computedColorScheme === 'dark';
@@ -708,8 +710,8 @@ function PhoneDrawer({
             daemonReachable={daemonReachable}
             compact
             onPick={(handle, { inRoom }) => {
-              if (inRoom) composerRef.current?.insertMention(handle);
-              else composerRef.current?.startDm(handle);
+              if (inRoom) onMention(handle);
+              else onOpenDm(handle);
               onClose();
             }}
           />
@@ -754,7 +756,7 @@ function PhoneChat({
   anchor,
   roomMembers,
   composerRef,
-  onNavigate,
+  onOpenDm,
 }: {
   daemon: ReturnType<typeof useDaemonHealth>;
   buddies: Buddy[];
@@ -766,7 +768,7 @@ function PhoneChat({
   anchor: string | undefined;
   roomMembers: string[];
   composerRef: RefObject<ComposerHandle | null>;
-  onNavigate: (room: string) => void;
+  onOpenDm: (handle: string) => void;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -823,10 +825,7 @@ function PhoneChat({
           buddies={buddies}
           isDm={activeRoomSummary?.kind === 'dm'}
           daemonReachable={daemon.reachable}
-          onNavigate={room => {
-            onNavigate(room);
-            setDrawerOpen(false);
-          }}
+          onOpenDm={onOpenDm}
         />
       )}
 
@@ -839,7 +838,11 @@ function PhoneChat({
         buddies={buddies}
         roomMembers={roomMembers}
         daemonReachable={daemon.reachable}
-        composerRef={composerRef}
+        onMention={handle => composerRef.current?.insertMention(handle)}
+        onOpenDm={handle => {
+          onOpenDm(handle);
+          setDrawerOpen(false);
+        }}
       />
     </Box>
   );
@@ -889,12 +892,34 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
     if (window.location.pathname !== to) navigate(to);
   }
 
+  const openDm = useCallback(
+    async (handle: string) => {
+      try {
+        const res = await fetch('/api/chat/dm/open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: handle }),
+        });
+        if (!res.ok) throw new Error('dm open failed');
+        const data = (await res.json()) as { room: string };
+        refetchRooms();
+        setActiveRoom(data.room);
+        const to = `/r/${encodeURIComponent(data.room)}`;
+        if (window.location.pathname !== to) navigate(to);
+        composerRef.current?.focus();
+      } catch {
+        notifications.error("Couldn't open the DM");
+      }
+    },
+    [refetchRooms]
+  );
+
   const buddyActions = useMemo(
     () => ({
       mention: (handle: string) => composerRef.current?.insertMention(handle),
-      dm: (handle: string) => composerRef.current?.startDm(handle),
+      dm: (handle: string) => void openDm(handle),
     }),
-    []
+    [openDm]
   );
   const [roomOrder, setRoomOrder] = useState<RoomOrder>('join');
   const orderedRooms =
@@ -910,13 +935,6 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [path]);
-
-  /** The DM-instead path opens or reuses a room this app hasn't fetched --
-      refetch so it lands in the rail's direct section, then switch to it. */
-  function handleComposerNavigate(room: string) {
-    refetchRooms();
-    selectRoom(room);
-  }
 
   if (route.name === 'demo-page-shell') {
     return <PageShellDemoPage />;
@@ -935,7 +953,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
         anchor={anchor}
         roomMembers={roomMembers}
         composerRef={composerRef}
-        onNavigate={handleComposerNavigate}
+        onOpenDm={openDm}
       />
     );
   }
@@ -1032,7 +1050,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
                             buddies={buddies}
                             isDm={activeRoomSummary?.kind === 'dm'}
                             daemonReachable={daemon.reachable}
-                            onNavigate={handleComposerNavigate}
+                            onOpenDm={openDm}
                           />
                         }
                       />
@@ -1047,7 +1065,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
                       daemonReachable={daemon.reachable}
                       onPick={(handle, { inRoom }) => {
                         if (inRoom) composerRef.current?.insertMention(handle);
-                        else composerRef.current?.startDm(handle);
+                        else void openDm(handle);
                       }}
                     />
                   )}
