@@ -9,6 +9,7 @@ import { useInterval } from 'react-interval-hook';
 import { useLocation } from 'wouter';
 import { navigate } from 'wouter/use-browser-location';
 
+import { ArchivedBar } from '@ui/ArchivedBar';
 import { BuddiesProvider } from '@ui/buddies-context';
 import { Composer, type ComposerHandle } from '@ui/Composer';
 import {
@@ -25,7 +26,7 @@ import { DaemonBanner } from '@ui/DaemonBanner';
 import { useColorScheme, useIsMobile, useLocalStorage } from '@ui/hooks';
 import { AnimatedChevron, Icon } from '@ui/icons';
 import { notifications } from '@ui/notifications';
-import { PageBar, type RoomOrder } from '@ui/PageBar';
+import { PageBar, RoomMenu, type RoomOrder } from '@ui/PageBar';
 import { RoomRail } from '@ui/RoomRail';
 import { Roster, type RosterBuddy } from '@ui/Roster';
 import { Transcript } from '@ui/Transcript';
@@ -366,11 +367,15 @@ function PhoneHeader({
   buddies,
   reachable,
   onOpenDrawer,
+  memberHandles,
+  onArchive,
 }: {
   room: RoomSummary | undefined;
   buddies: Buddy[];
   reachable: boolean;
   onOpenDrawer: () => void;
+  memberHandles: string[];
+  onArchive: (room: string, archived: boolean) => void;
 }) {
   const live = buddies.filter(b => b.status === 'live').length;
   const idle = buddies.filter(b => b.status === 'idle').length;
@@ -441,6 +446,14 @@ function PhoneHeader({
           </Text>
         )}
       </UnstyledButton>
+      {room && (
+        <RoomMenu
+          room={room}
+          memberHandles={memberHandles}
+          onArchive={onArchive}
+          size={PHONE_TAP}
+        />
+      )}
     </Group>
   );
 }
@@ -816,6 +829,7 @@ function PhoneChat({
   roomMembers,
   composerRef,
   onOpenDm,
+  onArchive,
 }: {
   daemon: ReturnType<typeof useDaemonHealth>;
   buddies: Buddy[];
@@ -828,6 +842,7 @@ function PhoneChat({
   roomMembers: string[];
   composerRef: RefObject<ComposerHandle | null>;
   onOpenDm: (handle: string) => void;
+  onArchive: (room: string, archived: boolean) => void;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -846,6 +861,8 @@ function PhoneChat({
         buddies={buddies}
         reachable={daemon.reachable}
         onOpenDrawer={() => setDrawerOpen(true)}
+        memberHandles={roomMembers}
+        onArchive={onArchive}
       />
 
       <DaemonBanner
@@ -875,18 +892,25 @@ function PhoneChat({
         </Box>
       )}
 
-      {activeRoom && (
-        <Composer
-          ref={composerRef}
-          phone
-          room={activeRoom}
-          roomMembers={roomMembers}
-          buddies={buddies}
-          isDm={activeRoomSummary?.kind === 'dm'}
-          daemonReachable={daemon.reachable}
-          onOpenDm={onOpenDm}
-        />
-      )}
+      {activeRoom &&
+        (activeRoomSummary?.archivedAt !== undefined ? (
+          <ArchivedBar
+            phone
+            archivedAt={activeRoomSummary.archivedAt}
+            onReopen={() => onArchive(activeRoom, false)}
+          />
+        ) : (
+          <Composer
+            ref={composerRef}
+            phone
+            room={activeRoom}
+            roomMembers={roomMembers}
+            buddies={buddies}
+            isDm={activeRoomSummary?.kind === 'dm'}
+            daemonReachable={daemon.reachable}
+            onOpenDm={onOpenDm}
+          />
+        ))}
 
       <PhoneDrawer
         opened={drawerOpen}
@@ -1032,6 +1056,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
         roomMembers={roomMembers}
         composerRef={composerRef}
         onOpenDm={openDm}
+        onArchive={setArchived}
       />
     );
   }
@@ -1123,15 +1148,24 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
                         anchor={anchor}
                         unreadCount={activeRoomSummary?.unread}
                         footer={
-                          <Composer
-                            ref={composerRef}
-                            room={activeRoom}
-                            roomMembers={roomMembers}
-                            buddies={buddies}
-                            isDm={activeRoomSummary?.kind === 'dm'}
-                            daemonReachable={daemon.reachable}
-                            onOpenDm={openDm}
-                          />
+                          activeRoomSummary?.archivedAt !== undefined ? (
+                            <ArchivedBar
+                              archivedAt={activeRoomSummary.archivedAt}
+                              onReopen={() =>
+                                void setArchived(activeRoom, false)
+                              }
+                            />
+                          ) : (
+                            <Composer
+                              ref={composerRef}
+                              room={activeRoom}
+                              roomMembers={roomMembers}
+                              buddies={buddies}
+                              isDm={activeRoomSummary?.kind === 'dm'}
+                              daemonReachable={daemon.reachable}
+                              onOpenDm={openDm}
+                            />
+                          )
                         }
                       />
                     )

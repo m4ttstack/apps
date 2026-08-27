@@ -1,4 +1,10 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
@@ -334,7 +340,9 @@ test('DM on a sender’s card opens the pair’s room and focuses the composer t
   const build = { room: 'build', memberCount: 2, unread: 0, mentions: 0 };
   fetchMock.mockImplementation((url: string) => {
     if (url === '/api/chat/dm/open')
-      return Promise.resolve(jsonResponse({ room: dmRoom.room, created: true }));
+      return Promise.resolve(
+        jsonResponse({ room: dmRoom.room, created: true })
+      );
     if (url === '/api/chat/rooms')
       return Promise.resolve(jsonResponse({ rooms: [build, dmRoom] }));
     return Promise.resolve(jsonResponse({}));
@@ -359,9 +367,25 @@ test('DM on a sender’s card opens the pair’s room and focuses the composer t
         ],
         rooms: [build],
         members: [
-          { room: 'build', handle: 'fred', joinedAt: now, lastReadId: 0, wakeOn: 'mention', status: 'live' },
+          {
+            room: 'build',
+            handle: 'fred',
+            joinedAt: now,
+            lastReadId: 0,
+            wakeOn: 'mention',
+            status: 'live',
+          },
         ],
-        messages: [{ id: 7, room: 'build', handle: 'fred', body: 'hello', mentions: [], postedAt: now }],
+        messages: [
+          {
+            id: 7,
+            room: 'build',
+            handle: 'fred',
+            body: 'hello',
+            mentions: [],
+            postedAt: now,
+          },
+        ],
       }}
     />
   );
@@ -371,7 +395,10 @@ test('DM on a sender’s card opens the pair’s room and focuses the composer t
 
   expect(fetchMock).toHaveBeenCalledWith(
     '/api/chat/dm/open',
-    expect.objectContaining({ method: 'POST', body: JSON.stringify({ to: 'fred' }) })
+    expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ to: 'fred' }),
+    })
   );
   await screen.findByTestId(`room-row-${dmRoom.room}`);
   expect(window.location.pathname).toBe(`/r/${dmRoom.room}`);
@@ -380,4 +407,48 @@ test('DM on a sender’s card opens the pair’s room and focuses the composer t
     expect(screen.getByRole('textbox', { name: 'Message' })).toHaveFocus()
   );
   expect(screen.queryByText(/direct message to/)).toBeNull();
+});
+
+test('an archived room renders the archived bar instead of the composer, and Reopen posts archived:false', async () => {
+  installFetchMock();
+  window.history.replaceState(null, '', '/r/retro');
+  renderWithProviders(
+    <App
+      initialState={{
+        daemonReachable: true,
+        buddies: [],
+        rooms: [
+          {
+            room: 'retro',
+            memberCount: 1,
+            unread: 0,
+            mentions: 0,
+            archivedAt: Date.now() - 3 * 86_400_000,
+          },
+        ],
+        members: [],
+        messages: [
+          {
+            id: 1,
+            room: 'retro',
+            handle: 'fred',
+            body: 'closing out',
+            mentions: [],
+            postedAt: Date.now(),
+          },
+        ],
+      }}
+    />
+  );
+  expect(await screen.findByTestId('archived-bar')).toBeInTheDocument();
+  expect(screen.queryByTestId('composer')).toBeNull();
+  expect(screen.queryByTestId('mark-read-button')).toBeNull();
+  await userEvent.click(screen.getByTestId('archived-reopen'));
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/chat/archive',
+    expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ room: 'retro', archived: false }),
+    })
+  );
 });
