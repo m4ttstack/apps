@@ -47,6 +47,17 @@
         "zod": "^4.4.3",
       },
     },
+    "packages/server": {
+      "name": "@mattstack/app-server",
+      "version": "0.1.0",
+      "bin": {
+        "mattstack-embed-assets": "./bin/mattstack-embed-assets.ts",
+      },
+      "peerDependencies": {
+        "@mattstack/rt-client": "^0.6",
+        "hono": "^4.13.3",
+      },
+    },
     "packages/tokyo": {
       "name": "@mattstack/mantine-tokyo",
       "version": "0.2.0",
@@ -320,6 +331,8 @@
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.4", "", {}, "sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ=="],
 
     "@mattstack/app-kit": ["@mattstack/app-kit@workspace:packages/ui"],
+
+    "@mattstack/app-server": ["@mattstack/app-server@workspace:packages/server"],
 
     "@mattstack/glance": ["@mattstack/glance@0.20.0", "", { "dependencies": { "@gitbeaker/rest": "^43.8.0", "@octokit/core": "^7.0.7", "@octokit/graphql": "^9.0.4", "@octokit/plugin-paginate-rest": "^15.0.0", "@octokit/plugin-retry": "^8.1.1", "@octokit/plugin-throttling": "^11.0.5", "@octokit/request-error": "^7.1.1" } }, "sha512-WaOLfpQPim4p/HHg1JdQ2wltLIU/YUkVN0Il+4Y1Df/+EQJsN1cUUWmAg+QAgd9xH6PJNOuHlVQt4t4pPecAYQ=="],
 
