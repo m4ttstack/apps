@@ -22,8 +22,8 @@ import {
   UnstyledButton,
 } from '@ui/core';
 import { DaemonBanner } from '@ui/DaemonBanner';
-import { useColorScheme, useIsMobile } from '@ui/hooks';
-import { Icon } from '@ui/icons';
+import { useColorScheme, useIsMobile, useLocalStorage } from '@ui/hooks';
+import { AnimatedChevron, Icon } from '@ui/icons';
 import { notifications } from '@ui/notifications';
 import { PageBar, type RoomOrder } from '@ui/PageBar';
 import { RoomRail } from '@ui/RoomRail';
@@ -450,10 +450,12 @@ function PhoneHeader({
 function PhoneRoomRow({
   room,
   active,
+  archived,
   onSelect,
 }: {
   room: RoomSummary;
   active: boolean;
+  archived?: boolean;
   onSelect: () => void;
 }) {
   const isDm = room.kind === 'dm';
@@ -463,6 +465,7 @@ function PhoneRoomRow({
   return (
     <UnstyledButton
       data-testid={`phone-room-${room.room}`}
+      data-archived={archived ? 'true' : undefined}
       onClick={onSelect}
       style={{
         display: 'flex',
@@ -477,6 +480,7 @@ function PhoneRoomRow({
           ? 'color-mix(in srgb, var(--mantine-color-accent-text) var(--tk-wash), transparent)'
           : undefined,
         color: active ? accentText : undefined,
+        opacity: archived ? 0.6 : undefined,
       }}
     >
       {!isDm && (
@@ -494,7 +498,7 @@ function PhoneRoomRow({
       >
         {title}
       </Text>
-      {room.mentions > 0 && (
+      {!archived && room.mentions > 0 && (
         <Box
           component="span"
           aria-label={`${room.mentions} mention`}
@@ -516,7 +520,7 @@ function PhoneRoomRow({
           @{room.mentions}
         </Box>
       )}
-      {room.unread > 0 && (
+      {!archived && room.unread > 0 && (
         <Box
           component="span"
           aria-label={`${room.unread} unread`}
@@ -572,8 +576,14 @@ function PhoneDrawer({
 }) {
   const { computedColorScheme, setColorScheme } = useColorScheme();
   const isDark = computedColorScheme === 'dark';
-  const channelRooms = rooms.filter(r => r.kind !== 'dm');
-  const directRooms = rooms.filter(r => r.kind === 'dm');
+  const openRooms = rooms.filter(r => r.archivedAt === undefined);
+  const channelRooms = openRooms.filter(r => r.kind !== 'dm');
+  const directRooms = openRooms.filter(r => r.kind === 'dm');
+  const archivedRooms = rooms.filter(r => r.archivedAt !== undefined);
+  const [archivedCollapsed, setArchivedCollapsed] = useLocalStorage<boolean>({
+    key: 'chat.rail.archived',
+    defaultValue: true,
+  });
 
   function selectRoom(room: string) {
     onSelectRoom(room);
@@ -676,6 +686,55 @@ function PhoneDrawer({
                 onSelect={() => selectRoom(room.room)}
               />
             ))}
+          </>
+        )}
+
+        {archivedRooms.length > 0 && (
+          <>
+            <UnstyledButton
+              data-testid="phone-archived-toggle"
+              aria-expanded={!archivedCollapsed}
+              onClick={() => setArchivedCollapsed(!archivedCollapsed)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                width: '100%',
+                padding: '10px var(--mantine-spacing-md) 4px',
+                borderBottom: '1px solid var(--tk-border-soft)',
+                flex: 'none',
+              }}
+            >
+              <Text
+                fw={700}
+                style={{
+                  fontSize: '9.5px',
+                  color: PHONE_MUTED,
+                  letterSpacing: '0.06em',
+                }}
+              >
+                ARCHIVED
+              </Text>
+              <Text size="xs" style={{ color: PHONE_MUTED }}>
+                {archivedRooms.length}
+              </Text>
+              <Box style={{ flex: 1 }} />
+              <AnimatedChevron
+                opened={!archivedCollapsed}
+                size={12}
+                color={PHONE_MUTED}
+              />
+            </UnstyledButton>
+            {!archivedCollapsed &&
+              archivedRooms.map(room => (
+                <PhoneRoomRow
+                  key={room.room}
+                  room={room}
+                  archived
+                  active={room.room === activeRoom}
+                  onSelect={() => selectRoom(room.room)}
+                />
+              ))}
           </>
         )}
 
