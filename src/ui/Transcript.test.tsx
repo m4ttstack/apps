@@ -1,5 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react';
-import { afterEach, beforeEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { renderWithProviders } from '@ui/storybook/test-utils';
 import {
@@ -338,4 +338,18 @@ test('loading an older page puts a day divider above what was the first message'
   const labels = screen.getAllByTestId('day-divider').map(d => d.getAttribute('aria-label'));
   expect(labels).toHaveLength(2);
   expect(labels[1]).toBe('Today');
+});
+
+test('a code block carries a copy control that writes the block text only', async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+  renderWithProviders(
+    <Transcript
+      room="build"
+      messages={[{ id: 1, room: 'build', handle: 'fred', body: 'see:\n```\nline one\nline two\n```', mentions: [], postedAt: Date.now() }]}
+    />
+  );
+  const copy = screen.getByTestId('code-copy').querySelector('button')!;
+  fireEvent.click(copy);
+  expect(writeText).toHaveBeenCalledWith('line one\nline two');
 });

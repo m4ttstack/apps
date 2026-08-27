@@ -4,9 +4,12 @@ import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import type { ChatMessage } from '@mattstack/rt-client';
 import ScrollToBottom, { useAtTop } from 'react-scroll-to-bottom';
 
+import { CopyActionIcon } from '@ui/core';
+
 import { AgentName } from './AgentName';
 import { dayKey, dayLabel } from './day-label';
 import { NewPill } from './NewPill';
+import bodyClasses from './transcript-body.module.css';
 import scrollClasses from './transcript-scroll.module.css';
 
 const BORDER_SOFT = 'var(--tk-border-soft)';
@@ -310,23 +313,38 @@ function MessageBody({
         part.type === 'code' ? (
           <Box
             key={`part-${i}`}
-            component="pre"
-            data-testid="code-block"
-            style={{
-              display: 'block',
-              background: 'var(--ui-bg-1)',
-              border: '1px solid var(--mantine-color-default-border)',
-              borderRadius: 'var(--mantine-radius-sm)',
-              fontSize: '11.2px',
-              lineHeight: 1.5,
-              marginTop: 'var(--mantine-spacing-xs)',
-              overflowX: 'auto',
-              padding: 'var(--mantine-spacing-sm) var(--mantine-spacing-md)',
-              whiteSpace: 'pre',
-              fontFamily: 'inherit',
-            }}
+            className={bodyClasses.codeWrap}
+            data-testid="code-wrap"
           >
-            {part.content}
+            <Box
+              component="pre"
+              data-testid="code-block"
+              style={{
+                display: 'block',
+                background: 'var(--ui-bg-1)',
+                border: '1px solid var(--mantine-color-default-border)',
+                borderRadius: 'var(--mantine-radius-sm)',
+                fontSize: '11.2px',
+                lineHeight: 1.5,
+                marginTop: 'var(--mantine-spacing-xs)',
+                overflowX: 'auto',
+                padding: 'var(--mantine-spacing-sm) var(--mantine-spacing-md)',
+                whiteSpace: 'pre',
+                fontFamily: 'inherit',
+              }}
+            >
+              {part.content}
+            </Box>
+            <Box className={bodyClasses.copy} data-testid="code-copy">
+              <CopyActionIcon
+                value={part.content}
+                label="Copy"
+                size="sm"
+                variant="default"
+                iconSize={14}
+                aria-label="Copy code"
+              />
+            </Box>
           </Box>
         ) : (
           <span key={`part-${i}`}>
