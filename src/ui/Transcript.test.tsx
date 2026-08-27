@@ -285,6 +285,36 @@ test('a day divider sits between messages on different days, never between same-
   );
 });
 
+function viewOf(transcript: HTMLElement): HTMLElement {
+  return transcript.querySelector<HTMLElement>('[class*="view"]')!;
+}
+
+function scrollTo(view: HTMLElement, top: number, height = 1000, client = 300) {
+  Object.defineProperty(view, 'scrollHeight', { configurable: true, value: height });
+  Object.defineProperty(view, 'clientHeight', { configurable: true, value: client });
+  Object.defineProperty(view, 'scrollTop', { configurable: true, writable: true, value: top });
+  fireEvent.scroll(view);
+}
+
+test('the new pill counts live arrivals while scrolled up and goes away at the bottom', async () => {
+  const { pushFrame } = renderTranscriptWithFakeSocket({
+    room: 'build',
+    messages: [{ id: 1, room: 'build', handle: 'fred', body: 'first', mentions: [], postedAt: Date.now() }],
+  });
+  const view = viewOf(screen.getByTestId('transcript-scroll'));
+  expect(screen.queryByTestId('new-pill')).toBeNull();
+
+  scrollTo(view, 100);
+  expect(screen.getByTestId('new-pill')).toHaveTextContent('↓ latest');
+
+  pushFrame({ topic: 'chat/build/msg', payload: { id: 7 } });
+  await screen.findByTestId('message-7');
+  expect(screen.getByTestId('new-pill')).toHaveTextContent('↓ 1 new');
+
+  scrollTo(view, 700);
+  expect(screen.queryByTestId('new-pill')).toBeNull();
+});
+
 test('loading an older page puts a day divider above what was the first message', async () => {
   const now = Date.now();
   renderTranscriptWithFakeSocket({

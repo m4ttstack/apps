@@ -6,6 +6,7 @@ import ScrollToBottom, { useAtTop } from 'react-scroll-to-bottom';
 
 import { AgentName } from './AgentName';
 import { dayKey, dayLabel } from './day-label';
+import { NewPill } from './NewPill';
 import scrollClasses from './transcript-scroll.module.css';
 
 const BORDER_SOFT = 'var(--tk-border-soft)';
@@ -500,12 +501,17 @@ export function Transcript({
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [olderExhausted, setOlderExhausted] = useState(false);
   const [olderLoaded, setOlderLoaded] = useState(false);
+  const [awayFromBottom, setAwayFromBottom] = useState(false);
+  const [newSinceAway, setNewSinceAway] = useState(0);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
   // Set before an older page is prepended; consumed once the DOM has the
   // new rows, so the viewport stays on the message the viewer was reading.
   const anchorHeight = useRef<number | null>(null);
   const roomRef = useRef(room);
   roomRef.current = room;
+  const awayRef = useRef(false);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   // Re-seeds local state whenever the CALLER's own messages array changes
   // identity -- not just when `room` changes. The caller fetches
@@ -521,6 +527,9 @@ export function Transcript({
     setOlderExhausted(false);
     setLoadingOlder(false);
     setOlderLoaded(false);
+    setNewSinceAway(0);
+    setAwayFromBottom(false);
+    awayRef.current = false;
   }, [room]);
 
   // The `#m-<id>` anchor rt prints after a post and on a wake line. Scrolls
@@ -557,12 +566,28 @@ export function Transcript({
         .then(res => res.json())
         .then((data: { messages?: ChatMessage[] }) => {
           if (roomRef.current !== room) return;
-          setMessages(prev => mergeMessages(prev, data.messages ?? []));
+          const next = mergeMessages(messagesRef.current, data.messages ?? []);
+          const added = next.length - messagesRef.current.length;
+          if (added > 0 && awayRef.current) setNewSinceAway(n => n + added);
+          setMessages(next);
         })
         .catch(() => {});
     };
 
     return () => socket.close();
+  }, [room]);
+
+  useEffect(() => {
+    const view = scrollView();
+    if (!view) return;
+    const onScroll = () => {
+      const away = view.scrollHeight - view.scrollTop - view.clientHeight > 4;
+      awayRef.current = away;
+      setAwayFromBottom(away);
+      if (!away) setNewSinceAway(0);
+    };
+    view.addEventListener('scroll', onScroll, { passive: true });
+    return () => view.removeEventListener('scroll', onScroll);
   }, [room]);
 
   function scrollView(): HTMLElement | null {
@@ -735,6 +760,20 @@ export function Transcript({
             </Stack>
           </Box>
         </ScrollToBottom>
+        {awayFromBottom && (
+          <NewPill
+            count={newSinceAway}
+            onClick={() => {
+              const view = scrollView();
+              if (!view) return;
+              if (typeof view.scrollTo === 'function') {
+                view.scrollTo({ top: view.scrollHeight, behavior: 'smooth' });
+              } else {
+                view.scrollTop = view.scrollHeight;
+              }
+            }}
+          />
+        )}
       </Box>
       {footer && (
         <Box
