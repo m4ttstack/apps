@@ -914,6 +914,25 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
     [refetchRooms]
   );
 
+  const setArchived = useCallback(
+    async (room: string, archived: boolean) => {
+      try {
+        const res = await fetch('/api/chat/archive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ room, archived }),
+        });
+        if (!res.ok) throw new Error('archive failed');
+        refetchRooms();
+      } catch {
+        notifications.error(
+          archived ? "Couldn't archive the room" : "Couldn't reopen the room"
+        );
+      }
+    },
+    [refetchRooms]
+  );
+
   const buddyActions = useMemo(
     () => ({
       mention: (handle: string) => composerRef.current?.insertMention(handle),
@@ -1000,6 +1019,8 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
                     order={roomOrder}
                     onOrderChange={setRoomOrder}
                     onMarkRead={() => refetchRooms()}
+                    memberHandles={roomMembers}
+                    onArchive={setArchived}
                   />
                 </PageShell.Header>
               )}
