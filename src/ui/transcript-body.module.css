@@ -22,3 +22,20 @@
     opacity: 1;
   }
 }
+
+.fold {
+  position: relative;
+  max-height: 320px;
+  overflow: hidden;
+}
+
+.fold::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  background: linear-gradient(to bottom, transparent, var(--tk-card));
+  pointer-events: none;
+}

@@ -353,3 +353,50 @@ test('a code block carries a copy control that writes the block text only', asyn
   fireEvent.click(copy);
   expect(writeText).toHaveBeenCalledWith('line one\nline two');
 });
+
+function withTallBodies(run: () => void) {
+  const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight');
+  Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
+    configurable: true,
+    get() {
+      return (this as HTMLElement).dataset.testid === 'message-body' ? 900 : 0;
+    },
+  });
+  try {
+    run();
+  } finally {
+    if (original) Object.defineProperty(HTMLElement.prototype, 'scrollHeight', original);
+    else delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollHeight;
+  }
+}
+
+const tall = { id: 1, room: 'build', handle: 'fred', body: Array.from({ length: 80 }, (_, i) => `line ${i}`).join('\n'), mentions: [], postedAt: Date.now() };
+
+test('a tall body folds with a show more control, and unfolds on click', async () => {
+  withTallBodies(() => {
+    renderWithProviders(<Transcript room="build" messages={[tall]} />);
+  });
+  const fold = screen.getByTestId('message-fold');
+  expect(fold).toHaveAttribute('data-folded', 'true');
+  fireEvent.click(screen.getByTestId('fold-toggle'));
+  expect(fold).toHaveAttribute('data-folded', 'false');
+  expect(screen.getByTestId('fold-toggle')).toHaveTextContent('show less');
+});
+
+test('the anchored message mounts unfolded; a short body never folds', () => {
+  // jsdom has no scrollIntoView; the anchor effect calls it unconditionally.
+  const original = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = function () {};
+  try {
+    withTallBodies(() => {
+      renderWithProviders(<Transcript room="build" messages={[tall]} anchor="m-1" />);
+    });
+    expect(screen.getByTestId('message-fold')).toHaveAttribute('data-folded', 'false');
+  } finally {
+    Element.prototype.scrollIntoView = original;
+  }
+  renderWithProviders(
+    <Transcript room="other" messages={[{ ...tall, id: 2, room: 'other', body: 'short' }]} />
+  );
+  expect(screen.getAllByTestId('message-fold')).toHaveLength(1);
+});

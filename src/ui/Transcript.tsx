@@ -21,6 +21,10 @@ const INNER_LEFT = 'calc(var(--mantine-spacing-xl) + 17px)';
 const INNER_RIGHT = 'var(--mantine-spacing-xl)';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
 const ACCENT_WASH = `color-mix(in srgb, ${ACCENT_TEXT} var(--tk-wash), transparent)`;
+/** A body taller than this (its unconstrained scrollHeight) folds behind a
+    show more control; the anchored message is the one exception, since it
+    mounted expanded on purpose. */
+const COLLAPSE_AT = 480;
 
 export interface TranscriptProps {
   room: string;
@@ -291,14 +295,30 @@ function renderTextPart(
 function MessageBody({
   message,
   humanHandle,
+  startExpanded,
 }: {
   message: ChatMessage;
   humanHandle: string | undefined;
+  startExpanded: boolean;
 }) {
   const parts = splitCodeFences(message.body);
-  return (
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [tall, setTall] = useState(false);
+  const [expanded, setExpanded] = useState(startExpanded);
+
+  // Measures the unconstrained body once per message: a body's height only
+  // changes with its content, so a ResizeObserver would be watching for an
+  // event that never happens here.
+  useLayoutEffect(() => {
+    setTall((bodyRef.current?.scrollHeight ?? 0) > COLLAPSE_AT);
+  }, [message.id]);
+
+  const folded = tall && !expanded;
+  const body = (
     <Text
+      ref={bodyRef}
       component="div"
+      data-testid="message-body"
       style={{
         fontSize: '12.16px',
         lineHeight: 1.55,
@@ -354,6 +374,24 @@ function MessageBody({
       )}
     </Text>
   );
+  if (!tall) return body;
+  return (
+    <Box data-testid="message-fold" data-folded={folded ? 'true' : 'false'}>
+      <Box className={folded ? bodyClasses.fold : undefined}>{body}</Box>
+      <UnstyledButton
+        data-testid="fold-toggle"
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          marginTop: 4,
+          fontSize: '10.56px',
+          fontWeight: 600,
+          color: ACCENT_TEXT,
+        }}
+      >
+        {folded ? 'show more' : 'show less'}
+      </UnstyledButton>
+    </Box>
+  );
 }
 
 /** A muted counterpart of the read-cursor divider: rules either side, the
@@ -389,10 +427,12 @@ function MessageRow({
   message,
   humanHandle,
   isFirst,
+  anchored,
 }: {
   message: ChatMessage;
   humanHandle: string | undefined;
   isFirst: boolean;
+  anchored: boolean;
 }) {
   return (
     <Group
@@ -418,7 +458,11 @@ function MessageRow({
             {formatLocalTime(message.postedAt)}
           </Text>
         </Group>
-        <MessageBody message={message} humanHandle={humanHandle} />
+        <MessageBody
+          message={message}
+          humanHandle={humanHandle}
+          startExpanded={anchored}
+        />
       </Stack>
     </Group>
   );
@@ -772,6 +816,7 @@ export function Transcript({
                     message={message}
                     humanHandle={humanHandle}
                     isFirst={i === 0}
+                    anchored={anchor === `m-${message.id}`}
                   />
                 </Fragment>
               ))}
