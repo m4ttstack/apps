@@ -480,11 +480,13 @@ test('archive 400s on a bad body and on a room nobody lists, and never join-crea
     body: JSON.stringify({ room: 'build' }),
   });
   expect(bad.status).toBe(400);
+  expect((await bad.json()).error).toBe('archived must be true or false');
   const noRoom = await app.request('/api/chat/archive?handle=matt', {
     method: 'POST',
     body: JSON.stringify({ archived: true }),
   });
   expect(noRoom.status).toBe(400);
+  expect((await noRoom.json()).error).toBe('room is required');
 
   vi.mocked(rt.chatRooms).mockResolvedValue({ ok: true, data: { rooms: [] } });
   vi.mocked(rt.chatBuddies).mockResolvedValue({
@@ -499,6 +501,100 @@ test('archive 400s on a bad body and on a room nobody lists, and never join-crea
   expect((await ghost.json()).error).toContain('unknown room');
   expect(rt.chatJoin).not.toHaveBeenCalled();
   expect(rt.chatArchive).not.toHaveBeenCalled();
+});
+
+test('archiving a DM known only through the fleet union never joins', async () => {
+  // The human's own listing has no `dm-1`; the fleet union has to find it
+  // through a buddy's own chat:rooms call, never through `mine`.
+  vi.mocked(rt.chatRooms)
+    .mockResolvedValueOnce({ ok: true, data: { rooms: [] } })
+    .mockResolvedValueOnce({
+      ok: true,
+      data: {
+        rooms: [
+          {
+            room: 'dm-1',
+            memberCount: 2,
+            unread: 0,
+            mentions: 0,
+            kind: 'dm',
+            participants: { a: 'fred', b: 'matt' },
+          },
+        ],
+      },
+    });
+  vi.mocked(rt.chatBuddies).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      buddies: [
+        {
+          handle: 'fred',
+          sessionId: 's',
+          baseHandle: 'fred',
+          signedInAt: 1,
+          lastSeenAt: 1,
+          status: 'live',
+        },
+      ],
+    },
+  });
+  vi.mocked(rt.chatWho).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      members: [
+        {
+          room: 'dm-1',
+          handle: 'fred',
+          joinedAt: 1,
+          lastReadId: 0,
+          wakeOn: 'all',
+          status: 'live',
+        },
+        {
+          room: 'dm-1',
+          handle: 'matt',
+          joinedAt: 1,
+          lastReadId: 0,
+          wakeOn: 'all',
+          status: 'live',
+        },
+      ],
+    },
+  });
+  vi.mocked(rt.chatArchive).mockResolvedValueOnce({
+    ok: true,
+    data: { room: 'dm-1', archivedAt: 5 },
+  });
+
+  const res = await app.request('/api/chat/archive?handle=matt', {
+    method: 'POST',
+    body: JSON.stringify({ room: 'dm-1', archived: true }),
+  });
+  expect(res.status).toBe(200);
+  expect(rt.chatJoin).not.toHaveBeenCalled();
+  expect(rt.chatArchive).toHaveBeenCalledWith(
+    { room: 'dm-1', handle: 'matt', archived: true },
+    expect.anything()
+  );
+});
+
+test('archive surfaces a dropped write as a 502 with the daemon message', async () => {
+  vi.mocked(rt.chatRooms).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      rooms: [{ room: 'build', memberCount: 3, unread: 0, mentions: 0 }],
+    },
+  });
+  vi.mocked(rt.chatArchive).mockResolvedValueOnce({
+    ok: false,
+    error: 'archive dropped',
+  });
+  const res = await app.request('/api/chat/archive?handle=matt', {
+    method: 'POST',
+    body: JSON.stringify({ room: 'build', archived: true }),
+  });
+  expect(res.status).toBe(502);
+  expect((await res.json()).error).toBe('archive dropped');
 });
 
 test('reopen posts archived:false for a room in the human’s listing', async () => {
@@ -550,13 +646,32 @@ test('dm/open opens or reuses the pair’s room as the human without posting', a
   expect(rt.chatPost).not.toHaveBeenCalled();
 });
 
+test('dm/open surfaces a dropped write as a 502 with the daemon message', async () => {
+  vi.mocked(rt.chatDmOpen).mockResolvedValueOnce({
+    ok: false,
+    error: 'dm-open dropped',
+  });
+  const res = await app.request('/api/chat/dm/open?handle=matt', {
+    method: 'POST',
+    body: JSON.stringify({ to: 'fred' }),
+  });
+  expect(res.status).toBe(502);
+  expect((await res.json()).error).toBe('dm-open dropped');
+});
+
 test('dm/open 400s on a missing, invalid, or own handle before touching the daemon', async () => {
-  for (const body of [{}, { to: 'Has@Sigil' }, { to: 'matt' }]) {
+  const cases: Array<[unknown, string]> = [
+    [{}, 'to is required'],
+    [{ to: 'Has@Sigil' }, 'invalid handle "Has@Sigil"'],
+    [{ to: 'matt' }, "can't DM yourself"],
+  ];
+  for (const [body, message] of cases) {
     const res = await app.request('/api/chat/dm/open?handle=matt', {
       method: 'POST',
       body: JSON.stringify(body),
     });
     expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe(message);
   }
   expect(rt.chatDmOpen).not.toHaveBeenCalled();
 });
