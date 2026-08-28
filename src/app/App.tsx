@@ -177,16 +177,25 @@ function useBuddies(seed: Buddy[] | undefined): Buddy[] {
 function useRooms(seed: RoomSummary[] | undefined) {
   const [rooms, setRooms] = useState<RoomSummary[]>(seed ?? []);
 
-  const refetchRooms = useCallback(() => {
-    fetch('/api/chat/rooms')
-      .then(res => res.json())
-      .then((data: { rooms?: RoomSummary[] }) => setRooms(data.rooms ?? []))
-      .catch(() => {});
+  // Resolves to the fetched list so a caller can act on what came back --
+  // `setArchived` needs to know whether the room it just archived is still
+  // listed. A failed fetch resolves to [] with `rooms` left untouched, which
+  // reads as "nothing to navigate to", never as "the room vanished".
+  const refetchRooms = useCallback(async (): Promise<RoomSummary[]> => {
+    try {
+      const res = await fetch('/api/chat/rooms');
+      const data = (await res.json()) as { rooms?: RoomSummary[] };
+      const next = data.rooms ?? [];
+      setRooms(next);
+      return next;
+    } catch {
+      return [];
+    }
   }, []);
 
   useEffect(() => {
     if (seed !== undefined) return;
-    refetchRooms();
+    void refetchRooms();
     // Mount-only, same reasoning as useBuddies.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -948,6 +957,11 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
   const daemon = useDaemonHealth(initialState?.daemonReachable);
   const buddies = useBuddies(initialState?.buddies);
   const { rooms, refetchRooms } = useRooms(initialState?.rooms);
+  // A post clears a room's archivedAt server-side (a post revives it) while
+  // the transcript already streams those posts live; without a poll an
+  // archived room would keep its read-only ArchivedBar over the new messages
+  // until a manual refresh. Matches the buddies/daemon 5s cadence.
+  useInterval(refetchRooms, 5000);
   const routeRoom = route.name === 'room' ? route.room : undefined;
   const [activeRoom, setActiveRoom] = useState<string | undefined>(routeRoom);
   const chatRoute = route.name === 'home' || route.name === 'room';
@@ -963,7 +977,12 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
     if (route.name === 'room') {
       if (route.room !== activeRoom) setActiveRoom(route.room);
     } else if (route.name === 'home' && rooms.length > 0) {
-      const first = rooms[0]!.room;
+      // The listing now includes archived rooms, alphabetically ordered, so
+      // the first row can be an archived (read-only) room. Land on the first
+      // OPEN room, falling back to the first row only if every room is
+      // archived.
+      const first = (rooms.find(r => r.archivedAt === undefined) ?? rooms[0]!)
+        .room;
       if (activeRoom !== first) setActiveRoom(first);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -985,7 +1004,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
         });
         if (!res.ok) throw new Error('dm open failed');
         const data = (await res.json()) as { room: string };
-        refetchRooms();
+        void refetchRooms();
         setActiveRoom(data.room);
         const to = `/r/${encodeURIComponent(data.room)}`;
         if (window.location.pathname !== to) navigate(to);
@@ -1006,14 +1025,34 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
           body: JSON.stringify({ room, archived }),
         });
         if (!res.ok) throw new Error('archive failed');
-        refetchRooms();
       } catch {
         notifications.error(
           archived ? "Couldn't archive the room" : "Couldn't reopen the room"
         );
+        return;
+      }
+      const next = await refetchRooms();
+      // Archiving a fleet (agent-to-agent) DM leaves the human no membership
+      // row, so it drops out of his listing entirely. Staying on it would
+      // fall the footer through to the composer for a room the rail no longer
+      // shows, with no Reopen; navigate to the same open-first landing the
+      // home route uses. A room still listed (a normal archive, or a reopen)
+      // keeps the page where it is.
+      if (
+        archived &&
+        room === activeRoom &&
+        next.length > 0 &&
+        !next.some(r => r.room === room)
+      ) {
+        const fallback = (
+          next.find(r => r.archivedAt === undefined) ?? next[0]!
+        ).room;
+        setActiveRoom(fallback);
+        const to = `/r/${encodeURIComponent(fallback)}`;
+        if (window.location.pathname !== to) navigate(to);
       }
     },
-    [refetchRooms]
+    [refetchRooms, activeRoom]
   );
 
   const buddyActions = useMemo(
@@ -1102,7 +1141,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
                     reachable={daemon.reachable}
                     order={roomOrder}
                     onOrderChange={setRoomOrder}
-                    onMarkRead={() => refetchRooms()}
+                    onMarkRead={() => void refetchRooms()}
                     memberHandles={roomMembers}
                     onArchive={setArchived}
                   />

@@ -165,7 +165,9 @@ export function RoomMenu({
   onArchive,
   size = 30,
 }: {
-  room: RoomSummary;
+  /** `joined` is the viewer-side flag the rooms route stamps onto a fleet
+      (agent-to-agent) DM the human is not a member of. */
+  room: RoomSummary & { joined?: boolean };
   /** The room's current members; the human is filtered out of the confirm
       text since it already says "for you". */
   memberHandles: string[];
@@ -174,6 +176,10 @@ export function RoomMenu({
   size?: number;
 }) {
   const archived = room.archivedAt !== undefined;
+  // A fleet DM archive would succeed server-side with no membership row for
+  // the human, dropping the room from his listing and stranding the page.
+  // His OWN DMs carry `joined` truthy and stay archivable.
+  const fleetDm = room.kind === 'dm' && room.joined === false;
   const others = memberList(memberHandles.filter(h => h !== humanHandle));
   const confirmArchive = () =>
     modals.confirm({
@@ -205,9 +211,11 @@ export function RoomMenu({
             Reopen
           </Menu.Item>
         ) : (
-          <Menu.Item data-testid="room-menu-archive" onClick={confirmArchive}>
-            {archiveLabel(room)}
-          </Menu.Item>
+          !fleetDm && (
+            <Menu.Item data-testid="room-menu-archive" onClick={confirmArchive}>
+              {archiveLabel(room)}
+            </Menu.Item>
+          )
         )}
       </Menu.Dropdown>
     </Menu>

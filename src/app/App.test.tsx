@@ -452,3 +452,70 @@ test('an archived room renders the archived bar instead of the composer, and Reo
     })
   );
 });
+
+test('the home route lands on the first OPEN room when an archived room sorts first', () => {
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(
+    <App
+      initialState={{
+        daemonReachable: true,
+        buddies: [],
+        rooms: [
+          {
+            room: 'archived-first',
+            memberCount: 1,
+            unread: 0,
+            mentions: 0,
+            archivedAt: Date.now() - 3 * 86_400_000,
+          },
+          { room: 'build', memberCount: 1, unread: 0, mentions: 0 },
+        ],
+        members: [],
+        messages: [],
+      }}
+    />
+  );
+  expect(
+    within(screen.getByTestId('page-bar')).getByText('build')
+  ).toBeInTheDocument();
+  expect(screen.queryByTestId('archived-bar')).toBeNull();
+  expect(screen.getByTestId('composer')).toBeInTheDocument();
+});
+
+test('archiving the active room navigates away when it vanishes from the refetched list', async () => {
+  installFetchMock();
+  const build = { room: 'build', memberCount: 1, unread: 0, mentions: 0 };
+  fetchMock.mockImplementation((url: string) => {
+    if (url === '/api/chat/archive')
+      return Promise.resolve(jsonResponse({ ok: true }));
+    // The archived room is gone from the human's listing (the fleet-DM case:
+    // no membership row survives the archive); only `build` comes back.
+    if (url === '/api/chat/rooms')
+      return Promise.resolve(jsonResponse({ rooms: [build] }));
+    return Promise.resolve(jsonResponse({}));
+  });
+  window.history.replaceState(null, '', '/r/ghost');
+  renderWithProviders(
+    <App
+      initialState={{
+        daemonReachable: true,
+        buddies: [],
+        rooms: [
+          { room: 'ghost', memberCount: 1, unread: 0, mentions: 0 },
+          build,
+        ],
+        members: [],
+        messages: [],
+      }}
+    />
+  );
+  await userEvent.click(screen.getByTestId('room-menu'));
+  await userEvent.click(await screen.findByTestId('room-menu-archive'));
+  await userEvent.click(screen.getByRole('button', { name: 'Archive' }));
+
+  await waitFor(() => expect(window.location.pathname).toBe('/r/build'));
+  expect(
+    within(screen.getByTestId('page-bar')).getByText('build')
+  ).toBeInTheDocument();
+  expect(screen.getByTestId('composer')).toBeInTheDocument();
+});

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, test, vi } from 'vitest';
 
 import { renderWithProviders } from '@ui/storybook/test-utils';
-import { memberList, PageBar } from './PageBar';
+import { memberList, PageBar, RoomMenu } from './PageBar';
 import { fetchMock, installFetchMock } from './test-utils';
 
 beforeEach(() => {
@@ -150,6 +150,42 @@ test('an archived room shows the archived chip, hides mark read, and its menu of
   await userEvent.click(await screen.findByTestId('room-menu-reopen'));
   expect(onArchive).toHaveBeenCalledWith('retro', false);
   expect(screen.queryByText(/Archive #retro\?/)).toBeNull();
+});
+
+const fleetDm = {
+  room: 'dm-aaaa1111bbbb',
+  memberCount: 2,
+  unread: 0,
+  mentions: 0,
+  kind: 'dm' as const,
+  participants: { a: 'fred', b: 'gitq-main' },
+};
+
+test('the ⋯ menu hides Archive for a fleet DM the human is not a member of', async () => {
+  const onArchive = vi.fn();
+  renderWithProviders(
+    <RoomMenu
+      room={{ ...fleetDm, joined: false }}
+      memberHandles={['fred', 'gitq-main']}
+      onArchive={onArchive}
+    />
+  );
+  await userEvent.click(screen.getByTestId('room-menu'));
+  expect(await screen.findByTestId('room-menu-dropdown')).toBeInTheDocument();
+  expect(screen.queryByTestId('room-menu-archive')).toBeNull();
+});
+
+test('the ⋯ menu keeps Archive for the human’s own DM', async () => {
+  const onArchive = vi.fn();
+  renderWithProviders(
+    <RoomMenu
+      room={{ ...fleetDm, participants: { a: 'fred', b: 'matt' } }}
+      memberHandles={['fred', 'matt']}
+      onArchive={onArchive}
+    />
+  );
+  await userEvent.click(screen.getByTestId('room-menu'));
+  expect(await screen.findByTestId('room-menu-archive')).toBeInTheDocument();
 });
 
 test('memberList reads like a sentence and caps at three names', () => {
