@@ -48,7 +48,9 @@ test('choosing DM instead hands the handle to onOpenDm, drops the @ token and ke
   );
   await userEvent.click(await screen.findByText('board-fix-auth'));
   expect(onOpenDm).toHaveBeenCalledWith('board-fix-auth');
-  expect(screen.getByRole('textbox')).toHaveValue('can you take the flaky one? ');
+  expect(screen.getByRole('textbox')).toHaveValue(
+    'can you take the flaky one? '
+  );
   expect(fetchMock).not.toHaveBeenCalled();
   expect(screen.queryByText(/direct message to/)).toBeNull();
 });

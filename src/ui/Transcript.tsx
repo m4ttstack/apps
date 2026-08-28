@@ -5,7 +5,6 @@ import type { ChatMessage } from '@mattstack/rt-client';
 import ScrollToBottom, { useAtTop } from 'react-scroll-to-bottom';
 
 import { CopyActionIcon } from '@ui/core';
-
 import { AgentName } from './AgentName';
 import { dayKey, dayLabel } from './day-label';
 import { NewPill } from './NewPill';
@@ -771,7 +770,8 @@ export function Transcript({
                 <Fragment key={message.id}>
                   {(i === 0
                     ? olderLoaded
-                    : dayKey(messages[i - 1]!.postedAt) !== dayKey(message.postedAt)) && (
+                    : dayKey(messages[i - 1]!.postedAt) !==
+                      dayKey(message.postedAt)) && (
                     <DayDivider label={dayLabel(message.postedAt)} />
                   )}
                   {i === dividerAt && (

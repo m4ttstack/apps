@@ -265,7 +265,12 @@ test('a day divider sits between messages on different days, never between same-
   noon.setHours(12, 0, 0, 0);
   const now = noon.getTime();
   const msg = (id: number, postedAt: number) => ({
-    id, room: 'build', handle: 'fred', body: `m${id}`, mentions: [], postedAt,
+    id,
+    room: 'build',
+    handle: 'fred',
+    body: `m${id}`,
+    mentions: [],
+    postedAt,
   });
   renderWithProviders(
     <Transcript
@@ -279,10 +284,16 @@ test('a day divider sits between messages on different days, never between same-
     />
   );
   const dividers = screen.getAllByTestId('day-divider');
-  expect(dividers.map(d => d.getAttribute('aria-label'))).toEqual(['Yesterday', 'Today']);
-  expect(screen.getByTestId('message-4').querySelector('[title]')?.getAttribute('title')).toBe(
-    new Date(now).toLocaleString()
-  );
+  expect(dividers.map(d => d.getAttribute('aria-label'))).toEqual([
+    'Yesterday',
+    'Today',
+  ]);
+  expect(
+    screen
+      .getByTestId('message-4')
+      .querySelector('[title]')
+      ?.getAttribute('title')
+  ).toBe(new Date(now).toLocaleString());
 });
 
 function viewOf(transcript: HTMLElement): HTMLElement {
@@ -290,16 +301,35 @@ function viewOf(transcript: HTMLElement): HTMLElement {
 }
 
 function scrollTo(view: HTMLElement, top: number, height = 1000, client = 300) {
-  Object.defineProperty(view, 'scrollHeight', { configurable: true, value: height });
-  Object.defineProperty(view, 'clientHeight', { configurable: true, value: client });
-  Object.defineProperty(view, 'scrollTop', { configurable: true, writable: true, value: top });
+  Object.defineProperty(view, 'scrollHeight', {
+    configurable: true,
+    value: height,
+  });
+  Object.defineProperty(view, 'clientHeight', {
+    configurable: true,
+    value: client,
+  });
+  Object.defineProperty(view, 'scrollTop', {
+    configurable: true,
+    writable: true,
+    value: top,
+  });
   fireEvent.scroll(view);
 }
 
 test('the new pill counts live arrivals while scrolled up and goes away at the bottom', async () => {
   const { pushFrame } = renderTranscriptWithFakeSocket({
     room: 'build',
-    messages: [{ id: 1, room: 'build', handle: 'fred', body: 'first', mentions: [], postedAt: Date.now() }],
+    messages: [
+      {
+        id: 1,
+        room: 'build',
+        handle: 'fred',
+        body: 'first',
+        mentions: [],
+        postedAt: Date.now(),
+      },
+    ],
   });
   const view = viewOf(screen.getByTestId('transcript-scroll'));
   expect(screen.queryByTestId('new-pill')).toBeNull();
@@ -319,7 +349,16 @@ test('loading an older page puts a day divider above what was the first message'
   const now = Date.now();
   renderTranscriptWithFakeSocket({
     room: 'build',
-    messages: [{ id: 5, room: 'build', handle: 'fred', body: 'new', mentions: [], postedAt: now }],
+    messages: [
+      {
+        id: 5,
+        room: 'build',
+        handle: 'fred',
+        body: 'new',
+        mentions: [],
+        postedAt: now,
+      },
+    ],
   });
   expect(screen.queryByTestId('day-divider')).toBeNull();
   // Queued AFTER the render: `renderTranscriptWithFakeSocket` installs the
@@ -328,25 +367,48 @@ test('loading an older page puts a day divider above what was the first message'
     ok: true,
     status: 200,
     json: async () => ({
-      messages: [{ id: 1, room: 'build', handle: 'fred', body: 'old', mentions: [], postedAt: now - 3 * 86_400_000 }],
+      messages: [
+        {
+          id: 1,
+          room: 'build',
+          handle: 'fred',
+          body: 'old',
+          mentions: [],
+          postedAt: now - 3 * 86_400_000,
+        },
+      ],
     }),
   } as Response);
   fireEvent.click(screen.getByTestId('transcript-edge'));
   await screen.findByTestId('message-1');
   // Two: one above the loaded page (labelled with message 1's own day,
   // which depends on the clock) and one at the boundary into today.
-  const labels = screen.getAllByTestId('day-divider').map(d => d.getAttribute('aria-label'));
+  const labels = screen
+    .getAllByTestId('day-divider')
+    .map(d => d.getAttribute('aria-label'));
   expect(labels).toHaveLength(2);
   expect(labels[1]).toBe('Today');
 });
 
 test('a code block carries a copy control that writes the block text only', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
-  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText },
+  });
   renderWithProviders(
     <Transcript
       room="build"
-      messages={[{ id: 1, room: 'build', handle: 'fred', body: 'see:\n```\nline one\nline two\n```', mentions: [], postedAt: Date.now() }]}
+      messages={[
+        {
+          id: 1,
+          room: 'build',
+          handle: 'fred',
+          body: 'see:\n```\nline one\nline two\n```',
+          mentions: [],
+          postedAt: Date.now(),
+        },
+      ]}
     />
   );
   const copy = screen.getByTestId('code-copy').querySelector('button')!;
@@ -355,7 +417,10 @@ test('a code block carries a copy control that writes the block text only', asyn
 });
 
 function withTallBodies(run: () => void) {
-  const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight');
+  const original = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'scrollHeight'
+  );
   Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
     configurable: true,
     get() {
@@ -365,12 +430,22 @@ function withTallBodies(run: () => void) {
   try {
     run();
   } finally {
-    if (original) Object.defineProperty(HTMLElement.prototype, 'scrollHeight', original);
-    else delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollHeight;
+    if (original)
+      Object.defineProperty(HTMLElement.prototype, 'scrollHeight', original);
+    else
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>)
+        .scrollHeight;
   }
 }
 
-const tall = { id: 1, room: 'build', handle: 'fred', body: Array.from({ length: 80 }, (_, i) => `line ${i}`).join('\n'), mentions: [], postedAt: Date.now() };
+const tall = {
+  id: 1,
+  room: 'build',
+  handle: 'fred',
+  body: Array.from({ length: 80 }, (_, i) => `line ${i}`).join('\n'),
+  mentions: [],
+  postedAt: Date.now(),
+};
 
 test('a tall body folds with a show more control, and unfolds on click', async () => {
   withTallBodies(() => {
@@ -389,14 +464,22 @@ test('the anchored message mounts unfolded; a short body never folds', () => {
   Element.prototype.scrollIntoView = function () {};
   try {
     withTallBodies(() => {
-      renderWithProviders(<Transcript room="build" messages={[tall]} anchor="m-1" />);
+      renderWithProviders(
+        <Transcript room="build" messages={[tall]} anchor="m-1" />
+      );
     });
-    expect(screen.getByTestId('message-fold')).toHaveAttribute('data-folded', 'false');
+    expect(screen.getByTestId('message-fold')).toHaveAttribute(
+      'data-folded',
+      'false'
+    );
   } finally {
     Element.prototype.scrollIntoView = original;
   }
   renderWithProviders(
-    <Transcript room="other" messages={[{ ...tall, id: 2, room: 'other', body: 'short' }]} />
+    <Transcript
+      room="other"
+      messages={[{ ...tall, id: 2, room: 'other', body: 'short' }]}
+    />
   );
   expect(screen.getAllByTestId('message-fold')).toHaveLength(1);
 });
