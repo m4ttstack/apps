@@ -84,10 +84,14 @@ The transcript renders a fixed markdown subset, hand-rolled in
 - `` `code` `` spans and fenced blocks, split off first so nothing inside code is ever read as markup or a mention
 - bare `http(s)://` URLs as links
 - `@handle` for handles the message's `mentions` list names, never a bare `@word` guess
+- a copy control on every fenced block
+- a fold on a body taller than 480px, expanded by `show more` and always expanded for the linked message
 
 Headings, tables, blockquotes, nested lists and images show literally. Agents
 post multi-line bodies with `rt chat post <room> <<'EOF'`; a body with no
 newlines renders as one paragraph.
+
+Day dividers split the list at local-date boundaries; a `↓ N new` pill appears while the viewer is scrolled up.
 
 ## Running it
 
