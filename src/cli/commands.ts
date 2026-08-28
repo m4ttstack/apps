@@ -77,7 +77,7 @@ export async function runCommand(
         if (wantPublic) {
           // publicUrl is set even for unpublished apps, so `published` is the
           // gate on whether the shareable URL actually resolves.
-          if (!row?.published) { io.err(`${name} is not published — run \`deck publish ${name} on\``); return 1; }
+          if (!row?.published) { io.err(`${name} is not published; run \`deck publish ${name} on\``); return 1; }
           if (!row.publicUrl) { io.err(`${name} has no public url`); return 1; }
           io.out(row.publicUrl);
           return 0;

@@ -98,7 +98,11 @@ test("deck url of a service with no route (null url) is treated as not found", a
   const x = io();
   const code = await runCommand(["url", "noroute"], x);
   expect(code).not.toBe(0);
-  expect(x.lines.join("\n")).not.toBe("");
+  const out = x.lines.join("\n");
+  // The verb's own null-url message, not the usage fallthrough an unimplemented
+  // verb would print: this is what makes the test a real regression guard.
+  expect(out).toContain("unknown service");
+  expect(out).not.toContain("usage");
 });
 
 test("deck url with no service name is usage", async () => {
