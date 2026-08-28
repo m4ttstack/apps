@@ -161,7 +161,7 @@ const fleetDm = {
   participants: { a: 'fred', b: 'gitq-main' },
 };
 
-test('the ⋯ menu hides Archive for a fleet DM the human is not a member of', async () => {
+test('an open fleet DM renders no ⋯ trigger at all (its only action would be a hidden Archive)', () => {
   const onArchive = vi.fn();
   renderWithProviders(
     <RoomMenu
@@ -170,8 +170,37 @@ test('the ⋯ menu hides Archive for a fleet DM the human is not a member of', a
       onArchive={onArchive}
     />
   );
+  expect(screen.queryByTestId('room-menu')).toBeNull();
+});
+
+test('an open non-fleet room still renders the ⋯ trigger with Archive', async () => {
+  const onArchive = vi.fn();
+  renderWithProviders(
+    <RoomMenu
+      room={{ room: 'build', memberCount: 3, unread: 0, mentions: 0 }}
+      memberHandles={['fred']}
+      onArchive={onArchive}
+    />
+  );
   await userEvent.click(screen.getByTestId('room-menu'));
-  expect(await screen.findByTestId('room-menu-dropdown')).toBeInTheDocument();
+  expect(await screen.findByTestId('room-menu-archive')).toBeInTheDocument();
+});
+
+test('an archived fleet DM still renders the ⋯ trigger with Reopen', async () => {
+  const onArchive = vi.fn();
+  renderWithProviders(
+    <RoomMenu
+      room={{
+        ...fleetDm,
+        joined: false,
+        archivedAt: Date.now() - 86_400_000,
+      }}
+      memberHandles={['fred', 'gitq-main']}
+      onArchive={onArchive}
+    />
+  );
+  await userEvent.click(screen.getByTestId('room-menu'));
+  expect(await screen.findByTestId('room-menu-reopen')).toBeInTheDocument();
   expect(screen.queryByTestId('room-menu-archive')).toBeNull();
 });
 

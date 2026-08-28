@@ -188,6 +188,10 @@ export function RoomMenu({
       labels: { confirm: 'Archive', cancel: 'Keep' },
       onConfirm: () => onArchive?.(room.room, true),
     });
+  // The menu's only actions are Archive (hidden for a fleet DM) and Reopen
+  // (archived rooms only), so an OPEN fleet DM would leave it empty. Render
+  // no trigger at all rather than a button that opens an empty dropdown.
+  if (!archived && fleetDm) return null;
   return (
     <Menu position="bottom-end" withinPortal radius="md" shadow="md">
       <Menu.Target>
@@ -211,11 +215,9 @@ export function RoomMenu({
             Reopen
           </Menu.Item>
         ) : (
-          !fleetDm && (
-            <Menu.Item data-testid="room-menu-archive" onClick={confirmArchive}>
-              {archiveLabel(room)}
-            </Menu.Item>
-          )
+          <Menu.Item data-testid="room-menu-archive" onClick={confirmArchive}>
+            {archiveLabel(room)}
+          </Menu.Item>
         )}
       </Menu.Dropdown>
     </Menu>
