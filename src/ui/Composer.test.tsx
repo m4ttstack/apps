@@ -28,7 +28,7 @@ test('@ autocompletes from the roster, offers DM instead for a buddy outside the
   expect(
     screen.getByText(/won't see this until its tail restarts/)
   ).toBeInTheDocument();
-  expect(screen.getByText(/not in #build — DM instead/)).toBeInTheDocument();
+  expect(screen.getByText(/not in #build, DM instead/)).toBeInTheDocument();
   expect(screen.getByText(/@here/)).toHaveTextContent(/wakes 2 agents/);
 });
 

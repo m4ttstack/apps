@@ -150,7 +150,7 @@ function BuddyOption({
           color: STATUS_TEXT_COLOR.deaf,
         }
       : !inRoom
-        ? { text: `not in #${room} — DM instead`, color: PURPLE }
+        ? { text: `not in #${room}, DM instead`, color: PURPLE }
         : undefined;
 
   return (
@@ -361,7 +361,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
         setValue('');
         setMentions([]);
       } catch {
-        notifications.error("Couldn't send — the draft is kept.");
+        notifications.error("Couldn't send. The draft is kept.");
       } finally {
         setSending(false);
       }
@@ -411,14 +411,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
     const placeholder = !daemonReachable
       ? phone
         ? 'rt daemon unreachable'
-        : "Can't post — rt daemon unreachable. Your draft is kept."
+        : "Can't post: rt daemon unreachable. Your draft is kept."
       : isDm
         ? phone
           ? `Message ${roomMembers.join(' ↔ ')}`
-          : `Message ${roomMembers.join(' ↔ ')} — both will wake`
+          : `Message ${roomMembers.join(' ↔ ')} (both will wake)`
         : phone
           ? `Message #${room}`
-          : `Message #${room} — @ to mention`;
+          : `Message #${room} (@ to mention)`;
 
     const inputBorderColor = !daemonReachable
       ? BORDER
@@ -576,7 +576,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
         >
           {!daemonReachable ? (
             <Text size="xs" style={{ color: STATUS_TEXT_COLOR.deaf }}>
-              Can&apos;t post — rt daemon unreachable. Your draft is kept.
+              Can&apos;t post: rt daemon unreachable. Your draft is kept.
             </Text>
           ) : (
             <>
