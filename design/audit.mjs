@@ -674,6 +674,10 @@ const LONGHAND_FALLBACK = {
   // name IS what getComputedStyle's iterator yields directly, so this entry
   // exists for symmetry/documentation rather than because it was missing.
   'border-color': 'border-top-color',
+  // `.fold`'s rule is a single-value `overflow: hidden`, so `overflow-x`
+  // (which getComputedStyle DOES enumerate) is a faithful stand-in for the
+  // shorthand it never enumerates.
+  overflow: 'overflow-x',
 };
 
 function readActual(actual, prop) {
@@ -722,7 +726,9 @@ function probeSource() {
   const out = { __scheme__: document.documentElement.getAttribute('data-mantine-color-scheme') };
   for (const t of targets) {
     const el = document.querySelector(t.find);
-    if (!el) { out[t.spec] = null; continue; }
+    // Two TARGETS can share a CSS-selector spec key (e.g. two '.chip'
+    // entries); a miss on the second must not erase the first's real hit.
+    if (!el) { if (!(t.spec in out)) out[t.spec] = null; continue; }
     const cs = getComputedStyle(el);
     const props = {};
     for (const p of cs) props[p] = cs.getPropertyValue(p);
