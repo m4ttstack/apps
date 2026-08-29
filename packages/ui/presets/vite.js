@@ -35,6 +35,11 @@ export function mattstackVite(opts) {
     plugins: [react({ exclude: /\/node_modules\/(?!@mattstack\/)/ })],
     optimizeDeps: {
       exclude: ['@mattstack/app-kit', '@mattstack/mantine-tokyo'],
+      // Deps the excluded kit source imports bare must be prebundled
+      // explicitly (Vite only auto-scans non-excluded importers): dayjs is
+      // CJS, and served raw it has no `default` export, which blanks the
+      // whole app under `vite dev` (RangePicker imports it).
+      include: ['dayjs'],
     },
     build: {
       rolldownOptions: {
