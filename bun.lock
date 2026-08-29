@@ -49,12 +49,12 @@
     },
     "packages/server": {
       "name": "@mattstack/app-server",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "bin": {
         "mattstack-embed-assets": "./bin/mattstack-embed-assets.ts",
       },
       "peerDependencies": {
-        "@mattstack/rt-client": "^0.6",
+        "@mattstack/rt-client": ">=0.6 <1",
         "hono": "^4.13.3",
       },
     },
@@ -67,7 +67,7 @@
     },
     "packages/ui": {
       "name": "@mattstack/app-kit",
-      "version": "0.1.0",
+      "version": "0.1.7",
       "dependencies": {
         "@codemirror/commands": "^6.10.4",
         "@codemirror/lang-javascript": "^6.2.5",
