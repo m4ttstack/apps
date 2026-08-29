@@ -16,7 +16,7 @@
         "@mattstack/app-kit": "file:./vendor/mattstack-app-kit-0.1.8.tgz",
         "@mattstack/app-server": "file:./vendor/mattstack-app-server-0.1.1.tgz",
         "@mattstack/mantine-tokyo": "file:./vendor/mattstack-mantine-tokyo-0.2.0.tgz",
-        "@mattstack/rt-client": "^0.10",
+        "@mattstack/rt-client": "^0.10.1",
         "@tanstack/react-query": "^5.102.4",
         "hono": "^4.13.5",
         "lucide-react": "^1.25.0",
@@ -247,7 +247,7 @@
 
     "@mattstack/mantine-tokyo": ["@mattstack/mantine-tokyo@./vendor/mattstack-mantine-tokyo-0.2.0.tgz", { "peerDependencies": { "@mantine/core": "^9.5.2" } }, "sha512-iq3lU+gxdGcASu9VJYAVO6HKA7sihF6lAoUgAyJRLlvnFZWDH2OoRwdUsu/9PSG45Bbb0JpAobb+u4SZb3OYPQ=="],
 
-    "@mattstack/rt-client": ["@mattstack/rt-client@0.10.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-TF50EyLwFlrbWrVyN74Ye7edTe7nkZ99wy/YS1NbsPw/PhLHyqMWLUHAe0dERyR6/laqOtTSzc+KHCSQgH43Vg=="],
+    "@mattstack/rt-client": ["@mattstack/rt-client@0.10.1", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-RndroXypLyHHeJ8RVO9RFt2/DB0im1moG4SUElETTHKgLdpLwPsiMFohEcdH9cIe72JLzt/i9wA1mC/66lq7Ng=="],
 
     "@octokit/auth-token": ["@octokit/auth-token@6.0.0", "", {}, "sha512-P4YJBPdPSpWTQ1NU4XYdvHvXJJDxM6YwpS0FZHRgP7YFkdVxsWcpWGy/NVqlAA7PcPCnMacXlRm1y2PFZRWL/w=="],
 
