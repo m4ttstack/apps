@@ -63,20 +63,29 @@ test('inline forms: bold, italic, strikethrough, inline code, bare and written l
 
 test('raw HTML never renders, an unsafe link loses its href, an image is its alt text', () => {
   render(
-    'before <b>bold</b> <script>alert(1)</script> after\n\n[bad](javascript:alert(1))\n\n![the failing step](https://x.test/shot.png)'
+    // <script> stays after "after" on the same line, not its own
+    // blank-line-separated paragraph: that keeps it inline HTML (remark
+    // splits <script>, "alert(1)" and </script> into three sibling nodes,
+    // so "alert(1)" survives as its own text node) rather than a
+    // CommonMark HTML *block* (which would swallow tag and text as one
+    // opaque node skipHtml drops wholesale, "alert(1)" included).
+    'before <b>bold</b> after <script>alert(1)</script>\n\n[bad](javascript:alert(1))\n\n![the failing step](https://x.test/shot.png)'
   );
   const body = screen.getByTestId('body');
   expect(body.querySelector('b')).toBeNull();
   expect(body.querySelector('script')).toBeNull();
   expect(body).toHaveTextContent('before bold after');
+  // `skipHtml` drops the `<script>`/`</script>` tag syntax but not the text
+  // between them: remark parses tags and inner text as separate nodes, and
+  // the surviving text renders as an inert string, never a script element.
+  expect(body).toHaveTextContent('alert(1)');
   // Not `getByRole('link', ...)`: @testing-library/dom's own role selector
   // requires a non-empty href (`[href]:not([href=""])`) to count as role
   // "link" at all, so a sanitized, blanked-out href is unreachable by role
   // by construction -- the element itself is what needs checking.
-  const badLink = Array.from(body.querySelectorAll('a')).find(
-    a => a.textContent === 'bad'
-  );
-  expect(badLink?.getAttribute('href') ?? '').toBe('');
+  const badLink = screen.getByText('bad');
+  expect(badLink).toBeTruthy();
+  expect(badLink.getAttribute('href') ?? '').toBe('');
   expect(body.querySelector('img')).toBeNull();
   expect(
     screen.getByRole('link', { name: 'the failing step' })

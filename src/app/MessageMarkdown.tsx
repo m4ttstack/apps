@@ -11,18 +11,6 @@ import classes from './transcript-prose.module.css';
 const CODE_LINE_PX = 20.7;
 const CODE_PAD_PX = 9.6;
 
-/**
- * `skipHtml` drops HTML tag syntax but leaves inline content between a
- * tag pair as plain text (remark parses `<script>`, its body and
- * `</script>` as three separate inline nodes, only two of which are the
- * html nodes `skipHtml` removes). A script/style body must never surface
- * as visible text, so strip those two raw-text elements whole, tags and
- * content, before the body reaches remark.
- */
-function stripRawTextElements(source: string): string {
-  return source.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
-}
-
 /** react-markdown passes its own `node` prop to every component override;
     intrinsic elements don't take one, so drop it before spreading the rest. */
 function withoutNode<T extends { node?: unknown }>(props: T): Omit<T, 'node'> {
@@ -122,7 +110,7 @@ export function MessageMarkdown({
   );
   return (
     <Markdown remarkPlugins={remarkPlugins} skipHtml components={components}>
-      {stripRawTextElements(body)}
+      {body}
     </Markdown>
   );
 }

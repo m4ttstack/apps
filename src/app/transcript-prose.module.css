@@ -115,7 +115,9 @@
   pointer-events: none;
 }
 
-.prose code {
+/* CodeHighlight (inside a fence's `pre`) renders its own `pre > code`; the
+   inline-code treatment must not leak into it. */
+.prose :not(pre) > code {
   font-family: var(--mantine-font-family-monospace);
   font-size: var(--mantine-font-size-sm);
   padding: 0 4px;
