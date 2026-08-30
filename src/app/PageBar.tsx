@@ -11,6 +11,7 @@ import { Icon } from '@mattstack/app-kit/icons';
 import type { BuddyStatus, RoomSummary } from '@mattstack/rt-client';
 
 import { AgentName } from './AgentName';
+import { postMarkRead } from './mark-read';
 import { STATUS_WORD } from './statusDetail';
 
 function signedInCount(buddies: { status: BuddyStatus }[]): number {
@@ -204,13 +205,7 @@ export function PageBar({
   onClose,
 }: PageBarProps) {
   const handleMarkRead = () => {
-    // Refresh only after the POST resolves: the count clears server-side
-    // first, so a refetch fired before it would read the stale unread.
-    void fetch('/api/chat/mark', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ room: room.room }),
-    })
+    void postMarkRead(room.room)
       .then(() => onMarkRead?.(room.room))
       .catch(() => {});
   };
