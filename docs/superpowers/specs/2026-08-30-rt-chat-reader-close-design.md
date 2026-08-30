@@ -13,7 +13,8 @@ the `Close` sheet.
 ## Goals
 
 1. Long agent posts read like a document, not a log: a reading column,
-   prose-sized type, real markdown structure, room between messages.
+   generous leading, real markdown structure, room between messages, at
+   the same body size as the rest of the app.
 2. A room or DM can be dismissed from the rail in one gesture, from three
    places, and typing into any room never requires a prior "reopen".
 3. The rail and transcript stay live across a laptop sleep, a proxy
@@ -37,7 +38,7 @@ the `Close` sheet.
 | Close affordances | Hover × on the rail row; right-click menu on the row; the page-bar ⋯ menu (also the phone's path). |
 | Closing the open room | Navigate to `/`, which lands on the first open room. |
 | Room-list liveness | WebSocket reconnect with backoff; refetch on reconnect and on tab visibility; instant rooms refetch on a msg frame for an unknown room; the 5s poll stays. |
-| Transcript treatment | `Reader` as drawn: centered 760px column, 16px proportional prose at 1.7, rendered headings, tables, ordered lists, blockquotes and rules, boxed code panels, 20px between messages, the human's own posts in the accent wash. |
+| Transcript treatment | `Reader` at the app's one body size: a centered 640px column, prose at the theme's md (12.16px) in IBM Plex Sans at 1.7 leading, headings on the theme ladder, rendered tables, ordered lists, blockquotes and rules, boxed code panels, 16px between messages, the human's own posts in the accent wash. Matt's call 2026-08-30: size stays uniform across the app; the clarity comes from the column, the leading, the spacing and the structure. |
 | Renderer | `react-markdown` + `remark-gfm`, code fences through the kit's `CodeHighlight`, a small remark plugin for `@handle`. Not Streamdown (Tailwind-bound). |
 | Right-click documentation | The controlled-`Menu` pattern goes in `AGENTS.md`. |
 
@@ -99,19 +100,23 @@ every value below is what the `Reader` artboard draws and is what
 
 | thing | value |
 | --- | --- |
-| reading column `.col` | `max-width: 760px; margin: 0 auto; width: 100%`, wrapping both the message list and the composer row, inside the panel's existing insets |
-| message `.msg` | `padding: 20px 0`, `border-top: 1px solid var(--tk-border-soft)` between messages (the first has none) |
-| sender line | handle 13.6px / 600 JetBrains Mono + `· repo` token + `you` badge on the human + time in `.xs.muted`; `margin-bottom: 10px` |
-| prose body | `IBM Plex Sans`, 16px, `line-height: 1.7`, blocks 14px apart (`display: flex; flex-direction: column; gap: 14px`), `overflow-wrap: anywhere` |
-| h1 / h2 / h3 | 21px / 19px / 16.5px, 600, line-height 1.35 / 1.35 / 1.4, 6px / 6px / 4px extra above |
-| lists | `padding-left: 24px`, items 6px apart, nested lists 4px |
-| inline code | JetBrains Mono 13px, `padding: 1px 5px`, `bg3`, `1px solid var(--tk-border-soft)`, radius 3px |
-| table | `border-collapse: collapse`, 14.5px / 1.45, cells `6px 10px` with `1px solid var(--tk-border-soft)`, header row on `bg2` at 600; a wide table scrolls inside its own `overflow-x: auto` wrapper |
-| blockquote | `padding-left: 14px; border-left: 2px solid var(--tk-border)`, muted text |
+| reading column `.col` | `max-width: 640px; margin: 0 auto; width: 100%` (about 100 characters at md), wrapping both the message list and the composer row, inside the panel's existing insets |
+| message `.msg` | `padding: 16px 0`, `border-top: 1px solid var(--tk-border-soft)` between messages (the first has none) |
+| sender line | handle 13.6px / 600 JetBrains Mono (lg, a step above the body as today) + `· repo` token + `you` badge on the human + time in `.xs.muted`; `margin-bottom: 8px` |
+| prose body | `IBM Plex Sans` at the theme's md, 12.16px, `line-height: 1.7`, blocks 12px apart (`display: flex; flex-direction: column; gap: 12px`), `overflow-wrap: anywhere` |
+| h1 / h2 / h3 | the theme ladder xl / lg / md: 14.72px / 13.6px / 12.16px, 600, line-height 1.35 / 1.35 / 1.4, 4px / 4px / 2px extra above |
+| lists | `padding-left: 20px`, items 4px apart, nested lists 3px |
+| inline code | JetBrains Mono sm 11.2px, `padding: 0 4px`, `bg3`, `1px solid var(--tk-border-soft)`, radius 3px (as today) |
+| table | `border-collapse: collapse`, sm 11.2px / 1.45, cells `4.8px 8px` with `1px solid var(--tk-border-soft)`, header row on `bg2` at 600; a wide table scrolls inside its own `overflow-x: auto` wrapper |
+| blockquote | `padding-left: 11.2px; border-left: 2px solid var(--tk-border)`, muted text |
 | hr | `1px solid var(--tk-border-soft)` |
-| code panel (`CodeBlock`) | `Paper withBorder` radius md (6px) around `CodeHighlight`: `pre` padding 4.8px 9.6px on `bg1`, mono 13px / 1.7, `white-space: pre; overflow-x: auto`; the component's copy control 8px in from the top-right |
-| own post `.mine` | the body sits in `color-mix(in srgb, accent var(--tk-wash), transparent)`, radius 8px, `padding: 12px 16px` |
+| code panel (`CodeBlock`) | `Paper withBorder` radius md (6px) around `CodeHighlight`: `pre` padding 4.8px 9.6px on `bg1`, mono at md 12.16px / 1.7 (a `styles` override on the component's 13px default), `white-space: pre; overflow-x: auto`; the component's copy control 8px in from the top-right |
+| own post `.mine` | the body sits in `color-mix(in srgb, accent var(--tk-wash), transparent)`, radius md (6px), `padding: 9.6px 11.2px` |
 | links | accent, underline on hover |
+
+Size is not the lever: prose is md like every other body text in the app.
+The face, the column, the leading, the block spacing and the rendered
+structure are.
 
 The font is vendored, matching how the estate ships JetBrains Mono:
 `public/fonts/ibm-plex-sans-{400,500,600}.woff2` (latin subset, OFL) with
