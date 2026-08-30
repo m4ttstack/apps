@@ -95,6 +95,9 @@ test('the build transcript carries the wide code block on purpose', () => {
   expect(withCode!.body).toContain('loadAndEvaluateModule');
   // And a mention of the human, so the .at.me treatment has something to hit.
   expect(msgs.some(m => m.mentions.includes('matt'))).toBe(true);
+  const structured = msgs.find(m => m.body.includes('### Confirmed'));
+  expect(structured?.body).toContain('| check | state |');
+  expect(msgs.some(m => m.handle === 'matt')).toBe(true);
 });
 
 test('fixtures carry an archived channel, an archived DM, and a long code post', () => {

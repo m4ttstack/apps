@@ -369,7 +369,11 @@ export const TARGETS = [
     spec: '.col',
     find: '[data-testid="transcript-column"]',
     props: ['max-width', 'width'],
-    why: { margin: 'auto resolves to px at computed-style time; verified by eye' },
+    why: {
+      margin: 'auto resolves to px at computed-style time; verified by eye',
+      width:
+        'percentage resolves to an absolute px value at computed-style time (100% clamped by max-width here, so the resolved number is the max-width itself); verified by eye',
+    },
   },
   {
     spec: '.msg',

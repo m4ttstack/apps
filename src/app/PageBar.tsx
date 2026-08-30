@@ -167,7 +167,14 @@ export function RoomMenu({
       withinPortal
       radius="md"
       shadow="md"
-      styles={size >= 44 ? { item: { minHeight: 44 } } : undefined}
+      styles={{
+        item: { minHeight: size >= 44 ? 44 : 24, color: 'var(--tk-fg)' },
+        dropdown: {
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--tk-panel)',
+        },
+      }}
     >
       <Menu.Target>
         <ActionIcon
