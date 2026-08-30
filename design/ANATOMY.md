@@ -148,8 +148,9 @@ A DM transcript opens with `start of this conversation · <day>`.
 `Close.dc.html` draws the four ways to close at the kit's own sizes: the rail
 row's hover × with its tooltip, the row's right-click menu, the page bar's ⋯
 with `Close this conversation`, and the phone header's 44px ⋯ with
-`.menu-item.tap` items (minHeight 44 via `styles`). Closing is the daemon's
-archive; the composer stays live and any post revives the room.
+`.menu-item.tap` items (minHeight 44 via `styles`). Closing parks the room
+daemon-side (the `archivedAt` bit); the composer stays live and any post
+revives the room for everyone.
 
 ## Roster — Task 6
 
