@@ -1,5 +1,5 @@
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 import {
@@ -264,9 +264,9 @@ test('a notice renders at the edge, above the older-messages row, and without an
 });
 
 test('two bare URLs in one body both render as links', () => {
-  // Regression: URL_RE carries the `g` flag, so a global-regex `.test()` in
-  // the render loop advanced `lastIndex` and the second URL fell through to
-  // plain text. The anchored `URL_TEST` is stateless.
+  // remark-gfm autolinks bare URLs; both instances in one body must resolve,
+  // not just the first, at the Transcript level (not just inside
+  // MessageMarkdown's own suite).
   renderWithProviders(
     <Transcript
       room="build"
@@ -464,6 +464,71 @@ test('a tall body folds with a show more control, and unfolds on click', async (
   fireEvent.click(screen.getByTestId('fold-toggle'));
   expect(fold).toHaveAttribute('data-folded', 'false');
   expect(screen.getByTestId('fold-toggle')).toHaveTextContent('show less');
+});
+
+test('a body that grows after mount folds, without remounting the message body', () => {
+  // The kit's jsdom ResizeObserver polyfill is a no-op (`observe()` never
+  // calls back), which is exactly why the fold-on-mount tests never
+  // exercised the observer path -- this test stubs a real callback capture
+  // in its place, so the async-growth branch (a fenced block's highlighter
+  // resolving after mount) gets real coverage: the reflow must both flip
+  // the fold AND land on the SAME `message-body` node, since a remount here
+  // would drop the observer watching it (see Transcript.tsx's comment on
+  // the wrapper's fixed shape).
+  let height = 0;
+  const originalScrollHeight = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'scrollHeight'
+  );
+  Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
+    configurable: true,
+    get() {
+      return (this as HTMLElement).dataset.testid === 'message-body'
+        ? height
+        : 0;
+    },
+  });
+
+  let observerCallback: (() => void) | undefined;
+  class CapturingResizeObserver {
+    constructor(callback: () => void) {
+      observerCallback = callback;
+    }
+    observe() {
+      /* the callback fires when the test flips `height`, not on observe */
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+  const originalResizeObserver = globalThis.ResizeObserver;
+  globalThis.ResizeObserver =
+    CapturingResizeObserver as unknown as typeof ResizeObserver;
+
+  try {
+    renderWithProviders(<Transcript room="build" messages={[tall]} />);
+    const bodyBefore = screen.getByTestId('message-body');
+    expect(screen.queryByTestId('message-fold')).toBeNull();
+
+    height = 900;
+    act(() => observerCallback?.());
+
+    expect(screen.getByTestId('message-fold')).toHaveAttribute(
+      'data-folded',
+      'true'
+    );
+    expect(screen.getByTestId('message-body')).toBe(bodyBefore);
+  } finally {
+    globalThis.ResizeObserver = originalResizeObserver;
+    if (originalScrollHeight)
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'scrollHeight',
+        originalScrollHeight
+      );
+    else
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>)
+        .scrollHeight;
+  }
 });
 
 test('the anchored message mounts unfolded; a short body never folds', () => {

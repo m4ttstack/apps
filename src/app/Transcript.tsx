@@ -104,12 +104,10 @@ function MessageBody({
   }, [message.id]);
 
   const folded = tall && !expanded;
-  // The wrapper shape stays IDENTICAL whether or not `tall` is true: this ref's
-  // div would otherwise sit at a different tree position when tall first flips
-  // (bare div vs. wrapped), and React remounts a position whose type changes --
-  // dropping the live CodeHighlight instance and, worse, the OLD ResizeObserver's
-  // final "now detached" callback (height 0) firing right after the new one that
-  // just set `tall` true, undoing it. Only props/children vary here, never types.
+  // The wrapper shape stays IDENTICAL whether or not `tall` is true: a
+  // position whose element type changes on re-render gets remounted by
+  // React, which would drop the live CodeHighlight instance and reset the
+  // fold. Only props/children vary here, never types.
   return (
     <Box
       data-testid={tall ? 'message-fold' : undefined}
