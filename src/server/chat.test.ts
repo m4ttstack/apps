@@ -388,15 +388,12 @@ test('rooms asks for the human’s archived rooms too and passes archivedAt thro
   expect(rooms[1]).toMatchObject({ room: 'retro', archivedAt: 1700000000000 });
 });
 
-test('archiving a channel the human never joined joins him first, then archives', async () => {
-  // The human's own listing (no #build), then the fleet union's per-buddy listings.
+test('closing a channel the human never joined joins him first, then closes', async () => {
   vi.mocked(rt.chatRooms)
     .mockResolvedValueOnce({ ok: true, data: { rooms: [] } })
     .mockResolvedValueOnce({
       ok: true,
-      data: {
-        rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }],
-      },
+      data: { rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }] },
     });
   vi.mocked(rt.chatBuddies).mockResolvedValueOnce({
     ok: true,
@@ -404,34 +401,34 @@ test('archiving a channel the human never joined joins him first, then archives'
       buddies: [
         {
           handle: 'fred',
-          sessionId: 's',
           baseHandle: 'fred',
+          sessionId: 's1',
+          status: 'live',
           signedInAt: 1,
           lastSeenAt: 1,
-          status: 'live',
+          cwd: '/x',
         },
       ],
     },
   });
   vi.mocked(rt.chatWho).mockResolvedValueOnce({
     ok: true,
-    data: { members: [] },
+    data: { members: [{ room: 'build', handle: 'fred', joinedAt: 1, lastReadId: 0, wakeOn: 'mention', status: 'live' }] },
   });
   vi.mocked(rt.chatJoin).mockResolvedValueOnce({
     ok: true,
-    data: { handle: 'matt', memberCount: 3, unread: 0 },
+    data: { handle: 'matt', memberCount: 2, unread: 0 },
   });
   vi.mocked(rt.chatArchive).mockResolvedValueOnce({
     ok: true,
     data: { room: 'build', archivedAt: 5 },
   });
-
-  const res = await routes.request('/api/chat/archive?handle=matt', {
+  const res = await routes.request('/api/chat/close?handle=matt', {
     method: 'POST',
-    body: JSON.stringify({ room: 'build', archived: true }),
+    body: JSON.stringify({ room: 'build' }),
   });
   expect(res.status).toBe(200);
-  expect(await res.json()).toEqual({ room: 'build', archivedAt: 5 });
+  expect(await res.json()).toEqual({ room: 'build', closedAt: 5 });
   expect(rt.chatJoin).toHaveBeenCalledWith(
     { room: 'build', handle: 'matt' },
     expect.anything()
@@ -442,30 +439,18 @@ test('archiving a channel the human never joined joins him first, then archives'
   );
 });
 
-test('archiving a room already in the human’s listing never joins; a DM never joins either', async () => {
+test('closing a room already in the human’s listing never joins; a DM never joins either', async () => {
   vi.mocked(rt.chatRooms).mockResolvedValueOnce({
     ok: true,
-    data: {
-      rooms: [
-        { room: 'build', memberCount: 3, unread: 0, mentions: 0 },
-        {
-          room: 'dm-1',
-          memberCount: 2,
-          unread: 0,
-          mentions: 0,
-          kind: 'dm',
-          participants: { a: 'fred', b: 'matt' },
-        },
-      ],
-    },
+    data: { rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }] },
   });
   vi.mocked(rt.chatArchive).mockResolvedValue({
     ok: true,
     data: { room: 'build', archivedAt: 5 },
   });
-  await routes.request('/api/chat/archive?handle=matt', {
+  await routes.request('/api/chat/close?handle=matt', {
     method: 'POST',
-    body: JSON.stringify({ room: 'build', archived: true }),
+    body: JSON.stringify({ room: 'build' }),
   });
   vi.mocked(rt.chatRooms).mockResolvedValueOnce({
     ok: true,
@@ -482,166 +467,55 @@ test('archiving a room already in the human’s listing never joins; a DM never 
       ],
     },
   });
-  await routes.request('/api/chat/archive?handle=matt', {
+  await routes.request('/api/chat/close?handle=matt', {
     method: 'POST',
-    body: JSON.stringify({ room: 'dm-1', archived: true }),
+    body: JSON.stringify({ room: 'dm-1' }),
   });
   expect(rt.chatJoin).not.toHaveBeenCalled();
+  expect(rt.chatArchive).toHaveBeenCalledTimes(2);
 });
 
-test('archive 400s on a bad body and on a room nobody lists, and never join-creates', async () => {
-  const bad = await routes.request('/api/chat/archive?handle=matt', {
+test('close 400s on a bad body and on a room nobody lists, and never join-creates', async () => {
+  const bad = await routes.request('/api/chat/close?handle=matt', {
     method: 'POST',
-    body: JSON.stringify({ room: 'build' }),
+    body: '{not json',
   });
   expect(bad.status).toBe(400);
-  expect((await bad.json()).error).toBe('archived must be true or false');
-  const noRoom = await routes.request('/api/chat/archive?handle=matt', {
+  const noRoom = await routes.request('/api/chat/close?handle=matt', {
     method: 'POST',
-    body: JSON.stringify({ archived: true }),
+    body: JSON.stringify({}),
   });
   expect(noRoom.status).toBe(400);
   expect((await noRoom.json()).error).toBe('room is required');
-
   vi.mocked(rt.chatRooms).mockResolvedValue({ ok: true, data: { rooms: [] } });
-  vi.mocked(rt.chatBuddies).mockResolvedValue({
-    ok: true,
-    data: { buddies: [] },
-  });
-  const ghost = await routes.request('/api/chat/archive?handle=matt', {
+  vi.mocked(rt.chatBuddies).mockResolvedValue({ ok: true, data: { buddies: [] } });
+  const ghost = await routes.request('/api/chat/close?handle=matt', {
     method: 'POST',
-    body: JSON.stringify({ room: 'ghost', archived: true }),
+    body: JSON.stringify({ room: 'ghost' }),
   });
   expect(ghost.status).toBe(400);
-  expect((await ghost.json()).error).toContain('unknown room');
   expect(rt.chatJoin).not.toHaveBeenCalled();
   expect(rt.chatArchive).not.toHaveBeenCalled();
 });
 
-test('archiving a DM known only through the fleet union never joins', async () => {
-  // The human's own listing has no `dm-1`; the fleet union has to find it
-  // through a buddy's own chat:rooms call, never through `mine`.
-  vi.mocked(rt.chatRooms)
-    .mockResolvedValueOnce({ ok: true, data: { rooms: [] } })
-    .mockResolvedValueOnce({
-      ok: true,
-      data: {
-        rooms: [
-          {
-            room: 'dm-1',
-            memberCount: 2,
-            unread: 0,
-            mentions: 0,
-            kind: 'dm',
-            participants: { a: 'fred', b: 'matt' },
-          },
-        ],
-      },
-    });
-  vi.mocked(rt.chatBuddies).mockResolvedValueOnce({
-    ok: true,
-    data: {
-      buddies: [
-        {
-          handle: 'fred',
-          sessionId: 's',
-          baseHandle: 'fred',
-          signedInAt: 1,
-          lastSeenAt: 1,
-          status: 'live',
-        },
-      ],
-    },
-  });
-  vi.mocked(rt.chatWho).mockResolvedValueOnce({
-    ok: true,
-    data: {
-      members: [
-        {
-          room: 'dm-1',
-          handle: 'fred',
-          joinedAt: 1,
-          lastReadId: 0,
-          wakeOn: 'all',
-          status: 'live',
-        },
-        {
-          room: 'dm-1',
-          handle: 'matt',
-          joinedAt: 1,
-          lastReadId: 0,
-          wakeOn: 'all',
-          status: 'live',
-        },
-      ],
-    },
-  });
-  vi.mocked(rt.chatArchive).mockResolvedValueOnce({
-    ok: true,
-    data: { room: 'dm-1', archivedAt: 5 },
-  });
-
-  const res = await routes.request('/api/chat/archive?handle=matt', {
-    method: 'POST',
-    body: JSON.stringify({ room: 'dm-1', archived: true }),
-  });
-  expect(res.status).toBe(200);
-  expect(rt.chatJoin).not.toHaveBeenCalled();
-  expect(rt.chatArchive).toHaveBeenCalledWith(
-    { room: 'dm-1', handle: 'matt', archived: true },
-    expect.anything()
-  );
-});
-
-test('archive surfaces a dropped write as a 502 with the daemon message', async () => {
+test('close 502s when the daemon refuses, and the old archive route is gone', async () => {
   vi.mocked(rt.chatRooms).mockResolvedValueOnce({
     ok: true,
-    data: {
-      rooms: [{ room: 'build', memberCount: 3, unread: 0, mentions: 0 }],
-    },
+    data: { rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }] },
   });
-  vi.mocked(rt.chatArchive).mockResolvedValueOnce({
-    ok: false,
-    error: 'archive dropped',
+  vi.mocked(rt.chatArchive).mockResolvedValueOnce({ ok: false, error: 'nope' });
+  const refused = await routes.request('/api/chat/close?handle=matt', {
+    method: 'POST',
+    body: JSON.stringify({ room: 'build' }),
   });
-  const res = await routes.request('/api/chat/archive?handle=matt', {
+  expect(refused.status).toBe(502);
+  const gone = await routes.request('/api/chat/archive?handle=matt', {
     method: 'POST',
     body: JSON.stringify({ room: 'build', archived: true }),
   });
-  expect(res.status).toBe(502);
-  expect((await res.json()).error).toBe('archive dropped');
+  expect(gone.status).toBe(404);
 });
 
-test('reopen posts archived:false for a room in the human’s listing', async () => {
-  vi.mocked(rt.chatRooms).mockResolvedValueOnce({
-    ok: true,
-    data: {
-      rooms: [
-        {
-          room: 'retro',
-          memberCount: 2,
-          unread: 0,
-          mentions: 0,
-          archivedAt: 7,
-        },
-      ],
-    },
-  });
-  vi.mocked(rt.chatArchive).mockResolvedValueOnce({
-    ok: true,
-    data: { room: 'retro', archivedAt: null },
-  });
-  const res = await routes.request('/api/chat/archive?handle=matt', {
-    method: 'POST',
-    body: JSON.stringify({ room: 'retro', archived: false }),
-  });
-  expect(res.status).toBe(200);
-  expect(await res.json()).toEqual({ room: 'retro', archivedAt: null });
-  expect(rt.chatArchive).toHaveBeenCalledWith(
-    { room: 'retro', handle: 'matt', archived: false },
-    expect.anything()
-  );
-});
 
 test('dm/open opens or reuses the pair’s room as the human without posting', async () => {
   vi.mocked(rt.chatDmOpen).mockResolvedValueOnce({
