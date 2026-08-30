@@ -1437,7 +1437,7 @@ def close_sheet():
     </div>
     <div style="display: flex; gap: 24px; align-items: flex-start;">
 {close_panel('1 · Hover, desktop', 'ActionIcon size sm (22px), variant subtle, at the row’s right edge after the badges; a Tooltip reads Close. Also shown on keyboard focus. One click, no confirm.', hover_inner, 244)}
-{close_panel('2 · Right-click, desktop', 'A controlled Menu (radius md, shadow md) opened from the row’s onContextMenu: Menu.Label with the pair, Mark read with its count, Close. Items are the theme’s 24px.', ctx_inner, 244)}
+{close_panel('2 · Right-click, desktop', 'Menu.ContextMenu (radius md, shadow md), the dropdown at the cursor: Menu.Label with the pair, Mark read with its count, Close. Items are the theme’s 24px.', ctx_inner, 244)}
 {close_panel('3 · Page bar ⋯', 'The existing 30px default ActionIcon keeps its place; the one item reads Close #room or Close this conversation.', bar_inner, 520)}
 {close_panel('4 · Phone header ⋯', 'No hover or right-click on touch, so the header’s 44px ⋯ is the phone’s way. Items get minHeight 44 through styles.', phone_inner, 300)}
     </div>
@@ -1517,7 +1517,7 @@ Expected: prints the probe function without a syntax error.
 - Rooms rail: replace the paragraph starting `Then, only when an archived room exists, a \`.sect.toggle\` row...` with:
 
   ```
-  Every `.room` closes: a 22px `.close` control (ActionIcon size sm, subtle) after the badges, shown on hover, on keyboard focus and while the row's menu is open, with a Tooltip reading `Close`; and a right-click menu (a controlled Mantine `Menu`, radius md, shadow md, `bottom-start` off the row) whose `.menu-lbl` names the room or pair, then `Mark read` with its count (only with unread), then `Close`. Items are `.menu-item`: 11.2px at 3.2px 7.2px, 24px tall, a 14px icon with a 4.8px gap. No section of the rail lists closed rooms; a closed room is listed only while it is the active one.
+  Every `.room` closes: a 22px `.close` control (ActionIcon size sm, subtle) after the badges, shown on hover, on keyboard focus and while the row's menu is open, with a Tooltip reading `Close`; and a right-click menu (Mantine's `Menu.ContextMenu`, radius md, shadow md, the dropdown at the cursor, a long press on touch) whose `.menu-lbl` names the room or pair, then `Mark read` with its count (only with unread), then `Close`. Items are `.menu-item`: 11.2px at 3.2px 7.2px, 24px tall, a 14px icon with a 4.8px gap. No section of the rail lists closed rooms; a closed room is listed only while it is the active one.
   ```
 
 - Page bar: replace `A 30px \`.menu\` (⋯) sits last: \`Archive #room…\` (confirm names the members who lose it) or \`Reopen\`.`with`A 30px \`.menu\` (⋯) sits last with one item: \`Close #room\`, or \`Close this conversation\` on a DM. No confirm.`Delete the`archived` chip bullet.
@@ -1543,13 +1543,15 @@ Expected: prints the probe function without a syntax error.
 ```
 ## Right-click menus
 
-Mantine's `Menu` has no right-click trigger (`trigger` is `hover`, `click`
-or `click-hover`), so a context menu is a controlled `Menu` (`opened` +
-`onChange`) whose `Menu.Target` is the row and whose `onContextMenu` calls
-`preventDefault()` and opens it. Position it off the row (`bottom-start`),
-never at the pointer; one `Menu` per row, never a shared portal, so
-keyboard focus and `aria-expanded` stay on the row. `src/app/RoomRail.tsx`
-is the reference.
+Use `Menu.ContextMenu` (Mantine 9.5.2), never a `Menu.Target` with a
+hand-rolled `onContextMenu`: `Menu.Target` composes a click handler, so a
+left click would open the menu too. `Menu.ContextMenu` wraps the one
+element that should answer a right-click (and a long press on touch),
+positions the dropdown at the cursor, and suppresses the native menu
+itself; the child must not call `preventDefault()` in its own
+`onContextMenu`. Keep the `Menu` uncontrolled and read its state through
+`onChange` when the UI needs to know it is open. One `Menu` per row, never
+a shared portal. `src/app/RoomRail.tsx` is the reference.
 ```
 
 `ARCHITECTURE.md`: the deploy loop becomes `cd ~/Documents/GitHub/chat && git pull && bun install && bun run build && deck restart chat`; the `GET /api/chat/rooms` row says `including closed ones (\`archivedAt\` set; the rail hides them)`; in the Screens paragraph, any sentence about the archive menu or the archived section goes.

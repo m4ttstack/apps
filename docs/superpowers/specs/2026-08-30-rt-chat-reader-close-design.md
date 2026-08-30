@@ -40,7 +40,7 @@ the `Close` sheet.
 | Room-list liveness        | WebSocket reconnect with backoff; refetch on reconnect and on tab visibility; instant rooms refetch on a msg frame for an unknown room; the 5s poll stays.                                                                                                                                                                                                                                                                                          |
 | Transcript treatment      | `Reader` at the app's one body size: a centered 640px column, prose at the theme's md (12.16px) in IBM Plex Sans at 1.7 leading, headings on the theme ladder, rendered tables, ordered lists, blockquotes and rules, boxed code panels, 16px between messages, the human's own posts in the accent wash. Matt's call 2026-08-30: size stays uniform across the app; the clarity comes from the column, the leading, the spacing and the structure. |
 | Renderer                  | `react-markdown` + `remark-gfm`, code fences through the kit's `CodeHighlight`, a small remark plugin for `@handle`. Not Streamdown (Tailwind-bound).                                                                                                                                                                                                                                                                                               |
-| Right-click documentation | The controlled-`Menu` pattern goes in `AGENTS.md`.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Right-click documentation | The `Menu.ContextMenu` pattern goes in `AGENTS.md` (revised during execution; see the affordances).                                                                                                                                                                                                                                                                                                                                                 |
 
 One adjustment to the renderer decision as discussed in chat: Mantine's
 typography provider is not exported by `@mattstack/app-kit/core`, and the
@@ -183,12 +183,17 @@ get sloppy" table are rewritten for the new numbers; `ARCHITECTURE.md`'s
    on its own hover), visible on row hover and on keyboard focus,
    `aria-label="Close <room>"`. The row's hover background is `bg4` as the
    artboard already draws.
-2. **Right-click menu on the rail row**: a controlled Mantine `Menu`
-   (`opened` + `onChange`, `trigger` unset) whose `Menu.Target` is the row;
-   the row's `onContextMenu` prevents the default and opens it. Items: a
-   `Menu.Label` naming the room (the pair for a DM), `Mark read` with the
-   unread count (hidden at zero), `Close`. Items are 30px tall at 12.16px,
-   the dropdown is the artboard's `.pop`. Escape and outside click close it.
+2. **Right-click menu on the rail row**: Mantine's `Menu.ContextMenu`
+   wrapping the row (right-click, and a long press on touch; the dropdown
+   sits at the cursor and Mantine suppresses the native menu itself, so the
+   row never calls `preventDefault`). The `Menu` stays uncontrolled and
+   reports its state through `onChange` so the × stays visible while it is
+   open. Items: a `Menu.Label` naming the room (the pair for a DM), `Mark
+read` with the unread count (hidden at zero), `Close`. Items are the
+   theme's 24px at 11.2px. Escape and outside click close it. (Revised
+   2026-08-30 during execution: the earlier "controlled `Menu.Target` +
+   `onContextMenu`" pattern opened the menu on a left click too, and the
+   premise that Mantine lacks a right-click trigger was wrong.)
 3. **Page-bar ⋯ menu**: the existing `RoomMenu` keeps its trigger; its
    items become `Close #<room>` / `Close this conversation`. The phone
    header uses the same component with 44px items. `Reopen` is gone.
@@ -216,12 +221,14 @@ get sloppy" table are rewritten for the new numbers; `ARCHITECTURE.md`'s
   `build.py`) with `.room .close`, `.mi`, `.mlbl`, `.msep` in the shared
   CSS; `canvas.json` and `ANATOMY.md` gain the Close sheet; `TARGETS` gains
   `.room .close`, `.mi`, `.pop` for the context menu.
-- `AGENTS.md` gains "Right-click menus": Mantine's `Menu` has no
-  right-click trigger (`trigger` is hover, click or click-hover), so a
-  context menu is a controlled `Menu` opened from `onContextMenu` with
-  `preventDefault()`, positioned at the target element (not the pointer),
-  closed by `onChange(false)`; one instance per row, never a shared
-  portal, so keyboard focus and `aria-expanded` stay on the row.
+- `AGENTS.md` gains "Right-click menus": use `Menu.ContextMenu` (Mantine
+  9.5.2), never a `Menu.Target` with a hand-rolled `onContextMenu`, since
+  `Menu.Target` composes a click handler and a left click would open the
+  menu too. `Menu.ContextMenu` wraps the one element that answers a
+  right-click (and a long press on touch), positions the dropdown at the
+  cursor, and suppresses the native menu itself; the child must not call
+  `preventDefault()`. Keep the `Menu` uncontrolled and read its state
+  through `onChange`; one instance per row, never a shared portal.
 - `ARCHITECTURE.md`: the API table row for `close`, and the deploy loop
   gains `bun install` (the round 1 deploy caught a stale `node_modules`).
 
