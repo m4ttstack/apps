@@ -860,11 +860,19 @@ function PhoneChat({
       />
 
       {activeRoom && (
+        // `display: flex` here, not just `flex: 1`: a bare Transcript root
+        // sizes ITSELF via `flex: 1; min-height: 0` on the assumption its
+        // parent is a flex container -- a plain (block) Box gives it no
+        // such context, so it falls back to auto height and its own inner
+        // scroll box (also `flex: 1; min-height: 0`) collapses to zero.
+        // Scrolling belongs to Transcript's own scroll view, so this
+        // wrapper stays a non-scrolling flex column, not `overflowY: auto`.
         <Box
           style={{
             flex: 1,
             minHeight: 0,
-            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
             padding: '9.6px 11.2px 0',
           }}
         >

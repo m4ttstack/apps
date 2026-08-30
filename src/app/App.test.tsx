@@ -122,6 +122,39 @@ test('on mobile the rail opens from the header toggle and navigating closes it',
   expect(screen.queryByTestId('rail-overlay')).toBeNull();
 });
 
+test('the phone transcript wrapper is a flex column, so the bare transcript can size itself', () => {
+  // Regression: a plain (block) wrapper Box gives the bare Transcript root no
+  // flex context to size against, so its own inner scroll box (also
+  // `flex: 1; min-height: 0`) collapses to zero height and the transcript
+  // renders empty on a phone. jsdom never computes real layout, so this pins
+  // the wrapper's actual style contract instead of a faked measurement.
+  setViewportWidth(390);
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(
+    <App
+      initialState={{
+        daemonReachable: true,
+        rooms: [{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }],
+        messages: [
+          {
+            id: 7,
+            room: 'build',
+            handle: 'deck-main',
+            body: 'seeded body',
+            mentions: [],
+            postedAt: 1,
+          },
+        ],
+      }}
+    />
+  );
+
+  expect(screen.getByTestId('phone-shell')).toBeInTheDocument();
+  const wrapper = screen.getByTestId('transcript').parentElement;
+  expect(wrapper).toHaveStyle({ display: 'flex', flexDirection: 'column' });
+  expect(wrapper).not.toHaveStyle({ overflowY: 'auto' });
+});
+
 test('/demo renders the kit full-screen PageShell showcase, bypassing the chat chrome', () => {
   renderAt('/demo');
 
