@@ -31,16 +31,16 @@ the `Close` sheet.
 
 ## Decisions Matt ratified (2026-08-29 and 2026-08-30)
 
-| Decision | Choice |
-| --- | --- |
-| Where "closed" lives | The daemon's archive bit, under the hood. The UI never says archive. |
-| Reopening | Never a UI action. Any post into a closed room revives it (daemon `postMessage` clears `archived_at` in the same transaction that inserts the row, then computes recipients). |
-| Close affordances | Hover × on the rail row; right-click menu on the row; the page-bar ⋯ menu (also the phone's path). |
-| Closing the open room | Navigate to `/`, which lands on the first open room. |
-| Room-list liveness | WebSocket reconnect with backoff; refetch on reconnect and on tab visibility; instant rooms refetch on a msg frame for an unknown room; the 5s poll stays. |
-| Transcript treatment | `Reader` at the app's one body size: a centered 640px column, prose at the theme's md (12.16px) in IBM Plex Sans at 1.7 leading, headings on the theme ladder, rendered tables, ordered lists, blockquotes and rules, boxed code panels, 16px between messages, the human's own posts in the accent wash. Matt's call 2026-08-30: size stays uniform across the app; the clarity comes from the column, the leading, the spacing and the structure. |
-| Renderer | `react-markdown` + `remark-gfm`, code fences through the kit's `CodeHighlight`, a small remark plugin for `@handle`. Not Streamdown (Tailwind-bound). |
-| Right-click documentation | The controlled-`Menu` pattern goes in `AGENTS.md`. |
+| Decision                  | Choice                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Where "closed" lives      | The daemon's archive bit, under the hood. The UI never says archive.                                                                                                                                                                                                                                                                                                                                                                                |
+| Reopening                 | Never a UI action. Any post into a closed room revives it (daemon `postMessage` clears `archived_at` in the same transaction that inserts the row, then computes recipients).                                                                                                                                                                                                                                                                       |
+| Close affordances         | Hover × on the rail row; right-click menu on the row; the page-bar ⋯ menu (also the phone's path).                                                                                                                                                                                                                                                                                                                                                  |
+| Closing the open room     | Navigate to `/`, which lands on the first open room.                                                                                                                                                                                                                                                                                                                                                                                                |
+| Room-list liveness        | WebSocket reconnect with backoff; refetch on reconnect and on tab visibility; instant rooms refetch on a msg frame for an unknown room; the 5s poll stays.                                                                                                                                                                                                                                                                                          |
+| Transcript treatment      | `Reader` at the app's one body size: a centered 640px column, prose at the theme's md (12.16px) in IBM Plex Sans at 1.7 leading, headings on the theme ladder, rendered tables, ordered lists, blockquotes and rules, boxed code panels, 16px between messages, the human's own posts in the accent wash. Matt's call 2026-08-30: size stays uniform across the app; the clarity comes from the column, the leading, the spacing and the structure. |
+| Renderer                  | `react-markdown` + `remark-gfm`, code fences through the kit's `CodeHighlight`, a small remark plugin for `@handle`. Not Streamdown (Tailwind-bound).                                                                                                                                                                                                                                                                                               |
+| Right-click documentation | The controlled-`Menu` pattern goes in `AGENTS.md`.                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 One adjustment to the renderer decision as discussed in chat: Mantine's
 typography provider is not exported by `@mattstack/app-kit/core`, and the
@@ -98,21 +98,21 @@ A new `src/app/transcript-prose.module.css` carries the reading surface;
 every value below is what the `Reader` artboard draws and is what
 `design/build.py`'s Reader block emits, so the audit can check it:
 
-| thing | value |
-| --- | --- |
-| reading column `.col` | `max-width: 640px; margin: 0 auto; width: 100%` (about 100 characters at md), wrapping both the message list and the composer row, inside the panel's existing insets |
-| message `.msg` | `padding: 16px 0`, `border-top: 1px solid var(--tk-border-soft)` between messages (the first has none) |
-| sender line | handle 13.6px / 600 JetBrains Mono (lg, a step above the body as today) + `· repo` token + `you` badge on the human + time in `.xs.muted`; `margin-bottom: 8px` |
-| prose body | `IBM Plex Sans` at the theme's md, 12.16px, `line-height: 1.7`, blocks 12px apart (`display: flex; flex-direction: column; gap: 12px`), `overflow-wrap: anywhere` |
-| h1 / h2 / h3 | the theme ladder xl / lg / md: 14.72px / 13.6px / 12.16px, 600, line-height 1.35 / 1.35 / 1.4, 4px / 4px / 2px extra above |
-| lists | `padding-left: 20px`, items 4px apart, nested lists 3px |
-| inline code | JetBrains Mono sm 11.2px, `padding: 0 4px`, `bg3`, `1px solid var(--tk-border-soft)`, radius 3px (as today) |
-| table | `border-collapse: collapse`, sm 11.2px / 1.45, cells `4.8px 8px` with `1px solid var(--tk-border-soft)`, header row on `bg2` at 600; a wide table scrolls inside its own `overflow-x: auto` wrapper |
-| blockquote | `padding-left: 11.2px; border-left: 2px solid var(--tk-border)`, muted text |
-| hr | `1px solid var(--tk-border-soft)` |
+| thing                    | value                                                                                                                                                                                                                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| reading column `.col`    | `max-width: 640px; margin: 0 auto; width: 100%` (about 100 characters at md), wrapping both the message list and the composer row, inside the panel's existing insets                                                                                                       |
+| message `.msg`           | `padding: 16px 0`, `border-top: 1px solid var(--tk-border-soft)` between messages (the first has none)                                                                                                                                                                      |
+| sender line              | handle 13.6px / 600 JetBrains Mono (lg, a step above the body as today) + `· repo` token + `you` badge on the human + time in `.xs.muted`; `margin-bottom: 8px`                                                                                                             |
+| prose body               | `IBM Plex Sans` at the theme's md, 12.16px, `line-height: 1.7`, blocks 12px apart (`display: flex; flex-direction: column; gap: 12px`), `overflow-wrap: anywhere`                                                                                                           |
+| h1 / h2 / h3             | the theme ladder xl / lg / md: 14.72px / 13.6px / 12.16px, 600, line-height 1.35 / 1.35 / 1.4, 4px / 4px / 2px extra above                                                                                                                                                  |
+| lists                    | `padding-left: 20px`, items 4px apart, nested lists 3px                                                                                                                                                                                                                     |
+| inline code              | JetBrains Mono sm 11.2px, `padding: 0 4px`, `bg3`, `1px solid var(--tk-border-soft)`, radius 3px (as today)                                                                                                                                                                 |
+| table                    | `border-collapse: collapse`, sm 11.2px / 1.45, cells `4.8px 8px` with `1px solid var(--tk-border-soft)`, header row on `bg2` at 600; a wide table scrolls inside its own `overflow-x: auto` wrapper                                                                         |
+| blockquote               | `padding-left: 11.2px; border-left: 2px solid var(--tk-border)`, muted text                                                                                                                                                                                                 |
+| hr                       | `1px solid var(--tk-border-soft)`                                                                                                                                                                                                                                           |
 | code panel (`CodeBlock`) | `Paper withBorder` radius md (6px) around `CodeHighlight`: `pre` padding 4.8px 9.6px on `bg1`, mono at md 12.16px / 1.7 (a `styles` override on the component's 13px default), `white-space: pre; overflow-x: auto`; the component's copy control 8px in from the top-right |
-| own post `.mine` | the body sits in `color-mix(in srgb, accent var(--tk-wash), transparent)`, radius md (6px), `padding: 9.6px 11.2px` |
-| links | accent, underline on hover |
+| own post `.mine`         | the body sits in `color-mix(in srgb, accent var(--tk-wash), transparent)`, radius md (6px), `padding: 9.6px 11.2px`                                                                                                                                                         |
+| links                    | accent, underline on hover                                                                                                                                                                                                                                                  |
 
 Size is not the lever: prose is md like every other body text in the app.
 The face, the column, the leading, the block spacing and the rendered
@@ -261,7 +261,7 @@ not reproduced; this part removes the known ways a tab goes quiet.
   that row and Close fires `onClose(room)`; a closed active room is listed,
   a closed inactive one is not; no ARCHIVED section renders.
 - `PageBar` / `RoomMenu`: the menu item reads `Close #room` or `Close this
-  conversation`; no Reopen, no confirm.
+conversation`; no Reopen, no confirm.
 - `App`: closing the open room navigates to `/` and lands on the first open
   room; closing another room leaves the page in place; a failed close
   restores the row; a msg frame for an unknown room refetches rooms;

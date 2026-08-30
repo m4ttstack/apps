@@ -26,31 +26,31 @@
 
 ## File Structure
 
-| File | Responsibility | Status |
-| --- | --- | --- |
-| `src/server/chat.ts` | `/api/chat/*` routes; `archive` becomes `close` | modify |
-| `src/server/chat.test.ts` | route tests; archive cases become close cases | modify |
-| `src/app/visible-rooms.ts` | the one rail filter: open rooms plus the active closed one | create |
-| `src/app/mark-read.ts` | `postMarkRead(room)`: the `POST /api/chat/mark` call both the page bar and the rail menu make | create |
-| `src/app/RoomRail.tsx` | rail rows with hover × and right-click menu; no ARCHIVED section | modify |
-| `src/app/PageBar.tsx` | `RoomMenu` offers Close only; no archived chip, no confirm | modify |
-| `src/app/ArchivedBar.tsx` + test | deleted | delete |
-| `src/app/App.tsx` | `closeRoom`, landing on `/`, phone header/drawer without archive, relay hooks, visibility refetch | modify |
-| `src/app/relay-socket.ts` | one `/ws` connection for the page, backoff, fan-out, open callbacks | create |
-| `src/app/relay-socket.test.ts` | reconnect, fan-out, single instance | create |
-| `src/app/remark-mentions.ts` | remark plugin: `@handle` for listed handles only | create |
-| `src/app/MessageMarkdown.tsx` | one message body via react-markdown | create |
-| `src/app/MessageMarkdown.test.tsx` | every rendered element, raw HTML dropped, mentions | create |
-| `src/app/transcript-prose.module.css` | the reading column and prose styles, `@font-face` for IBM Plex Sans | create |
-| `src/app/components/CodeBlock.tsx` | unchanged shape; gains `data-testid="code-block"`; used by MessageMarkdown | modify |
-| `src/app/human.ts` | `HUMAN_HANDLE`, the handle the viewer posts as | create |
-| `scripts/vendor-plex-sans.mjs` | one-off download of the three IBM Plex Sans weights | create |
-| `src/app/Transcript.tsx` | uses MessageMarkdown; parser deleted; `.col`, `.mine`, sender line | modify |
-| `src/app/test-utils.tsx` | `installFakeWebSocket` resets the relay singleton | modify |
-| `public/fonts/ibm-plex-sans-{400,500,600}.woff2` | vendored prose face | create |
-| `src/server/fixtures.ts` | a heading/table/ordered-list post and a human post in `build` | modify |
-| `design/build.py`, `design/spec.json`, `design/audit.mjs`, `design/canvas.json`, `design/artboards/*` | Reader block, Close sheet, no Archived artboard | modify |
-| `design/ANATOMY.md`, `design/CONFORMANCE.md`, `ARCHITECTURE.md`, `AGENTS.md`, `design/README.md` | docs follow the code | modify |
+| File                                                                                                  | Responsibility                                                                                    | Status |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------ |
+| `src/server/chat.ts`                                                                                  | `/api/chat/*` routes; `archive` becomes `close`                                                   | modify |
+| `src/server/chat.test.ts`                                                                             | route tests; archive cases become close cases                                                     | modify |
+| `src/app/visible-rooms.ts`                                                                            | the one rail filter: open rooms plus the active closed one                                        | create |
+| `src/app/mark-read.ts`                                                                                | `postMarkRead(room)`: the `POST /api/chat/mark` call both the page bar and the rail menu make     | create |
+| `src/app/RoomRail.tsx`                                                                                | rail rows with hover × and right-click menu; no ARCHIVED section                                  | modify |
+| `src/app/PageBar.tsx`                                                                                 | `RoomMenu` offers Close only; no archived chip, no confirm                                        | modify |
+| `src/app/ArchivedBar.tsx` + test                                                                      | deleted                                                                                           | delete |
+| `src/app/App.tsx`                                                                                     | `closeRoom`, landing on `/`, phone header/drawer without archive, relay hooks, visibility refetch | modify |
+| `src/app/relay-socket.ts`                                                                             | one `/ws` connection for the page, backoff, fan-out, open callbacks                               | create |
+| `src/app/relay-socket.test.ts`                                                                        | reconnect, fan-out, single instance                                                               | create |
+| `src/app/remark-mentions.ts`                                                                          | remark plugin: `@handle` for listed handles only                                                  | create |
+| `src/app/MessageMarkdown.tsx`                                                                         | one message body via react-markdown                                                               | create |
+| `src/app/MessageMarkdown.test.tsx`                                                                    | every rendered element, raw HTML dropped, mentions                                                | create |
+| `src/app/transcript-prose.module.css`                                                                 | the reading column and prose styles, `@font-face` for IBM Plex Sans                               | create |
+| `src/app/components/CodeBlock.tsx`                                                                    | unchanged shape; gains `data-testid="code-block"`; used by MessageMarkdown                        | modify |
+| `src/app/human.ts`                                                                                    | `HUMAN_HANDLE`, the handle the viewer posts as                                                    | create |
+| `scripts/vendor-plex-sans.mjs`                                                                        | one-off download of the three IBM Plex Sans weights                                               | create |
+| `src/app/Transcript.tsx`                                                                              | uses MessageMarkdown; parser deleted; `.col`, `.mine`, sender line                                | modify |
+| `src/app/test-utils.tsx`                                                                              | `installFakeWebSocket` resets the relay singleton                                                 | modify |
+| `public/fonts/ibm-plex-sans-{400,500,600}.woff2`                                                      | vendored prose face                                                                               | create |
+| `src/server/fixtures.ts`                                                                              | a heading/table/ordered-list post and a human post in `build`                                     | modify |
+| `design/build.py`, `design/spec.json`, `design/audit.mjs`, `design/canvas.json`, `design/artboards/*` | Reader block, Close sheet, no Archived artboard                                                   | modify |
+| `design/ANATOMY.md`, `design/CONFORMANCE.md`, `ARCHITECTURE.md`, `AGENTS.md`, `design/README.md`      | docs follow the code                                                                              | modify |
 
 Order: Part 2 (Tasks 1 to 5, close), Part 3 (Tasks 6 to 7, liveness), Part 1 (Tasks 8 to 10, Reader), then Task 11 (fixtures, the full gate, the browser audit, the PR).
 
@@ -59,11 +59,13 @@ Order: Part 2 (Tasks 1 to 5, close), Part 3 (Tasks 6 to 7, liveness), Part 1 (Ta
 ### Task 1: `POST /api/chat/close` replaces `POST /api/chat/archive`
 
 **Files:**
+
 - Modify: `src/server/chat.ts` (the `.post('/api/chat/archive', ...)` handler, lines 292-336)
 - Modify: `src/server/chat.test.ts` (the four `archive` tests, lines 391-590)
 - Modify: `ARCHITECTURE.md` (the API table row for `archive`)
 
 **Interfaces:**
+
 - Consumes: `chatRooms`, `chatJoin`, `chatArchive`, `unjoinedFleetRooms`, `humanHandle`, `rtOpts` as already imported in `chat.ts`.
 - Produces: `POST /api/chat/close` with body `{ room: string }`, response `200 { room, closedAt: number | null }`, `400 { error }` on a missing room or a room nobody lists, `502 { error }` when the daemon refuses. Task 4's client posts to it.
 
@@ -77,7 +79,9 @@ test('closing a channel the human never joined joins him first, then closes', as
     .mockResolvedValueOnce({ ok: true, data: { rooms: [] } })
     .mockResolvedValueOnce({
       ok: true,
-      data: { rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }] },
+      data: {
+        rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }],
+      },
     });
   vi.mocked(rt.chatBuddies).mockResolvedValueOnce({
     ok: true,
@@ -97,7 +101,17 @@ test('closing a channel the human never joined joins him first, then closes', as
   });
   vi.mocked(rt.chatWho).mockResolvedValueOnce({
     ok: true,
-    data: { members: [{ room: 'build', handle: 'fred', joinedAt: 1, lastReadId: 0, wakeOn: 'mention' }] },
+    data: {
+      members: [
+        {
+          room: 'build',
+          handle: 'fred',
+          joinedAt: 1,
+          lastReadId: 0,
+          wakeOn: 'mention',
+        },
+      ],
+    },
   });
   vi.mocked(rt.chatJoin).mockResolvedValueOnce({
     ok: true,
@@ -126,7 +140,9 @@ test('closing a channel the human never joined joins him first, then closes', as
 test('closing a room already in the human’s listing never joins; a DM never joins either', async () => {
   vi.mocked(rt.chatRooms).mockResolvedValueOnce({
     ok: true,
-    data: { rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }] },
+    data: {
+      rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }],
+    },
   });
   vi.mocked(rt.chatArchive).mockResolvedValue({
     ok: true,
@@ -172,7 +188,10 @@ test('close 400s on a bad body and on a room nobody lists, and never join-create
   expect(noRoom.status).toBe(400);
   expect((await noRoom.json()).error).toBe('room is required');
   vi.mocked(rt.chatRooms).mockResolvedValue({ ok: true, data: { rooms: [] } });
-  vi.mocked(rt.chatBuddies).mockResolvedValue({ ok: true, data: { buddies: [] } });
+  vi.mocked(rt.chatBuddies).mockResolvedValue({
+    ok: true,
+    data: { buddies: [] },
+  });
   const ghost = await routes.request('/api/chat/close?handle=matt', {
     method: 'POST',
     body: JSON.stringify({ room: 'ghost' }),
@@ -185,7 +204,9 @@ test('close 400s on a bad body and on a room nobody lists, and never join-create
 test('close 502s when the daemon refuses, and the old archive route is gone', async () => {
   vi.mocked(rt.chatRooms).mockResolvedValueOnce({
     ok: true,
-    data: { rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }] },
+    data: {
+      rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }],
+    },
   });
   vi.mocked(rt.chatArchive).mockResolvedValueOnce({ ok: false, error: 'nope' });
   const refused = await routes.request('/api/chat/close?handle=matt', {
@@ -297,12 +318,14 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ### Task 2: Rail rows close on hover × and from a right-click menu; no ARCHIVED section
 
 **Files:**
+
 - Create: `src/app/visible-rooms.ts`
 - Create: `src/app/visible-rooms.test.ts`
 - Modify: `src/app/RoomRail.tsx`
 - Modify: `src/app/RoomRail.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `RoomSummary` from `@mattstack/rt-client`; `Menu`, `Tooltip`, `ActionIcon`, `Box`, `Text`, `UnstyledButton` from `@mattstack/app-kit/core`; `Icon` names `close`, `check`, `hash`, `plus` (all registered by the kit's `Icons.ts`; `hash` by `src/app/icons.ts`).
 - Produces:
   - `visibleRooms(rooms: RoomSummary[], activeRoom: string | undefined): RoomSummary[]` in `src/app/visible-rooms.ts`.
@@ -326,9 +349,7 @@ export function visibleRooms(
   rooms: RoomSummary[],
   activeRoom: string | undefined
 ): RoomSummary[] {
-  return rooms.filter(
-    r => r.archivedAt === undefined || r.room === activeRoom
-  );
+  return rooms.filter(r => r.archivedAt === undefined || r.room === activeRoom);
 }
 ```
 
@@ -368,7 +389,13 @@ test('no ARCHIVED section renders, and a closed room passed in is listed like an
     <RoomRail
       rooms={[
         { room: 'build', memberCount: 2, unread: 1, mentions: 0 },
-        { room: 'retro', memberCount: 2, unread: 0, mentions: 0, archivedAt: 5 },
+        {
+          room: 'retro',
+          memberCount: 2,
+          unread: 0,
+          mentions: 0,
+          archivedAt: 5,
+        },
       ]}
       activeRoom="retro"
     />
@@ -661,21 +688,21 @@ function RoomRow({
 `RoomRow` no longer takes `archived`; delete the `RailRoom` type if it exists only for that. `Menu.Target` merges its own ref into the row's `ref`; if `useHover` stops reporting after the wrap (hover never shows the ×), move the `ref` to an inner `Box` that carries the row's content and keep `Menu.Target` on the outer one. In `RoomRail` itself: delete the `openRooms`, `archivedRooms` lines and the `useLocalStorage` call, use `rooms` directly:
 
 ```tsx
-  const channelRooms = rooms.filter(r => r.kind !== 'dm');
-  const directRooms = rooms.filter(r => r.kind === 'dm');
+const channelRooms = rooms.filter(r => r.kind !== 'dm');
+const directRooms = rooms.filter(r => r.kind === 'dm');
 ```
 
 Delete the whole `{archivedRooms.length > 0 && (...)}` JSX block. Pass the new props to both `RoomRow` call sites:
 
 ```tsx
-        <RoomRow
-          key={room.room}
-          room={room}
-          active={room.room === activeRoom}
-          onSelect={() => onSelectRoom?.(room.room)}
-          onClose={onCloseRoom}
-          onMarkRead={onMarkRead}
-        />
+<RoomRow
+  key={room.room}
+  room={room}
+  active={room.room === activeRoom}
+  onSelect={() => onSelectRoom?.(room.room)}
+  onClose={onCloseRoom}
+  onMarkRead={onMarkRead}
+/>
 ```
 
 Destructure `onCloseRoom, onMarkRead` in `RoomRail`'s signature and end its docblock at "...and a footnote."
@@ -699,11 +726,13 @@ Stage `src/app/visible-rooms.ts src/app/visible-rooms.test.ts src/app/RoomRail.t
 ### Task 3: The page-bar ⋯ menu offers Close, nothing else
 
 **Files:**
+
 - Modify: `src/app/PageBar.tsx`
 - Modify: `src/app/PageBar.test.tsx`
 - Modify: `src/app/App.tsx` (two prop names only, to keep the build green)
 
 **Interfaces:**
+
 - Produces: `RoomMenu({ room, onClose?, size? })` with `onClose?: (room: string) => void`; `PageBarProps.onClose?: (room: string) => void` replaces `onArchive` and `memberHandles`. Test ids: trigger `room-menu`, dropdown `room-menu-dropdown`, item `room-menu-close`. Copy: `Close #<room>` for a channel, `Close this conversation` for a DM.
 
 - [ ] **Step 1: Rewrite the PageBar tests**
@@ -789,9 +818,7 @@ In `src/app/PageBar.tsx`:
 
 ```tsx
 function closeLabel(room: RoomSummary): string {
-  return room.kind === 'dm'
-    ? 'Close this conversation'
-    : `Close #${room.room}`;
+  return room.kind === 'dm' ? 'Close this conversation' : `Close #${room.room}`;
 }
 
 /** The ⋯ control and its one item. One component for the desk's page bar
@@ -846,9 +873,9 @@ export function RoomMenu({
 5. Replace the `room.archivedAt !== undefined ? (...) : (...)` chip ternary with the wakes chip alone:
 
 ```tsx
-        <Box component="span" style={CHIP_BASE} data-testid="chip-wakes">
-          wakes: {wakeMode}
-        </Box>
+<Box component="span" style={CHIP_BASE} data-testid="chip-wakes">
+  wakes: {wakeMode}
+</Box>
 ```
 
 - [ ] **Step 4: Run the file**
@@ -872,6 +899,7 @@ Stage `src/app/PageBar.tsx src/app/PageBar.test.tsx src/app/App.tsx`; message `p
 ### Task 4: App wires Close: optimistic row removal, landing on `/`, composer always live, archive code deleted
 
 **Files:**
+
 - Create: `src/app/mark-read.ts`
 - Delete: `src/app/ArchivedBar.tsx`, `src/app/ArchivedBar.test.tsx`
 - Modify: `src/app/App.tsx` (`useRooms`, `ChatPage`, `PhoneHeader`, `PhoneRoomRow`, `PhoneDrawer`, `PhoneChat`, `App`)
@@ -879,6 +907,7 @@ Stage `src/app/PageBar.tsx src/app/PageBar.test.tsx src/app/App.tsx`; message `p
 - Modify: `src/app/App.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `visibleRooms` (Task 2), `RoomRail`'s `onCloseRoom`/`onMarkRead` (Task 2), `PageBar`/`RoomMenu`'s `onClose` (Task 3), `POST /api/chat/close` (Task 1).
 - Produces: `postMarkRead(room: string): Promise<Response>` in `src/app/mark-read.ts`; `useRooms` returns `{ rooms, setRooms, refetchRooms }`; `closeRoom(room: string): Promise<void>` and `markRead(room: string): Promise<void>` in `App`; `ChatPageProps.onCloseRoom`, `ChatPageProps.onMarkRead`; `PhoneChat`/`PhoneHeader` prop `onCloseRoom: (room: string) => void`.
 
@@ -1059,7 +1088,9 @@ test('a failed close restores the row and says so', async () => {
   );
   await userEvent.hover(screen.getByTestId('room-row-ghost'));
   await userEvent.click(screen.getByTestId('room-close-ghost'));
-  expect(await screen.findByText("Couldn't close the room")).toBeInTheDocument();
+  expect(
+    await screen.findByText("Couldn't close the room")
+  ).toBeInTheDocument();
   expect(screen.getByTestId('room-row-ghost')).toBeInTheDocument();
 });
 
@@ -1139,11 +1170,11 @@ export function postMarkRead(room: string): Promise<Response> {
 In `src/app/PageBar.tsx`, import it (`import { postMarkRead } from './mark-read';`) and make `handleMarkRead`:
 
 ```tsx
-  const handleMarkRead = () => {
-    void postMarkRead(room.room)
-      .then(() => onMarkRead?.(room.room))
-      .catch(() => {});
-  };
+const handleMarkRead = () => {
+  void postMarkRead(room.room)
+    .then(() => onMarkRead?.(room.room))
+    .catch(() => {});
+};
 ```
 
 (Delete the inline `fetch('/api/chat/mark', ...)` and its comment; the helper's docblock carries the ordering constraint.)
@@ -1157,27 +1188,28 @@ In `src/app/PageBar.tsx`, import it (`import { postMarkRead } from './mark-read'
 5. `PhoneDrawer`: replace the four room-list lines and the `useLocalStorage` call with
 
 ```tsx
-  const shown = visibleRooms(rooms, activeRoom);
-  const channelRooms = shown.filter(r => r.kind !== 'dm');
-  const directRooms = shown.filter(r => r.kind === 'dm');
+const shown = visibleRooms(rooms, activeRoom);
+const channelRooms = shown.filter(r => r.kind !== 'dm');
+const directRooms = shown.filter(r => r.kind === 'dm');
 ```
 
-and delete the whole `{archivedRooms.length > 0 && (...)}` block.
-6. `PhoneChat`: rename the prop `onArchive` to `onCloseRoom: (room: string) => void`, pass `onCloseRoom={onCloseRoom}` to `PhoneHeader`, and replace the footer ternary with the `Composer` alone:
+and delete the whole `{archivedRooms.length > 0 && (...)}` block. 6. `PhoneChat`: rename the prop `onArchive` to `onCloseRoom: (room: string) => void`, pass `onCloseRoom={onCloseRoom}` to `PhoneHeader`, and replace the footer ternary with the `Composer` alone:
 
 ```tsx
-      {activeRoom && (
-        <Composer
-          ref={composerRef}
-          phone
-          room={activeRoom}
-          roomMembers={roomMembers}
-          buddies={buddies}
-          isDm={activeRoomSummary?.kind === 'dm'}
-          daemonReachable={daemon.reachable}
-          onOpenDm={onOpenDm}
-        />
-      )}
+{
+  activeRoom && (
+    <Composer
+      ref={composerRef}
+      phone
+      room={activeRoom}
+      roomMembers={roomMembers}
+      buddies={buddies}
+      isDm={activeRoomSummary?.kind === 'dm'}
+      daemonReachable={daemon.reachable}
+      onOpenDm={onOpenDm}
+    />
+  );
+}
 ```
 
 7. `ChatPageProps`: replace `onArchive: (room: string, archived: boolean) => void;` with
@@ -1187,8 +1219,7 @@ and delete the whole `{archivedRooms.length > 0 && (...)}` block.
   onMarkRead: (room: string) => void;
 ```
 
-and add `openRooms: RoomSummary[];` and `railRooms: RoomSummary[];` after `orderedRooms`. In `ChatPage`: destructure them; the sidebar condition becomes `{railRooms.length > 0 && (`; `<RoomRail rooms={railRooms} ... onCloseRoom={onCloseRoom} onMarkRead={onMarkRead} />`; the page-bar condition becomes `{activeRoomSummary && (`; `<PageBar ... onClose={onCloseRoom} />` (no `memberHandles`, no `onArchive`); the placeholder condition becomes `openRooms.length === 0 && !activeRoomSummary ? (`; the transcript `footer` becomes the `Composer` alone (delete the `ArchivedBar` branch); the Roster condition becomes `(railRooms.length > 0 || buddies.length > 0) && (`.
-8. In `App`: change the `useRooms` destructure to `const { rooms, setRooms, refetchRooms } = useRooms(initialState?.rooms);`. Replace the home-landing branch of the URL effect with:
+and add `openRooms: RoomSummary[];` and `railRooms: RoomSummary[];` after `orderedRooms`. In `ChatPage`: destructure them; the sidebar condition becomes `{railRooms.length > 0 && (`; `<RoomRail rooms={railRooms} ... onCloseRoom={onCloseRoom} onMarkRead={onMarkRead} />`; the page-bar condition becomes `{activeRoomSummary && (`; `<PageBar ... onClose={onCloseRoom} />` (no `memberHandles`, no `onArchive`); the placeholder condition becomes `openRooms.length === 0 && !activeRoomSummary ? (`; the transcript `footer` becomes the `Composer` alone (delete the `ArchivedBar` branch); the Roster condition becomes `(railRooms.length > 0 || buddies.length > 0) && (`. 8. In `App`: change the `useRooms` destructure to `const { rooms, setRooms, refetchRooms } = useRooms(initialState?.rooms);`. Replace the home-landing branch of the URL effect with:
 
 ```tsx
     } else if (route.name === 'home') {
@@ -1203,52 +1234,52 @@ and add `openRooms: RoomSummary[];` and `railRooms: RoomSummary[];` after `order
 Replace the whole `setArchived` callback with:
 
 ```tsx
-  // Optimistic: the row leaves the rail before the request resolves, and a
-  // failure puts the snapshot back. Closing the open room lands on `/`, the
-  // same first-open-room landing a fresh open uses.
-  const closeRoom = useCallback(
-    async (room: string) => {
-      const snapshot = rooms;
-      setRooms(prev => prev.filter(r => r.room !== room));
-      if (room === activeRoom) {
-        setActiveRoom(undefined);
-        if (window.location.pathname !== '/') navigate('/');
-      }
-      try {
-        const res = await fetch('/api/chat/close', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ room }),
-        });
-        if (!res.ok) throw new Error('close failed');
-      } catch {
-        notifications.error("Couldn't close the room");
-        setRooms(snapshot);
-        return;
-      }
-      void refetchRooms();
-    },
-    [rooms, activeRoom, setRooms, refetchRooms]
-  );
+// Optimistic: the row leaves the rail before the request resolves, and a
+// failure puts the snapshot back. Closing the open room lands on `/`, the
+// same first-open-room landing a fresh open uses.
+const closeRoom = useCallback(
+  async (room: string) => {
+    const snapshot = rooms;
+    setRooms(prev => prev.filter(r => r.room !== room));
+    if (room === activeRoom) {
+      setActiveRoom(undefined);
+      if (window.location.pathname !== '/') navigate('/');
+    }
+    try {
+      const res = await fetch('/api/chat/close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room }),
+      });
+      if (!res.ok) throw new Error('close failed');
+    } catch {
+      notifications.error("Couldn't close the room");
+      setRooms(snapshot);
+      return;
+    }
+    void refetchRooms();
+  },
+  [rooms, activeRoom, setRooms, refetchRooms]
+);
 
-  const markRead = useCallback(
-    async (room: string) => {
-      try {
-        await postMarkRead(room);
-      } catch {
-        return;
-      }
-      void refetchRooms();
-    },
-    [refetchRooms]
-  );
+const markRead = useCallback(
+  async (room: string) => {
+    try {
+      await postMarkRead(room);
+    } catch {
+      return;
+    }
+    void refetchRooms();
+  },
+  [refetchRooms]
+);
 ```
 
 After `orderedRooms`, add:
 
 ```tsx
-  const openRooms = rooms.filter(r => r.archivedAt === undefined);
-  const railRooms = visibleRooms(orderedRooms, activeRoom);
+const openRooms = rooms.filter(r => r.archivedAt === undefined);
+const railRooms = visibleRooms(orderedRooms, activeRoom);
 ```
 
 Pass `onCloseRoom={closeRoom}` to `PhoneChat` (replacing `onArchive`), and `openRooms={openRooms} railRooms={railRooms} onCloseRoom={closeRoom} onMarkRead={markRead}` to `ChatPage` (replacing `onArchive`). The `chatRoute && isMobile && rooms.length > 0` guard for the phone shell becomes `chatRoute && isMobile && (openRooms.length > 0 || activeRoomSummary !== undefined)`; move the `activeRoomSummary` line above it if needed.
@@ -1270,12 +1301,14 @@ Stage `src/app/mark-read.ts src/app/App.tsx src/app/App.test.tsx src/app/PageBar
 ### Task 5: Artboards, audit and docs follow Close
 
 **Files:**
+
 - Modify: `design/build.py` (shared CSS, `rooms_rail`, delete `desktop_archived` + `RETRO_MSGS`, add `close_sheet`)
 - Delete: `design/artboards/Archived.dc.html`
 - Create: `design/artboards/Close.dc.html` (generated)
 - Modify: `design/canvas.json`, `design/spec.json` (regenerated), `design/audit.mjs`, `design/ANATOMY.md`, `design/CONFORMANCE.md`, `design/README.md`, `AGENTS.md`, `ARCHITECTURE.md`
 
 **Interfaces:**
+
 - Consumes: test ids from Tasks 2 and 3 (`room-close-<room>`, `room-context-<room>`, `room-menu-close`).
 - Produces: spec selectors `.room .close`, `.tip`, `.menu-dd`, `.menu-lbl`, `.menu-item`, `.menu-item.tap`, `.menu-div` in `spec.json`; `TARGETS` entries for the × and the menu item.
 
@@ -1480,12 +1513,14 @@ Expected: prints the probe function without a syntax error.
 - [ ] **Step 5: Docs**
 
 `design/ANATOMY.md`:
+
 - Rooms rail: replace the paragraph starting `Then, only when an archived room exists, a \`.sect.toggle\` row...` with:
 
   ```
   Every `.room` closes: a 22px `.close` control (ActionIcon size sm, subtle) after the badges, shown on hover, on keyboard focus and while the row's menu is open, with a Tooltip reading `Close`; and a right-click menu (a controlled Mantine `Menu`, radius md, shadow md, `bottom-start` off the row) whose `.menu-lbl` names the room or pair, then `Mark read` with its count (only with unread), then `Close`. Items are `.menu-item`: 11.2px at 3.2px 7.2px, 24px tall, a 14px icon with a 4.8px gap. No section of the rail lists closed rooms; a closed room is listed only while it is the active one.
   ```
-- Page bar: replace `A 30px \`.menu\` (⋯) sits last: \`Archive #room…\` (confirm names the members who lose it) or \`Reopen\`.` with `A 30px \`.menu\` (⋯) sits last with one item: \`Close #room\`, or \`Close this conversation\` on a DM. No confirm.` Delete the `archived` chip bullet.
+
+- Page bar: replace `A 30px \`.menu\` (⋯) sits last: \`Archive #room…\` (confirm names the members who lose it) or \`Reopen\`.`with`A 30px \`.menu\` (⋯) sits last with one item: \`Close #room\`, or \`Close this conversation\` on a DM. No confirm.`Delete the`archived` chip bullet.
 - Delete the whole `## Archived room` section. Add after the Transcript section:
 
   ```
@@ -1493,6 +1528,7 @@ Expected: prints the probe function without a syntax error.
 
   `Close.dc.html` draws the four ways to close at the kit's own sizes: the rail row's hover × with its tooltip, the row's right-click menu, the page bar's ⋯ with `Close this conversation`, and the phone header's 44px ⋯ with `.menu-item.tap` items (minHeight 44 via `styles`). Closing is the daemon's archive; the composer stays live and any post revives the room.
   ```
+
 - Phone drawer sentence about ARCHIVED (if any): delete.
 
 `design/CONFORMANCE.md`: in "The values that get sloppy" table add two rows:
@@ -1532,11 +1568,13 @@ Stage `design/build.py design/spec.json design/canvas.json design/audit.mjs desi
 ### Task 6: One relay socket for the page, with backoff
 
 **Files:**
+
 - Create: `src/app/relay-socket.ts`
 - Create: `src/app/relay-socket.test.ts`
 - Modify: `src/app/test-utils.tsx` (`installFakeWebSocket` resets the singleton)
 
 **Interfaces:**
+
 - Produces:
   - `subscribeRelay(listener: (frame: RelayFrame) => void): () => void`
   - `onRelayOpen(cb: (reconnect: boolean) => void): () => void` (`reconnect` is false on the first open of the page, true on every later open)
@@ -1585,7 +1623,10 @@ test('every subscriber shares one socket and hears every frame', () => {
   FakeWebSocket.instances[0]!.onmessage?.({
     data: JSON.stringify({ topic: 'chat/build/msg', payload: { id: 1 } }),
   });
-  expect(a).toHaveBeenCalledWith({ topic: 'chat/build/msg', payload: { id: 1 } });
+  expect(a).toHaveBeenCalledWith({
+    topic: 'chat/build/msg',
+    payload: { id: 1 },
+  });
   expect(b).toHaveBeenCalledTimes(1);
   FakeWebSocket.instances[0]!.onmessage?.({ data: 'not json' });
   expect(a).toHaveBeenCalledTimes(1);
@@ -1802,11 +1843,13 @@ Stage `src/app/relay-socket.ts src/app/relay-socket.test.ts src/app/test-utils.t
 ### Task 7: Buddies, members, the transcript and the room list ride the shared socket; refetch on reconnect, on visibility, and for unknown rooms
 
 **Files:**
+
 - Modify: `src/app/App.tsx` (`useBuddies`, `useRooms`, `useRoomMembers`, `App`)
 - Modify: `src/app/Transcript.tsx` (the WS effect)
 - Modify: `src/app/App.test.tsx`, `src/app/Transcript.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `useRelayFrames`, `useRelayOpen` (Task 6).
 - Produces: `useBuddies` returns `{ buddies, refetchBuddies }`; `useRoomMembers` returns `{ members, refetchMembers }` (`members` is still `string[]`); `useRooms` refetches on a `chat/<room>/msg` frame whose room is not listed; `App` refetches rooms, then buddies, then members on reconnect and when the tab becomes visible; `Transcript` refetches its tail on the same two triggers.
 
@@ -1845,14 +1888,18 @@ test('a msg frame for a room the rail does not know refetches rooms at once', as
       />
     );
   });
-  const before = fetchMock.mock.calls.filter(([u]) => u === '/api/chat/rooms').length;
+  const before = fetchMock.mock.calls.filter(
+    ([u]) => u === '/api/chat/rooms'
+  ).length;
   await act(async () => {
     for (const socket of FakeWebSocket.instances)
       socket.onmessage?.({
         data: JSON.stringify({ topic: 'chat/fresh/msg', payload: { id: 9 } }),
       });
   });
-  expect(fetchMock.mock.calls.filter(([u]) => u === '/api/chat/rooms').length).toBe(before + 1);
+  expect(
+    fetchMock.mock.calls.filter(([u]) => u === '/api/chat/rooms').length
+  ).toBe(before + 1);
   expect(await screen.findByTestId('room-row-fresh')).toBeInTheDocument();
   await act(async () => {
     for (const socket of FakeWebSocket.instances)
@@ -1860,7 +1907,9 @@ test('a msg frame for a room the rail does not know refetches rooms at once', as
         data: JSON.stringify({ topic: 'chat/build/msg', payload: { id: 10 } }),
       });
   });
-  expect(fetchMock.mock.calls.filter(([u]) => u === '/api/chat/rooms').length).toBe(before + 1);
+  expect(
+    fetchMock.mock.calls.filter(([u]) => u === '/api/chat/rooms').length
+  ).toBe(before + 1);
 });
 
 test('a reconnect and a tab becoming visible refetch rooms, buddies and members, in that order', async () => {
@@ -1869,7 +1918,11 @@ test('a reconnect and a tab becoming visible refetch rooms, buddies and members,
     Promise.resolve(
       jsonResponse(
         url === '/api/chat/rooms'
-          ? { rooms: [{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }] }
+          ? {
+              rooms: [
+                { room: 'build', memberCount: 1, unread: 0, mentions: 0 },
+              ],
+            }
           : { buddies: [], members: [] }
       )
     )
@@ -1893,19 +1946,26 @@ test('a reconnect and a tab becoming visible refetch rooms, buddies and members,
   await waitFor(() => {
     const urls = fetchMock.mock.calls.map(([u]) => String(u));
     expect(urls.indexOf('/api/chat/rooms')).toBeGreaterThanOrEqual(0);
-    expect(urls.indexOf('/api/chat/buddies')).toBeGreaterThan(urls.indexOf('/api/chat/rooms'));
-    expect(urls.findIndex(u => u.startsWith('/api/chat/who/build'))).toBeGreaterThan(
-      urls.indexOf('/api/chat/buddies')
+    expect(urls.indexOf('/api/chat/buddies')).toBeGreaterThan(
+      urls.indexOf('/api/chat/rooms')
     );
+    expect(
+      urls.findIndex(u => u.startsWith('/api/chat/who/build'))
+    ).toBeGreaterThan(urls.indexOf('/api/chat/buddies'));
   });
 
   fetchMock.mockClear();
-  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+  Object.defineProperty(document, 'visibilityState', {
+    configurable: true,
+    get: () => 'visible',
+  });
   await act(async () => {
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await waitFor(() =>
-    expect(fetchMock.mock.calls.some(([u]) => u === '/api/chat/rooms')).toBe(true)
+    expect(fetchMock.mock.calls.some(([u]) => u === '/api/chat/rooms')).toBe(
+      true
+    )
   );
 });
 ```
@@ -1916,14 +1976,19 @@ Add to `src/app/Transcript.test.tsx`:
 
 ```tsx
 test('a reconnect refetches the tail without a frame', async () => {
-  const { pushFrame } = renderTranscriptWithFakeSocket({ room: 'build', messages: [] });
+  const { pushFrame } = renderTranscriptWithFakeSocket({
+    room: 'build',
+    messages: [],
+  });
   pushFrame({ topic: 'chat/build/msg', payload: { id: 1 } });
   expect(await screen.findByText('message 1')).toBeInTheDocument();
   const socket = FakeWebSocket.instances.at(-1)!;
   socket.onopen?.();
   const before = fetchMock.mock.calls.length;
   socket.onopen?.();
-  await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(before));
+  await waitFor(() =>
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(before)
+  );
 });
 ```
 
@@ -1943,39 +2008,39 @@ In `src/app/App.tsx`:
 3. `useRooms`: add a ref to the current list and the unknown-room refetch:
 
 ```tsx
-  const roomsRef = useRef(rooms);
-  roomsRef.current = rooms;
-  // A post into a room this list has never seen is the daemon's only signal
-  // that a room exists now; refetch at once instead of waiting for the poll.
-  useRelayFrames(frame => {
-    if (!isMsgTopic(frame.topic)) return;
-    const room = frame.topic.slice('chat/'.length, -'/msg'.length);
-    if (!roomsRef.current.some(r => r.room === room)) void refetchRooms();
-  });
+const roomsRef = useRef(rooms);
+roomsRef.current = rooms;
+// A post into a room this list has never seen is the daemon's only signal
+// that a room exists now; refetch at once instead of waiting for the poll.
+useRelayFrames(frame => {
+  if (!isMsgTopic(frame.topic)) return;
+  const room = frame.topic.slice('chat/'.length, -'/msg'.length);
+  if (!roomsRef.current.some(r => r.room === room)) void refetchRooms();
+});
 ```
 
-4. `useRoomMembers`: replace its `WebSocket` effect with `useRelayFrames(frame => { if (room && frame.topic === \`chat/${room}/msg\`) fetchMembers(); });` and return `{ members: members.map(m => m.handle), refetchMembers: fetchMembers }`.
+4. `useRoomMembers`: replace its `WebSocket` effect with `useRelayFrames(frame => { if (room && frame.topic === \`chat/${room}/msg\`) fetchMembers(); });`and return`{ members: members.map(m => m.handle), refetchMembers: fetchMembers }`.
 5. In `App`: `const { buddies, refetchBuddies } = useBuddies(...)`, `const { members: roomMembers, refetchMembers } = useRoomMembers(...)`, then:
 
 ```tsx
-  // What a sleeping tab missed: rooms first (a room may have appeared),
-  // then the roster, then the open room's members. The transcript refetches
-  // its own tail on the same triggers.
-  const refetchAll = useCallback(async () => {
-    await refetchRooms();
-    refetchBuddies();
-    refetchMembers();
-  }, [refetchRooms, refetchBuddies, refetchMembers]);
-  useRelayOpen(reconnect => {
-    if (reconnect) void refetchAll();
-  });
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void refetchAll();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [refetchAll]);
+// What a sleeping tab missed: rooms first (a room may have appeared),
+// then the roster, then the open room's members. The transcript refetches
+// its own tail on the same triggers.
+const refetchAll = useCallback(async () => {
+  await refetchRooms();
+  refetchBuddies();
+  refetchMembers();
+}, [refetchRooms, refetchBuddies, refetchMembers]);
+useRelayOpen(reconnect => {
+  if (reconnect) void refetchAll();
+});
+useEffect(() => {
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') void refetchAll();
+  };
+  document.addEventListener('visibilitychange', onVisible);
+  return () => document.removeEventListener('visibilitychange', onVisible);
+}, [refetchAll]);
 ```
 
 `fetchBuddies` must not be gated on `seed` for refetches: the mount-only guard stays on the mount effect; `refetchBuddies` calls `fetchBuddies` directly.
@@ -1983,31 +2048,31 @@ In `src/app/App.tsx`:
 In `src/app/Transcript.tsx`: delete the local `wsUrl()`; import `useRelayFrames, useRelayOpen` from `./relay-socket`; replace the `useEffect` that opens the socket with:
 
 ```tsx
-  const refetchTail = useCallback(() => {
-    void fetch(`/api/chat/messages/${room}`)
-      .then(res => res.json())
-      .then((data: { messages?: ChatMessage[] }) => {
-        if (roomRef.current !== room) return;
-        const next = mergeMessages(messagesRef.current, data.messages ?? []);
-        const added = next.length - messagesRef.current.length;
-        if (added > 0 && awayRef.current) setNewSinceAway(n => n + added);
-        setMessages(next);
-      })
-      .catch(() => {});
-  }, [room]);
-  useRelayFrames(frame => {
-    if (frame.topic === `chat/${room}/msg`) refetchTail();
-  });
-  useRelayOpen(reconnect => {
-    if (reconnect) refetchTail();
-  });
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') refetchTail();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [refetchTail]);
+const refetchTail = useCallback(() => {
+  void fetch(`/api/chat/messages/${room}`)
+    .then(res => res.json())
+    .then((data: { messages?: ChatMessage[] }) => {
+      if (roomRef.current !== room) return;
+      const next = mergeMessages(messagesRef.current, data.messages ?? []);
+      const added = next.length - messagesRef.current.length;
+      if (added > 0 && awayRef.current) setNewSinceAway(n => n + added);
+      setMessages(next);
+    })
+    .catch(() => {});
+}, [room]);
+useRelayFrames(frame => {
+  if (frame.topic === `chat/${room}/msg`) refetchTail();
+});
+useRelayOpen(reconnect => {
+  if (reconnect) refetchTail();
+});
+useEffect(() => {
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') refetchTail();
+  };
+  document.addEventListener('visibilitychange', onVisible);
+  return () => document.removeEventListener('visibilitychange', onVisible);
+}, [refetchTail]);
 ```
 
 (`useCallback` joins the react import.) Update the `Transcript` docblock: the frame comes from the page's relay socket, not a socket of its own.
@@ -2026,6 +2091,7 @@ Stage `src/app/App.tsx src/app/Transcript.tsx src/app/App.test.tsx src/app/Trans
 ### Task 8: `MessageMarkdown`: react-markdown + remark-gfm + mentions, the prose module, the vendored face
 
 **Files:**
+
 - Modify: `package.json`, `bun.lock` (deps)
 - Create: `scripts/vendor-plex-sans.mjs`, `public/fonts/ibm-plex-sans-400.woff2`, `-500.woff2`, `-600.woff2`
 - Create: `src/app/transcript-prose.module.css`
@@ -2035,6 +2101,7 @@ Stage `src/app/App.tsx src/app/Transcript.tsx src/app/App.test.tsx src/app/Trans
 - Modify: `src/app/components/CodeBlock.tsx` (a `data-testid`)
 
 **Interfaces:**
+
 - Consumes: `CodeBlock({ code, language, minHeight })` from `src/app/components/CodeBlock.tsx`.
 - Produces:
   - `MessageMarkdown({ body, mentions, humanHandle? })` rendering into `div.prose` is NOT part of this component: it renders the markdown children only; the caller (Task 9) wraps it in the `prose` class and the `message-body` test id.
@@ -2311,7 +2378,7 @@ Expected: three files under `public/fonts/`, each between 20 and 60 KB. (The `/*
 
 `src/app/MessageMarkdown.test.tsx`:
 
-```tsx
+````tsx
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
 import { screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
@@ -2321,7 +2388,11 @@ import { MessageMarkdown } from './MessageMarkdown';
 function render(body: string, mentions: string[] = [], humanHandle?: string) {
   return renderWithProviders(
     <div data-testid="body">
-      <MessageMarkdown body={body} mentions={mentions} humanHandle={humanHandle} />
+      <MessageMarkdown
+        body={body}
+        mentions={mentions}
+        humanHandle={humanHandle}
+      />
     </div>
   );
 }
@@ -2341,7 +2412,9 @@ test('paragraphs, headings, lists, a table, a quote and a rule render as their t
   expect(body.querySelectorAll('ol > li')).toHaveLength(2);
   expect(body.querySelector('table th')).toHaveTextContent('k');
   expect(body.querySelector('table td')).toHaveTextContent('url');
-  expect(body.querySelector('table')!.parentElement!.className).toContain('tbl');
+  expect(body.querySelector('table')!.parentElement!.className).toContain(
+    'tbl'
+  );
   expect(body.querySelector('blockquote')).toHaveTextContent('quoted');
   expect(body.querySelector('hr')).toBeInTheDocument();
   const boxes = body.querySelectorAll('input[type="checkbox"]');
@@ -2377,12 +2450,13 @@ test('raw HTML never renders, an unsafe link loses its href, an image is its alt
   expect(body.querySelector('b')).toBeNull();
   expect(body.querySelector('script')).toBeNull();
   expect(body).toHaveTextContent('before bold after');
-  expect(screen.getByRole('link', { name: 'bad' }).getAttribute('href') ?? '').toBe('');
+  expect(
+    screen.getByRole('link', { name: 'bad' }).getAttribute('href') ?? ''
+  ).toBe('');
   expect(body.querySelector('img')).toBeNull();
-  expect(screen.getByRole('link', { name: 'the failing step' })).toHaveAttribute(
-    'href',
-    'https://x.test/shot.png'
-  );
+  expect(
+    screen.getByRole('link', { name: 'the failing step' })
+  ).toHaveAttribute('href', 'https://x.test/shot.png');
 });
 
 test('a fenced block renders through CodeBlock with its language and text', async () => {
@@ -2395,17 +2469,21 @@ test('a fenced block renders through CodeBlock with its language and text', asyn
 
 test('mentions: only listed handles, never inside code, the human washed', () => {
   render('`@matt` and @matt and @fred and @matthew', ['matt'], 'matt');
-  const mentions = screen.getByTestId('body').querySelectorAll('[data-mention]');
+  const mentions = screen
+    .getByTestId('body')
+    .querySelectorAll('[data-mention]');
   expect(mentions).toHaveLength(1);
   expect(mentions[0]).toHaveTextContent('@matt');
   expect(mentions[0]).toHaveAttribute('data-me', 'true');
   expect(screen.getByText('@fred', { exact: false })).toBeInTheDocument();
   render('@fred ping', ['fred'], 'matt');
-  const fred = screen.getAllByTestId('body')[1]!.querySelector('[data-mention]')!;
+  const fred = screen
+    .getAllByTestId('body')[1]!
+    .querySelector('[data-mention]')!;
   expect(fred).toHaveAttribute('data-mention', 'fred');
   expect(fred).not.toHaveAttribute('data-me');
 });
-```
+````
 
 - [ ] **Step 4: Run it to see it fail**
 
@@ -2455,7 +2533,10 @@ export function remarkMentions(options: MentionOptions) {
       pattern.lastIndex = 0;
       while ((match = pattern.exec(node.value))) {
         if (match.index > last) {
-          parts.push({ type: 'text', value: node.value.slice(last, match.index) });
+          parts.push({
+            type: 'text',
+            value: node.value.slice(last, match.index),
+          });
         }
         const handle = match[1]!;
         const isMe = handle === me;
@@ -2502,14 +2583,21 @@ import classes from './transcript-prose.module.css';
 const CODE_LINE_PX = 20.7;
 const CODE_PAD_PX = 9.6;
 
-function fenceOf(node: Element | undefined): { code: string; language: string } {
+function fenceOf(node: Element | undefined): {
+  code: string;
+  language: string;
+} {
   const codeEl = node?.children.find(
-    (child): child is Element => child.type === 'element' && child.tagName === 'code'
+    (child): child is Element =>
+      child.type === 'element' && child.tagName === 'code'
   );
   const raw = codeEl?.properties?.className;
-  const names = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).map(String);
+  const names = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).map(
+    String
+  );
   const language =
-    names.find(n => n.startsWith('language-'))?.slice('language-'.length) ?? 'text';
+    names.find(n => n.startsWith('language-'))?.slice('language-'.length) ??
+    'text';
   const code = (codeEl?.children ?? [])
     .map(child => (child.type === 'text' ? child.value : ''))
     .join('')
@@ -2518,11 +2606,17 @@ function fenceOf(node: Element | undefined): { code: string; language: string } 
 }
 
 const components: Components = {
-  a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
+  a: ({ node: _node, ...props }) => (
+    <a {...props} target="_blank" rel="noreferrer" />
+  ),
   // The viewer never fetches a third-party URL: an image is its alt text,
   // linking to the file for whoever wants it.
   img: ({ src, alt }) => (
-    <a href={typeof src === 'string' ? src : undefined} target="_blank" rel="noreferrer">
+    <a
+      href={typeof src === 'string' ? src : undefined}
+      target="_blank"
+      rel="noreferrer"
+    >
       {alt || 'image'}
     </a>
   ),
@@ -2533,7 +2627,10 @@ const components: Components = {
       <CodeBlock
         code={code}
         language={language}
-        minHeight={Math.min(400, Math.round(lines * CODE_LINE_PX + CODE_PAD_PX))}
+        minHeight={Math.min(
+          400,
+          Math.round(lines * CODE_LINE_PX + CODE_PAD_PX)
+        )}
       />
     );
   },
@@ -2552,7 +2649,11 @@ export interface MessageMarkdownProps {
 
 /** One message body. Raw HTML is skipped, links keep react-markdown's
     default protocol allowlist, and the caller supplies the `prose` wrapper. */
-export function MessageMarkdown({ body, mentions, humanHandle }: MessageMarkdownProps) {
+export function MessageMarkdown({
+  body,
+  mentions,
+  humanHandle,
+}: MessageMarkdownProps) {
   const remarkPlugins = useMemo<NonNullable<Options['remarkPlugins']>>(
     () => [
       remarkGfm,
@@ -2597,6 +2698,7 @@ Stage `package.json bun.lock scripts/vendor-plex-sans.mjs public/fonts src/app/t
 ### Task 9: The transcript renders through `MessageMarkdown` in a reading column; the parser goes
 
 **Files:**
+
 - Create: `src/app/human.ts`
 - Modify: `src/app/Transcript.tsx`
 - Modify: `src/app/transcript-body.module.css` (delete; its `.fold` moved to the prose module)
@@ -2604,6 +2706,7 @@ Stage `package.json bun.lock scripts/vendor-plex-sans.mjs public/fonts src/app/t
 - Modify: `src/app/App.tsx` (pass `humanHandle`)
 
 **Interfaces:**
+
 - Consumes: `MessageMarkdown`, the prose module classes (Task 8).
 - Produces: `HUMAN_HANDLE` in `src/app/human.ts`; `Transcript` unchanged in props; each message row carries `data-mine="true"` when its handle is the human's; the list and the footer sit inside `div[data-testid="transcript-column"]` (`.col`); the body wrapper keeps `data-testid="message-body"` and now carries the `prose` class.
 
@@ -2706,15 +2809,15 @@ In `src/app/Transcript.tsx`:
 3. Replace `MessageBody`'s `body` element with:
 
 ```tsx
-  const body = (
-    <div ref={bodyRef} data-testid="message-body" className={prose.prose}>
-      <MessageMarkdown
-        body={message.body}
-        mentions={message.mentions}
-        humanHandle={humanHandle}
-      />
-    </div>
-  );
+const body = (
+  <div ref={bodyRef} data-testid="message-body" className={prose.prose}>
+    <MessageMarkdown
+      body={message.body}
+      mentions={message.mentions}
+      humanHandle={humanHandle}
+    />
+  </div>
+);
 ```
 
 and the fold wrapper's class from `bodyClasses.fold` to `prose.fold`.
@@ -2809,10 +2912,12 @@ Stage `src/app/human.ts src/app/Transcript.tsx src/app/Transcript.test.tsx src/a
 ### Task 10: The artboards, spec, audit and docs adopt Reader
 
 **Files:**
+
 - Modify: `design/build.py` (shared CSS, `MSGS`, `transcript`, `dm_transcript`, `head`), `design/spec.json` (regenerated), `design/audit.mjs`, `design/artboards/*.dc.html` (regenerated)
 - Modify: `design/ANATOMY.md`, `design/CONFORMANCE.md`, `ARCHITECTURE.md`
 
 **Interfaces:**
+
 - Consumes: test ids from Task 9 (`transcript-column`, `message-<id>`, `message-body`, `code-block`, `data-mine`).
 - Produces: spec selectors `.col`, `.msg`, `.hdr`, `.prose`, `.prose h1`, `.prose h2`, `.prose h3`, `.prose ul, .prose ol`, `.prose code`, `.prose table`, `.prose th, .prose td`, `.prose blockquote`, `.ch`, `.ch pre`, `.msg.mine .prose`, `.at`, `.at.me`, `.fold`, `.more`.
 
@@ -3088,9 +3193,11 @@ Stage `design/build.py design/spec.json design/audit.mjs design/artboards design
 ### Task 11: Fixtures, the full gate, the browser audit, the PR
 
 **Files:**
+
 - Modify: `src/server/fixtures.ts`, `src/server/fixtures.test.ts`
 
 **Interfaces:**
+
 - Consumes: everything above.
 - Produces: a fixture transcript that mounts every audit target; a green PR.
 
@@ -3117,9 +3224,9 @@ In `src/server/fixtures.ts`'s `fixtureMessages`, inside the `build` branch, add 
 (Adjust the `minsAgo` values so the order stays chronological with the neighbours.) In `src/server/fixtures.test.ts`, extend `the build transcript carries the wide code block on purpose` with:
 
 ```ts
-  const structured = msgs.find(m => m.body.includes('### Confirmed'));
-  expect(structured?.body).toContain('| check | state |');
-  expect(msgs.some(m => m.handle === 'matt')).toBe(true);
+const structured = msgs.find(m => m.body.includes('### Confirmed'));
+expect(structured?.body).toContain('| check | state |');
+expect(msgs.some(m => m.handle === 'matt')).toBe(true);
 ```
 
 Run: `bunx vitest run src/server/fixtures.test.ts`
