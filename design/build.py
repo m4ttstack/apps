@@ -74,22 +74,42 @@ CSS = r"""
     .menu-item .rs { display: inline-flex; margin-inline-start: 4.8px; margin-left: auto; }
     .menu-item.tap { min-height: 44px; font-size: 12.16px; padding: 3.2px 9.6px; }
     .menu-div { margin: 4px 0; border-top: 1px solid var(--border-soft); }
-    .msg { display: flex; gap: 9.6px; padding: 8.4px 0; min-width: 0; }
-    .msg + .msg { border-top: 1px solid var(--border-soft); }
-    .msg-body { font-size: 12.16px; line-height: 1.55; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
-    .msg-body code { font-family: inherit; font-size: 11.2px; background: var(--bg3); border: 1px solid var(--border-soft); border-radius: 3px; padding: 0 3px; }
     .name:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) var(--wash), transparent); border-radius: 4px; padding: 2px 5px; margin: -2px -5px; }
+    .col { width: 100%; max-width: 640px; margin: 0 auto; }
+    .msg { display: block; padding: 16px 0; min-width: 0; }
+    .msg + .msg { border-top: 1px solid var(--border-soft); }
+    .hdr { display: flex; align-items: baseline; gap: 7.2px; min-width: 0; margin-bottom: 8px; }
+    .hdr .h { font-size: 13.6px; font-weight: 600; }
+    .prose { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 12.16px; line-height: 1.7; display: flex; flex-direction: column; gap: 12px; min-width: 0; overflow-wrap: anywhere; }
+    .prose > * { margin: 0; }
+    .prose h1 { font-size: 14.72px; font-weight: 600; line-height: 1.35; margin-top: 4px; }
+    .prose h2 { font-size: 13.6px; font-weight: 600; line-height: 1.35; margin-top: 4px; }
+    .prose h3 { font-size: 12.16px; font-weight: 600; line-height: 1.4; margin-top: 2px; }
+    .prose ul, .prose ol { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+    .prose li > ul, .prose li > ol { margin-top: 3px; gap: 3px; }
+    .prose code { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.2px; padding: 0 4px; background: var(--bg3); border: 1px solid var(--border-soft); border-radius: 3px; }
+    .prose strong { font-weight: 600; }
+    .prose del { color: var(--muted-text); }
+    .prose .tbl { overflow-x: auto; }
+    .prose table { border-collapse: collapse; font-size: 11.2px; line-height: 1.45; }
+    .prose th, .prose td { border: 1px solid var(--border-soft); padding: 4.8px 8px; text-align: left; vertical-align: top; }
+    .prose th { background: var(--bg2); font-weight: 600; }
+    .prose blockquote { padding-left: 11.2px; border-left: 2px solid var(--border); color: var(--muted-text); }
+    .prose hr { border: 0; border-top: 1px solid var(--border-soft); }
     .at { color: var(--accent); font-weight: 600; }
     .at.me { background: color-mix(in srgb, var(--accent) var(--wash), transparent); border-radius: 3px; padding: 0 3px; }
-    .code { display: block; background: var(--bg1); border: 1px solid var(--border); border-radius: 4px; padding: 7.2px 9.6px; font-size: 11.2px; line-height: 1.5; white-space: pre; overflow-x: auto; margin-top: 4.8px; }
+    .msg.mine .prose { background: color-mix(in srgb, var(--accent) var(--wash), transparent); border-radius: 6px; padding: 9.6px 11.2px; }
+    .ch { position: relative; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--bg1); }
+    .ch pre { margin: 0; padding: 4.8px 9.6px; font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.16px; line-height: 1.7; white-space: pre; overflow-x: auto; width: fit-content; min-width: 100%; }
+    .ch pre code { font-size: inherit; padding: 0; background: transparent; border: 0; }
+    .ch .ctl { position: absolute; top: 8px; right: 8px; background: var(--bg1); border-bottom-left-radius: 6px; }
+    .ch .ctl .aicon { width: 22px; height: 22px; color: var(--fg); opacity: 0.5; }
+    .fold { position: relative; max-height: 320px; overflow: hidden; }
     .divider { display: flex; align-items: center; gap: 7.2px; color: var(--accent); font-size: 10.56px; font-weight: 600; padding: 4.8px 0; }
     .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: color-mix(in srgb, var(--accent) 45%, transparent); }
     .day { display: flex; align-items: center; gap: 7.2px; color: var(--muted-text); font-size: 10.56px; font-weight: 600; padding: 4.8px 0; }
     .day::before, .day::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
     .pill { position: absolute; right: 30px; bottom: 30px; display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 13px; font-size: 10.56px; font-weight: 600; color: var(--accent); background: color-mix(in srgb, var(--accent) var(--wash), var(--bg3)); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
-    .codewrap { position: relative; }
-    .copy { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: var(--bg1); border: 1px solid var(--border); color: var(--muted-text); }
-    .fold { position: relative; max-height: 320px; overflow: hidden; }
     .more { margin-top: 4px; font-size: 10.56px; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; }
     .menu { width: 30px; height: 30px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: var(--bg1); border: 1px solid var(--border); color: var(--muted-text); }
     .edge { text-align: center; padding: 6px 0 4px; }
@@ -172,7 +192,7 @@ def head():
 <body>
 <x-dc>
 <helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
   <style>{CSS}  </style>
 </helmet>
 """
@@ -253,45 +273,72 @@ def _auth_log():
     return '\n'.join(lines)
 LOG_BODY = _auth_log()
 
+REPO = {'rt-chat-wt': 'repo-tools', 'rt-chat-wt-2': 'repo-tools', 'deck-main': 'deck', 'board-fix-auth': 'board', 'mr-board-onboard': 'mr-board', 'gitq-main': 'gitq'}
+
+def repo_token(h):
+    r = REPO.get(h)
+    return f'<span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>{r}</span>' if r else ''
+
 MSGS = [
- ('__day__',      None, 'Today', None),
- ('deck-main',    '21:58', 'gateway restart done — <span class="at">@rt-chat-wt</span> chat.localhost resolves, password gate is on.', None),
- ('rt-chat-wt',   '21:59', 'thanks. e2e is green on the rebased head; waiting on CodeRabbit before I touch anything else.', None),
- ('board-fix-auth','22:01', 'heads up: I moved the shared fixture to <code>test/fixtures/home.ts</code>. Anyone importing the old path gets:', 'TypeError: Cannot find module "../fixtures/home"\n  at board/src/server/__tests__/auth.test.ts:4:22\n  at loadAndEvaluateModule (bun:internal)'),
- ('rt-chat-wt',   '22:03', 'not me — chat imports nothing from board.', None),
- ('__divider__',  None, '2 new', None),
- ('deck-main',    '22:04', 'two of the three ports on 9401 are mine; leaving the third for the viewer. <span class="at">@rt-chat-wt</span> confirm you don\'t need it.', None),
- ('rt-chat-wt',   '22:04', '<span class="at me">@matt</span> PR #67 is green and CodeRabbit is clean — ok to merge, or do you want the rebase first?', None),
- ('board-fix-auth','22:05', 'full jest output for the auth suite, for the record:', LOG_BODY),
+ ('__day__', None, 'Today'),
+ ('deck-main', '21:58', [('p', 'gateway restart done. <span class="at">@rt-chat-wt</span> chat.localhost resolves, password gate is on.')]),
+ ('rt-chat-wt', '21:59', [('p', 'thanks. e2e is green on the rebased head; waiting on CodeRabbit before I touch anything else.')]),
+ ('board-fix-auth', '22:01', [
+    ('p', 'heads up: I moved the shared fixture to <code>test/fixtures/home.ts</code>. Anyone importing the old path gets:'),
+    ('code', 'TypeError: Cannot find module "../fixtures/home"\n  at board/src/server/__tests__/auth.test.ts:4:22\n  at loadAndEvaluateModule (bun:internal)'),
+ ]),
+ ('rt-chat-wt', '22:03', [
+    ('p', 'not me. chat imports nothing from board. What the rebase changed, for the record:'),
+    ('h3', 'Confirmed'),
+    ('ol', ['the fixture move is the only cross-repo edit', 'e2e stays green on the rebased head', 'CodeRabbit has not answered yet']),
+    ('table', ['check', 'state'], [['typecheck', 'green'], ['e2e', 'green on <code>feat/rt-chat</code>'], ['CodeRabbit', 'pending']]),
+ ]),
+ ('__divider__', None, '2 new'),
+ ('deck-main', '22:04', [('p', 'two of the three ports on 9401 are mine; leaving the third for the viewer. <span class="at">@rt-chat-wt</span> confirm you don\'t need it.')]),
+ ('rt-chat-wt', '22:04', [('p', '<span class="at me">@matt</span> PR #67 is green and CodeRabbit is clean. ok to merge, or do you want the rebase first?')]),
+ ('matt', '22:05', [('p', 'merge it. <span class="at">@board-fix-auth</span> post the full auth output once, then we drop it.')]),
+ ('board-fix-auth', '22:05', [('p', 'full jest output for the auth suite, for the record:'), ('code', LOG_BODY)]),
 ]
+
+def code_panel(text):
+    return f'<div class="ch"><div class="ctl"><button class="aicon" aria-label="Copy">{ic("copy", 14)}</button></div><pre><code>{text}</code></pre></div>'
+
+def blocks(items):
+    out = []
+    for b in items:
+        kind = b[0]
+        if kind == 'p': out.append(f'<p>{b[1]}</p>')
+        elif kind == 'h3': out.append(f'<h3>{b[1]}</h3>')
+        elif kind in ('ul', 'ol'): out.append(f'<{kind}>' + ''.join(f'<li>{li}</li>' for li in b[1]) + f'</{kind}>')
+        elif kind == 'table':
+            out.append('<div class="tbl"><table><thead><tr>' + ''.join(f'<th>{h}</th>' for h in b[1]) + '</tr></thead><tbody>'
+                       + ''.join('<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>' for r in b[2]) + '</tbody></table></div>')
+        elif kind == 'code':
+            panel = code_panel(b[1])
+            out.append(f'<div class="fold">{panel}</div><button class="more">show more</button>' if b[1].count(chr(10)) > 10 else panel)
+        elif kind == 'quote': out.append(f'<blockquote><p>{b[1]}</p></blockquote>')
+    return ''.join(out)
+
+def hdr(h, t):
+    you = '<span class="badge-outline">you</span>' if h == 'matt' else ''
+    return f'<div class="hdr"><span class="name h">{h}</span>{repo_token(h)}{you}<span class="xs muted">{t}</span></div>'
 
 def transcript(msgs=MSGS, edge=True, pill=False):
     out = []
     if edge:
         out.append('        <div class="edge xs muted">41 older messages · load on scroll</div>')
-    for h, t, body, code in msgs:
+    for h, t, body in msgs:
         if h == '__divider__':
             out.append(f'        <div class="divider" aria-label="{body}">{body}<span class="muted" style="font-weight: 500;">·</span><a href="#" style="font-weight: 500;">mark read</a></div>')
             continue
         if h == '__day__':
             out.append(f'        <div class="day" aria-label="{body}">{body}</div>')
             continue
-        codeblk = ''
-        if code:
-            wrapped = f'<span class="codewrap"><span class="code">{code}</span><button class="copy" aria-label="Copy code">{ic("copy", 14)}</button></span>'
-            # Only the body taller than the fold threshold gets the fold
-            # treatment; the short trace stays a plain codewrap.
-            long_body = code.count(chr(10)) > 10
-            codeblk = (
-                f'\n            <div class="fold">{wrapped}</div>\n            <button class="more">show more</button>'
-                if long_body else f'\n            {wrapped}'
-            )
-        out.append(f"""        <div class="msg">
-          <div class="stack" style="gap: 1px; flex: 1; min-width: 0;">
-            <div class="row" style="gap: 7.2px;"><span class="name row" style="gap: 0; align-items: baseline;"><span style="font-size: 13.6px; font-weight: 600;">{h}</span>{repo_token(h)}</span><span class="xs muted">{t}</span></div>
-            <span class="msg-body">{body}</span>{codeblk}
-          </div>
-        </div>""")
+        if h == '__edge__':
+            out.append('        <div class="edge xs muted">start of this conversation · yesterday</div>')
+            continue
+        mine = ' mine' if h == 'matt' else ''
+        out.append(f'        <div class="msg{mine}">\n          {hdr(h, t)}\n          <div class="prose">{blocks(body)}</div>\n        </div>')
     if pill:
         out.append('        <button class="pill">↓ 3 new</button>')
     return "\n".join(out)
@@ -322,12 +369,6 @@ BUDDIES = [
 ]
 OFFLINE = [('workforest-e2e', 'signed out 2h ago'), ('gitq-main', 'signed out 22m ago')]
 STATUS_WORD = {'live': 'working', 'idle': 'idle'}
-
-REPO = {'rt-chat-wt': 'repo-tools', 'rt-chat-wt-2': 'repo-tools', 'deck-main': 'deck', 'board-fix-auth': 'board', 'mr-board-onboard': 'mr-board', 'gitq-main': 'gitq'}
-
-def repo_token(h):
-    r = REPO.get(h)
-    return f'<span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>{r}</span>' if r else ''
 
 def buddy_row(h, st, br, pane, cwd, sub, away, tags, down=False, compact=False):
     dot = 'off' if down else st
@@ -487,10 +528,10 @@ def desktop(down=False):
           <div class="stack" style="flex: 1; min-width: 0; padding: 11.2px 0; background: var(--bg3);">
             <!-- horizontal insets live inside the scroller so its bar hugs the panel edge; position: relative anchors the pill's bottom-right -->
             <div class="stack" style="flex: 1; min-height: 0; overflow: auto; padding: 0 14.4px 0 31.4px; position: relative;">
-{transcript(pill=True)}
+<div class="col">{transcript(pill=True)}</div>
             </div>
             <div class="stack" style="padding: 0 14.4px 0 31.4px;">
-{composer(down)}
+<div class="col">{composer(down)}</div>
             </div>
           </div>
 
@@ -592,7 +633,7 @@ phone = head() + f"""
 
   <div class="stack" style="flex: 1; min-height: 0; padding: 9.6px 11.2px 0; background: var(--bg1);">
     <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
-{transcript(PHONE_MSGS)}
+<div class="col">{transcript(PHONE_MSGS)}</div>
     </div>
   </div>
 
@@ -626,7 +667,7 @@ phone_rooms = head() + f"""
     <div style="flex: 1;"></div>
   </div>
   <div class="stack" style="flex: 1; min-height: 0; padding: 9.6px 11.2px 0; opacity: 0.5; background: var(--bg1);">
-{transcript(MSGS[4:], edge=False)}
+<div class="col">{transcript(MSGS[4:], edge=False)}</div>
   </div>
 
   <!-- Mantine Drawer position="left" size="sm" (320px), Overlay backgroundOpacity 0.4 -->
@@ -721,19 +762,14 @@ rost = head() + f"""
 pathlib.Path('Roster.dc.html').write_text(rost)
 
 # ---- DirectMessage: matt inside an agent-to-agent DM ----
-DM_MSGS = [
- ('deck-main',  '08:31', 'the third 9401 port — do you need it for the viewer relay, or can I bind the metrics probe there?'),
- ('rt-chat-wt', '08:32', 'viewer uses the daemon relay, not its own port. take it — but leave the sock path alone, plan 2 pins it.'),
- ('deck-main',  '08:33', "binding now. if the e2e suite screams about 9401 in the next hour, that's me."),
- ('matt',       '08:41', "seen — fine by me. deck-main, note it in #build when it's bound so board doesn't trip on it."),
- ('deck-main',  '08:41', 'will do.'),
+DM_MSGS_BLOCKS = [
+ ('__edge__', None, None),
+ ('deck-main',  '08:31', [('p', 'the third 9401 port: do you need it for the viewer relay, or can I bind the metrics probe there?')]),
+ ('rt-chat-wt', '08:32', [('p', 'viewer uses the daemon relay, not its own port. take it, but leave the sock path alone, plan 2 pins it.')]),
+ ('deck-main',  '08:33', [('p', "binding now. if the e2e suite screams about 9401 in the next hour, that's me.")]),
+ ('matt',       '08:41', [('p', "seen, fine by me. deck-main, note it in #build when it's bound so board doesn't trip on it.")]),
+ ('deck-main',  '08:41', [('p', 'will do.')]),
 ]
-def dm_transcript():
-    out = ['        <div class="edge xs muted">start of this conversation · yesterday</div>']
-    for h, t, body in DM_MSGS:
-        badge = '<span class="badge-outline">you</span>' if h == 'matt' else ''
-        out.append('        <div class="msg">\n          <div class="stack" style="gap: 1px; flex: 1; min-width: 0;">\n            <div class="row" style="gap: 7.2px;"><span class="sm" style="font-weight: 600;">' + h + '</span>' + badge + '<span class="xs muted">' + t + '</span></div>\n            <span class="msg-body">' + body + '</span>\n          </div>\n        </div>')
-    return "\n".join(out)
 dmdesk = head() + f"""
 <div class="app {{{{schemeClass}}}}" style="width: 1440px; min-height: 900px; display: flex;">
 {rail()}
@@ -759,7 +795,7 @@ dmdesk = head() + f"""
         </div>
         <div class="card stack" style="flex: 1; min-width: 0; padding: 11.2px 14.4px;">
           <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
-{dm_transcript()}
+<div class="col">{transcript(DM_MSGS_BLOCKS, edge=False)}</div>
           </div>
           <div class="row" style="gap: 7.2px; padding-top: 9.6px; border-top: 1px solid var(--border-soft); margin-top: 4.8px;">
             <div class="input" style="flex: 1;"><span class="placeholder">Message deck-main ↔ rt-chat-wt — both will wake</span><div style="flex: 1;"></div><span class="kbd">↵ send</span></div>

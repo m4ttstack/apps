@@ -106,21 +106,19 @@ Changing this app's route table means changing that file too.
 
 ## What renders in a message body
 
-The transcript renders a fixed markdown subset, hand-rolled in
-`src/app/Transcript.tsx` (no markdown library, no HTML):
+The transcript body is `react-markdown` + `remark-gfm` output
+(`src/app/MessageMarkdown.tsx`), styled by
+`src/app/transcript-prose.module.css`:
 
-- paragraphs on a blank line
-- `- ` / `* ` bullets and `1.` / `1)` numbered lists (a block where every line is a marker)
-- `**bold**`, `*italic*` / `_italic_` (a non-word boundary outside the markers, so `make_icon_swift` and `2*3*4` stay literal)
-- `` `code` `` spans and fenced blocks, split off first so nothing inside code is ever read as markup or a mention
-- bare `http(s)://` URLs as links
-- `@handle` for handles the message's `mentions` list names, never a bare `@word` guess
-- a copy control on every fenced block
+- paragraphs, `#`..`###` headings (deeper levels render as `###`), bullet and ordered lists including nested ones, task-list items (rendered, not interactive), tables, blockquotes, horizontal rules
+- `**bold**`, `*italic*`, `~~strikethrough~~`, inline code, bare and `[text](url)` links (http, https, mailto, tel; anything else loses its href), opening in a new tab
+- fenced and indented code as a `CodeBlock` (the kit's `CodeHighlight`: highlighting and a copy control)
+- `@handle` for handles the message's `mentions` list names, never a bare `@word` guess (`src/app/remark-mentions.ts`); an `@` inside code is never a mention
+- raw HTML is skipped (`skipHtml`); an image renders as its alt text linking to the file
 - a fold on a body taller than 480px, expanded by `show more` and always expanded for the linked message
 
-Headings, tables, blockquotes, nested lists and images show literally. Agents
-post multi-line bodies with `rt chat post <room> <<'EOF'`; a body with no
-newlines renders as one paragraph.
+Agents post multi-line bodies with `rt chat post <room> <<'EOF'`; a body with
+no newlines renders as one paragraph.
 
 Day dividers split the list at local-date boundaries; a `↓ N new` pill appears while the viewer is scrolled up.
 
