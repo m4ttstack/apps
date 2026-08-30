@@ -437,14 +437,12 @@ function PhoneHeader({
   buddies,
   reachable,
   onOpenDrawer,
-  memberHandles,
   onArchive,
 }: {
   room: RoomSummary | undefined;
   buddies: Buddy[];
   reachable: boolean;
   onOpenDrawer: () => void;
-  memberHandles: string[];
   onArchive: (room: string, archived: boolean) => void;
 }) {
   const live = buddies.filter(b => b.status === 'live').length;
@@ -519,8 +517,7 @@ function PhoneHeader({
       {room && (
         <RoomMenu
           room={room}
-          memberHandles={memberHandles}
-          onArchive={onArchive}
+          onClose={room => onArchive(room, true)}
           size={PHONE_TAP}
         />
       )}
@@ -931,7 +928,6 @@ function PhoneChat({
         buddies={buddies}
         reachable={daemon.reachable}
         onOpenDrawer={() => setDrawerOpen(true)}
-        memberHandles={roomMembers}
         onArchive={onArchive}
       />
 
@@ -1125,8 +1121,7 @@ function ChatPage({
                 onOrderChange={setRoomOrder}
                 onMarkRead={() => void refetchRooms()}
                 onAddAgents={panesAvailable ? addAgents : undefined}
-                memberHandles={roomMembers}
-                onArchive={onArchive}
+                onClose={room => onArchive(room, true)}
               />
             </PageShell.Header>
           )}

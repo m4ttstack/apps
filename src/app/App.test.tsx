@@ -632,8 +632,7 @@ test('archiving the active room navigates away when it vanishes from the refetch
     />
   );
   await userEvent.click(screen.getByTestId('room-menu'));
-  await userEvent.click(await screen.findByTestId('room-menu-archive'));
-  await userEvent.click(screen.getByRole('button', { name: 'Archive' }));
+  await userEvent.click(await screen.findByTestId('room-menu-close'));
 
   await waitFor(() => expect(window.location.pathname).toBe('/r/build'));
   expect(
