@@ -39,6 +39,7 @@ import { postMarkRead } from './mark-read';
 import { NewRoomModal } from './NewRoomModal';
 import { PageBar, RoomMenu, type RoomOrder } from './PageBar';
 import { PanePickerProvider, usePanePicker } from './PanePicker';
+import { useRelayFrames, useRelayOpen } from './relay-socket';
 import { RoomRail } from './RoomRail';
 import { Roster, type RosterBuddy } from './Roster';
 import { useAppRoute, useHash } from './routes';
@@ -68,12 +69,6 @@ export interface AppInitialState {
   messages?: ChatMessage[];
 }
 
-function wsUrl(): string {
-  if (typeof window === 'undefined') return '';
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${proto}://${window.location.host}/ws`;
-}
-
 /** A `chat/<room>/msg` relay topic -- the only frame the daemon still emits
     for chat (delivery v2 dropped the separate `chat/wake/<handle>` relay). */
 function isMsgTopic(topic: unknown): topic is string {
@@ -87,12 +82,16 @@ function isMsgTopic(topic: unknown): topic is string {
 /**
  * Fetches the buddy roster on mount (skipped when `seed` replaces it, the
  * same test seam `useDaemonHealth` reads), every 5s, and again on any
- * `chat/<room>/msg` relay frame. A post is a hint a buddy's presence may
- * have moved (it is the daemon's own signal that a session touched
- * something), not that its status changed -- the daemon still owns status,
- * always -- but it is worth refreshing before the next scheduled poll.
+ * `chat/<room>/msg` frame from the page's relay socket. A post is a hint a
+ * buddy's presence may have moved (it is the daemon's own signal that a
+ * session touched something), not that its status changed -- the daemon
+ * still owns status, always -- but it is worth refreshing before the next
+ * scheduled poll.
  */
-function useBuddies(seed: Buddy[] | undefined): Buddy[] {
+function useBuddies(seed: Buddy[] | undefined): {
+  buddies: Buddy[];
+  refetchBuddies: () => void;
+} {
   const [buddies, setBuddies] = useState<Buddy[]>(seed ?? []);
 
   const fetchBuddies = useCallback(() => {
@@ -111,21 +110,11 @@ function useBuddies(seed: Buddy[] | undefined): Buddy[] {
 
   useInterval(fetchBuddies, 5000);
 
-  useEffect(() => {
-    const socket = new WebSocket(wsUrl());
-    socket.onmessage = event => {
-      let frame: { topic?: unknown } | undefined;
-      try {
-        frame = JSON.parse(String((event as { data: unknown }).data));
-      } catch {
-        return;
-      }
-      if (isMsgTopic(frame?.topic)) fetchBuddies();
-    };
-    return () => socket.close();
-  }, [fetchBuddies]);
+  useRelayFrames(frame => {
+    if (isMsgTopic(frame.topic)) fetchBuddies();
+  });
 
-  return buddies;
+  return { buddies, refetchBuddies: fetchBuddies };
 }
 
 /**
@@ -158,6 +147,16 @@ function useRooms(seed: RoomSummary[] | undefined) {
     // Mount-only, same reasoning as useBuddies.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const roomsRef = useRef(rooms);
+  roomsRef.current = rooms;
+  // A post into a room this list has never seen is the daemon's only signal
+  // that a room exists now; refetch at once instead of waiting for the poll.
+  useRelayFrames(frame => {
+    if (!isMsgTopic(frame.topic)) return;
+    const room = frame.topic.slice('chat/'.length, -'/msg'.length);
+    if (!roomsRef.current.some(r => r.room === room)) void refetchRooms();
+  });
 
   return { rooms, setRooms, refetchRooms };
 }
@@ -222,7 +221,7 @@ function useMessages(
 function useRoomMembers(
   room: string | undefined,
   seed: ChatMember[] | undefined
-): string[] {
+): { members: string[]; refetchMembers: () => void } {
   const [members, setMembers] = useState<ChatMember[]>(seed ?? []);
   // Same one-shot rule as useMessages: pending until the first defined room.
   const seedPending = useRef(seed !== undefined);
@@ -254,23 +253,11 @@ function useRoomMembers(
 
   // A post is the one signal an arriving member makes: the join skill's
   // first line. The daemon emits no membership frame, so this is the hook.
-  useEffect(() => {
-    if (!room) return;
-    const expectedTopic = `chat/${room}/msg`;
-    const socket = new WebSocket(wsUrl());
-    socket.onmessage = event => {
-      let frame: { topic?: unknown } | undefined;
-      try {
-        frame = JSON.parse(String((event as { data: unknown }).data));
-      } catch {
-        return;
-      }
-      if (frame?.topic === expectedTopic) fetchMembers();
-    };
-    return () => socket.close();
-  }, [room, fetchMembers]);
+  useRelayFrames(frame => {
+    if (room && frame.topic === `chat/${room}/msg`) fetchMembers();
+  });
 
-  return members.map(m => m.handle);
+  return { members: members.map(m => m.handle), refetchMembers: fetchMembers };
 }
 
 /**
@@ -1158,10 +1145,11 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
   const [path] = useLocation();
   const route = useAppRoute();
   const daemon = useDaemonHealth(initialState?.daemonReachable);
-  const buddies = useBuddies(initialState?.buddies);
+  const { buddies, refetchBuddies } = useBuddies(initialState?.buddies);
   const { rooms, setRooms, refetchRooms } = useRooms(initialState?.rooms);
-  // Keeps the rail's unread/mention counts and membership current between
-  // websocket-driven refreshes. Matches the buddies/daemon 5s cadence.
+  // The floor beneath the relay-driven refreshes below: a poll that still
+  // runs even if a frame is missed, a reconnect never fires, or the tab
+  // never blurs long enough to trigger the visibility refetch.
   useInterval(refetchRooms, 5000);
   const routeRoom = route.name === 'room' ? route.room : undefined;
   const [activeRoom, setActiveRoom] = useState<string | undefined>(routeRoom);
@@ -1282,8 +1270,30 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
   const railRooms = visibleRooms(orderedRooms, activeRoom);
 
   const messages = useMessages(activeRoom, initialState?.messages);
-  const roomMembers = useRoomMembers(activeRoom, initialState?.members);
+  const { members: roomMembers, refetchMembers } = useRoomMembers(
+    activeRoom,
+    initialState?.members
+  );
   const activeRoomSummary = rooms.find(r => r.room === activeRoom);
+
+  // What a sleeping tab missed: rooms first (a room may have appeared),
+  // then the roster, then the open room's members. The transcript refetches
+  // its own tail on the same triggers.
+  const refetchAll = useCallback(async () => {
+    await refetchRooms();
+    refetchBuddies();
+    refetchMembers();
+  }, [refetchRooms, refetchBuddies, refetchMembers]);
+  useRelayOpen(reconnect => {
+    if (reconnect) void refetchAll();
+  });
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refetchAll();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [refetchAll]);
 
   // Each route change starts at the top of the new page.
   useEffect(() => {

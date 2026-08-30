@@ -1,4 +1,11 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import {
   Box,
@@ -14,6 +21,7 @@ import ScrollToBottom, { useAtTop } from 'react-scroll-to-bottom';
 import { AgentName } from './AgentName';
 import { dayKey, dayLabel } from './day-label';
 import { NewPill } from './NewPill';
+import { useRelayFrames, useRelayOpen } from './relay-socket';
 import bodyClasses from './transcript-body.module.css';
 import scrollClasses from './transcript-scroll.module.css';
 
@@ -527,12 +535,6 @@ function OlderEdge({
   );
 }
 
-function wsUrl(): string {
-  if (typeof window === 'undefined') return '';
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${proto}://${window.location.host}/ws`;
-}
-
 /** Dedupes incoming messages by id and keeps the list ordered -- a WS frame
     is a pointer, so the tail refetch it triggers may re-deliver rows the
     caller already has. */
@@ -549,13 +551,14 @@ function mergeMessages(
 }
 
 /**
- * The live transcript: message rows in one card, a WS-driven tail refetch
- * on a doorbell frame for THIS room, and an optional read-cursor divider.
+ * The live transcript: message rows in one card, a tail refetch on a
+ * doorbell frame for THIS room from the page's relay socket (not a socket
+ * of its own), and an optional read-cursor divider.
  *
- * A WS frame carries only `{ id }` -- a pointer, never prose (chat owns the
- * message store; the journal is just the doorbell) -- so the handler here
- * never renders straight off the frame payload. It refetches the room's
- * tail (`GET /api/chat/messages/:room`) and merges by id; a frame for
+ * A relay frame carries only `{ id }` -- a pointer, never prose (chat owns
+ * the message store; the journal is just the doorbell) -- so the handler
+ * here never renders straight off the frame payload. It refetches the
+ * room's tail (`GET /api/chat/messages/:room`) and merges by id; a frame for
  * another room's topic is dropped before any network call happens.
  */
 export function Transcript({
@@ -620,34 +623,31 @@ export function Transcript({
     anchorDone.current = target;
   }, [room, anchor, messages]);
 
-  useEffect(() => {
-    const expectedTopic = `chat/${room}/msg`;
-    const socket = new WebSocket(wsUrl());
-
-    socket.onmessage = event => {
-      let frame: { topic?: unknown } | undefined;
-      try {
-        frame = JSON.parse(String((event as { data: unknown }).data));
-      } catch {
-        return;
-      }
-      if (typeof frame?.topic !== 'string' || frame.topic !== expectedTopic)
-        return;
-
-      void fetch(`/api/chat/messages/${room}`)
-        .then(res => res.json())
-        .then((data: { messages?: ChatMessage[] }) => {
-          if (roomRef.current !== room) return;
-          const next = mergeMessages(messagesRef.current, data.messages ?? []);
-          const added = next.length - messagesRef.current.length;
-          if (added > 0 && awayRef.current) setNewSinceAway(n => n + added);
-          setMessages(next);
-        })
-        .catch(() => {});
-    };
-
-    return () => socket.close();
+  const refetchTail = useCallback(() => {
+    void fetch(`/api/chat/messages/${room}`)
+      .then(res => res.json())
+      .then((data: { messages?: ChatMessage[] }) => {
+        if (roomRef.current !== room) return;
+        const next = mergeMessages(messagesRef.current, data.messages ?? []);
+        const added = next.length - messagesRef.current.length;
+        if (added > 0 && awayRef.current) setNewSinceAway(n => n + added);
+        setMessages(next);
+      })
+      .catch(() => {});
   }, [room]);
+  useRelayFrames(frame => {
+    if (frame.topic === `chat/${room}/msg`) refetchTail();
+  });
+  useRelayOpen(reconnect => {
+    if (reconnect) refetchTail();
+  });
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refetchTail();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [refetchTail]);
 
   useEffect(() => {
     const view = scrollView();

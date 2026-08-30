@@ -1,8 +1,9 @@
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import {
+  FakeWebSocket,
   fetchMock,
   installFakeWebSocket,
   longCodeBlockMessage,
@@ -35,6 +36,22 @@ test('a frame for another room does not append here', async () => {
   });
   pushFrame({ topic: 'chat/other/msg', payload: { id: 8 } });
   expect(screen.queryByTestId('message-8')).toBeNull();
+});
+
+test('a reconnect refetches the tail without a frame', async () => {
+  const { pushFrame } = renderTranscriptWithFakeSocket({
+    room: 'build',
+    messages: [],
+  });
+  pushFrame({ topic: 'chat/build/msg', payload: { id: 1 } });
+  expect(await screen.findByText('message 1')).toBeInTheDocument();
+  const socket = FakeWebSocket.instances.at(-1)!;
+  socket.onopen?.();
+  const before = fetchMock.mock.calls.length;
+  socket.onopen?.();
+  await waitFor(() =>
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(before)
+  );
 });
 
 test('wide content scrolls inside its own container, not the page', () => {

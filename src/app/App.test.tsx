@@ -865,6 +865,117 @@ test("a chat/<room>/msg frame refetches the open room's members", async () => {
   expect(after).toBeGreaterThan(before);
 });
 
+test('a msg frame for a room the rail does not know refetches rooms at once', async () => {
+  installFetchMock();
+  fetchMock.mockImplementation((url: string) =>
+    Promise.resolve(
+      jsonResponse(
+        url === '/api/chat/rooms'
+          ? {
+              rooms: [
+                { room: 'build', memberCount: 1, unread: 0, mentions: 0 },
+                { room: 'fresh', memberCount: 1, unread: 1, mentions: 0 },
+              ],
+            }
+          : {}
+      )
+    )
+  );
+  window.history.replaceState(null, '', '/r/build');
+  await act(async () => {
+    renderWithProviders(
+      <App
+        initialState={{
+          daemonReachable: true,
+          buddies: [],
+          rooms: [{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }],
+          members: [],
+          messages: [],
+        }}
+      />
+    );
+  });
+  const before = fetchMock.mock.calls.filter(
+    ([u]) => u === '/api/chat/rooms'
+  ).length;
+  await act(async () => {
+    for (const socket of FakeWebSocket.instances)
+      socket.onmessage?.({
+        data: JSON.stringify({ topic: 'chat/fresh/msg', payload: { id: 9 } }),
+      });
+  });
+  expect(
+    fetchMock.mock.calls.filter(([u]) => u === '/api/chat/rooms').length
+  ).toBe(before + 1);
+  expect(await screen.findByTestId('room-row-fresh')).toBeInTheDocument();
+  await act(async () => {
+    for (const socket of FakeWebSocket.instances)
+      socket.onmessage?.({
+        data: JSON.stringify({ topic: 'chat/build/msg', payload: { id: 10 } }),
+      });
+  });
+  expect(
+    fetchMock.mock.calls.filter(([u]) => u === '/api/chat/rooms').length
+  ).toBe(before + 1);
+});
+
+test('a reconnect and a tab becoming visible refetch rooms, buddies and members, in that order', async () => {
+  installFetchMock();
+  fetchMock.mockImplementation((url: string) =>
+    Promise.resolve(
+      jsonResponse(
+        url === '/api/chat/rooms'
+          ? {
+              rooms: [
+                { room: 'build', memberCount: 1, unread: 0, mentions: 0 },
+              ],
+            }
+          : { buddies: [], members: [] }
+      )
+    )
+  );
+  window.history.replaceState(null, '', '/r/build');
+  await act(async () => {
+    renderWithProviders(<App initialState={{ ...twoRooms, members: [] }} />);
+  });
+  const socket = FakeWebSocket.instances[0]!;
+  await act(async () => {
+    socket.onopen?.();
+  });
+  fetchMock.mockClear();
+  await act(async () => {
+    socket.onclose?.();
+  });
+  const again = FakeWebSocket.instances.at(-1)!;
+  await act(async () => {
+    again.onopen?.();
+  });
+  await waitFor(() => {
+    const urls = fetchMock.mock.calls.map(([u]) => String(u));
+    expect(urls.indexOf('/api/chat/rooms')).toBeGreaterThanOrEqual(0);
+    expect(urls.indexOf('/api/chat/buddies')).toBeGreaterThan(
+      urls.indexOf('/api/chat/rooms')
+    );
+    expect(
+      urls.findIndex(u => u.startsWith('/api/chat/who/build'))
+    ).toBeGreaterThan(urls.indexOf('/api/chat/buddies'));
+  });
+
+  fetchMock.mockClear();
+  Object.defineProperty(document, 'visibilityState', {
+    configurable: true,
+    get: () => 'visible',
+  });
+  await act(async () => {
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await waitFor(() =>
+    expect(fetchMock.mock.calls.some(([u]) => u === '/api/chat/rooms')).toBe(
+      true
+    )
+  );
+});
+
 test('the entry points hide while herdr is unavailable and show once /api/panes says available', async () => {
   installFetchMock();
   fetchMock.mockImplementation(
