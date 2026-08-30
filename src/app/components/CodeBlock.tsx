@@ -23,7 +23,7 @@ export function CodeBlock({
   withCopyButton = true,
 }: CodeBlockProps) {
   return (
-    <Paper withBorder style={{ overflow: 'hidden' }}>
+    <Paper withBorder data-testid="code-block" style={{ overflow: 'hidden' }}>
       <Box style={{ minHeight }}>
         <CodeHighlight
           code={code}
