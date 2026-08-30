@@ -132,9 +132,7 @@ test('the ⋯ menu offers Close this conversation for a DM, fleet or not', async
     kind: 'dm' as const,
     participants: { a: 'fred', b: 'gitq-main' },
   };
-  renderWithProviders(
-    <RoomMenu room={{ ...dm, joined: false }} onClose={onClose} />
-  );
+  renderWithProviders(<RoomMenu room={dm} onClose={onClose} />);
   await userEvent.click(screen.getByTestId('room-menu'));
   const item = await screen.findByTestId('room-menu-close');
   expect(item).toHaveTextContent('Close this conversation');
@@ -182,7 +180,7 @@ test('add agents sits before mark read, only when wired, disabled while the daem
       room={room}
       buddies={[]}
       onAddAgents={onAddAgents}
-      onMarkRead={() => {}}
+      onMarkedRead={() => {}}
     />
   );
   const buttons = screen

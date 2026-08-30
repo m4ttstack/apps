@@ -217,3 +217,17 @@
   background: linear-gradient(to bottom, transparent, var(--tk-card));
   pointer-events: none;
 }
+
+/* An own post's `.prose` sits on the accent wash, not the bare card: the
+   fade must land on that composite or its bottom edge shows a visible seam. */
+.mine .fold::after {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(
+      in srgb,
+      var(--mantine-color-accent-text) var(--tk-wash),
+      var(--tk-card)
+    )
+  );
+}

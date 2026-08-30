@@ -346,15 +346,23 @@ export function resultLine(
  * chat shipped -- it said the app was unfinished when the truth was that the
  * fleet was asleep.
  */
-function RoomsPlaceholder({ anyBuddies }: { anyBuddies: boolean }) {
+function RoomsPlaceholder({
+  anyBuddies,
+  allClosed,
+}: {
+  anyBuddies: boolean;
+  allClosed: boolean;
+}) {
   return (
     <Center mih="40dvh">
       <Stack align="center" gap={4}>
         <Text fw={600}>No rooms</Text>
         <Text size="sm" c="dimmed">
-          {anyBuddies
-            ? 'Agents are signed in but not in a room yet.'
-            : 'No agent has signed in. A room appears when one does.'}
+          {allClosed
+            ? 'Every room is closed. A post from anyone brings its room back, and the + starts a new one.'
+            : anyBuddies
+              ? 'Agents are signed in but not in a room yet.'
+              : 'No agent has signed in. A room appears when one does.'}
         </Text>
       </Stack>
     </Center>
@@ -921,7 +929,6 @@ function PhoneChat({
 
 interface ChatPageProps {
   rooms: RoomSummary[];
-  orderedRooms: RoomSummary[];
   openRooms: RoomSummary[];
   railRooms: RoomSummary[];
   activeRoom: string | undefined;
@@ -949,6 +956,7 @@ interface ChatPageProps {
  * down from `App`, whose behaviour this extraction preserves verbatim.
  */
 function ChatPage({
+  rooms,
   openRooms,
   railRooms,
   activeRoom,
@@ -1022,7 +1030,7 @@ function ChatPage({
         sidebarWidth={244}
         drawerStateKey="chat-rooms-sidebar"
       >
-        {railRooms.length > 0 && (
+        {rooms.length > 0 && (
           <PageShell.Sidebar>
             <RoomRail
               sidebar
@@ -1047,7 +1055,7 @@ function ChatPage({
                 reachable={daemon.reachable}
                 order={roomOrder}
                 onOrderChange={setRoomOrder}
-                onMarkRead={() => void refetchRooms()}
+                onMarkedRead={() => void refetchRooms()}
                 onAddAgents={panesAvailable ? addAgents : undefined}
                 onClose={onCloseRoom}
               />
@@ -1078,7 +1086,10 @@ function ChatPage({
             >
               {openRooms.length === 0 && !activeRoomSummary ? (
                 <Box style={{ flex: 1, minWidth: 0 }} p="xl">
-                  <RoomsPlaceholder anyBuddies={buddies.length > 0} />
+                  <RoomsPlaceholder
+                    anyBuddies={buddies.length > 0}
+                    allClosed={rooms.length > 0}
+                  />
                 </Box>
               ) : (
                 activeRoom && (
@@ -1158,10 +1169,21 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
   const daemon = useDaemonHealth(initialState?.daemonReachable);
   const { buddies, refetchBuddies } = useBuddies(initialState?.buddies);
   const { rooms, setRooms, refetchRooms } = useRooms(initialState?.rooms);
+  // A room mid-close is still in the daemon's list until the close request
+  // resolves; a background refetch racing that request would otherwise put
+  // the optimistically-removed row right back.
+  const closingRoomsRef = useRef(new Set<string>());
+  const refetchRoomsFiltered = useCallback(async () => {
+    const next = await refetchRooms();
+    if (closingRoomsRef.current.size === 0) return next;
+    const filtered = next.filter(r => !closingRoomsRef.current.has(r.room));
+    setRooms(filtered);
+    return filtered;
+  }, [refetchRooms, setRooms]);
   // The floor beneath the relay-driven refreshes below: a poll that still
   // runs even if a frame is missed, a reconnect never fires, or the tab
   // never blurs long enough to trigger the visibility refetch.
-  useInterval(refetchRooms, 5000);
+  useInterval(refetchRoomsFiltered, 5000);
   const routeRoom = route.name === 'room' ? route.room : undefined;
   const [activeRoom, setActiveRoom] = useState<string | undefined>(routeRoom);
   const chatRoute = route.name === 'home' || route.name === 'room';
@@ -1220,6 +1242,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
   const closeRoom = useCallback(
     async (room: string) => {
       const snapshot = rooms;
+      closingRoomsRef.current.add(room);
       setRooms(prev => prev.filter(r => r.room !== room));
       if (room === activeRoom) {
         setActiveRoom(undefined);
@@ -1236,6 +1259,8 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
         notifications.error("Couldn't close the room");
         setRooms(snapshot);
         return;
+      } finally {
+        closingRoomsRef.current.delete(room);
       }
       void refetchRooms();
     },
@@ -1291,10 +1316,10 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
   // then the roster, then the open room's members. The transcript refetches
   // its own tail on the same triggers.
   const refetchAll = useCallback(async () => {
-    await refetchRooms();
+    await refetchRoomsFiltered();
     refetchBuddies();
     refetchMembers();
-  }, [refetchRooms, refetchBuddies, refetchMembers]);
+  }, [refetchRoomsFiltered, refetchBuddies, refetchMembers]);
   useRelayOpen(reconnect => {
     if (reconnect) void refetchAll();
   });
@@ -1354,7 +1379,6 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
           {chatRoute ? (
             <ChatPage
               rooms={rooms}
-              orderedRooms={orderedRooms}
               openRooms={openRooms}
               railRooms={railRooms}
               activeRoom={activeRoom}

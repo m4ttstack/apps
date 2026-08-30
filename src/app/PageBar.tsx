@@ -75,7 +75,10 @@ export interface PageBarProps {
   /** The room's members with their presence: the bar counts who is in THIS
       room, the roster counts the fleet. */
   reachable?: boolean;
-  onMarkRead?: (room: string) => void;
+  /** Called after the mark-read POST has already landed: a reaction to the
+      mark, not a request to make it (compare `RoomRail`'s `onMarkRead`,
+      which does post it). */
+  onMarkedRead?: (room: string) => void;
   /** Opens the pane picker to invite agents to this room. The button renders
       only when this is wired, and is disabled while the daemon is down. */
   onAddAgents?: () => void;
@@ -154,10 +157,7 @@ export function RoomMenu({
   onClose,
   size = 30,
 }: {
-  /** `joined` is the viewer-side flag the rooms route stamps onto a fleet
-      (agent-to-agent) DM the human is not a member of; closing one joins
-      him first server-side, so it is offered like any other room. */
-  room: RoomSummary & { joined?: boolean };
+  room: RoomSummary;
   onClose?: (room: string) => void;
   size?: number;
 }) {
@@ -205,7 +205,7 @@ export function PageBar({
   room,
   buddies,
   reachable = true,
-  onMarkRead,
+  onMarkedRead,
   onAddAgents,
   order = 'join',
   onOrderChange,
@@ -213,7 +213,7 @@ export function PageBar({
 }: PageBarProps) {
   const handleMarkRead = () => {
     void postMarkRead(room.room)
-      .then(() => onMarkRead?.(room.room))
+      .then(() => onMarkedRead?.(room.room))
       .catch(() => {});
   };
 

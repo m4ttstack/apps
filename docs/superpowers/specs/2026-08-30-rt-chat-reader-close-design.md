@@ -172,9 +172,9 @@ get sloppy" table are rewritten for the new numbers; `ARCHITECTURE.md`'s
 - **Closing the open room** navigates to `/`, the same landing as a fresh
   open: first open room, else the No rooms placeholder.
 - **Closing a fleet DM** (an agent-to-agent DM the human is not a member
-  of) joins him first, same as the archive route did; the previous "fleet
-  DM is not archivable" guard goes away since the room is no longer stranded
-  (it is simply not listed, and a post revives it).
+  of) never joins: the daemon's archive stamps the room itself, so
+  membership is irrelevant, and the room simply leaves the listing until a
+  post revives it.
 
 ### Affordances
 

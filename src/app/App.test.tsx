@@ -379,6 +379,35 @@ test('the rooms rail lives in the PageShell sidebar and the roster is the right 
   ).toBeInTheDocument();
 });
 
+test('with every room closed, the rail still mounts and the placeholder says rooms come back', () => {
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(
+    <App
+      initialState={{
+        daemonReachable: true,
+        buddies: [],
+        rooms: [
+          {
+            room: 'build',
+            memberCount: 1,
+            unread: 0,
+            mentions: 0,
+            archivedAt: Date.now(),
+          },
+        ],
+        messages: [],
+        members: [],
+      }}
+    />
+  );
+  expect(screen.getByTestId('room-rail')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'Every room is closed. A post from anyone brings its room back, and the + starts a new one.'
+    )
+  ).toBeInTheDocument();
+});
+
 function jsonResponse(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as Response;
 }

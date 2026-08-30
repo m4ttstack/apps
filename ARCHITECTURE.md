@@ -63,12 +63,17 @@ subscription per relay entry and republishes matching frames onto a Bun
 pub/sub topic; chat's `index.ts` supplies the one relay it needs
 (`match: t => t.startsWith('chat/')` → topic `chat`). Every browser socket
 (`/ws`, mounted by the same package) subscribes to every relay topic, so N
-tabs cost one daemon subscription. Topics are `chat/<room>/msg` and
-`chat/wake/<handle>`.
+tabs cost one daemon subscription. Topics are `chat/<room>/msg` pointers,
+never message bodies.
 
-A wake frame is a hint, not a status: the client (`src/app/App.tsx`) refetches
-the room's tail and the roster when one arrives. Presence status only ever
-comes from the daemon's roster, never inferred from traffic.
+On the client, one page-level `/ws` connection (`src/app/relay-socket.ts`) is
+shared by every subscriber on the page, not one per component. After a close
+it reconnects on a doubling backoff from 1s to 30s. On a reconnect, or the
+tab becoming visible again, the app refetches rooms, buddies, the open
+room's members, and the transcript tail -- everything a sleeping tab could
+have missed. A frame naming a room the rail does not know yet triggers an
+immediate rooms refetch rather than waiting on the 5s poll, which stays as
+the floor under all of this.
 
 The open room also refetches its members (`/api/chat/who`) on every
 `chat/<room>/msg` frame: the daemon emits no membership event, so an arriving

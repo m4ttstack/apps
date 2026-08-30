@@ -490,6 +490,71 @@ test('closing a room already in the human’s listing never joins; a DM never jo
   expect(rt.chatArchive).toHaveBeenCalledTimes(2);
 });
 
+test('closing a DM known only through the fleet union never joins', async () => {
+  vi.mocked(rt.chatRooms)
+    .mockResolvedValueOnce({ ok: true, data: { rooms: [] } })
+    .mockResolvedValueOnce({
+      ok: true,
+      data: {
+        rooms: [
+          {
+            room: 'dm-1',
+            memberCount: 2,
+            unread: 0,
+            mentions: 0,
+            kind: 'dm',
+            participants: { a: 'fred', b: 'matt' },
+          },
+        ],
+      },
+    });
+  vi.mocked(rt.chatBuddies).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      buddies: [
+        {
+          handle: 'fred',
+          baseHandle: 'fred',
+          sessionId: 's1',
+          status: 'live',
+          signedInAt: 1,
+          lastSeenAt: 1,
+          cwd: '/x',
+        },
+      ],
+    },
+  });
+  vi.mocked(rt.chatWho).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      members: [
+        {
+          room: 'dm-1',
+          handle: 'fred',
+          joinedAt: 1,
+          lastReadId: 0,
+          wakeOn: 'mention',
+          status: 'live',
+        },
+      ],
+    },
+  });
+  vi.mocked(rt.chatArchive).mockResolvedValueOnce({
+    ok: true,
+    data: { room: 'dm-1', archivedAt: 5 },
+  });
+  const res = await routes.request('/api/chat/close?handle=matt', {
+    method: 'POST',
+    body: JSON.stringify({ room: 'dm-1' }),
+  });
+  expect(res.status).toBe(200);
+  expect(rt.chatJoin).not.toHaveBeenCalled();
+  expect(rt.chatArchive).toHaveBeenCalledWith(
+    { room: 'dm-1', handle: 'matt', archived: true },
+    expect.anything()
+  );
+});
+
 test('close 400s on a bad body and on a room nobody lists, and never join-creates', async () => {
   const bad = await routes.request('/api/chat/close?handle=matt', {
     method: 'POST',

@@ -79,10 +79,6 @@ test('raw HTML never renders, an unsafe link loses its href, an image is its alt
   // between them: remark parses tags and inner text as separate nodes, and
   // the surviving text renders as an inert string, never a script element.
   expect(body).toHaveTextContent('alert(1)');
-  // Not `getByRole('link', ...)`: @testing-library/dom's own role selector
-  // requires a non-empty href (`[href]:not([href=""])`) to count as role
-  // "link" at all, so a sanitized, blanked-out href is unreachable by role
-  // by construction -- the element itself is what needs checking.
   const badLink = screen.getByText('bad');
   expect(badLink).toBeTruthy();
   expect(badLink.getAttribute('href') ?? '').toBe('');

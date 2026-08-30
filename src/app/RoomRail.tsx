@@ -36,16 +36,15 @@ export interface RoomRailProps {
   rooms: RoomSummary[];
   /** The room open in the transcript, so its row carries the accent wash. */
   activeRoom?: string;
-  /** The human's own handle, bolded inside a DM pair when it appears there. */
-  humanHandle?: string;
   onSelectRoom?: (room: string) => void;
   /** rt daemon reachability: the `+` is disabled while it is down, since a
       room cannot be created without it. @default true */
   daemonReachable?: boolean;
   /** Opens the new-room modal. The `+` renders only when this is wired. */
   onNewRoom?: () => void;
-  /** Closes a room (the daemon's archive): the row's hover × and its
-      right-click menu. Neither renders when this is absent. */
+  /** Closes a room (leaves it off the listing until a post revives it): the
+      row's hover × and its right-click menu. Neither renders when this is
+      absent. */
   onCloseRoom?: (room: string) => void;
   /** The right-click menu's Mark read, offered only on a row with unread. */
   onMarkRead?: (room: string) => void;
