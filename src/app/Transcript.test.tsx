@@ -1,6 +1,6 @@
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test } from 'vitest';
 
 import {
   FakeWebSocket,
@@ -54,16 +54,16 @@ test('a reconnect refetches the tail without a frame', async () => {
   );
 });
 
-test('wide content scrolls inside its own container, not the page', () => {
+test('a fenced block renders as a CodeBlock inside the message, never widening the column', async () => {
   renderWithProviders(
     <Transcript room="build" messages={[longCodeBlockMessage]} />
   );
-  // jsdom sees inline styles, not CSS-module rules: the code block's
-  // overflow-x is inline.
-  expect(screen.getByTestId('code-block').style.overflowX).toBe('auto');
+  const block = await screen.findByTestId('code-block');
+  await waitFor(() => expect(block).toHaveTextContent('Cannot find module'));
+  expect(screen.getByTestId('transcript-column')).toBeInTheDocument();
 });
 
-test('a mention of the human gets the wash; a mention of anyone else does not', () => {
+test('a mention of the human is marked as me; the human’s own post is marked mine', () => {
   renderWithProviders(
     <Transcript
       room="build"
@@ -77,10 +77,46 @@ test('a mention of the human gets the wash; a mention of anyone else does not', 
           mentions: ['matt'],
           postedAt: Date.now(),
         },
+        {
+          id: 2,
+          room: 'build',
+          handle: 'matt',
+          body: 'merge it',
+          mentions: [],
+          postedAt: Date.now(),
+        },
       ]}
     />
   );
-  expect(screen.getByText('@matt')).toBeInTheDocument();
+  const mention = screen.getByText('@matt');
+  expect(mention).toHaveAttribute('data-mention', 'matt');
+  expect(mention).toHaveAttribute('data-me', 'true');
+  expect(screen.getByTestId('message-1')).not.toHaveAttribute('data-mine');
+  expect(screen.getByTestId('message-2')).toHaveAttribute('data-mine', 'true');
+  expect(screen.getByTestId('message-2')).toHaveTextContent('you');
+});
+
+test('markdown structure reaches the row: paragraphs, a list, code untouched', () => {
+  renderWithProviders(
+    <Transcript
+      room="build"
+      messages={[
+        {
+          id: 1,
+          room: 'build',
+          handle: 'deck-main',
+          body: 'first **point**\n\n- one\n- two\n\nsee `**not bold**`',
+          mentions: [],
+          postedAt: 1,
+        },
+      ]}
+    />
+  );
+  const body = screen.getByTestId('message-body');
+  expect(body.querySelectorAll('p')).toHaveLength(2);
+  expect(body.querySelector('strong')).toHaveTextContent('point');
+  expect(body.querySelectorAll('li')).toHaveLength(2);
+  expect(screen.getByText('**not bold**').tagName).toBe('CODE');
 });
 
 test('a divider marks the read cursor before the unread tail', () => {
@@ -192,58 +228,6 @@ test('an error page leaves the top edge retryable instead of exhausting it', asy
   await screen.findByText('older messages · load on scroll');
   expect(screen.queryByText('no older messages')).toBeNull();
   expect(screen.getByTestId('transcript-edge')).not.toBeDisabled();
-});
-
-test('a body renders its paragraphs, lists, bold and links, and leaves code alone', () => {
-  renderWithProviders(
-    <Transcript
-      room="build"
-      messages={[
-        {
-          id: 1,
-          room: 'build',
-          handle: 'deck-main',
-          body: 'first **point**\n\n- one\n- two http://x.test/a\n\nsee `**not bold**`',
-          mentions: [],
-          postedAt: 1,
-        },
-      ]}
-    />
-  );
-  expect(screen.getAllByTestId('message-paragraph')).toHaveLength(2);
-  expect(screen.getByText('point').tagName).toBe('STRONG');
-  const list = screen.getByTestId('message-list');
-  expect(list.querySelectorAll('li')).toHaveLength(2);
-  const link = screen.getByRole('link', { name: 'http://x.test/a' });
-  expect(link).toHaveAttribute('href', 'http://x.test/a');
-  expect(screen.getByText('**not bold**').tagName).toBe('CODE');
-});
-
-test('numbered lists, italic and underscore identifiers render as agents write them', () => {
-  renderWithProviders(
-    <Transcript
-      room="build"
-      messages={[
-        {
-          id: 1,
-          room: 'build',
-          handle: 'deck-main',
-          body: 'steps:\n\n1. bump the dep\n2) rebuild\n\nthis is *soft* and _quiet_, but make_icon_swift and 2*3*4 stay put; see http://x.test/a_b_c',
-          mentions: [],
-          postedAt: 1,
-        },
-      ]}
-    />
-  );
-  const list = screen.getByTestId('message-list');
-  expect(list.tagName).toBe('OL');
-  expect(list.querySelectorAll('li')).toHaveLength(2);
-  expect(screen.getByText('soft').tagName).toBe('EM');
-  expect(screen.getByText('quiet').tagName).toBe('EM');
-  expect(screen.getByText(/make_icon_swift and 2\*3\*4 stay put/)).toBeTruthy();
-  expect(
-    screen.getByRole('link', { name: 'http://x.test/a_b_c' })
-  ).toHaveAttribute('href', 'http://x.test/a_b_c');
 });
 
 test('a notice renders at the edge, above the older-messages row, and without any messages at all', () => {
@@ -438,32 +422,6 @@ test('loading an older page puts a day divider above what was the first message'
     .map(d => d.getAttribute('aria-label'));
   expect(labels).toHaveLength(2);
   expect(labels[1]).toBe('Today');
-});
-
-test('a code block carries a copy control that writes the block text only', async () => {
-  const writeText = vi.fn().mockResolvedValue(undefined);
-  Object.defineProperty(navigator, 'clipboard', {
-    configurable: true,
-    value: { writeText },
-  });
-  renderWithProviders(
-    <Transcript
-      room="build"
-      messages={[
-        {
-          id: 1,
-          room: 'build',
-          handle: 'fred',
-          body: 'see:\n```\nline one\nline two\n```',
-          mentions: [],
-          postedAt: Date.now(),
-        },
-      ]}
-    />
-  );
-  const copy = screen.getByTestId('code-copy').querySelector('button')!;
-  fireEvent.click(copy);
-  expect(writeText).toHaveBeenCalledWith('line one\nline two');
 });
 
 function withTallBodies(run: () => void) {

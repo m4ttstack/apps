@@ -9,7 +9,6 @@ import {
 import type { ReactNode } from 'react';
 import {
   Box,
-  CopyActionIcon,
   Group,
   Stack,
   Text,
@@ -20,12 +19,12 @@ import ScrollToBottom, { useAtTop } from 'react-scroll-to-bottom';
 
 import { AgentName } from './AgentName';
 import { dayKey, dayLabel } from './day-label';
+import { MessageMarkdown } from './MessageMarkdown';
 import { NewPill } from './NewPill';
 import { useRelayFrames, useRelayOpen } from './relay-socket';
-import bodyClasses from './transcript-body.module.css';
+import prose from './transcript-prose.module.css';
 import scrollClasses from './transcript-scroll.module.css';
 
-const BORDER_SOFT = 'var(--tk-border-soft)';
 /** The panel's horizontal insets, applied to the list content and the
     footer rather than the panel: the extra 17px on the left clears the
     sidebar's collapse trigger, which is a 34px button centred on the
@@ -33,7 +32,6 @@ const BORDER_SOFT = 'var(--tk-border-soft)';
 const INNER_LEFT = 'calc(var(--mantine-spacing-xl) + 17px)';
 const INNER_RIGHT = 'var(--mantine-spacing-xl)';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
-const ACCENT_WASH = `color-mix(in srgb, ${ACCENT_TEXT} var(--tk-wash), transparent)`;
 /** A body taller than this (its unconstrained scrollHeight) folds behind a
     show more control; the anchored message is the one exception, since it
     mounted expanded on purpose. */
@@ -77,238 +75,6 @@ function formatLocalTime(ts: number): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-interface BodyPart {
-  type: 'text' | 'code';
-  content: string;
-}
-
-/** Splits a message body on fenced ``` code blocks; everything outside a
-    fence is plain prose (further parsed for mentions/inline code by the
-    caller). */
-function splitCodeFences(body: string): BodyPart[] {
-  const parts: BodyPart[] = [];
-  const fence = /```([\s\S]*?)```/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = fence.exec(body))) {
-    if (match.index > lastIndex) {
-      parts.push({ type: 'text', content: body.slice(lastIndex, match.index) });
-    }
-    parts.push({
-      type: 'code',
-      content: match[1].replace(/^\n/, '').replace(/\n$/, ''),
-    });
-    lastIndex = fence.lastIndex;
-  }
-  if (lastIndex < body.length) {
-    parts.push({ type: 'text', content: body.slice(lastIndex) });
-  }
-  return parts;
-}
-
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/** `@handle` -> `.at` (accent, 600), `.at.me` (plus the accent wash) when
-    the handle is the human's own -- only for handles the message itself
-    lists in `mentions`, never a bare `@word` guess. */
-function renderMentions(
-  text: string,
-  mentions: string[],
-  humanHandle: string | undefined,
-  keyPrefix: string
-): React.ReactNode[] {
-  if (mentions.length === 0) return [text];
-  const pattern = mentions.map(escapeForRegExp).join('|');
-  const regex = new RegExp(`@(${pattern})\\b`, 'g');
-  const out: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let i = 0;
-  while ((match = regex.exec(text))) {
-    if (match.index > lastIndex) out.push(text.slice(lastIndex, match.index));
-    const handle = match[1];
-    const isMe = handle === humanHandle;
-    out.push(
-      <Text
-        key={`${keyPrefix}-m-${i++}`}
-        component="span"
-        fw={600}
-        style={{
-          color: ACCENT_TEXT,
-          ...(isMe
-            ? { background: ACCENT_WASH, borderRadius: 3, padding: '0 3px' }
-            : {}),
-        }}
-      >
-        @{handle}
-      </Text>
-    );
-    lastIndex = regex.lastIndex;
-  }
-  if (lastIndex < text.length) out.push(text.slice(lastIndex));
-  return out;
-}
-
-const URL_RE = /(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/g;
-const BULLET_RE = /^\s*[-*] /;
-const NUMBERED_RE = /^\s*\d+[.)] /;
-/** `*text*` or `_text_` with no space just inside the markers and no word
-    character just outside, so `make_icon_swift` and `2*3*4` stay literal.
-    Runs after the URL split, so an underscore inside a link is never read. */
-const ITALIC_RE =
-  /((?<![\w*])\*(?!\s)[^*\n]+?(?<!\s)\*(?![\w*])|(?<!\w)_(?!\s)[^_\n]+?(?<!\s)_(?!\w))/g;
-/** Same source without `g`: `test` on a global regex advances `lastIndex`
-    across calls, but `split` never resets it, so a second bare URL in one
-    body would test false and render as text. Anchored, stateless. */
-const URL_TEST = new RegExp(`^${URL_RE.source}$`);
-
-/** `**bold**` and bare URLs inside a prose chunk that has already been split
-    away from code spans, so neither markup form is ever read inside code. */
-function renderInline(
-  text: string,
-  mentions: string[],
-  humanHandle: string | undefined,
-  keyPrefix: string
-): React.ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).flatMap((chunk, i) => {
-    if (chunk.length > 4 && chunk.startsWith('**') && chunk.endsWith('**')) {
-      return [
-        <Text key={`${keyPrefix}-b-${i}`} component="strong" fw={600} inherit>
-          {chunk.slice(2, -2)}
-        </Text>,
-      ];
-    }
-    return chunk.split(URL_RE).map((piece, j) =>
-      URL_TEST.test(piece) ? (
-        <a
-          key={`${keyPrefix}-u-${i}-${j}`}
-          href={piece}
-          target="_blank"
-          rel="noreferrer"
-          style={{ color: ACCENT_TEXT, overflowWrap: 'anywhere' }}
-        >
-          {piece}
-        </a>
-      ) : (
-        <span key={`${keyPrefix}-t-${i}-${j}`}>
-          {renderItalic(piece, mentions, humanHandle, `${keyPrefix}-${i}-${j}`)}
-        </span>
-      )
-    );
-  });
-}
-
-function renderItalic(
-  text: string,
-  mentions: string[],
-  humanHandle: string | undefined,
-  keyPrefix: string
-): React.ReactNode[] {
-  return text.split(ITALIC_RE).map((piece, k) => {
-    const wrapped =
-      piece.length > 2 &&
-      ((piece.startsWith('*') && piece.endsWith('*')) ||
-        (piece.startsWith('_') && piece.endsWith('_')));
-    return wrapped ? (
-      <Text key={`${keyPrefix}-i-${k}`} component="em" fs="italic" inherit>
-        {piece.slice(1, -1)}
-      </Text>
-    ) : (
-      <span key={`${keyPrefix}-m-${k}`}>
-        {renderMentions(piece, mentions, humanHandle, `${keyPrefix}-${k}`)}
-      </span>
-    );
-  });
-}
-
-/** Blank-line paragraphs, `- ` and `1.` lists inside a prose part. Agents write
-    markdown by reflex; this is the subset that gives their structure a
-    place to land without rendering HTML. */
-function renderBlocks(
-  text: string,
-  mentions: string[],
-  humanHandle: string | undefined,
-  keyPrefix: string
-): React.ReactNode[] {
-  const blocks = text.split(/\n{2,}/).filter(b => b.trim().length > 0);
-  return blocks.map((block, i) => {
-    const lines = block.split('\n');
-    const isBullets = lines.every(l => BULLET_RE.test(l));
-    const isNumbered = !isBullets && lines.every(l => NUMBERED_RE.test(l));
-    const key = `${keyPrefix}-blk-${i}`;
-    if (isBullets || isNumbered) {
-      const marker = isBullets ? BULLET_RE : NUMBERED_RE;
-      return (
-        <Box
-          key={key}
-          component={isBullets ? 'ul' : 'ol'}
-          data-testid="message-list"
-          style={{ margin: '4px 0', paddingLeft: 18 }}
-        >
-          {lines.map((l, j) => (
-            <li key={`${key}-${j}`}>
-              {renderTextPart(
-                l.replace(marker, ''),
-                mentions,
-                humanHandle,
-                `${key}-${j}`
-              )}
-            </li>
-          ))}
-        </Box>
-      );
-    }
-    return (
-      <Box
-        key={key}
-        component="p"
-        data-testid="message-paragraph"
-        style={{ margin: i === 0 ? 0 : '8px 0 0' }}
-      >
-        {renderTextPart(block, mentions, humanHandle, key)}
-      </Box>
-    );
-  });
-}
-
-/** Inline `` `code` `` spans within prose -- split first, so an `@` inside a
-    code span is never mistaken for a mention. */
-function renderTextPart(
-  text: string,
-  mentions: string[],
-  humanHandle: string | undefined,
-  keyPrefix: string
-): React.ReactNode[] {
-  const chunks = text.split(/(`[^`]+`)/g);
-  return chunks.map((chunk, i) => {
-    if (chunk.length >= 2 && chunk.startsWith('`') && chunk.endsWith('`')) {
-      return (
-        <Box
-          key={`${keyPrefix}-c-${i}`}
-          component="code"
-          style={{
-            background: 'var(--ui-bg-3)',
-            border: `1px solid ${BORDER_SOFT}`,
-            borderRadius: 3,
-            fontFamily: 'inherit',
-            fontSize: '11.2px',
-            padding: '0 3px',
-          }}
-        >
-          {chunk.slice(1, -1)}
-        </Box>
-      );
-    }
-    return (
-      <span key={`${keyPrefix}-t-${i}`}>
-        {renderInline(chunk, mentions, humanHandle, `${keyPrefix}-${i}`)}
-      </span>
-    );
-  });
-}
-
 function MessageBody({
   message,
   humanHandle,
@@ -318,95 +84,60 @@ function MessageBody({
   humanHandle: string | undefined;
   startExpanded: boolean;
 }) {
-  const parts = splitCodeFences(message.body);
   const bodyRef = useRef<HTMLDivElement>(null);
   const [tall, setTall] = useState(false);
   const [expanded, setExpanded] = useState(startExpanded);
 
-  // Measures the unconstrained body once per message: a body's height only
-  // changes with its content, so a ResizeObserver would be watching for an
-  // event that never happens here.
+  // A fenced code block's highlighter loads lazily and can grow the body
+  // well after this mounts, so a one-shot measurement would miss it; the
+  // observer re-measures whenever the unclamped content settles. The fold
+  // clip lives on an ancestor Box, never on this ref's own element, so
+  // folding itself never re-triggers the observer.
   useLayoutEffect(() => {
-    setTall((bodyRef.current?.scrollHeight ?? 0) > COLLAPSE_AT);
+    const el = bodyRef.current;
+    if (!el) return;
+    const measure = () => setTall(el.scrollHeight > COLLAPSE_AT);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [message.id]);
 
   const folded = tall && !expanded;
-  const body = (
-    <Text
-      ref={bodyRef}
-      component="div"
-      data-testid="message-body"
-      style={{
-        fontSize: '12.16px',
-        lineHeight: 1.55,
-        // Agents post multi-line bodies; without this every newline collapses
-        // into one paragraph.
-        whiteSpace: 'pre-wrap',
-        minWidth: 0,
-        overflowWrap: 'anywhere',
-      }}
-    >
-      {parts.map((part, i) =>
-        part.type === 'code' ? (
-          <Box
-            key={`part-${i}`}
-            className={bodyClasses.codeWrap}
-            data-testid="code-wrap"
-          >
-            <Box
-              component="pre"
-              data-testid="code-block"
-              style={{
-                display: 'block',
-                background: 'var(--ui-bg-1)',
-                border: '1px solid var(--mantine-color-default-border)',
-                borderRadius: 'var(--mantine-radius-sm)',
-                fontSize: '11.2px',
-                lineHeight: 1.5,
-                marginTop: 'var(--mantine-spacing-xs)',
-                overflowX: 'auto',
-                padding: 'var(--mantine-spacing-sm) var(--mantine-spacing-md)',
-                whiteSpace: 'pre',
-                fontFamily: 'inherit',
-              }}
-            >
-              {part.content}
-            </Box>
-            <Box className={bodyClasses.copy} data-testid="code-copy">
-              <CopyActionIcon
-                value={part.content}
-                label="Copy"
-                size="sm"
-                variant="default"
-                iconSize={14}
-                aria-label="Copy code"
-              />
-            </Box>
-          </Box>
-        ) : (
-          <span key={`part-${i}`}>
-            {renderBlocks(part.content, message.mentions, humanHandle, `p${i}`)}
-          </span>
-        )
-      )}
-    </Text>
-  );
-  if (!tall) return body;
+  // The wrapper shape stays IDENTICAL whether or not `tall` is true: this ref's
+  // div would otherwise sit at a different tree position when tall first flips
+  // (bare div vs. wrapped), and React remounts a position whose type changes --
+  // dropping the live CodeHighlight instance and, worse, the OLD ResizeObserver's
+  // final "now detached" callback (height 0) firing right after the new one that
+  // just set `tall` true, undoing it. Only props/children vary here, never types.
   return (
-    <Box data-testid="message-fold" data-folded={folded ? 'true' : 'false'}>
-      <Box className={folded ? bodyClasses.fold : undefined}>{body}</Box>
-      <UnstyledButton
-        data-testid="fold-toggle"
-        onClick={() => setExpanded(e => !e)}
-        style={{
-          marginTop: 4,
-          fontSize: '10.56px',
-          fontWeight: 600,
-          color: ACCENT_TEXT,
-        }}
-      >
-        {folded ? 'show more' : 'show less'}
-      </UnstyledButton>
+    <Box
+      data-testid={tall ? 'message-fold' : undefined}
+      data-folded={tall ? (folded ? 'true' : 'false') : undefined}
+    >
+      <Box className={folded ? prose.fold : undefined}>
+        <div ref={bodyRef} data-testid="message-body" className={prose.prose}>
+          <MessageMarkdown
+            body={message.body}
+            mentions={message.mentions}
+            humanHandle={humanHandle}
+          />
+        </div>
+      </Box>
+      {tall && (
+        <UnstyledButton
+          data-testid="fold-toggle"
+          onClick={() => setExpanded(e => !e)}
+          style={{
+            marginTop: 4,
+            fontSize: '10.56px',
+            fontWeight: 600,
+            color: ACCENT_TEXT,
+          }}
+        >
+          {folded ? 'show more' : 'show less'}
+        </UnstyledButton>
+      )}
     </Box>
   );
 }
@@ -440,48 +171,63 @@ function DayDivider({ label }: { label: string }) {
   );
 }
 
+function YouBadge() {
+  return (
+    <Box
+      component="span"
+      data-testid="you-badge"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        height: 16,
+        padding: '0 6px',
+        borderRadius: 10,
+        fontSize: 9,
+        fontWeight: 500,
+        lineHeight: 1,
+        border: '1px solid var(--tk-border)',
+        color: 'var(--tk-muted-text)',
+      }}
+    >
+      you
+    </Box>
+  );
+}
+
 function MessageRow({
   message,
   humanHandle,
-  isFirst,
   anchored,
 }: {
   message: ChatMessage;
   humanHandle: string | undefined;
-  isFirst: boolean;
   anchored: boolean;
 }) {
+  const mine = humanHandle !== undefined && message.handle === humanHandle;
   return (
-    <Group
-      align="flex-start"
-      wrap="nowrap"
-      gap="md"
+    <div
       id={`m-${message.id}`}
       data-testid={`message-${message.id}`}
-      style={{
-        padding: '8.4px 0',
-        minWidth: 0,
-        borderTop: isFirst ? undefined : `1px solid ${BORDER_SOFT}`,
-      }}
+      data-mine={mine ? 'true' : undefined}
+      className={mine ? `${prose.msg} ${prose.mine}` : prose.msg}
     >
-      <Stack gap={1} style={{ minWidth: 0, flex: 1 }}>
-        <Group gap="sm" wrap="nowrap" align="baseline">
-          <AgentName handle={message.handle} variant="inline" />
-          <Text
-            size="xs"
-            title={new Date(message.postedAt).toLocaleString()}
-            style={{ color: 'var(--tk-muted-text)' }}
-          >
-            {formatLocalTime(message.postedAt)}
-          </Text>
-        </Group>
-        <MessageBody
-          message={message}
-          humanHandle={humanHandle}
-          startExpanded={anchored}
-        />
-      </Stack>
-    </Group>
+      <div className={prose.hdr}>
+        <AgentName handle={message.handle} variant="inline" />
+        {mine && <YouBadge />}
+        <Text
+          size="xs"
+          title={new Date(message.postedAt).toLocaleString()}
+          style={{ color: 'var(--tk-muted-text)' }}
+        >
+          {formatLocalTime(message.postedAt)}
+        </Text>
+      </div>
+      <MessageBody
+        message={message}
+        humanHandle={humanHandle}
+        startExpanded={anchored}
+      />
+    </div>
   );
 }
 
@@ -767,84 +513,85 @@ export function Transcript({
               bare ? undefined : { padding: `0 ${INNER_RIGHT} 0 ${INNER_LEFT}` }
             }
           >
-            {notice && (
-              <Box
-                data-testid="transcript-notice"
-                style={{
-                  padding: '6px 0 4px',
-                  textAlign: 'left',
-                  fontSize: '10.56px',
-                  color: 'var(--tk-muted-text)',
-                }}
-              >
-                {notice}
-              </Box>
-            )}
-            {messages.length > 0 && (
-              <OlderEdge
-                loading={loadingOlder}
-                exhausted={olderExhausted}
-                scrollView={scrollView}
-                onLoad={() => void loadOlder()}
-              />
-            )}
+            <div className={prose.col} data-testid="transcript-column">
+              {notice && (
+                <Box
+                  data-testid="transcript-notice"
+                  style={{
+                    padding: '6px 0 4px',
+                    textAlign: 'left',
+                    fontSize: '10.56px',
+                    color: 'var(--tk-muted-text)',
+                  }}
+                >
+                  {notice}
+                </Box>
+              )}
+              {messages.length > 0 && (
+                <OlderEdge
+                  loading={loadingOlder}
+                  exhausted={olderExhausted}
+                  scrollView={scrollView}
+                  onLoad={() => void loadOlder()}
+                />
+              )}
 
-            <Stack gap={0}>
-              {messages.map((message, i) => (
-                <Fragment key={message.id}>
-                  {(i === 0
-                    ? olderLoaded
-                    : dayKey(messages[i - 1]!.postedAt) !==
-                      dayKey(message.postedAt)) && (
-                    <DayDivider label={dayLabel(message.postedAt)} />
-                  )}
-                  {i === dividerAt && (
-                    <Group
-                      gap="sm"
-                      wrap="nowrap"
-                      align="center"
-                      data-testid="transcript-divider"
-                      style={{
-                        color: ACCENT_TEXT,
-                        fontSize: '10.56px',
-                        fontWeight: 600,
-                        padding: 'var(--mantine-spacing-xs) 0',
-                      }}
-                    >
-                      <Box
+              <Stack gap={0}>
+                {messages.map((message, i) => (
+                  <Fragment key={message.id}>
+                    {(i === 0
+                      ? olderLoaded
+                      : dayKey(messages[i - 1]!.postedAt) !==
+                        dayKey(message.postedAt)) && (
+                      <DayDivider label={dayLabel(message.postedAt)} />
+                    )}
+                    {i === dividerAt && (
+                      <Group
+                        gap="sm"
+                        wrap="nowrap"
+                        align="center"
+                        data-testid="transcript-divider"
                         style={{
-                          flex: 1,
-                          height: 1,
-                          background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
+                          color: ACCENT_TEXT,
+                          fontSize: '10.56px',
+                          fontWeight: 600,
+                          padding: 'var(--mantine-spacing-xs) 0',
                         }}
-                      />
-                      <span>{unreadCount} new</span>
-                      <span>·</span>
-                      <UnstyledButton
-                        data-testid="transcript-mark-read"
-                        onClick={onMarkRead}
-                        style={{ color: ACCENT_TEXT, fontWeight: 600 }}
                       >
-                        mark read
-                      </UnstyledButton>
-                      <Box
-                        style={{
-                          flex: 1,
-                          height: 1,
-                          background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
-                        }}
-                      />
-                    </Group>
-                  )}
-                  <MessageRow
-                    message={message}
-                    humanHandle={humanHandle}
-                    isFirst={i === 0}
-                    anchored={anchor === `m-${message.id}`}
-                  />
-                </Fragment>
-              ))}
-            </Stack>
+                        <Box
+                          style={{
+                            flex: 1,
+                            height: 1,
+                            background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
+                          }}
+                        />
+                        <span>{unreadCount} new</span>
+                        <span>·</span>
+                        <UnstyledButton
+                          data-testid="transcript-mark-read"
+                          onClick={onMarkRead}
+                          style={{ color: ACCENT_TEXT, fontWeight: 600 }}
+                        >
+                          mark read
+                        </UnstyledButton>
+                        <Box
+                          style={{
+                            flex: 1,
+                            height: 1,
+                            background: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
+                          }}
+                        />
+                      </Group>
+                    )}
+                    <MessageRow
+                      message={message}
+                      humanHandle={humanHandle}
+                      anchored={anchor === `m-${message.id}`}
+                    />
+                  </Fragment>
+                ))}
+              </Stack>
+            </div>
           </Box>
         </ScrollToBottom>
         {awayFromBottom && (
@@ -868,7 +615,7 @@ export function Transcript({
             bare ? undefined : { padding: `0 ${INNER_RIGHT} 0 ${INNER_LEFT}` }
           }
         >
-          {footer}
+          <div className={prose.col}>{footer}</div>
         </Box>
       )}
     </Box>

@@ -35,6 +35,7 @@ import { BuddiesProvider } from './buddies-context';
 import { AppMark } from './chrome/AppMark';
 import { Composer, type ComposerHandle } from './Composer';
 import { PageShellDemoPage } from './demo/PageShellDemoPage';
+import { HUMAN_HANDLE } from './human';
 import { postMarkRead } from './mark-read';
 import { NewRoomModal } from './NewRoomModal';
 import { PageBar, RoomMenu, type RoomOrder } from './PageBar';
@@ -870,6 +871,7 @@ function PhoneChat({
           <Transcript
             room={activeRoom}
             messages={messages}
+            humanHandle={HUMAN_HANDLE}
             anchor={anchor}
             unreadCount={activeRoomSummary?.unread}
             bare
@@ -1075,6 +1077,7 @@ function ChatPage({
                   <Transcript
                     room={activeRoom}
                     messages={messages}
+                    humanHandle={HUMAN_HANDLE}
                     anchor={anchor}
                     unreadCount={activeRoomSummary?.unread}
                     notice={
