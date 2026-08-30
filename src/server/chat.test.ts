@@ -393,7 +393,9 @@ test('closing a channel the human never joined joins him first, then closes', as
     .mockResolvedValueOnce({ ok: true, data: { rooms: [] } })
     .mockResolvedValueOnce({
       ok: true,
-      data: { rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }] },
+      data: {
+        rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }],
+      },
     });
   vi.mocked(rt.chatBuddies).mockResolvedValueOnce({
     ok: true,
@@ -413,7 +415,18 @@ test('closing a channel the human never joined joins him first, then closes', as
   });
   vi.mocked(rt.chatWho).mockResolvedValueOnce({
     ok: true,
-    data: { members: [{ room: 'build', handle: 'fred', joinedAt: 1, lastReadId: 0, wakeOn: 'mention', status: 'live' }] },
+    data: {
+      members: [
+        {
+          room: 'build',
+          handle: 'fred',
+          joinedAt: 1,
+          lastReadId: 0,
+          wakeOn: 'mention',
+          status: 'live',
+        },
+      ],
+    },
   });
   vi.mocked(rt.chatJoin).mockResolvedValueOnce({
     ok: true,
@@ -442,7 +455,9 @@ test('closing a channel the human never joined joins him first, then closes', as
 test('closing a room already in the human’s listing never joins; a DM never joins either', async () => {
   vi.mocked(rt.chatRooms).mockResolvedValueOnce({
     ok: true,
-    data: { rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }] },
+    data: {
+      rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }],
+    },
   });
   vi.mocked(rt.chatArchive).mockResolvedValue({
     ok: true,
@@ -488,7 +503,10 @@ test('close 400s on a bad body and on a room nobody lists, and never join-create
   expect(noRoom.status).toBe(400);
   expect((await noRoom.json()).error).toBe('room is required');
   vi.mocked(rt.chatRooms).mockResolvedValue({ ok: true, data: { rooms: [] } });
-  vi.mocked(rt.chatBuddies).mockResolvedValue({ ok: true, data: { buddies: [] } });
+  vi.mocked(rt.chatBuddies).mockResolvedValue({
+    ok: true,
+    data: { buddies: [] },
+  });
   const ghost = await routes.request('/api/chat/close?handle=matt', {
     method: 'POST',
     body: JSON.stringify({ room: 'ghost' }),
@@ -501,7 +519,9 @@ test('close 400s on a bad body and on a room nobody lists, and never join-create
 test('close 502s when the daemon refuses, and the old archive route is gone', async () => {
   vi.mocked(rt.chatRooms).mockResolvedValueOnce({
     ok: true,
-    data: { rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }] },
+    data: {
+      rooms: [{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }],
+    },
   });
   vi.mocked(rt.chatArchive).mockResolvedValueOnce({ ok: false, error: 'nope' });
   const refused = await routes.request('/api/chat/close?handle=matt', {
@@ -515,7 +535,6 @@ test('close 502s when the daemon refuses, and the old archive route is gone', as
   });
   expect(gone.status).toBe(404);
 });
-
 
 test('dm/open opens or reuses the pair’s room as the human without posting', async () => {
   vi.mocked(rt.chatDmOpen).mockResolvedValueOnce({

@@ -441,11 +441,7 @@ export function PageBar({
           </Box>
         )}
         {offline.length > 0 && (
-          <Box
-            component="span"
-            style={CHIP_BASE}
-            data-testid="chip-offline"
-          >
+          <Box component="span" style={CHIP_BASE} data-testid="chip-offline">
             <Dot hollow testId="dot-offline" />
             {offline.length} {STATUS_WORD.offline}
             <NamesSuffix handles={offline.map(b => b.handle)} />
