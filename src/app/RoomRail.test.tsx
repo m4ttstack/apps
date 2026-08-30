@@ -141,6 +141,25 @@ test('the hover × closes that row without selecting it', async () => {
   );
 });
 
+test('a left click selects the row and never opens its menu', async () => {
+  const onCloseRoom = vi.fn();
+  const onSelectRoom = vi.fn();
+  renderWithProviders(
+    <RoomRail
+      rooms={[{ room: 'build', memberCount: 2, unread: 0, mentions: 0 }]}
+      onCloseRoom={onCloseRoom}
+      onSelectRoom={onSelectRoom}
+    />
+  );
+  const row = screen.getByTestId('room-row-build');
+  await userEvent.click(row);
+  expect(onSelectRoom).toHaveBeenCalledWith('build');
+  expect(screen.queryByTestId('room-context-build')).toBeNull();
+
+  fireEvent.contextMenu(row);
+  expect(await screen.findByTestId('room-context-build')).toBeInTheDocument();
+});
+
 test('right-click opens a menu for that row: Mark read with its count, then Close', async () => {
   const onCloseRoom = vi.fn();
   const onMarkRead = vi.fn();

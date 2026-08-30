@@ -178,9 +178,9 @@ function roomLabel(room: RoomSummary): string {
  * A rail row is a `div[role=button]`, not a `<button>`: the close control
  * inside it is a real button, and a button may not nest a button. Enter and
  * Space select, like the button they replace. The × shows on hover, on
- * focus within, and while the row's menu is open; the menu is a controlled
- * Mantine `Menu` (there is no right-click trigger) opened from
- * `onContextMenu`, positioned off the row, one instance per row.
+ * focus within, and while the row's menu is open; the menu is Mantine's
+ * `Menu.ContextMenu` (right-click, and a long press on touch), positioned
+ * at the cursor, one instance per row.
  */
 function RoomRow({
   room,
@@ -222,11 +222,6 @@ function RoomRow({
       onBlur={e => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null))
           setFocusWithin(false);
-      }}
-      onContextMenu={e => {
-        if (!closable) return;
-        e.preventDefault();
-        setMenuOpened(true);
       }}
       style={{
         display: 'flex',
@@ -297,15 +292,8 @@ function RoomRow({
   if (!closable) return row;
 
   return (
-    <Menu
-      opened={menuOpened}
-      onChange={setMenuOpened}
-      position="bottom-start"
-      radius="md"
-      shadow="md"
-      withinPortal
-    >
-      <Menu.Target>{row}</Menu.Target>
+    <Menu onChange={setMenuOpened} radius="md" shadow="md" withinPortal>
+      <Menu.ContextMenu>{row}</Menu.ContextMenu>
       <Menu.Dropdown data-testid={`room-context-${room.room}`}>
         <Menu.Label>{label}</Menu.Label>
         {room.unread > 0 && onMarkRead && (
