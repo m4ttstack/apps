@@ -77,12 +77,13 @@ place a new `src/app/MessageMarkdown.tsx` renders one message body with
   remark has already lifted code spans and fences out of the text nodes, an
   `@` inside code is never a mention. The node renders as the `.at` span
   (accent, 600); the human's own handle adds the `.at.me` wash.
-- **Code fences** render through `src/app/components/CodeBlock.tsx`
-  (`@mattstack/app-kit/lazy`'s `CodeHighlight`, which brings highlighting
-  and the copy button). The block gets a header bar naming the fence's
-  language (or `text`), matching the artboard's `.codehdr`; `CodeBlock`
-  gains a `header` slot for it. The existing `.copy` hover control and
-  `CopyActionIcon` wiring in `Transcript.tsx` go away with the parser.
+- **Code fences** render through `src/app/components/CodeBlock.tsx` as it
+  is: a `Paper withBorder` (radius md) around `@mattstack/app-kit/lazy`'s
+  `CodeHighlight`, which brings highlighting, the fence's language, and
+  its own copy control (8px in from the top-right, 50% opacity until
+  hover). No header bar: the panel is the component's own anatomy. The
+  existing `.copy` hover control and `CopyActionIcon` wiring in
+  `Transcript.tsx` go away with the parser.
 - **Kept as-is:** the fold on a body taller than 480px (`show more`), the
   `#m-<id>` anchor that mounts expanded, day dividers, the `N new` divider,
   the `↓ N new` pill, the older-messages edge, the WS-driven tail refetch.
@@ -108,7 +109,7 @@ every value below is what the `Reader` artboard draws and is what
 | table | `border-collapse: collapse`, 14.5px / 1.45, cells `6px 10px` with `1px solid var(--tk-border-soft)`, header row on `bg2` at 600; a wide table scrolls inside its own `overflow-x: auto` wrapper |
 | blockquote | `padding-left: 14px; border-left: 2px solid var(--tk-border)`, muted text |
 | hr | `1px solid var(--tk-border-soft)` |
-| code panel `.codeblk` | `1px solid var(--tk-border)`, radius 6px; header `.codehdr` 28px on `bg2` with the language in mono 10.56px muted and the copy control at the right; body on `bg1`, mono 13px / 1.55, `white-space: pre; overflow-x: auto` |
+| code panel (`CodeBlock`) | `Paper withBorder` radius md (6px) around `CodeHighlight`: `pre` padding 4.8px 9.6px on `bg1`, mono 13px / 1.7, `white-space: pre; overflow-x: auto`; the component's copy control 8px in from the top-right |
 | own post `.mine` | the body sits in `color-mix(in srgb, accent var(--tk-wash), transparent)`, radius 8px, `padding: 12px 16px` |
 | links | accent, underline on hover |
 
@@ -130,9 +131,10 @@ insets; type, spacing and the tint are the same.
 `Main`, `DaemonDown`, `DirectMessage` and `Phone` artboards adopt it. The
 `Today` values (`.msg` 8.4px, `.msg-body` 12.16px) leave `build.py`.
 `design/extract-spec.py` regenerates `spec.json`; `design/audit.mjs`
-`TARGETS` gains `.col`, the Reader `.msg`/`.msg-body`, `.msg-body h2`,
-`.msg-body table`, `.codeblk`, `.codehdr`, `.msg.mine .msg-body`, and its
-`.copy` entry moves to the code header. `src/server/fixtures.ts`'s message
+`TARGETS` gains `.col`, the Reader `.msg`/`.prose`, `.prose h2`,
+`.prose table`, the code panel `.ch` and its `pre`, `.msg.mine .prose`,
+`.room .close`, `.menu-item`, and its `.copy` entry becomes
+`CodeHighlight`'s own control. `src/server/fixtures.ts`'s message
 bodies gain one post with a heading, a table and an ordered list, and one
 post by the human, so the fixtures server shows every state the artboards
 draw. `ANATOMY.md`'s Transcript section and `CONFORMANCE.md`'s "values that
