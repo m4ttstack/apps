@@ -1,3 +1,4 @@
+import { notifications } from '@mattstack/app-kit/notifications';
 import {
   renderWithProviders,
   setViewportWidth,
@@ -44,6 +45,10 @@ afterEach(() => {
   // test would otherwise inherit a collapsed (pointer-events: none) rail.
   window.localStorage.removeItem('chat-rooms-sidebar');
   setViewportWidth(DESKTOP_WIDTH);
+  // The notifications store lives outside React (a module-level singleton),
+  // so an error toast from one test survives that test's unmount and can
+  // collide with a later test asserting the same message.
+  notifications.clean();
   restoreWebSocket();
 });
 
@@ -708,6 +713,62 @@ test('a failed close restores the row and says so', async () => {
   );
   await userEvent.hover(screen.getByTestId('room-row-ghost'));
   await userEvent.click(screen.getByTestId('room-close-ghost'));
+  expect(
+    await screen.findByText("Couldn't close the room")
+  ).toBeInTheDocument();
+  expect(screen.getByTestId('room-row-ghost')).toBeInTheDocument();
+});
+
+test('the row leaves the rail before the close resolves, and comes back when it fails', async () => {
+  installFetchMock();
+  let rejectClose!: (e: Error) => void;
+  fetchMock.mockImplementation((url: string) => {
+    if (url === '/api/chat/close')
+      return new Promise<Response>((_, reject) => {
+        rejectClose = reject;
+      });
+    // Both rooms, always: if the row's absence were explained by a refetch
+    // landing rather than the optimistic filter, this response would put
+    // `ghost` right back before the assertion below runs.
+    if (url === '/api/chat/rooms')
+      return Promise.resolve(
+        jsonResponse({
+          rooms: [
+            { room: 'build', memberCount: 1, unread: 0, mentions: 0 },
+            { room: 'ghost', memberCount: 1, unread: 0, mentions: 0 },
+          ],
+        })
+      );
+    return Promise.resolve(jsonResponse({}));
+  });
+  window.history.replaceState(null, '', '/r/build');
+  renderWithProviders(
+    <App
+      initialState={{
+        daemonReachable: true,
+        buddies: [],
+        rooms: [
+          { room: 'build', memberCount: 1, unread: 0, mentions: 0 },
+          { room: 'ghost', memberCount: 1, unread: 0, mentions: 0 },
+        ],
+        members: [],
+        messages: [],
+      }}
+    />
+  );
+  await userEvent.hover(screen.getByTestId('room-row-ghost'));
+  await userEvent.click(screen.getByTestId('room-close-ghost'));
+
+  // The close request is still pending (rejectClose hasn't been called yet):
+  // the row is gone and the page hasn't moved, so only the optimistic
+  // removal -- not a response -- explains it.
+  expect(screen.queryByTestId('room-row-ghost')).toBeNull();
+  expect(window.location.pathname).toBe('/r/build');
+
+  await act(async () => {
+    rejectClose(new Error('boom'));
+  });
+
   expect(
     await screen.findByText("Couldn't close the room")
   ).toBeInTheDocument();
