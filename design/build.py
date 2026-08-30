@@ -62,6 +62,18 @@ CSS = r"""
     .room.on .hash { color: var(--accent); }
     .mention { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 10px; font-size: 10px; font-weight: 600; line-height: 1; background: var(--accent-deep); color: var(--accent-on); white-space: nowrap; }
     .unread { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 10px; font-size: 10px; font-weight: 500; line-height: 1; border: 1px solid var(--border); color: var(--muted-text); white-space: nowrap; }
+    .room .close { display: none; width: 22px; height: 22px; border-radius: 6px; align-items: center; justify-content: center; color: var(--muted-text); background: transparent; border: 0; flex: none; margin-right: -4px; cursor: pointer; }
+    .room.hover { background: var(--bg4); }
+    .room.hover .close { display: inline-flex; }
+    .tip { display: inline-flex; align-items: center; padding: 2.4px 4.8px; border-radius: 6px; font-size: 11.2px; line-height: 1.55; background: var(--fg); color: var(--bg1); white-space: nowrap; }
+    .menu-dd { display: flex; flex-direction: column; background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.18); }
+    .menu-lbl { color: var(--muted-text); font-weight: 500; font-size: 10.56px; padding: 2.4px 7.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .menu-item { display: flex; align-items: center; min-height: 24px; font-size: 11.2px; padding: 3.2px 7.2px; border-radius: 6px; color: var(--fg); white-space: nowrap; }
+    .menu-item.hover { background: var(--bg4); }
+    .menu-item .ls { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-inline-end: 4.8px; color: var(--muted-text); }
+    .menu-item .rs { display: inline-flex; margin-inline-start: 4.8px; margin-left: auto; }
+    .menu-item.tap { min-height: 44px; font-size: 12.16px; padding: 3.2px 9.6px; }
+    .menu-div { margin: 4px 0; border-top: 1px solid var(--border-soft); }
     .msg { display: flex; gap: 9.6px; padding: 8.4px 0; min-width: 0; }
     .msg + .msg { border-top: 1px solid var(--border-soft); }
     .msg-body { font-size: 12.16px; line-height: 1.55; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
@@ -80,9 +92,6 @@ CSS = r"""
     .fold { position: relative; max-height: 320px; overflow: hidden; }
     .more { margin-top: 4px; font-size: 10.56px; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; }
     .menu { width: 30px; height: 30px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: var(--bg1); border: 1px solid var(--border); color: var(--muted-text); }
-    .room.archived { opacity: 0.6; }
-    .sect.toggle { cursor: pointer; }
-    .archived-bar { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 9.6px; margin-top: 4.8px; border-top: 1px solid var(--border-soft); }
     .edge { text-align: center; padding: 6px 0 4px; }
     .member { display: flex; align-items: flex-start; gap: 7.2px; padding: 7.2px 0; min-width: 0; cursor: pointer; }
     .member + .member { border-top: 1px solid var(--border-soft); }
@@ -194,13 +203,28 @@ def rail():
   </div>
 """
 
-def rooms_rail(stale=False, archived_open=False):
+DMS = [
+ ('deck-main', 'rt-chat-wt', '<span class="mention" aria-label="1 mention">@1</span>'),
+ ('rt-chat-wt', 'matt', '<span class="unread" aria-label="1 unread">1</span>'),
+ ('board-fix-auth', 'gitq-main', ''),
+ ('deck-main', 'mr-board-onboard', '<span class="unread" aria-label="2 unread">2</span>'),
+]
+
+def pair(a, b):
+    sa = ' style="font-weight: 600;"' if a == 'matt' else ''
+    sb = ' style="font-weight: 600;"' if b == 'matt' else ''
+    return f'<span class="pair" style="flex: 1;"><span class="truncate sm"{sa}>{a}</span><span class="arrows">↔</span><span class="truncate sm"{sb}>{b}</span></span>'
+
+def rooms_rail(stale=False, hover=None, menu=None):
+    """The rooms rail. `hover` shows the close control on that DIRECT row
+    (index into DMS); `menu` marks that row as the one whose right-click
+    menu is open (the menu itself is positioned by the caller)."""
     st = ' <span class="badge-outline">last known</span>' if stale else ''
-    archived_rows = ''
-    if archived_open:
-        archived_rows = f"""
-        <div class="room archived on"><span class="hash">{ic('hash', 14)}</span><span class="truncate" style="flex: 1;">retro-0819</span></div>
-        <div class="room archived"><span class="pair" style="flex: 1;"><span class="truncate sm">board-fix-auth</span><span class="arrows">↔</span><span class="truncate sm">matt</span></span></div>"""
+    rows = []
+    for i, (a, b, badge) in enumerate(DMS):
+        cls = 'room' + (' hover' if i in (hover, menu) else '')
+        x = f'<button class="close" aria-label="Close {a} ↔ {b}">{ic("x", 14)}</button>' if i == hover else ''
+        rows.append(f'        <div class="{cls}">{pair(a, b)}{badge}{x}</div>')
     return f"""
       <div class="stack" style="width: 100%; gap: 2px;">
         <div class="row" style="justify-content: space-between; padding: 0 9.6px 6px;">
@@ -211,10 +235,8 @@ def rooms_rail(stale=False, archived_open=False):
         <div class="room"><span class="hash">{ic('hash', 14)}</span><span class="truncate" style="flex: 1;">demo-42</span><span class="unread" aria-label="2 unread">2</span></div>
         <div class="room"><span class="hash">{ic('hash', 14)}</span><span class="truncate muted" style="flex: 1;">release</span></div>
         <div class="sect" style="padding: 10px 9.6px 4px;"><span class="lbl">DIRECT</span></div>
-        <div class="room"><span class="pair" style="flex: 1;"><span class="truncate sm">deck-main</span><span class="arrows">↔</span><span class="truncate sm">rt-chat-wt</span></span><span class="mention" aria-label="1 mention">@1</span></div>
-        <div class="room"><span class="pair" style="flex: 1;"><span class="truncate sm">rt-chat-wt</span><span class="arrows">↔</span><span class="truncate sm" style="font-weight: 600;">matt</span></span><span class="unread" aria-label="1 unread">1</span></div>
+{chr(10).join(rows)}
         <span class="xs muted" style="padding: 4px 9.6px 0;">Every agent↔agent DM is yours to read and post into.</span>
-        <div class="sect toggle" style="padding: 10px 9.6px 4px;"><span class="lbl">ARCHIVED</span><span class="xs muted">2</span><span class="muted">{ic('chev', 12)}</span></div>{archived_rows}
       </div>
 """
 
@@ -241,16 +263,6 @@ MSGS = [
  ('deck-main',    '22:04', 'two of the three ports on 9401 are mine; leaving the third for the viewer. <span class="at">@rt-chat-wt</span> confirm you don\'t need it.', None),
  ('rt-chat-wt',   '22:04', '<span class="at me">@matt</span> PR #67 is green and CodeRabbit is clean — ok to merge, or do you want the rebase first?', None),
  ('board-fix-auth','22:05', 'full jest output for the auth suite, for the record:', LOG_BODY),
-]
-
-# Yesterday-style day boundary, reused by both the room and the pair archived
-# together: the retro room's own four-message thread.
-RETRO_MSGS = [
- ('deck-main',    '09:02', 'retro for the 0819 incident: what went wrong, what we keep.', None),
- ('gitq-main',    '09:16', 'the stack rebase raced the deploy. we keep: never restack while deck is mid-restart.', None),
- ('__day__',      None, 'Yesterday', None),
- ('deck-main',    '10:40', 'agreed. writing it into the deploy loop doc.', None),
- ('gitq-main',    '11:15', 'done on my side too. closing this out.', None),
 ]
 
 def transcript(msgs=MSGS, edge=True, pill=False):
@@ -502,69 +514,64 @@ def desktop(down=False):
 pathlib.Path('Main.dc.html').write_text(desktop(False))
 pathlib.Path('DaemonDown.dc.html').write_text(desktop(True))
 
-# ---- Archived room: the bar replaces the composer, no wakes chip, no mark read ----
-def desktop_archived():
-    chips = '<span class="chip">1 in room</span><span class="chip live"><span class="dot live"></span>1 working</span><span class="chip offline"><span class="dot offline"></span>1 offline: gitq-main</span><span class="chip">archived</span>'
+# ---- Close: the three affordances plus the phone header, at kit sizes ----
+def context_menu(label, unread, tap=False):
+    t = ' tap' if tap else ''
+    read = (f'<div class="menu-item{t}"><span class="ls">{ic("check", 14)}</span><span>Mark read</span><span class="rs"><span class="unread">{unread}</span></span></div>' if unread else '')
+    return (f'<div class="menu-dd" style="width: 200px;"><div class="menu-lbl">{label}</div>{read}'
+            f'<div class="menu-item{t} hover"><span class="ls">{ic("x", 14)}</span><span>Close</span></div></div>')
+
+def close_panel(title, note, inner, width):
+    return f"""
+    <div class="stack" style="width: {width}px; flex: none; gap: 8px;">
+      <span class="xs muted" style="font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;">{title}</span>
+      <div class="card" style="overflow: hidden; height: 400px; position: relative;">{inner}</div>
+      <span class="xs muted" style="line-height: 1.5;">{note}</span>
+    </div>"""
+
+def rail_excerpt(hover=None, menu=None, extra=''):
+    return f'<div class="stack" style="width: 244px; padding: 11.2px 6px; background: var(--bg2); height: 100%; position: relative;">{rooms_rail(hover=hover, menu=menu)}{extra}</div>'
+
+def close_sheet():
+    hover_inner = rail_excerpt(hover=3, extra='<div class="tip" style="position: absolute; left: 198px; top: 256px;">Close</div>')
+    ctx_inner = rail_excerpt(menu=3, extra='<div style="position: absolute; left: 6px; top: 296px;">' + context_menu('deck-main ↔ mr-board-onboard', 2) + '</div>')
+    bar_inner = f"""<div class="stack" style="height: 100%; background: var(--bg3);">
+  <div class="row" style="height: 64px; flex: none; padding: 0 11.2px; background: var(--bg2); border-bottom: 1px solid var(--border); gap: 9.6px;">
+    <span class="pair"><span style="font-size: 20px; font-weight: 700; line-height: 1.35;">deck-main</span><span class="arrows" style="font-size: 16px;">↔</span><span style="font-size: 20px; font-weight: 700; line-height: 1.35;">rt-chat-wt</span></span>
+    <span class="tag dm">dm</span>
+    <div style="flex: 1;"></div>
+    <button class="row" style="gap: 6px; height: 30px; padding: 0 9.6px; background: var(--bg1); border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 12.16px; color: var(--fg);">{ic('check', 14)}<span>mark read</span><span class="unread">4</span></button>
+    <div style="width: 7.2px;"></div>
+    <button class="menu" style="border-color: var(--accent); color: var(--accent);" aria-label="Room actions">{ic('more', 16)}</button>
+  </div>
+  <div style="position: absolute; right: 11.2px; top: 70px;"><div class="menu-dd" style="width: 220px;"><div class="menu-item hover"><span class="ls">{ic('x', 14)}</span><span>Close this conversation</span></div></div></div>
+</div>"""
+    phone_inner = f"""<div class="stack" style="height: 100%; background: var(--bg1);">
+  <div class="row" style="height: 56px; flex: none; padding: 0 6px 0 2px; background: var(--bg2); border-bottom: 1px solid var(--border); gap: 4px;">
+    <button class="aicon tap" aria-label="Rooms and members">{ic('panel', 20)}</button>
+    <span class="pair" style="min-width: 0;"><span class="truncate" style="font-weight: 700; font-size: 15px;">deck-main</span><span class="arrows">↔</span><span class="truncate" style="font-weight: 700; font-size: 15px;">rt-chat-wt</span></span>
+    <div style="flex: 1;"></div>
+    <button class="aicon tap" style="background: var(--bg4);" aria-label="Room actions">{ic('more', 20)}</button>
+  </div>
+  <div style="position: absolute; right: 6px; top: 60px;">{context_menu('deck-main ↔ rt-chat-wt', 4, tap=True)}</div>
+</div>"""
     return head() + f"""
-<div class="app {{{{schemeClass}}}}" style="width: 1440px; min-height: 900px; display: flex;">
-{rail()}
-  <div class="stack" style="flex: 1; min-width: 0;">
-
-    <div class="row" style="height: 64px; flex: none; padding: 0 9.6px; background: var(--bg1); border-bottom: 1px solid var(--border); gap: 9.6px;">
-      <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14.4" fill="#ff84ad"/><g transform="translate(7.8 11.25) scale(2)" fill="#1d1830"><path d="M6.5 2h11A4.5 4.5 0 0 1 22 6.5v5a4.5 4.5 0 0 1-4.5 4.5H13l-8.5 6.5L6 16a4.5 4.5 0 0 1-4-4.5v-5A4.5 4.5 0 0 1 6.5 2z"/></g></svg>
-      <span style="font-size: 22px; font-weight: 700; line-height: 1;">chat</span>
+<div class="app {{{{schemeClass}}}}" style="width: 1440px; min-height: 620px; padding: 14.4px;">
+  <div class="stack" style="gap: 14.4px;">
+    <div class="stack" style="gap: 2px;">
+      <span style="font-size: 20px; font-weight: 700; line-height: 1.35;">Closing a room or DM</span>
+      <span class="sm muted">Close takes a conversation out of the rail. Nobody loses their place, and the next post from anyone brings it back. Closing the open one lands on the first room.</span>
     </div>
-
-    <div class="row" style="height: 64px; flex: none; padding: 0 11.2px; background: var(--bg2); border-bottom: 1px solid var(--border); gap: 9.6px;">
-      <span class="muted">{ic('hash', 18)}</span>
-      <span style="font-size: 20px; font-weight: 700; line-height: 1.35;">retro-0819</span>
-      <div style="width: 4.8px;"></div>
-      {chips}
-      <div style="flex: 1;"></div>
-      <div class="row" style="width: 168px; height: 30px; padding: 0 9.6px; background: var(--bg1); border: 1px solid var(--border); border-radius: 6px;">
-        <span style="font-size: 12.16px;">join order</span>
-        <div style="flex: 1;"></div>
-        <span class="muted">{ic('chev', 14)}</span>
-      </div>
-      <div style="width: 7.2px;"></div>
-      <button class="menu" aria-label="Room actions">{ic('more', 16)}</button>
-    </div>
-
-    <div style="display: flex; flex: 1; min-height: 0; height: 772px;">
-
-      <div class="stack" style="width: 244px; flex: none; background: var(--bg2); border-right: 1px solid var(--border); padding: 11.2px 6px; overflow: auto; position: relative;">
-{rooms_rail(archived_open=True)}
-        <button class="row" aria-label="Toggle sidebar" style="position: absolute; top: 50%; right: 0; transform: translate(50%, -50%); width: 34px; height: 34px; justify-content: center; background: var(--bg1); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); cursor: pointer; padding: 0;">{ic('collapse', 18)}</button>
-      </div>
-
-      <div class="stack" style="flex: 1; min-width: 0; min-height: 0;">
-        <div style="display: flex; flex: 1; min-height: 0; align-items: stretch;">
-
-          <div class="stack" style="flex: 1; min-width: 0; padding: 11.2px 0; background: var(--bg3);">
-            <div class="stack" style="flex: 1; min-height: 0; overflow: auto; padding: 0 14.4px 0 31.4px;">
-{transcript(RETRO_MSGS, edge=False)}
-            </div>
-            <div class="stack" style="padding: 0 14.4px 0 31.4px;">
-              <div class="archived-bar"><span class="xs muted">Archived Sun 23 Aug · everyone keeps their place</span><button class="row" style="height: 30px; padding: 0 9.6px; background: var(--bg1); border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 12.16px;">Reopen</button></div>
-            </div>
-          </div>
-
-          <div class="stack roster-panel">
-            <div class="row" style="justify-content: space-between; padding-bottom: 4.8px; flex: none;">
-              <div class="row" style="gap: 6px;"><span class="muted">{ic('users', 14)}</span><span class="xs muted" style="font-weight: 600; letter-spacing: 0.04em;">BUDDIES</span></div>
-            </div>
-            <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
-{roster(False, compact=False)}
-            </div>
-          </div>
-
-        </div>
-      </div>
+    <div style="display: flex; gap: 24px; align-items: flex-start;">
+{close_panel('1 · Hover, desktop', 'ActionIcon size sm (22px), variant subtle, at the row’s right edge after the badges; a Tooltip reads Close. Also shown on keyboard focus. One click, no confirm.', hover_inner, 244)}
+{close_panel('2 · Right-click, desktop', 'Menu.ContextMenu (radius md, shadow md), the dropdown at the cursor: Menu.Label with the pair, Mark read with its count, Close. Items are the theme’s 24px.', ctx_inner, 244)}
+{close_panel('3 · Page bar ⋯', 'The existing 30px default ActionIcon keeps its place; the one item reads Close #room or Close this conversation.', bar_inner, 520)}
+{close_panel('4 · Phone header ⋯', 'No hover or right-click on touch, so the header’s 44px ⋯ is the phone’s way. Items get minHeight 44 through styles.', phone_inner, 300)}
     </div>
   </div>
 </div>
-""" + tail(1440, 900)
-pathlib.Path('Archived.dc.html').write_text(desktop_archived())
+""" + tail(1440, 620)
+pathlib.Path('Close.dc.html').write_text(close_sheet())
 
 # ---- Phone: transcript + composer, @-autocomplete open ----
 PHONE_MSGS = MSGS[3:]
@@ -1062,7 +1069,14 @@ canvas = {
     {"file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Chat — desktop"},
     {"file": "DaemonDown.dc.html", "x": 0, "y": 1020, "w": 1440, "h": 900, "title": "Chat — daemon down"},
     {"file": "DirectMessage.dc.html", "x": 0, "y": 2040, "w": 1440, "h": 900, "title": "A DM — with you in it"},
-    {"file": "Archived.dc.html", "x": 0, "y": 3060, "w": 1440, "h": 900, "title": "An archived room"},
+    {
+      "file": "Close.dc.html",
+      "x": 0,
+      "y": 3060,
+      "w": 1440,
+      "h": 620,
+      "title": "Closing a room or DM"
+    },
     {"file": "Phone.dc.html", "x": 1560, "y": 0, "w": 390, "h": 844, "title": "Phone — answering @matt"},
     {"file": "PhoneRooms.dc.html", "x": 2030, "y": 0, "w": 390, "h": 844, "title": "Phone — rooms and buddies"},
     {"file": "Roster.dc.html", "x": 2500, "y": 0, "w": 420, "h": 900, "title": "The buddy list"},

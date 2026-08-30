@@ -516,7 +516,6 @@ export const TARGETS = [
     },
   },
 
-  // QoL round 1 -- archive: the menu, the rail section, the chip, the bar.
   {
     spec: '.menu',
     find: '[data-testid="room-menu"]',
@@ -530,45 +529,42 @@ export const TARGETS = [
       'justify-content': 'verified by eye',
     },
   },
+  // Close: the rail row's hover × and the menus' items. The × is `display:
+  // none` until hover, so its size and shape are read at rest; the menu
+  // items exist only while their menu is open, so capture with the page
+  // bar's ⋯ open (same convention as the composer popover).
   {
-    spec: '.room.archived',
-    find: '[data-testid="room-row-retro-0819"]',
-    props: ['opacity'],
+    spec: '.room .close',
+    find: '[data-testid^="room-close-"]',
+    props: ['width', 'height', 'border-radius', 'align-items', 'justify-content', 'color'],
+    why: {
+      display: 'none until hover or focus; the audit reads the resting state',
+      background: 'transparent until hover; verified by eye',
+      border: '0, not separately enumerated',
+      flex: 'set by the row, not the control',
+      'margin-right': 'verified by eye',
+      cursor: 'verified by eye',
+    },
   },
   {
-    spec: '.chip',
-    find: '[data-testid="chip-archived"]',
-    props: ['display', 'align-items', 'gap', 'height', 'border-radius', 'font-size', 'font-weight', 'white-space', 'color'],
+    spec: '.menu-item',
+    find: '[data-testid="room-menu-close"]',
+    props: ['display', 'align-items', 'min-height', 'font-size', 'border-radius', 'color', 'padding'],
+    why: {
+      padding: 'shorthand not enumerated; longhands verified by eye',
+      'white-space': WHITE_SPACE_NOT_ENUMERATED,
+    },
+  },
+  {
+    spec: '.menu-dd',
+    find: '[data-testid="room-menu-dropdown"]',
+    props: ['display', 'flex-direction', 'background', 'border-radius', 'padding'],
     why: {
       padding: 'shorthand not enumerated; longhands verified by eye',
       border: 'token',
+      'box-shadow': BOX_SHADOW_SERIALIZATION_DIFFERS,
     },
   },
-  {
-    spec: '.archived-bar',
-    find: '[data-testid="archived-bar"]',
-    props: ['display', 'align-items', 'justify-content', 'height', 'margin-top'],
-    why: {
-      padding: 'shorthand not enumerated; longhands verified by eye',
-      'border-top': 'token',
-    },
-  },
-  // The rail's collapsed ARCHIVED section header (RoomRail.tsx): `.sect.toggle`
-  // adds only `cursor` over the base `.sect` row, already asserted by the
-  // `section-live` target above -- re-checking align-items/display/gap here
-  // would just duplicate that entry against the same shared CSS rule.
-  {
-    spec: '.sect.toggle',
-    find: '[data-testid="archived-toggle"]',
-    props: ['cursor'],
-  },
-  // `archived-reopen` (ArchivedBar.tsx's Reopen control) is intentionally
-  // NOT a target: it is a real kit `Button` (variant="default", size="xs"),
-  // not one of the artboard's own named CSS classes -- the artboard drew it
-  // with one-off inline styles that `extract-spec.py` never lifts into
-  // spec.json, the same way the page bar's "mark read" and the DM detail
-  // card's buttons never got a class either. There is no selector to diff
-  // against without exempting every property, which would check nothing.
 
   // Tasks 6-8 -- PanePicker (design/artboards/PanePicker.dc.html) and its
   // NewRoomModal caller (design/artboards/NewRoom.dc.html). The `.pop` shell

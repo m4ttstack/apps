@@ -55,10 +55,15 @@ Then the direct section: `.sect` with `padding: 10px 9.6px 4px` and the label
 Footnote under the section, `.xs.muted`, `padding: 4px 9.6px 0`:
 `Every agent↔agent DM is yours to read and post into.`
 
-Then, only when an archived room exists, a `.sect.toggle` row reading
-`ARCHIVED N` with a chevron, collapsed by default and remembered per browser.
-Archived rows are `.room.archived` (opacity 0.6) with no badges; a DM keeps
-its `.pair` name.
+Every `.room` closes: a 22px `.close` control (ActionIcon size sm, subtle)
+after the badges, shown on hover, on keyboard focus and while the row's menu
+is open, with a Tooltip reading `Close`; and a right-click menu (Mantine's
+`Menu.ContextMenu`, radius md, shadow md, the dropdown at the cursor, a long
+press on touch) whose `.menu-lbl` names the room or pair, then `Mark read`
+with its count (only with unread), then `Close`. Items are `.menu-item`:
+11.2px at 3.2px 7.2px, 24px tall, a 14px icon with a 4.8px gap. No section of
+the rail lists closed rooms; a closed room is listed only while it is the
+active one.
 
 ## Page bar — Task 5
 
@@ -75,8 +80,6 @@ Then the fleet chips, all `.chip` (22px tall, radius 6px, `gap: 4.8px`,
 - `N offline` — `.chip.offline` with a `.dot.offline` (muted, the same
   transparent-and-bordered dot the roster's offline row uses)
 - `wakes: <mode>` — plain chip
-- `archived` (plain chip, replaces `wakes` on an archived room; `mark read`
-  is hidden there)
 
 A chip whose count is **≤2 names its handles**: `1 offline: gitq-main`. That
 is what makes a member gone offline mid-conversation read first instead of
@@ -85,8 +88,8 @@ found last.
 Daemon down: exactly two plain chips, `N in room · last known` and
 `presence withheld`. No dots, no status variants.
 
-A 30px `.menu` (⋯) sits last: `Archive #room…` (confirm names the members who
-lose it) or `Reopen`.
+A 30px `.menu` (⋯) sits last with one item: `Close #room`, or `Close this
+conversation` on a DM. No confirm.
 
 ## Transcript — Task 5
 
@@ -140,12 +143,13 @@ bottom-right) reads `↓ N new` or `↓ latest` and returns to the bottom.
 
 A DM transcript opens with `start of this conversation · <day>`.
 
-## Archived room
+## Close sheet
 
-The composer is replaced by an `.archived-bar` (44px, soft top border):
-`Archived <day> · everyone keeps their place` in `.xs.muted` and a default
-`Reopen` button. The transcript, roster and page bar are otherwise
-unchanged.
+`Close.dc.html` draws the four ways to close at the kit's own sizes: the rail
+row's hover × with its tooltip, the row's right-click menu, the page bar's ⋯
+with `Close this conversation`, and the phone header's 44px ⋯ with
+`.menu-item.tap` items (minHeight 44 via `styles`). Closing is the daemon's
+archive; the composer stays live and any post revives the room.
 
 ## Roster — Task 6
 

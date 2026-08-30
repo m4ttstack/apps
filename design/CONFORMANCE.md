@@ -80,6 +80,8 @@ approximated:
 | tag | `height: 14px`, `radius: 7px`, `8.5px` type | 16px |
 | chip | `height: 22px`, `radius: 6px` | 24px |
 | separators | `1px solid var(--border-soft)` between rows | `--border`, the heavier one |
+| close control | **22px** (ActionIcon `sm`), radius 6px | 24px, the rail's `+` |
+| menu item | `min-height: 24px`, 11.2px, `padding: 3.2px 7.2px` | 30px, or 12.16px type |
 
 **The odd numbers are the point.** 7.2px is `0.45rem`, 9.6px is `0.6rem`,
 11.2px is `0.7rem`, 12.16px is `0.76rem`, 4.8px is `0.3rem`. They are Mantine
