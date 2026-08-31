@@ -299,7 +299,7 @@ export function fixtureMessages(room: string, now = Date.now()): ChatMessage[] {
       1005,
       'rt-chat-wt',
       0.9,
-      'not me. chat imports nothing from board. What the rebase changed, for the record:\n\n### Confirmed\n\n1. the fixture move is the only cross-repo edit\n2. e2e stays green on the rebased head\n3. CodeRabbit has not answered yet\n\n| check | state |\n| --- | --- |\n| typecheck | green |\n| e2e | green on `feat/rt-chat` |\n| CodeRabbit | pending |'
+      'not me. chat imports nothing from board.\n\n# Rebase record\n\nWhat the rebase changed, for the record:\n\n## Confirmed\n\n1. the fixture move is the only cross-repo edit\n2. e2e stays green on the rebased head\n3. CodeRabbit has not answered yet\n\n### Checks\n\n| check | state |\n| --- | --- |\n| typecheck | green |\n| e2e | green on `feat/rt-chat` |\n| CodeRabbit | pending |'
     ),
     msg(
       1006,

@@ -402,6 +402,18 @@ export const TARGETS = [
     },
   },
   {
+    spec: '.prose h1',
+    find: '[data-testid="message-body"] h1',
+    props: ['font-size', 'font-weight', 'margin-top'],
+    why: { 'line-height': LINE_HEIGHT_RESOLVES_TO_PX },
+  },
+  {
+    spec: '.prose h2',
+    find: '[data-testid="message-body"] h2',
+    props: ['font-size', 'font-weight', 'margin-top'],
+    why: { 'line-height': LINE_HEIGHT_RESOLVES_TO_PX },
+  },
+  {
     spec: '.prose h3',
     find: '[data-testid="message-body"] h3',
     props: ['font-size', 'font-weight', 'margin-top'],
@@ -433,6 +445,12 @@ export const TARGETS = [
     find: '[data-testid="message-body"] td',
     props: ['text-align', 'vertical-align', 'padding'],
     why: { border: 'token', padding: 'shorthand not enumerated; longhands verified by eye' },
+  },
+  {
+    spec: '.prose th',
+    find: '[data-testid="message-body"] th',
+    props: ['font-weight'],
+    why: { background: 'token; color prop, verified by eye' },
   },
   {
     spec: '.ch',
