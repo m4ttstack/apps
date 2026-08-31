@@ -21,7 +21,9 @@ service), optional `commands.build`/`commands.deploy` (LOCAL action buttons on
 the board, dev-mode gated... they build/restart locally, they are NOT the
 remote push), `env`, `port`, `displayName`/`icon`. `deck register --dir <path>`
 syncs an app from its manifest (attaches source + commands, never the serve
-shape). Deck itself deliberately has no manifest.
+shape). Deck adopts its own minimal manifest this way too (just a `deploy`
+button); its serve shape stays the bare `com.mattstack.deck` serve unit, never
+manifest-declared.
 
 ## Settings and secrets go through rt, never raw files
 
