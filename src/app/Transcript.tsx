@@ -214,7 +214,7 @@ function MessageRow({
         <AgentName
           handle={message.handle}
           variant="inline"
-          hue={speakerHue(message.handle)}
+          hue={speakerHue(message.handle, humanHandle)}
         />
         {mine && <YouBadge />}
         <Text

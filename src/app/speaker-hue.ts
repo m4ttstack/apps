@@ -25,12 +25,18 @@ function foldHash(handle: string): number {
 
 /**
  * Contract: the same handle always resolves to the same hue, forever --
- * callers memo nothing and re-derive it on every render. `HUMAN_HANDLE`
+ * callers memo nothing and re-derive it on every render. The human's handle
  * short-circuits to accent, matching the tint his own posts already carry;
  * accent never appears in the rotation, so no other speaker can land on it.
+ * `humanHandle` defaults to `HUMAN_HANDLE`, but the transcript passes its own
+ * `humanHandle` prop so the accent chip and the accent wash agree on who the
+ * human is.
  */
-export function speakerHue(handle: string): string {
-  if (handle === HUMAN_HANDLE) return ACCENT;
+export function speakerHue(
+  handle: string,
+  humanHandle: string = HUMAN_HANDLE
+): string {
+  if (handle === humanHandle) return ACCENT;
   const index = ((foldHash(handle) % HUES.length) + HUES.length) % HUES.length;
   return HUES[index]!;
 }

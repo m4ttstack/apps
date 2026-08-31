@@ -15,3 +15,10 @@ test('the human handle always gets accent, never a rotation hue', () => {
 test('fox and max land on different hues, the motivating near-collision case', () => {
   expect(speakerHue('fox')).not.toBe(speakerHue('max'));
 });
+
+test('a passed humanHandle owns accent; the default matt then takes a rotation hue', () => {
+  expect(speakerHue('fox', 'fox')).toBe('var(--mantine-color-accent-text)');
+  expect(speakerHue('matt', 'fox')).not.toBe(
+    'var(--mantine-color-accent-text)'
+  );
+});
