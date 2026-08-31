@@ -150,7 +150,13 @@ function useRooms(seed: RoomSummary[] | undefined) {
   }, []);
 
   const roomsRef = useRef(rooms);
-  roomsRef.current = rooms;
+  // Mirror rooms into the ref from an effect, never in render: a discarded
+  // concurrent render must not leave the ref holding an uncommitted list. The
+  // relay callback below only ever reads it after commit, so an effect is soon
+  // enough.
+  useEffect(() => {
+    roomsRef.current = rooms;
+  }, [rooms]);
   // A post into a room this list has never seen is the daemon's only signal
   // that a room exists now; refetch at once instead of waiting for the poll.
   useRelayFrames(frame => {
@@ -1257,7 +1263,18 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
         if (!res.ok) throw new Error('close failed');
       } catch {
         notifications.error("Couldn't close the room");
-        setRooms(snapshot);
+        // Restore only THIS room. A blanket setRooms(snapshot) would resurrect
+        // a room a concurrent close already removed and drop one that arrived
+        // since; rebuild from the snapshot keeping rooms still present plus the
+        // one we failed to close, in snapshot order, then append anything new.
+        setRooms(prev => {
+          const present = new Set(prev.map(r => r.room));
+          const revived = snapshot.filter(
+            r => r.room === room || present.has(r.room)
+          );
+          const known = new Set(revived.map(r => r.room));
+          return [...revived, ...prev.filter(r => !known.has(r.room))];
+        });
         return;
       } finally {
         closingRoomsRef.current.delete(room);
