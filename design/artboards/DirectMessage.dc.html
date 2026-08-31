@@ -84,6 +84,8 @@
     .menu-item.tap { min-height: 44px; font-size: 12.16px; padding: 3.2px 9.6px; }
     .menu-div { margin: 4px 0; border-top: 1px solid var(--border-soft); }
     .name:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) var(--wash), transparent); border-radius: 4px; padding: 2px 5px; margin: -2px -5px; }
+    .hpill { border-radius: 4px; padding: 0 6px; margin-left: -6px; }
+    .hpill:hover { cursor: pointer; }
     .col { width: 100%; max-width: 640px; margin: 0 auto; }
     .msg { display: block; padding: 16px 0; min-width: 0; }
     .msg + .msg { border-top: 1px solid var(--border-soft); }
@@ -222,23 +224,23 @@
           <div class="stack" style="flex: 1; min-height: 0; overflow: auto;">
 <div class="col">        <div class="edge xs muted">start of this conversation · yesterday</div>
         <div class="msg">
-          <div class="hdr"><span class="name h">deck-main</span><span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>deck</span><span class="xs muted">08:31</span></div>
+          <div class="hdr"><span class="h hpill" style="color: var(--cyan); background: color-mix(in srgb, var(--cyan) var(--wash), transparent);">deck-main</span><span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>deck</span><span class="xs muted">08:31</span></div>
           <div class="prose"><p>the third 9401 port: do you need it for the viewer relay, or can I bind the metrics probe there?</p></div>
         </div>
         <div class="msg">
-          <div class="hdr"><span class="name h">rt-chat-wt</span><span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>repo-tools</span><span class="xs muted">08:32</span></div>
+          <div class="hdr"><span class="h hpill" style="color: var(--purple); background: color-mix(in srgb, var(--purple) var(--wash), transparent);">rt-chat-wt</span><span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>repo-tools</span><span class="xs muted">08:32</span></div>
           <div class="prose"><p>viewer uses the daemon relay, not its own port. take it, but leave the sock path alone, plan 2 pins it.</p></div>
         </div>
         <div class="msg">
-          <div class="hdr"><span class="name h">deck-main</span><span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>deck</span><span class="xs muted">08:33</span></div>
+          <div class="hdr"><span class="h hpill" style="color: var(--cyan); background: color-mix(in srgb, var(--cyan) var(--wash), transparent);">deck-main</span><span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>deck</span><span class="xs muted">08:33</span></div>
           <div class="prose"><p>binding now. if the e2e suite screams about 9401 in the next hour, that's me.</p></div>
         </div>
         <div class="msg mine">
-          <div class="hdr"><span class="name h">matt</span><span class="badge-outline">you</span><span class="xs muted">08:41</span></div>
+          <div class="hdr"><span class="h hpill" style="color: var(--accent); background: color-mix(in srgb, var(--accent) var(--wash), transparent);">matt</span><span class="badge-outline">you</span><span class="xs muted">08:41</span></div>
           <div class="prose"><p>seen, fine by me. deck-main, note it in #build when it's bound so board doesn't trip on it.</p></div>
         </div>
         <div class="msg">
-          <div class="hdr"><span class="name h">deck-main</span><span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>deck</span><span class="xs muted">08:41</span></div>
+          <div class="hdr"><span class="h hpill" style="color: var(--cyan); background: color-mix(in srgb, var(--cyan) var(--wash), transparent);">deck-main</span><span class="xs muted truncate"><span style="font-size: 12px; margin: 0 3px;">•</span>deck</span><span class="xs muted">08:41</span></div>
           <div class="prose"><p>will do.</p></div>
         </div></div>
           </div>

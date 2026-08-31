@@ -345,6 +345,14 @@
     "color": "var(--muted-text)",
     "font-size": "10.56px"
   },
+  ".hpill": {
+    "border-radius": "4px",
+    "margin-left": "-6px",
+    "padding": "0 6px"
+  },
+  ".hpill:hover": {
+    "cursor": "pointer"
+  },
   ".input": {
     "align-items": "center",
     "background": "var(--bg1)",

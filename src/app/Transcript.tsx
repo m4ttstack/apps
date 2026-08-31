@@ -22,6 +22,7 @@ import { dayKey, dayLabel } from './day-label';
 import { MessageMarkdown } from './MessageMarkdown';
 import { NewPill } from './NewPill';
 import { useRelayFrames, useRelayOpen } from './relay-socket';
+import { speakerHue } from './speaker-hue';
 import prose from './transcript-prose.module.css';
 import scrollClasses from './transcript-scroll.module.css';
 
@@ -210,7 +211,11 @@ function MessageRow({
       className={mine ? `${prose.msg} ${prose.mine}` : prose.msg}
     >
       <div className={prose.hdr}>
-        <AgentName handle={message.handle} variant="inline" />
+        <AgentName
+          handle={message.handle}
+          variant="inline"
+          hue={speakerHue(message.handle)}
+        />
         {mine && <YouBadge />}
         <Text
           size="xs"

@@ -96,6 +96,48 @@ test('a mention of the human is marked as me; the human’s own post is marked m
   expect(screen.getByTestId('message-2')).toHaveTextContent('you');
 });
 
+test("each speaker's handle chip carries its own hue, and the human's is accent", () => {
+  renderWithProviders(
+    <Transcript
+      room="build"
+      humanHandle="matt"
+      messages={[
+        {
+          id: 1,
+          room: 'build',
+          handle: 'fox',
+          body: 'first',
+          mentions: [],
+          postedAt: 1,
+        },
+        {
+          id: 2,
+          room: 'build',
+          handle: 'max',
+          body: 'second',
+          mentions: [],
+          postedAt: 2,
+        },
+        {
+          id: 3,
+          room: 'build',
+          handle: 'matt',
+          body: 'third',
+          mentions: [],
+          postedAt: 3,
+        },
+      ]}
+    />
+  );
+  const chips = screen.getAllByTestId('speaker-chip');
+  expect(chips).toHaveLength(3);
+  const [foxColor, maxColor, mattColor] = chips.map(chip =>
+    chip.style.getPropertyValue('--speaker-hue')
+  );
+  expect(foxColor).not.toBe(maxColor);
+  expect(mattColor).toContain('accent');
+});
+
 test('markdown structure reaches the row: paragraphs, a list, code untouched', () => {
   renderWithProviders(
     <Transcript

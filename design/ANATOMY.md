@@ -105,7 +105,9 @@ padding: 16px 0`), separated by `border-top: 1px solid var(--border-soft)`.
 Inside: a `.hdr` (`display: flex; align-items: baseline; gap: 7.2px;
 margin-bottom: 8px`) with the handle at 13.6px / 600, the `· repo` token, a
 `you` badge on the human's post, and the local time in `.xs.muted`; then the
-body in `.prose`.
+body in `.prose`. The handle itself is a `.hpill` chip in the speaker's hue
+(a stable hash per handle, purple/cyan/ok/warn/bad; the human always
+accent); hover only deepens the wash, never moving a pixel.
 
 **`.prose` is react-markdown's output with its tags untouched**: 12.16px IBM
 Plex Sans at `line-height: 1.7`, blocks 12px apart (`display: flex;

@@ -382,6 +382,17 @@ export const TARGETS = [
     why: { padding: 'shorthand not enumerated by getComputedStyle; longhands verified by eye' },
   },
   {
+    spec: '.hpill',
+    find: '[data-testid="speaker-chip"]',
+    props: ['border-radius'],
+    why: {
+      padding: 'shorthand not enumerated; longhands verified by eye',
+      'margin-left': 'verified by eye',
+      color: 'per-speaker hue, inline; verified by eye',
+      background: 'per-speaker hue, inline; verified by eye',
+    },
+  },
+  {
     spec: '.prose',
     find: '[data-testid="message-body"]',
     props: ['font-size', 'display', 'flex-direction', 'gap', 'min-width', 'overflow-wrap'],

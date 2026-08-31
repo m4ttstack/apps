@@ -75,6 +75,8 @@ CSS = r"""
     .menu-item.tap { min-height: 44px; font-size: 12.16px; padding: 3.2px 9.6px; }
     .menu-div { margin: 4px 0; border-top: 1px solid var(--border-soft); }
     .name:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) var(--wash), transparent); border-radius: 4px; padding: 2px 5px; margin: -2px -5px; }
+    .hpill { border-radius: 4px; padding: 0 6px; margin-left: -6px; }
+    .hpill:hover { cursor: pointer; }
     .col { width: 100%; max-width: 640px; margin: 0 auto; }
     .msg { display: block; padding: 16px 0; min-width: 0; }
     .msg + .msg { border-top: 1px solid var(--border-soft); }
@@ -319,9 +321,22 @@ def blocks(items):
         elif kind == 'quote': out.append(f'<blockquote><p>{b[1]}</p></blockquote>')
     return ''.join(out)
 
+# The transcript cast's stable hue, mirroring the app's speakerHue() hash --
+# reused here, not recomputed, so the artboard never drifts from the app's
+# own assignment.
+ID_HUES = {
+    'deck-main': 'var(--cyan)',
+    'rt-chat-wt': 'var(--purple)',
+    'board-fix-auth': 'var(--ok)',
+    'gitq-main': 'var(--warn)',
+    'matt': 'var(--accent)',
+}
+
 def hdr(h, t):
     you = '<span class="badge-outline">you</span>' if h == 'matt' else ''
-    return f'<div class="hdr"><span class="name h">{h}</span>{repo_token(h)}{you}<span class="xs muted">{t}</span></div>'
+    hue = ID_HUES.get(h, 'var(--accent)')
+    style = f'color: {hue}; background: color-mix(in srgb, {hue} var(--wash), transparent);'
+    return f'<div class="hdr"><span class="h hpill" style="{style}">{h}</span>{repo_token(h)}{you}<span class="xs muted">{t}</span></div>'
 
 def transcript(msgs=MSGS, edge=True, pill=False):
     out = []
