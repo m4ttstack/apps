@@ -1,6 +1,7 @@
 // Downloads IBM Plex Sans (OFL) latin woff2 at the three weights the
 // transcript uses, from Google Fonts, into public/fonts. One-off; re-run
-// only to change weights.
+// only to change weights. The license text ships beside the fonts at
+// public/fonts/OFL.txt, as the OFL requires.
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 // A modern UA gets IBM Plex Sans back as one variable-font woff2 shared
@@ -40,7 +41,12 @@ for (const weight of [400, 500, 600]) {
   if (urls.has(url))
     throw new Error(`weight ${weight} reused another weight's url: ${url}`);
   urls.add(url);
-  const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
+  // fetch resolves on a 4xx/5xx too; without this guard an error body would
+  // be written as a valid-looking woff2 and surface only as a fallback face.
+  const res = await fetch(url);
+  if (!res.ok)
+    throw new Error(`weight ${weight}: HTTP ${res.status} for ${url}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
   writeFileSync(`public/fonts/ibm-plex-sans-${weight}.woff2`, bytes);
   console.log(`ibm-plex-sans-${weight}.woff2 ${bytes.length} bytes`);
 }
