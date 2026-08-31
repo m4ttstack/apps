@@ -75,6 +75,24 @@ tunnel.
   is separate and has 8 pre-existing failures on main (structural/text
   assertions, unrelated to most changes... verify before/after, do not chase).
 
+## Board surface color: use tui-kit tokens, not hand-picked hex
+
+The board has no card/panel wrapper around its content (unlike mr-board,
+where every row group sits inside tui-kit's `<Panel>`, giving it
+`var(--surface-wash-panel-88)` against the flat canvas). Deck's page body
+(`core/board/board.css`) therefore uses `var(--card)` directly for
+background... it reads as `#f6f6fa` light / `#2c3352` dark, correct in both
+themes for free. If a surface still needs more contrast, step up through the
+kit's existing surface tokens (`--bg` -> `--panel` -> `--card`) before
+hand-picking a hex: `--bg` also feeds formulas elsewhere in the kit
+(`--surface-wash-bg-55`, text-on-accent colors), so reassigning that shared
+token ripples beyond the page canvas. A literal hex works, but confirm it
+against the kit's actual token values (`tui-kit/src/generated/theme.css`)
+rather than guessing a shade from a shift and eyeballing it against light AND
+dark; and it must go through `light-dark(<light>, <dark>)` so the toggle in
+`core/board/main.tsx` (the `.dark` class on `<html>`) still finds a value in
+both modes.
+
 ## House rules
 
 No em dashes or en dashes anywhere. Comments only for a constraint the code
