@@ -330,8 +330,13 @@ def speaker_hue(handle):
     if handle == 'matt':
         return 'var(--accent)'
     h = 0
-    for ch in handle:
-        h = (h * 31 + ord(ch)) & 0xFFFFFFFF
+    # JS charCodeAt walks UTF-16 code units, so iterate the same units here (an
+    # astral char is two surrogate halves) rather than Python code points; ASCII
+    # handles are one unit each, so this is parity insurance for the rest.
+    units = handle.encode('utf-16-le')
+    for i in range(0, len(units), 2):
+        cu = units[i] | (units[i + 1] << 8)
+        h = (h * 31 + cu) & 0xFFFFFFFF
         if h >= 0x80000000:
             h -= 0x100000000
     index = ((h % len(_HUE_ROTATION)) + len(_HUE_ROTATION)) % len(_HUE_ROTATION)
