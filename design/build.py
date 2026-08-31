@@ -321,20 +321,25 @@ def blocks(items):
         elif kind == 'quote': out.append(f'<blockquote><p>{b[1]}</p></blockquote>')
     return ''.join(out)
 
-# The transcript cast's stable hue, mirroring the app's speakerHue() hash --
-# reused here, not recomputed, so the artboard never drifts from the app's
-# own assignment.
-ID_HUES = {
-    'deck-main': 'var(--cyan)',
-    'rt-chat-wt': 'var(--purple)',
-    'board-fix-auth': 'var(--ok)',
-    'gitq-main': 'var(--warn)',
-    'matt': 'var(--accent)',
-}
+# The same 31-multiplier char-code fold as src/app/speaker-hue.ts, ported
+# exactly (32-bit signed overflow emulated by masking then re-signing, matching
+# JS's `| 0`); a divergence between this and speaker-hue.ts's hash is a bug.
+_HUE_ROTATION = ['var(--purple)', 'var(--cyan)', 'var(--ok)', 'var(--warn)', 'var(--bad)']
+
+def speaker_hue(handle):
+    if handle == 'matt':
+        return 'var(--accent)'
+    h = 0
+    for ch in handle:
+        h = (h * 31 + ord(ch)) & 0xFFFFFFFF
+        if h >= 0x80000000:
+            h -= 0x100000000
+    index = ((h % len(_HUE_ROTATION)) + len(_HUE_ROTATION)) % len(_HUE_ROTATION)
+    return _HUE_ROTATION[index]
 
 def hdr(h, t):
     you = '<span class="badge-outline">you</span>' if h == 'matt' else ''
-    hue = ID_HUES.get(h, 'var(--accent)')
+    hue = speaker_hue(h)
     style = f'color: {hue}; background: color-mix(in srgb, {hue} var(--wash), transparent);'
     return f'<div class="hdr"><span class="h hpill" style="{style}">{h}</span>{repo_token(h)}{you}<span class="xs muted">{t}</span></div>'
 
