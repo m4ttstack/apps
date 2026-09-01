@@ -16,14 +16,16 @@ expected).
 
 ## Manifest-first
 
-Each app declares a `mattstack.deck.json`: `commands.start` (the supervised
-service), optional `commands.build`/`commands.deploy` (LOCAL action buttons on
+Each app declares a `mattstack.deck.json` with a `dev` node: `dev.start` (the
+dev serve command), optional `dev.build`/`dev.deploy` (LOCAL action buttons on
 the board, dev-mode gated... they build/restart locally, they are NOT the
-remote push), `env`, `port`, `displayName`/`icon`. `deck register --dir <path>`
-syncs an app from its manifest (attaches source + commands, never the serve
-shape). Deck adopts its own minimal manifest this way too (just a `deploy`
-button); its serve shape stays the bare `com.mattstack.deck` serve unit, never
-manifest-declared.
+remote push), plus `env`, `port`, `displayName`/`icon`. The legacy `commands`
+shape is gone — no grandfathering; a managed record carrying stored commands
+raises a loud dev-link issue. `deck register --dir <path>` links a managed
+app's source checkout (and slims legacy record fields); dev commands are read
+LIVE from the linked manifest, never copied onto the record. Deck adopts its
+own minimal manifest this way too (just a `dev.deploy` button); its serve
+shape stays the bare `com.mattstack.deck` serve unit, never manifest-declared.
 
 ## Settings and secrets go through rt, never raw files
 
