@@ -6,7 +6,7 @@
       "name": "local",
       "dependencies": {
         "@mattstack/rt-client": "^0.11.0",
-        "@mattstack/tui-kit": "^0.1.0",
+        "@mattstack/tui-kit": "^0.1.1",
         "react": "19.2.8",
         "react-dom": "19.2.8",
       },
@@ -36,7 +36,7 @@
 
     "@mattstack/rt-client": ["@mattstack/rt-client@0.11.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-IqkjX3vBG+QSLrP/za7BtJBb65zd7rwhkgTOKnKiXvLOMGKfA5n5AapSPdnX/Nti0tFkNP+V0EazK7q6p8rhEw=="],
 
-    "@mattstack/tui-kit": ["@mattstack/tui-kit@0.1.0", "", { "dependencies": { "@soribashi/core": "^0.3.0", "react-markdown": "^10.1.0", "remark-gfm": "^4.0.1" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0" } }, "sha512-JTWHOleHyhhPR1/ZLu1y2ZBXmYa80NDMmCbgb3t1aF3qPX7p1Qe2AbAO3KoDZYihCn0utCFAtVOggfpkey9XaQ=="],
+    "@mattstack/tui-kit": ["@mattstack/tui-kit@0.1.1", "", { "dependencies": { "@soribashi/core": "^0.4.0", "react-markdown": "^10.1.0", "remark-gfm": "^4.0.1" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0" } }, "sha512-IdpLSuQR9cF+urp9MoYMu6dCL1xOoLS8l4BxwF+kmF2QVlOwu4mzPBjTR8VUPIBbCuUSmv5r/rSkiNYPq6nJ/A=="],
 
     "@octokit/auth-token": ["@octokit/auth-token@6.0.0", "", {}, "sha512-P4YJBPdPSpWTQ1NU4XYdvHvXJJDxM6YwpS0FZHRgP7YFkdVxsWcpWGy/NVqlAA7PcPCnMacXlRm1y2PFZRWL/w=="],
 
@@ -60,7 +60,7 @@
 
     "@octokit/types": ["@octokit/types@17.0.0", "", { "dependencies": { "@octokit/openapi-types": "^28.0.0" } }, "sha512-ByP1v7YL5SMveFPP7+sj0/ZuWCOOg/Chs4NafOMpq6WNIM/hdGY0S7C0TCGDBWu1aGmOxmUIhMx3cO+IdwYZ1Q=="],
 
-    "@soribashi/core": ["@soribashi/core@0.3.0", "", { "dependencies": { "clsx": "^2.1.1", "tailwind-merge": "^2.5.0", "zod": "^4" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "vitest": "^4", "vitest-browser-react": "^2" }, "optionalPeers": ["vitest", "vitest-browser-react"], "bin": { "soribashi": "dist/bin/soribashi.js" } }, "sha512-rfOIeyfq3Dr7JOBUZOtV/E/zmXJVNgglH/TymNIsvtoYP9DxVNzCqzXg6jSoH3xn6QeKPcXp3CHAJmLFp2VZGA=="],
+    "@soribashi/core": ["@soribashi/core@0.4.0", "", { "dependencies": { "clsx": "^2.1.1", "tailwind-merge": "^2.5.0", "zod": "^4" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "vitest": "^4", "vitest-browser-react": "^2" }, "optionalPeers": ["vitest", "vitest-browser-react"], "bin": { "soribashi": "dist/bin/soribashi.js" } }, "sha512-asdjPkphegZhMT+r/fZNB/tVwZE+x2CxoaKlH1EwEcBQ00qvVuX2Ehys6WQU6zaLb81dym17eC+DtfV61HSMlA=="],
 
     "@types/bun": ["@types/bun@1.4.0", "", { "dependencies": { "bun-types": "1.4.0" } }, "sha512-K+lZULY23vRgK/CfTjFIV+tyifaNdSMlPh9j+6mQ/cLfpOznLyAuzgV/JQysyECpkBQLVMSyvjlr2fBUSA9wFQ=="],
 
