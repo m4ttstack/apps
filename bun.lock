@@ -17,7 +17,7 @@
         "@mantine/notifications": "^9.5.2",
         "@mantine/spotlight": "^9.5.2",
         "@mattstack/app-kit": "workspace:*",
-        "@mattstack/rt-client": "^0.6",
+        "@mattstack/rt-client": "^0.11.0",
         "@storybook/addon-a11y": "^10.5.2",
         "@storybook/addon-docs": "^10.5.2",
         "@storybook/react-vite": "^10.5.2",
@@ -54,7 +54,7 @@
         "mattstack-embed-assets": "./bin/mattstack-embed-assets.ts",
       },
       "peerDependencies": {
-        "@mattstack/rt-client": ">=0.6 <1",
+        "@mattstack/rt-client": "^0.11.0",
         "hono": "^4.13.3",
       },
     },
@@ -67,7 +67,7 @@
     },
     "packages/ui": {
       "name": "@mattstack/app-kit",
-      "version": "0.1.7",
+      "version": "0.1.9",
       "dependencies": {
         "@codemirror/commands": "^6.10.4",
         "@codemirror/lang-javascript": "^6.2.5",
@@ -338,7 +338,7 @@
 
     "@mattstack/mantine-tokyo": ["@mattstack/mantine-tokyo@workspace:packages/tokyo"],
 
-    "@mattstack/rt-client": ["@mattstack/rt-client@0.6.1", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-q7ffyXHDP0nRL2622itPG9uWdLS89t3qxHQbeU2SVTpMoW/d/UHxzr9/Pk0mffPXdqVLx3r33x8Z9Ae5B3YhOQ=="],
+    "@mattstack/rt-client": ["@mattstack/rt-client@0.11.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-IqkjX3vBG+QSLrP/za7BtJBb65zd7rwhkgTOKnKiXvLOMGKfA5n5AapSPdnX/Nti0tFkNP+V0EazK7q6p8rhEw=="],
 
     "@mdx-js/react": ["@mdx-js/react@3.1.1", "", { "dependencies": { "@types/mdx": "^2.0.0" }, "peerDependencies": { "@types/react": ">=16", "react": ">=16" } }, "sha512-f++rKLQgUVYDAtECQ6fn/is15GkEH9+nZPM3MS0RcxVqoTfawHvDlSCH7JbMhAM6uJ32v3eXLvLmLvjGu7PTQw=="],
 
