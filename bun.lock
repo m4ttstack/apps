@@ -5,7 +5,7 @@
     "": {
       "name": "local",
       "dependencies": {
-        "@mattstack/rt-client": "^0.10.1",
+        "@mattstack/rt-client": "^0.11.0",
         "@mattstack/tui-kit": "^0.1.0",
         "react": "19.2.8",
         "react-dom": "19.2.8",
@@ -34,7 +34,7 @@
 
     "@mattstack/glance": ["@mattstack/glance@0.19.0", "", { "dependencies": { "@gitbeaker/rest": "^43.8.0", "@octokit/core": "^7.0.7", "@octokit/graphql": "^9.0.4", "@octokit/plugin-paginate-rest": "^15.0.0", "@octokit/plugin-retry": "^8.1.1", "@octokit/plugin-throttling": "^11.0.5", "@octokit/request-error": "^7.1.1" } }, "sha512-H+QMuyC3IZ3SXl8TpdjIKVhZvx+vP2ltVdt88CDz8e6YFponB2fplyOrHXLvGFITN1EnnEM6DQyYTcQ06F+7fg=="],
 
-    "@mattstack/rt-client": ["@mattstack/rt-client@0.10.1", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-RndroXypLyHHeJ8RVO9RFt2/DB0im1moG4SUElETTHKgLdpLwPsiMFohEcdH9cIe72JLzt/i9wA1mC/66lq7Ng=="],
+    "@mattstack/rt-client": ["@mattstack/rt-client@0.11.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-IqkjX3vBG+QSLrP/za7BtJBb65zd7rwhkgTOKnKiXvLOMGKfA5n5AapSPdnX/Nti0tFkNP+V0EazK7q6p8rhEw=="],
 
     "@mattstack/tui-kit": ["@mattstack/tui-kit@0.1.0", "", { "dependencies": { "@soribashi/core": "^0.3.0", "react-markdown": "^10.1.0", "remark-gfm": "^4.0.1" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0" } }, "sha512-JTWHOleHyhhPR1/ZLu1y2ZBXmYa80NDMmCbgb3t1aF3qPX7p1Qe2AbAO3KoDZYihCn0utCFAtVOggfpkey9XaQ=="],
 
