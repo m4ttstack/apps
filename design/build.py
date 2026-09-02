@@ -344,12 +344,12 @@ def blocks(items):
         elif kind == 'quote': out.append(f'<blockquote><p>{b[1]}</p></blockquote>')
     return ''.join(out)
 
-def hdr(h, t, ctx=None):
+def hdr(h, t, ctx=None, down=False):
     """Author line: hue chip with avatar, repo, the doing line, time. matt
     carries the you badge and no doing line (there is no session behind him)."""
     you = '<span class="badge-outline">you</span>' if h == 'matt' else ''
     b = BY.get(h)
-    task = doing_span(b) if b else ''
+    task = ('' if down else doing_span(b)) if b else ''
     repo = repo_token(b['repo']) if b else ''
     ctx_html = f'<span class="ctx{" dm" if ctx and "↔" in ctx else ""}">{ctx}</span>' if ctx else ''
     return f'<div class="hdr">{hpill(h)}{repo}{task}{you}{ctx_html}<span class="xs muted">{t}</span></div>'
@@ -638,12 +638,12 @@ def reader(down=False):
 <div class="stack" style="flex: 1; min-height: 0; overflow: auto; padding: 8px 20px 0;"><div class="col">
 <div class="day">earlier in #boxscore</div>
 <div class="msg context">
-{hdr('max', '13:41')}
+{hdr('max', '13:41', down=down)}
 <div class="prose"><p><span class="at">@jay</span> when you pick metrics-hardening up: rt 2.8.1 moved the settings resolver, so read every knob through <code>getSetting</code>. Details in our DM.</p></div>
 </div>
 <div class="divider" aria-label="the message you opened">the message you opened</div>
 <div class="msg">
-{hdr('jay', '14:51')}
+{hdr('jay', '14:51', down=down)}
 <div class="prose"><p><span class="at me">@matt</span> metrics-hardening is ready for review: PR #12, 31 tests green.</p>
 <p>What landed: p95 gauges on the ingest path, retry counters on the exporter, and <code>metrics.flushMs</code> read through <code>getSetting</code> at machine scope (max confirmed the scope in our DM).</p>
 <p>Want the dashboard split into its own PR, or keep it in this one?</p></div>
@@ -689,7 +689,7 @@ def room_board():
              + btn('mark read', 'check', 155, aria='Mark #rt read') + '<div style="width: 7.2px;"></div>' + menu_btn())
     bar = pagebar('hash', 'rt', chips, right)
     transcript_html = transcript(RT_MSGS, edge='125 older messages · load older', pill=True)
-    content = f"""        <div class="stack" style="flex: 1; min-width: 0; padding: 11.2px 0; background: var(--bg3);">
+    content = f"""        <div class="stack" style="flex: 1; min-width: 0; min-height: 0; padding: 11.2px 0; background: var(--bg3);">
           <div class="stack" style="flex: 1; min-height: 0; overflow: auto; padding: 0 14.4px 0 31.4px; position: relative;">
 <div class="col">{transcript_html}</div>
           </div>
@@ -727,7 +727,7 @@ def dm_board():
     </div>
 """
     transcript_html = transcript(DM_MSGS, edge='start of this conversation · today')
-    content = f"""        <div class="stack" style="flex: 1; min-width: 0; padding: 11.2px 0; background: var(--bg3);">
+    content = f"""        <div class="stack" style="flex: 1; min-width: 0; min-height: 0; padding: 11.2px 0; background: var(--bg3);">
           <div class="stack" style="flex: 1; min-height: 0; overflow: auto; padding: 0 14.4px 0 31.4px; position: relative;">
 <div class="col">{transcript_html}</div>
           </div>
@@ -859,7 +859,7 @@ def phone_reader_board():
       <div class="input focus" style="flex: 1; min-height: 44px; font-size: 16px;"><span>keep it in this one <span class="at">@</span></span><span style="width: 1px; height: 18px; background: var(--fg);"></span></div>
       <button class="aicon tap filled" aria-label="Send">{ic('send', 18)}</button>
     </div>
-    <div class="row" style="gap: 4.8px; padding-top: 6px;"><span class="xs muted">posting as</span><span class="xs" style="font-weight: 600;">matt</span><span class="xs muted">· replying marks this read · return adds a line</span></div>
+    <div class="row" style="gap: 4.8px; padding-top: 6px;"><span class="xs muted">posting as</span><span class="xs" style="font-weight: 600;">matt</span><span class="xs muted">· replying marks this read</span></div>
   </div>
 </div>
 """ + tail(390, 844)
@@ -911,12 +911,26 @@ def close_panel(title, note, inner, width):
       <span class="xs muted" style="line-height: 1.5;">{note}</span>
     </div>"""
 
+def mini_tree(hover_dm=None, menu_dm=None):
+    """A trimmed tree for the Close panels: one repo group, then the DIRECT
+    section the close affordances live on."""
+    out = ['<div class="stack" style="width: 100%; gap: 2px;">',
+           '<div class="row" style="justify-content: space-between; padding: 0 9.6px 6px;"><span class="xs muted" style="font-weight: 600; letter-spacing: 0.04em;">FLEET</span><span class="xs muted">4 on · 9 off</span></div>',
+           f'<div class="room"><span class="hash">{ic("hash", 14)}</span><span class="truncate" style="flex: 1;">rt</span>{room_badges("rt")}</div>',
+           ws_row(BY['max']), ws_row(BY['remy']),
+           '<div class="ws more"><span class="dot offline"></span><span>6 signed out · kai ida jax sid elsa wren</span></div>',
+           sect('DIRECT', pad='padding: 10px 9.6px 4px;')]
+    for i, (a, c, n) in enumerate(DMS):
+        out.append(dm_entry(a, c, n, hover=(i == menu_dm), close=(i == hover_dm)))
+    out.append('</div>')
+    return '        ' + '\n        '.join(out) + '\n'
+
 def tree_excerpt(hover_dm=None, menu_dm=None, extra=''):
-    return f'<div class="stack" style="width: 244px; padding: 11.2px 6px; background: var(--bg2); height: 100%; position: relative; overflow: hidden;">{fleet_tree(hover_dm=hover_dm, menu_dm=menu_dm)}{extra}</div>'
+    return f'<div class="stack" style="width: 244px; padding: 11.2px 6px; background: var(--bg2); height: 100%; position: relative; overflow: hidden;">{mini_tree(hover_dm=hover_dm, menu_dm=menu_dm)}{extra}</div>'
 
 def close_sheet():
-    hover_inner = tree_excerpt(hover_dm=1, extra='<div class="tip" style="position: absolute; left: 196px; top: 372px;">Close</div>')
-    ctx_inner = tree_excerpt(menu_dm=2, extra='<div style="position: absolute; left: 6px; top: 428px;">' + context_menu('edie ↔ stan', 14) + '</div>')
+    hover_inner = tree_excerpt(hover_dm=1, extra='<div class="tip" style="position: absolute; left: 192px; top: 250px;">Close</div>')
+    ctx_inner = tree_excerpt(menu_dm=2, extra='<div style="position: absolute; left: 6px; top: 300px;">' + context_menu('edie ↔ stan', 14) + '</div>')
     bar_inner = f"""<div class="stack" style="height: 100%; background: var(--bg3);">
   <div class="row" style="height: 64px; flex: none; padding: 0 11.2px; background: var(--bg2); border-bottom: 1px solid var(--border); gap: 9.6px;">
     <span class="pair"><span style="font-size: 20px; font-weight: 700; line-height: 1.35;">jay</span><span class="arrows" style="font-size: 16px;">↔</span><span style="font-size: 20px; font-weight: 700; line-height: 1.35;">max</span></span>
@@ -1212,7 +1226,7 @@ def new_pane():
 
 def entry_points():
     return head() + f"""
-<div class="app {{{{schemeClass}}}}" style="width: 900px; min-height: 620px; padding: 14.4px; display: flex; flex-direction: column; gap: 14.4px;">
+<div class="app {{{{schemeClass}}}}" style="width: 1000px; min-height: 620px; padding: 14.4px; display: flex; flex-direction: column; gap: 14.4px;">
   <div class="stack" style="gap: 2px;">
     <span style="font-size: 20px; font-weight: 700; line-height: 1.35;">Where it starts, and what comes back</span>
     <span class="sm muted">The picker is one component with two callers today, and it can start a pane of its own. Both entry points hide entirely when rt says herdr is unavailable.</span>
@@ -1262,7 +1276,7 @@ def entry_points():
     </div>
   </div>
 </div>
-""" + tail(900, 620)
+""" + tail(1000, 620)
 
 # ---------------------------------------------------------------- write
 
@@ -1296,7 +1310,7 @@ canvas = {
     {"file": "NewRoom.dc.html", "x": 0, "y": 5240, "w": 900, "h": 900, "title": "New room"},
     {"file": "PanePicker.dc.html", "x": 1000, "y": 5240, "w": 820, "h": 960, "title": "Pane picker"},
     {"file": "NewPane.dc.html", "x": 1920, "y": 5240, "w": 720, "h": 760, "title": "New pane"},
-    {"file": "EntryPoints.dc.html", "x": 0, "y": 6340, "w": 900, "h": 620, "title": "Entry points"},
+    {"file": "EntryPoints.dc.html", "x": 0, "y": 6340, "w": 1000, "h": 620, "title": "Entry points"},
   ],
   "annotations": [
     {"id": "inbox-ux", "x": 3120, "y": 1020, "w": 420, "text": "The inbox, deliberately.\n\nThe landing view answers 'what needs me': NEEDS YOU is @matt mentions and DM turns addressed to you; OPEN ASKS is @here questions nobody has claimed (rt chat claim); EVERYTHING ELSE is one line of counts. A card opens its message in the reader with the message before it for context; replying from the reader marks it read and lands in the room, with the author already tagged.\n\nAgents keep talking exactly as they do — rooms, DMs, wakes, claims are untouched. The inbox is Matt's lens only."},

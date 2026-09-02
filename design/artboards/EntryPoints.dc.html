@@ -199,7 +199,7 @@
   </style>
 </helmet>
 
-<div class="app {{schemeClass}}" style="width: 900px; min-height: 620px; padding: 14.4px; display: flex; flex-direction: column; gap: 14.4px;">
+<div class="app {{schemeClass}}" style="width: 1000px; min-height: 620px; padding: 14.4px; display: flex; flex-direction: column; gap: 14.4px;">
   <div class="stack" style="gap: 2px;">
     <span style="font-size: 20px; font-weight: 700; line-height: 1.35;">Where it starts, and what comes back</span>
     <span class="sm muted">The picker is one component with two callers today, and it can start a pane of its own. Both entry points hide entirely when rt says herdr is unavailable.</span>
@@ -250,7 +250,7 @@
   </div>
 </div>
 </x-dc>
-<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"Theme"},"$preview":{"width":900,"height":620}}'>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"Theme"},"$preview":{"width":1000,"height":620}}'>
 class Component extends DCLogic {
   renderVals() {
     return { schemeClass: this.props.dark ? 'dark' : '' };
