@@ -1,8 +1,10 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import type { ChangeEvent, KeyboardEvent } from 'react';
 import {
+  ActionIcon,
   Box,
   Group,
+  Paper,
   Popover,
   Stack,
   Text,
@@ -24,15 +26,6 @@ const BORDER = 'var(--tk-border)';
 const BORDER_SOFT = 'var(--tk-border-soft)';
 const PURPLE = 'var(--tk-purple)';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
-
-/**
- * `.accent-deep` has no direct `--tk-*` token (see RoomRail's own copy of
- * this derivation): the artboard's palette only defines it as a shade one
- * step past plain accent in light, and as plain accent again in dark.
- */
-const ACCENT_DEEP =
-  'light-dark(var(--mantine-color-accent-7), var(--mantine-color-accent-text))';
-const ACCENT_ON = 'light-dark(var(--mantine-color-white), var(--tk-bg))';
 
 const STATUS_TEXT_COLOR: Record<'live' | 'idle', string> = {
   live: 'var(--mantine-color-ok-text)',
@@ -454,8 +447,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
       ? BORDER
       : focused
         ? ACCENT_TEXT
-        : BORDER;
+        : BORDER_SOFT;
     const inputFontSize = phone ? 16 : 'var(--mantine-font-size-md)';
+    const canSend = value.trim().length > 0 && daemonReachable && !sending;
 
     return (
       <Box
@@ -468,13 +462,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
                 padding:
                   '8px var(--mantine-spacing-lg) var(--mantine-spacing-lg)',
                 background: 'var(--tk-panel)',
-                borderTop: `1px solid ${BORDER}`,
               }
             : {
                 position: 'relative',
-                paddingTop: 'var(--mantine-spacing-md)',
-                marginTop: 'var(--mantine-spacing-xs)',
-                borderTop: `1px solid ${BORDER_SOFT}`,
+                paddingTop: 'var(--mantine-spacing-sm)',
               }
         }
       >
@@ -492,80 +483,66 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
           withinPortal
         >
           <Popover.Target>
-            <Group
-              data-testid="composer-row"
-              gap="sm"
-              wrap="nowrap"
-              align="flex-end"
+            <Paper
+              data-testid="composer-input"
+              pos="relative"
+              miw={0}
+              radius="lg"
+              p="md"
+              bg={!daemonReachable ? 'var(--tk-panel)' : 'var(--tk-card)'}
+              c={!daemonReachable ? MUTED : undefined}
+              bd={`1px ${!daemonReachable ? 'dashed' : 'solid'} ${inputBorderColor}`}
             >
-              <Box
-                data-testid="composer-input"
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                value={value}
+                disabled={!daemonReachable}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                placeholder={placeholder}
+                aria-label="Message"
+                data-testid="composer-row"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  flex: 1,
+                  display: 'block',
+                  width: '100%',
                   minWidth: 0,
-                  gap: 'var(--mantine-spacing-sm)',
-                  minHeight: phone ? 44 : 36,
-                  padding: '0 var(--mantine-spacing-md)',
-                  background: !daemonReachable
-                    ? 'var(--tk-panel)'
-                    : 'var(--ui-bg-1)',
-                  border: `1px solid ${inputBorderColor}`,
-                  borderStyle: !daemonReachable ? 'dashed' : 'solid',
-                  borderRadius: 'var(--mantine-radius-md)',
-                  color: !daemonReachable ? MUTED : undefined,
+                  border: 0,
+                  outline: 'none',
+                  resize: 'none',
+                  background: 'transparent',
+                  color: 'inherit',
+                  fontFamily: 'inherit',
+                  fontSize: inputFontSize,
+                  lineHeight: INPUT_LINE_HEIGHT,
+                  // Clears the floating send button; the Paper's `p` handles
+                  // the rest, so there is no reserved bottom row.
+                  paddingRight: 22,
+                  maxHeight: phone ? '25vh' : '40vh',
+                  overflowY: 'auto',
                 }}
-              >
-                <textarea
-                  ref={textareaRef}
-                  rows={1}
-                  value={value}
-                  disabled={!daemonReachable}
-                  onChange={handleChange}
-                  onKeyDown={handleKeyDown}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
-                  placeholder={placeholder}
-                  aria-label="Message"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    border: 0,
-                    outline: 'none',
-                    resize: 'none',
-                    background: 'transparent',
-                    color: 'inherit',
-                    fontFamily: 'inherit',
-                    fontSize: inputFontSize,
-                    lineHeight: INPUT_LINE_HEIGHT,
-                    padding: 'var(--mantine-spacing-sm) 0',
-                    maxHeight: phone ? '25vh' : '40vh',
-                    overflowY: 'auto',
-                  }}
-                />
-              </Box>
-              <UnstyledButton
+              />
+              <ActionIcon
                 aria-label="Send"
                 data-testid="composer-send"
-                disabled={!daemonReachable}
+                disabled={!canSend}
                 onClick={() => void send()}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flex: 'none',
-                  width: phone ? 44 : 34,
-                  height: phone ? 44 : 34,
-                  borderRadius: 'var(--mantine-radius-md)',
-                  background: !daemonReachable ? 'var(--ui-bg-4)' : ACCENT_DEEP,
-                  color: !daemonReachable ? MUTED : ACCENT_ON,
-                  cursor: !daemonReachable ? 'default' : 'pointer',
-                }}
+                variant="filled"
+                color="accent"
+                radius="xl"
+                size={phone ? 32 : 28}
+                pos="absolute"
+                right={phone ? 8 : 6}
+                // Offset to sit centered on a single line of text (the `md`
+                // padding plus half a line, less half the button); staying
+                // bottom-anchored holds it there as the box grows upward.
+                bottom={phone ? 7 : 9}
               >
-                <Icon name="send" size={phone ? 18 : 16} />
-              </UnstyledButton>
-            </Group>
+                <Icon name="send" size={phone ? 18 : 15} />
+              </ActionIcon>
+            </Paper>
           </Popover.Target>
           <Popover.Dropdown
             data-testid="composer-popover"
