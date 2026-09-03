@@ -1,11 +1,6 @@
 import type { ChatMessage, RoomSummary } from '@mattstack/rt-client';
 
-/** `Transcript.tsx` imports `isOpenAsk` below as a VALUE, not just its type,
-    so it can reuse the same `@here · unclaimed` predicate the inbox uses --
-    that only stays safe for the browser bundle because this module's only
-    import is a type-only one. Never add a runtime import (a client, a
-    daemon call, anything from `../app/**`) here, or that value import pulls
-    it into the client bundle too. */
+import { isOpenAsk } from '../shared/open-ask';
 
 export interface InboxCard {
   room: string;
@@ -27,24 +22,6 @@ export interface InboxPayload {
     unread: number;
     mentions: number;
   }[];
-}
-
-/** `here` is never a real handle, so the daemon never puts it in `mentions`
-    (unlike `matt`); detecting an ask means reading the body text itself. */
-const HERE_RE = /(^|[^\w])@here\b/i;
-
-/**
- * Daemon claims expire after five minutes and are not visible to this
- * viewer, so a reply is the only durable signal that an ask was answered.
- * Exported so the transcript's own `@here · unclaimed` chip reads the same
- * definition the inbox does, rather than drifting from it.
- */
-export function isOpenAsk(
-  msg: ChatMessage,
-  laterInRoom: ChatMessage[]
-): boolean {
-  if (!HERE_RE.test(msg.body)) return false;
-  return !laterInRoom.some(later => later.replyTo === msg.id);
 }
 
 const EXCERPT_CAP = 200;

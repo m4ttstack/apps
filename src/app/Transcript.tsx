@@ -22,13 +22,7 @@ import ScrollToBottom, {
   useScrollTo,
 } from 'react-scroll-to-bottom';
 
-// The one sanctioned crossing of the server-import wall: `isOpenAsk` is the
-// single `@here · unclaimed` predicate (also used by `buildInbox`), and
-// `inbox.ts` carries a guard comment keeping it free of any runtime
-// dependency, so this value never actually pulls server code into the
-// bundle -- only the wall's blanket glob thinks it might.
-// eslint-disable-next-line no-restricted-imports
-import { isOpenAsk } from '../server/inbox';
+import { isOpenAsk } from '../shared/open-ask';
 import { AgentName } from './AgentName';
 import { useBuddies } from './buddies-context';
 import { dayKey, dayLabel, localTime } from './day-label';
