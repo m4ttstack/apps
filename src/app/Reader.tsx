@@ -287,7 +287,10 @@ export function Reader({
         minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--tk-bg)',
+        // The conversation stays on the near-white card surface, matching the
+        // full-room transcript; the greyer page canvas (`--tk-bg`) read as
+        // too dark behind the messages.
+        background: 'var(--tk-card)',
       }}
     >
       {phone ? (

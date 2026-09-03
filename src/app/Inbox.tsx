@@ -492,7 +492,8 @@ export function Inbox({
             alignItems: 'center',
             justifyContent: 'center',
             padding: 'var(--mantine-spacing-xl)',
-            background: 'var(--tk-bg)',
+            // Same near-white surface the open reader uses (see Reader.tsx).
+            background: 'var(--tk-card)',
             color: MUTED,
           }}
         >
