@@ -931,7 +931,7 @@ test('messages before the read boundary fold to their first block; those from it
   expect(within(unread4).queryByTestId('read-fold-toggle')).toBeNull();
 });
 
-test("clicking a folded message's control unfolds only that message", () => {
+test("a folded message's control toggles only that message, both ways", () => {
   renderWithProviders(
     <Transcript
       room="build"
@@ -941,11 +941,24 @@ test("clicking a folded message's control unfolds only that message", () => {
   );
   const first = screen.getByTestId('message-1');
   const second = screen.getByTestId('message-2');
+  // Unfold the first: it reveals its second block, and the control stays,
+  // now offering to re-fold.
   fireEvent.click(within(first).getByTestId('read-fold-toggle'));
   expect(first).toHaveTextContent('second 1');
-  expect(within(first).queryByTestId('read-fold-toggle')).toBeNull();
+  expect(within(first).getByTestId('read-fold-toggle')).toHaveTextContent(
+    'fewer lines'
+  );
+  // The second is untouched: still folded, still showing "more line(s)".
   expect(second).not.toHaveTextContent('second 2');
-  expect(within(second).getByTestId('read-fold-toggle')).toBeInTheDocument();
+  expect(within(second).getByTestId('read-fold-toggle')).toHaveTextContent(
+    'more line'
+  );
+  // Clicking the first again re-folds it.
+  fireEvent.click(within(first).getByTestId('read-fold-toggle'));
+  expect(first).not.toHaveTextContent('second 1');
+  expect(within(first).getByTestId('read-fold-toggle')).toHaveTextContent(
+    'more line'
+  );
 });
 
 test('an undefined unreadCount folds every message', () => {

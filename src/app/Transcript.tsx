@@ -211,8 +211,8 @@ function MessageBody({
   const bodyRef = useRef<HTMLDivElement>(null);
   const [tall, setTall] = useState(false);
   const [expanded, setExpanded] = useState(startExpanded);
-  // Clicking a folded row's own "N more lines" unfolds that ONE message; it
-  // is never reset, so the choice sticks for the life of this row.
+  // Clicking a folded row's own "N more lines" unfolds that ONE message; the
+  // same control re-folds it ("fewer lines"), so this toggles per row.
   const [readUnfolded, setReadUnfolded] = useState(false);
   // App-wide override: when on, nothing folds -- read-fold or the tall-body
   // fold below -- and every per-message control stays hidden, since there
@@ -240,11 +240,12 @@ function MessageBody({
   // A single-block body has nothing left to reveal, so it never counts as
   // read-folded even when `foldEntry.folded` says the message is read --
   // rendering its one block whole is identical to rendering it "folded".
-  const readFolded =
-    (foldEntry?.folded ?? false) &&
-    moreLines > 0 &&
-    !readUnfolded &&
-    !expandAll;
+  // A message that CAN read-fold (read, multi-block); `readFolded` is that
+  // minus the per-row unfold. The control shows in both states so the unfold
+  // is reversible.
+  const readFoldable =
+    (foldEntry?.folded ?? false) && moreLines > 0 && !expandAll;
+  const readFolded = readFoldable && !readUnfolded;
   // The wrapper shape stays IDENTICAL whether or not `tall` is true: a
   // position whose element type changes on re-render gets remounted by
   // React, which would drop the live CodeHighlight instance and reset the
@@ -278,14 +279,21 @@ function MessageBody({
           {folded ? 'show more' : 'show less'}
         </UnstyledButton>
       )}
-      {readFolded && (
+      {readFoldable && (
         <UnstyledButton
           data-testid="read-fold-toggle"
           className={prose.foldrow}
-          onClick={() => setReadUnfolded(true)}
+          aria-expanded={readUnfolded}
+          onClick={() => setReadUnfolded(u => !u)}
         >
-          <Box component="span" className={prose.tri} />
-          {moreLines} more line{moreLines === 1 ? '' : 's'}
+          <Box
+            component="span"
+            className={prose.tri}
+            data-open={readUnfolded ? 'true' : undefined}
+          />
+          {readUnfolded
+            ? 'fewer lines'
+            : `${moreLines} more line${moreLines === 1 ? '' : 's'}`}
         </UnstyledButton>
       )}
     </Box>

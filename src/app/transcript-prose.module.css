@@ -248,4 +248,8 @@
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
   border-left: 5px solid currentColor;
+  transition: transform 120ms ease;
+}
+.tri[data-open='true'] {
+  transform: rotate(90deg);
 }
