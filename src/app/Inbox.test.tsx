@@ -158,11 +158,11 @@ test('orderedCards is needs-you first, then open asks', () => {
   expect(orderedCards(payload).map(c => c.messageId)).toEqual([720, 412, 602]);
 });
 
-test('compact drops the reader, so a card tap opens its room instead', async () => {
-  const props = renderInbox({ compact: true, openCard: mention });
+test('phone drops the reader beside the list, but a card tap still hands it to onOpenCard', async () => {
+  const props = renderInbox({ phone: true, openCard: mention });
   expect(screen.queryByTestId('reader')).toBeNull();
   expect(screen.queryByTestId('inbox-reader-empty')).toBeNull();
   await userEvent.click(screen.getByTestId('card-lead-412'));
-  expect(props.onOpenRoom).toHaveBeenCalledWith('boxscore', 412);
-  expect(props.onOpenCard).not.toHaveBeenCalled();
+  expect(props.onOpenCard).toHaveBeenCalledWith(mention);
+  expect(props.onOpenRoom).not.toHaveBeenCalled();
 });

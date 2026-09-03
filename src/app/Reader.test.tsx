@@ -157,6 +157,38 @@ test('open #boxscore hands the room and the message back to the caller', async (
   expect(props.onOpenRoom).toHaveBeenCalledTimes(1);
 });
 
+test('phone: the header is back, ctx chip, "<handle> needs you", and open-room -- no reader-strip', async () => {
+  serveWindow([opened]);
+  const onBack = vi.fn();
+  renderReader({ phone: true, onBack });
+  await screen.findByTestId('reader-message-412');
+  expect(screen.queryByTestId('reader-strip')).toBeNull();
+  const header = screen.getByTestId('reader-phone-header');
+  expect(header).toHaveTextContent('#boxscore');
+  expect(header).toHaveTextContent('jay needs you');
+
+  await userEvent.click(screen.getByTestId('reader-back'));
+  expect(onBack).toHaveBeenCalledTimes(1);
+});
+
+test('phone: open-room still hands the room and message back to the caller', async () => {
+  serveWindow([opened]);
+  const props = renderReader({ phone: true, onBack: vi.fn() });
+  await screen.findByTestId('reader-message-412');
+  await userEvent.click(screen.getByTestId('reader-open-room'));
+  expect(props.onOpenRoom).toHaveBeenCalledTimes(1);
+});
+
+test('phone: the footer still never claims a reply marks anything read', async () => {
+  serveWindow([opened]);
+  renderReader({ phone: true, onBack: vi.fn() });
+  await screen.findByTestId('reader-message-412');
+  expect(screen.getByTestId('reader-footer-note')).toHaveTextContent(
+    'nothing is marked read'
+  );
+  expect(screen.queryByText(/replying marks this read/i)).toBeNull();
+});
+
 test('daemon down: the composer is disabled and keeps the pre-tagged draft', async () => {
   serveWindow([predecessor, opened]);
   renderReader({ daemonReachable: false });

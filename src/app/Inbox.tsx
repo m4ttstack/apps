@@ -43,7 +43,7 @@ const CHIP_BASE = {
   color: MUTED,
 } as const;
 
-const UNREAD_BADGE = {
+export const UNREAD_BADGE = {
   display: 'inline-flex',
   alignItems: 'center',
   height: 18,
@@ -69,7 +69,7 @@ function elsewhereUnread(inbox: InboxPayload): number {
 
 /** Everything the inbox knows is unread, cards included: what `mark all
     read` would clear if it ran right now. */
-function unreadTotal(inbox: InboxPayload): number {
+export function unreadTotal(inbox: InboxPayload): number {
   return inbox.needsYou.length + inbox.openAsks.length + elsewhereUnread(inbox);
 }
 
@@ -320,12 +320,13 @@ export interface InboxProps {
   /** A reply landed in the reader. Posting only: no cursor moved. */
   onReplied: () => void;
   /**
-   * The phone: one full-width column of cards and no reader beside it, since
-   * a 560px list plus a reader does not fit a 390px screen. A card tap then
-   * opens its room, there being nowhere else for it to go. A stopgap until
-   * the phone's own inbox shell (PhoneInbox.dc.html) is built.
+   * The phone (`PhoneInbox.dc.html`): one full-width column of cards, no
+   * reader beside it -- a 560px list plus a reader does not fit a 390px
+   * screen. A card tap still hands the card to `onOpenCard`, same as
+   * desktop; the caller (`PhoneInboxPage`, App.tsx) is what swaps this list
+   * for the reader route, not this component.
    */
-  compact?: boolean;
+  phone?: boolean;
 }
 
 /**
@@ -347,7 +348,7 @@ export function Inbox({
   onMarkAllRead,
   onOpenRoom,
   onReplied,
-  compact = false,
+  phone = false,
 }: InboxProps) {
   const asks = inbox.openAsks.length;
   const dmRows = inbox.elsewhere.filter(row => row.kind === 'dm');
@@ -361,9 +362,7 @@ export function Inbox({
       open={openCard?.messageId === item.messageId}
       reachable={reachable}
       now={now}
-      onOpen={() =>
-        compact ? onOpenRoom(item.room, item.messageId) : onOpenCard(item)
-      }
+      onOpen={() => onOpenCard(item)}
       onMarkRead={() => onMarkRoomRead(item.room)}
       onOpenRoom={() => onOpenRoom(item.room, item.messageId)}
     />
@@ -380,8 +379,8 @@ export function Inbox({
       <Box
         data-testid="inbox-list"
         style={{
-          width: compact ? '100%' : LIST_WIDTH,
-          flex: compact ? 1 : 'none',
+          width: phone ? '100%' : LIST_WIDTH,
+          flex: phone ? 1 : 'none',
           minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
@@ -389,7 +388,7 @@ export function Inbox({
           padding: '11.2px 14.4px',
           overflowY: 'auto',
           background: 'var(--tk-card)',
-          borderRight: compact ? undefined : `1px solid ${BORDER}`,
+          borderRight: phone ? undefined : `1px solid ${BORDER}`,
         }}
       >
         {inbox.needsYou.length > 0 && (
@@ -470,7 +469,7 @@ export function Inbox({
         </Text>
       </Box>
 
-      {compact ? null : openCard ? (
+      {phone ? null : openCard ? (
         <Reader
           card={openCard}
           humanHandle={humanHandle}

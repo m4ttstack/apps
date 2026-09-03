@@ -1,8 +1,16 @@
-import { Group, Stack, Text, UnstyledButton } from '@mattstack/app-kit/core';
-import { useHover } from '@mattstack/app-kit/hooks';
+import {
+  Box,
+  Drawer,
+  Group,
+  Stack,
+  Text,
+  UnstyledButton,
+} from '@mattstack/app-kit/core';
+import { useColorScheme, useHover } from '@mattstack/app-kit/hooks';
 import { Icon } from '@mattstack/app-kit/icons';
 
 import { FleetTree, type FleetRoom } from './FleetTree';
+import { PHONE_MUTED, PHONE_TAP, tapButtonStyle } from './phone-chrome';
 import { MUTED_XS } from './presence-bits';
 import type { RosterBuddy } from './Roster';
 
@@ -153,5 +161,126 @@ export function RoomRail({
         onMarkRead={onMarkRead}
       />
     </Stack>
+  );
+}
+
+export interface FleetDrawerProps {
+  opened: boolean;
+  onClose: () => void;
+  /** Already filtered to what a rail would show (`visibleRooms`) -- the same
+      list the desktop sidebar reads. */
+  rooms: FleetRoom[];
+  buddies: RosterBuddy[];
+  now?: number;
+  activeRoom?: string;
+  daemonReachable?: boolean;
+  onSelectRoom: (room: string) => void;
+  onFocusPane?: (paneId: string) => void;
+  onCloseRoom?: (room: string) => void;
+  onMarkRead?: (room: string) => void;
+}
+
+/**
+ * The phone's rooms drawer (`PhoneRooms.dc.html`): `RoomRail` itself,
+ * `sidebar`-mode, inside a Mantine `Drawer` -- not a second tree built from
+ * scratch. There is no BUDDIES/roster section here: a handle already reads
+ * next to the room it works in, inside the tree itself.
+ */
+export function FleetDrawer({
+  opened,
+  onClose,
+  rooms,
+  buddies,
+  now = Date.now(),
+  activeRoom,
+  daemonReachable = true,
+  onSelectRoom,
+  onFocusPane,
+  onCloseRoom,
+  onMarkRead,
+}: FleetDrawerProps) {
+  const { computedColorScheme, setColorScheme } = useColorScheme();
+  const isDark = computedColorScheme === 'dark';
+
+  function selectRoom(room: string) {
+    onSelectRoom(room);
+    onClose();
+  }
+
+  return (
+    <Drawer
+      opened={opened}
+      onClose={onClose}
+      position="left"
+      // This app's theme resolves `size="sm"` to 380px, wider than the
+      // 375px screen the artboard draws it on, so the 0.4 overlay never
+      // shows. 86vw keeps the artboard's sliver at every phone width.
+      size="86vw"
+      withCloseButton={false}
+      overlayProps={{ backgroundOpacity: 0.4 }}
+      padding={0}
+      data-testid="phone-drawer"
+    >
+      <Stack
+        gap={2}
+        style={{
+          height: '100%',
+          padding: 'var(--mantine-spacing-lg) var(--mantine-spacing-sm)',
+          minHeight: 0,
+        }}
+      >
+        <Group
+          justify="space-between"
+          wrap="nowrap"
+          style={{
+            height: PHONE_TAP,
+            padding: '0 0 0 var(--mantine-spacing-md)',
+            flex: 'none',
+          }}
+        >
+          <Text fw={700}>chat</Text>
+          <UnstyledButton
+            aria-label="Close"
+            data-testid="phone-drawer-close"
+            onClick={onClose}
+            style={tapButtonStyle(PHONE_TAP)}
+          >
+            <Icon name="chevronLeft" size={20} />
+          </UnstyledButton>
+        </Group>
+
+        <Box style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <RoomRail
+            sidebar
+            rooms={rooms}
+            buddies={buddies}
+            now={now}
+            activeRoom={activeRoom}
+            onSelectRoom={selectRoom}
+            daemonReachable={daemonReachable}
+            onCloseRoom={onCloseRoom}
+            onMarkRead={onMarkRead}
+            onFocusPane={onFocusPane}
+          />
+        </Box>
+
+        <Group
+          justify="space-between"
+          wrap="nowrap"
+          style={{ padding: '0 0 0 var(--mantine-spacing-md)', flex: 'none' }}
+        >
+          <Text size="xs" style={{ color: PHONE_MUTED }}>
+            {daemonReachable ? 'rt daemon answering' : 'rt daemon unreachable'}
+          </Text>
+          <UnstyledButton
+            aria-label="Color scheme"
+            onClick={() => setColorScheme(isDark ? 'light' : 'dark')}
+            style={tapButtonStyle(PHONE_TAP)}
+          >
+            <Icon name={isDark ? 'sun' : 'moon'} size={20} />
+          </UnstyledButton>
+        </Group>
+      </Stack>
+    </Drawer>
   );
 }

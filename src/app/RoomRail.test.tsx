@@ -5,7 +5,7 @@ import { expect, test, vi } from 'vitest';
 
 import './icons';
 
-import { RoomRail } from './RoomRail';
+import { FleetDrawer, RoomRail } from './RoomRail';
 
 test('mention badges are visually distinct from plain unread', () => {
   renderWithProviders(
@@ -249,4 +249,53 @@ test('the + renders only with onNewRoom, disables with the daemon down, and fire
   rerender(<RoomRail rooms={rooms} onNewRoom={onNewRoom} />);
   await userEvent.click(screen.getByRole('button', { name: 'New room' }));
   expect(onNewRoom).toHaveBeenCalled();
+});
+
+test('the fleet drawer carries the tree and no BUDDIES heading', () => {
+  renderWithProviders(
+    <FleetDrawer
+      opened
+      onClose={vi.fn()}
+      rooms={[{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }]}
+      buddies={[]}
+      onSelectRoom={vi.fn()}
+    />
+  );
+  expect(screen.getByRole('heading', { name: 'FLEET' })).toBeInTheDocument();
+  expect(screen.getByTestId('room-row-build')).toBeInTheDocument();
+  expect(screen.queryByText(/buddies/i)).toBeNull();
+});
+
+test('the fleet drawer selects a room and closes itself', async () => {
+  const onSelectRoom = vi.fn();
+  const onClose = vi.fn();
+  renderWithProviders(
+    <FleetDrawer
+      opened
+      onClose={onClose}
+      rooms={[{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }]}
+      buddies={[]}
+      onSelectRoom={onSelectRoom}
+    />
+  );
+  await userEvent.click(screen.getByTestId('room-row-build'));
+  expect(onSelectRoom).toHaveBeenCalledWith('build');
+  expect(onClose).toHaveBeenCalled();
+});
+
+test('the fleet drawer names the daemon health and closes on its own close control', async () => {
+  const onClose = vi.fn();
+  renderWithProviders(
+    <FleetDrawer
+      opened
+      onClose={onClose}
+      rooms={[]}
+      buddies={[]}
+      onSelectRoom={vi.fn()}
+      daemonReachable={false}
+    />
+  );
+  expect(screen.getByText('rt daemon unreachable')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Close'));
+  expect(onClose).toHaveBeenCalled();
 });

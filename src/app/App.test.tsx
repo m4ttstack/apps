@@ -113,17 +113,32 @@ test('the rail expands into labels from its trigger', () => {
   expect(roomsLabel().getAttribute('aria-hidden')).toBe('true');
 });
 
-test('on mobile the rail opens from the header toggle and navigating closes it', () => {
+test('on mobile, `/` is the phone inbox shell, not the desktop rail', async () => {
   setViewportWidth(390);
-  renderAt('/');
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(
+    <App
+      initialState={{
+        daemonReachable: true,
+        rooms: [{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }],
+      }}
+    />
+  );
 
-  fireEvent.click(screen.getByRole('button', { name: 'Toggle navigation' }));
-  expect(screen.getByTestId('rail-overlay')).toBeTruthy();
+  expect(screen.getByTestId('phone-inbox-shell')).toBeInTheDocument();
+  expect(screen.queryByRole('navigation', { name: 'App sections' })).toBeNull();
 
-  const rail = within(screen.getByRole('navigation', { name: 'App sections' }));
-  fireEvent.click(rail.getByRole('link', { name: 'Rooms' }));
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Rooms and members' })
+  );
+  const drawer = within(await screen.findByTestId('phone-drawer'));
+  expect(await drawer.findByTestId('room-row-build')).toBeInTheDocument();
+  expect(drawer.queryByText(/buddies/i)).toBeNull();
 
-  expect(screen.queryByTestId('rail-overlay')).toBeNull();
+  await userEvent.click(drawer.getByRole('button', { name: 'Close' }));
+  await waitFor(() =>
+    expect(screen.queryByTestId('room-row-build')).toBeNull()
+  );
 });
 
 test('the phone transcript wrapper is a flex column, so the bare transcript can size itself', () => {
@@ -1294,4 +1309,35 @@ test('open on a card leaves the inbox for the room, parked on that message', asy
   await userEvent.click(screen.getByTestId('card-open-412'));
   await waitFor(() => expect(window.location.pathname).toBe('/r/build'));
   expect(window.location.hash).toBe('#m-412');
+});
+
+test('phone: tapping a card opens the reader in place, and back returns to the same list node', async () => {
+  serveInbox();
+  setViewportWidth(390);
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(<App />);
+  await screen.findByTestId('inbox-card-412');
+
+  expect(screen.getByTestId('phone-inbox-list')).toHaveStyle({
+    display: 'flex',
+  });
+  expect(screen.queryByTestId('phone-inbox-reader')).toBeNull();
+  const list = screen.getByTestId('phone-inbox-list');
+
+  await userEvent.click(screen.getByTestId('card-lead-412'));
+  expect(await screen.findByTestId('reader-phone-header')).toHaveTextContent(
+    'meg needs you'
+  );
+  // The list is hidden, not unmounted -- its scroll position survives.
+  expect(screen.getByTestId('phone-inbox-list')).toBe(list);
+  expect(screen.getByTestId('phone-inbox-list')).toHaveStyle({
+    display: 'none',
+  });
+
+  await userEvent.click(screen.getByTestId('reader-back'));
+  expect(screen.queryByTestId('phone-inbox-reader')).toBeNull();
+  expect(screen.getByTestId('phone-inbox-list')).toBe(list);
+  expect(screen.getByTestId('phone-inbox-list')).toHaveStyle({
+    display: 'flex',
+  });
 });

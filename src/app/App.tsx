@@ -9,7 +9,6 @@ import {
 import {
   Box,
   Center,
-  Drawer,
   Group,
   PageShell,
   Stack,
@@ -17,7 +16,7 @@ import {
   UnstyledButton,
 } from '@mattstack/app-kit/core';
 import { ThemeOverrideWrapper } from '@mattstack/app-kit/design-system';
-import { useColorScheme, useIsMobile } from '@mattstack/app-kit/hooks';
+import { useIsMobile } from '@mattstack/app-kit/hooks';
 import { Icon } from '@mattstack/app-kit/icons';
 import { notifications } from '@mattstack/app-kit/notifications';
 import { RailLink } from '@mattstack/app-kit/router';
@@ -40,14 +39,28 @@ import { Composer, type ComposerHandle } from './Composer';
 import { PageShellDemoPage } from './demo/PageShellDemoPage';
 import type { FleetRoom } from './FleetTree';
 import { HUMAN_HANDLE } from './human';
-import { Inbox, InboxBar, orderedCards, useInbox } from './Inbox';
+import {
+  Inbox,
+  InboxBar,
+  orderedCards,
+  UNREAD_BADGE,
+  unreadTotal,
+  useInbox,
+} from './Inbox';
 import { postMarkRead } from './mark-read';
 import { NewRoomModal } from './NewRoomModal';
 import { PageBar, RoomMenu } from './PageBar';
 import { PanePickerProvider, usePanePicker } from './PanePicker';
+import {
+  PHONE_BORDER,
+  PHONE_MUTED,
+  PHONE_TAP,
+  tapButtonStyle,
+} from './phone-chrome';
+import { Reader } from './Reader';
 import { isMsgTopic, useRelayFrames, useRelayOpen } from './relay-socket';
-import { RoomRail } from './RoomRail';
-import { Roster, type RosterBuddy } from './Roster';
+import { FleetDrawer, RoomRail } from './RoomRail';
+import type { RosterBuddy } from './Roster';
 import { useAppRoute, useHash } from './routes';
 import { PAGE_SIZE, Transcript } from './Transcript';
 import { visibleRooms } from './visible-rooms';
@@ -375,27 +388,6 @@ function RoomsPlaceholder({
 /* shell, not a squashed version of the desktop one.                   */
 /* ------------------------------------------------------------------ */
 
-/** Every phone header/drawer control is 44px -- `.aicon.tap`, the hit-target
-    floor CONFORMANCE.md pins. */
-const PHONE_TAP = 44;
-const PHONE_MUTED = 'var(--tk-muted-text)';
-const PHONE_BORDER = 'var(--tk-border)';
-
-function tapButtonStyle(size: number) {
-  return {
-    display: 'inline-flex' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    width: size,
-    height: size,
-    flex: 'none' as const,
-    borderRadius: 'var(--mantine-radius-md)',
-    color: PHONE_MUTED,
-    background: 'transparent',
-    border: 0,
-  };
-}
-
 function FleetDot({ color, hollow }: { color?: string; hollow?: boolean }) {
   return (
     <Box
@@ -515,326 +507,17 @@ function PhoneHeader({
   );
 }
 
-/** One 44px room row inside the drawer -- `RoomRail`'s own `.room` anatomy
-    at the phone's taller tap-target height, badges included. */
-function PhoneRoomRow({
-  room,
-  active,
-  onSelect,
-}: {
-  room: RoomSummary;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  const isDm = room.kind === 'dm';
-  const title = isDm && room.participants ? roomHeaderTitle(room) : room.room;
-  const accentText = 'var(--mantine-color-accent-text)';
-
-  return (
-    <UnstyledButton
-      data-testid={`phone-room-${room.room}`}
-      onClick={onSelect}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--mantine-spacing-sm)',
-        height: PHONE_TAP,
-        width: '100%',
-        minWidth: 0,
-        padding: '0 var(--mantine-spacing-md)',
-        borderRadius: 'var(--mantine-radius-md)',
-        background: active
-          ? 'color-mix(in srgb, var(--mantine-color-accent-text) var(--tk-wash), transparent)'
-          : undefined,
-        color: active ? accentText : undefined,
-      }}
-    >
-      {!isDm && (
-        <Icon
-          name="hash"
-          size={14}
-          color={active ? accentText : PHONE_MUTED}
-          style={{ flex: 'none' }}
-        />
-      )}
-      <Text
-        truncate
-        fw={active ? 600 : undefined}
-        style={{
-          flex: 1,
-          minWidth: 0,
-          fontSize: 'var(--mantine-font-size-lg)',
-        }}
-      >
-        {title}
-      </Text>
-      {room.mentions > 0 && (
-        <Box
-          component="span"
-          aria-label={`${room.mentions} mention`}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            height: 18,
-            lineHeight: 1,
-            borderRadius: 'var(--mantine-radius-xl)',
-            padding: '0 var(--mantine-spacing-sm)',
-            fontSize: 'var(--tk-fs-3xs)',
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
-            background:
-              'light-dark(var(--mantine-color-accent-7), var(--mantine-color-accent-text))',
-            color: 'light-dark(var(--mantine-color-white), var(--tk-bg))',
-          }}
-        >
-          @{room.mentions}
-        </Box>
-      )}
-      {room.unread > 0 && (
-        <Box
-          component="span"
-          aria-label={`${room.unread} unread`}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            height: 18,
-            lineHeight: 1,
-            borderRadius: 'var(--mantine-radius-xl)',
-            padding: '0 var(--mantine-spacing-sm)',
-            fontSize: 'var(--tk-fs-3xs)',
-            fontWeight: 500,
-            whiteSpace: 'nowrap',
-            border: `1px solid ${PHONE_BORDER}`,
-            color: PHONE_MUTED,
-          }}
-        >
-          {room.unread}
-        </Box>
-      )}
-    </UnstyledButton>
-  );
-}
-
-/**
- * The rooms/roster Drawer (`PhoneRooms.dc.html`): rooms with the same
- * badges, the direct section, then buddies rendered by `Roster` with
- * `compact`. Tapping a buddy inserts `@handle` when in the room, otherwise
- * opens the DM room, and closes -- same as `Roster`'s desktop-panel `onPick`.
- */
-function PhoneDrawer({
-  opened,
-  onClose,
-  rooms,
-  activeRoom,
-  onSelectRoom,
-  buddies,
-  roomMembers,
-  daemonReachable,
-  onMention,
-  onOpenDm,
-}: {
-  opened: boolean;
-  onClose: () => void;
-  rooms: RoomSummary[];
-  activeRoom: string | undefined;
-  onSelectRoom: (room: string) => void;
-  buddies: Buddy[];
-  roomMembers: string[];
-  daemonReachable: boolean;
-  onMention: (handle: string) => void;
-  onOpenDm: (handle: string) => void;
-}) {
-  const { computedColorScheme, setColorScheme } = useColorScheme();
-  const isDark = computedColorScheme === 'dark';
-  const shown = visibleRooms(rooms, activeRoom);
-  const channelRooms = shown.filter(r => r.kind !== 'dm');
-  const directRooms = shown.filter(r => r.kind === 'dm');
-
-  function selectRoom(room: string) {
-    onSelectRoom(room);
-    onClose();
-  }
-
-  return (
-    <Drawer
-      opened={opened}
-      onClose={onClose}
-      position="left"
-      // Not `size="sm"`: this app's theme resolves that to 380px, which is
-      // WIDER than the 375px screen the artboard draws it on, so the panel
-      // covers the page and the 0.4 overlay never shows. A drawer with no
-      // visible backdrop does not read as a drawer -- it reads as a route
-      // change, and the tap-outside-to-close affordance disappears with it.
-      // 86vw keeps the artboard's sliver at every phone width.
-      size="86vw"
-      withCloseButton={false}
-      overlayProps={{ backgroundOpacity: 0.4 }}
-      padding={0}
-      data-testid="phone-drawer"
-    >
-      <Stack
-        gap={2}
-        style={{
-          height: '100%',
-          padding: 'var(--mantine-spacing-lg) var(--mantine-spacing-sm)',
-          minHeight: 0,
-        }}
-      >
-        <Group
-          justify="space-between"
-          wrap="nowrap"
-          style={{
-            height: PHONE_TAP,
-            padding: '0 0 0 var(--mantine-spacing-md)',
-            flex: 'none',
-          }}
-        >
-          <Text fw={700}>chat</Text>
-          <UnstyledButton
-            aria-label="Close"
-            data-testid="phone-drawer-close"
-            onClick={onClose}
-            style={tapButtonStyle(PHONE_TAP)}
-          >
-            <Icon name="chevronLeft" size={20} />
-          </UnstyledButton>
-        </Group>
-
-        <Group
-          justify="space-between"
-          wrap="nowrap"
-          style={{
-            padding: 'var(--mantine-spacing-sm) var(--mantine-spacing-md)',
-            flex: 'none',
-          }}
-        >
-          <Text
-            size="xs"
-            fw={600}
-            style={{ color: PHONE_MUTED, letterSpacing: '0.04em' }}
-          >
-            ROOMS
-          </Text>
-          <Text size="xs" style={{ color: PHONE_MUTED }}>
-            {channelRooms.length}
-          </Text>
-        </Group>
-        {channelRooms.map(room => (
-          <PhoneRoomRow
-            key={room.room}
-            room={room}
-            active={room.room === activeRoom}
-            onSelect={() => selectRoom(room.room)}
-          />
-        ))}
-
-        {directRooms.length > 0 && (
-          <>
-            <Group
-              gap="sm"
-              wrap="nowrap"
-              style={{
-                padding:
-                  'var(--mantine-spacing-md) var(--mantine-spacing-md) var(--mantine-spacing-xs)',
-                borderBottom: '1px solid var(--tk-border-soft)',
-                flex: 'none',
-              }}
-            >
-              <Text
-                fw={700}
-                style={{
-                  fontSize: 'var(--tk-fs-4xs)',
-                  color: PHONE_MUTED,
-                  letterSpacing: '0.06em',
-                }}
-              >
-                DIRECT
-              </Text>
-            </Group>
-            {directRooms.map(room => (
-              <PhoneRoomRow
-                key={room.room}
-                room={room}
-                active={room.room === activeRoom}
-                onSelect={() => selectRoom(room.room)}
-              />
-            ))}
-          </>
-        )}
-
-        <Group
-          justify="space-between"
-          wrap="nowrap"
-          style={{
-            padding: 'var(--mantine-spacing-md) var(--mantine-spacing-md) 0',
-            flex: 'none',
-          }}
-        >
-          <Text
-            size="xs"
-            fw={600}
-            style={{ color: PHONE_MUTED, letterSpacing: '0.04em' }}
-          >
-            BUDDIES
-          </Text>
-          <Text size="xs" style={{ color: PHONE_MUTED }}>
-            tap to mention or DM
-          </Text>
-        </Group>
-        <Box
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-            padding: '0 var(--mantine-spacing-md)',
-          }}
-        >
-          <Roster
-            buddies={buddies}
-            now={Date.now()}
-            roomMembers={roomMembers}
-            daemonReachable={daemonReachable}
-            compact
-            onPick={(handle, { inRoom }) => {
-              if (inRoom) onMention(handle);
-              else onOpenDm(handle);
-              onClose();
-            }}
-          />
-        </Box>
-
-        <Group
-          justify="space-between"
-          wrap="nowrap"
-          style={{ padding: '0 0 0 var(--mantine-spacing-md)', flex: 'none' }}
-        >
-          <Text size="xs" style={{ color: PHONE_MUTED }}>
-            {daemonReachable ? 'rt daemon answering' : 'rt daemon unreachable'}
-          </Text>
-          <UnstyledButton
-            aria-label="Color scheme"
-            onClick={() => setColorScheme(isDark ? 'light' : 'dark')}
-            style={tapButtonStyle(PHONE_TAP)}
-          >
-            <Icon name={isDark ? 'sun' : 'moon'} size={20} />
-          </UnstyledButton>
-        </Group>
-      </Stack>
-    </Drawer>
-  );
-}
-
 /**
  * The phone shell: `PhoneHeader`, the transcript, the composer (`phone`
- * chrome: 16px input, 44px send, Enter is a newline), and `PhoneDrawer`.
- * Not the desktop 3-column layout squashed -- a dedicated shell, since the
- * artboard draws none of the rail, the wordmark header, or the page bar on
- * a 390px screen.
+ * chrome: 16px input, 44px send, Enter is a newline), and the fleet
+ * `FleetDrawer`. Not the desktop 3-column layout squashed -- a dedicated
+ * shell, since the artboard draws none of the rail, the wordmark header, or
+ * the page bar on a 390px screen.
  */
 function PhoneChat({
   daemon,
   buddies,
-  rooms,
+  railRooms,
   activeRoom,
   setActiveRoom,
   activeRoomSummary,
@@ -844,10 +527,14 @@ function PhoneChat({
   composerRef,
   onOpenDm,
   onCloseRoom,
+  onMarkRead,
+  onFocusPane,
 }: {
   daemon: ReturnType<typeof useDaemonHealth>;
   buddies: Buddy[];
-  rooms: RoomSummary[];
+  /** Already `visibleRooms`-filtered -- the same list the desktop sidebar
+      reads, for the drawer's tree. */
+  railRooms: FleetRoom[];
   activeRoom: string | undefined;
   setActiveRoom: (room: string) => void;
   activeRoomSummary: RoomSummary | undefined;
@@ -857,6 +544,8 @@ function PhoneChat({
   composerRef: RefObject<ComposerHandle | null>;
   onOpenDm: (handle: string) => void;
   onCloseRoom: (room: string) => void;
+  onMarkRead: (room: string) => void;
+  onFocusPane: (paneId: string) => void;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -929,20 +618,223 @@ function PhoneChat({
           />
         )}
 
-        <PhoneDrawer
+        <FleetDrawer
           opened={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          rooms={rooms}
+          rooms={railRooms}
           activeRoom={activeRoom}
           onSelectRoom={setActiveRoom}
           buddies={buddies}
-          roomMembers={roomMembers}
           daemonReachable={daemon.reachable}
-          onMention={handle => composerRef.current?.insertMention(handle)}
-          onOpenDm={handle => {
-            onOpenDm(handle);
-            setDrawerOpen(false);
+          onCloseRoom={onCloseRoom}
+          onMarkRead={onMarkRead}
+          onFocusPane={onFocusPane}
+        />
+      </Box>
+    </ThemeOverrideWrapper>
+  );
+}
+
+/** The 56px phone inbox header (`PhoneInbox.dc.html`): the drawer toggle,
+    the inbox icon and title, and the sweep -- a check plus the same unread
+    count `InboxBar`'s own sweep button carries, with no label at this
+    width. */
+function PhoneInboxHeader({
+  inbox,
+  onOpenDrawer,
+  onMarkAllRead,
+}: {
+  inbox: InboxPayload;
+  onOpenDrawer: () => void;
+  onMarkAllRead: () => void;
+}) {
+  const total = unreadTotal(inbox);
+  return (
+    <Group
+      wrap="nowrap"
+      gap="xs"
+      data-testid="phone-inbox-header"
+      style={{
+        height: 56,
+        flex: 'none',
+        padding: '0 var(--mantine-spacing-sm) 0 2px',
+        background: 'var(--tk-panel)',
+        borderBottom: `1px solid ${PHONE_BORDER}`,
+      }}
+    >
+      <UnstyledButton
+        aria-label="Rooms and members"
+        data-testid="phone-drawer-toggle"
+        onClick={onOpenDrawer}
+        style={tapButtonStyle(PHONE_TAP)}
+      >
+        <Icon name="panelLeftOpen" size={20} />
+      </UnstyledButton>
+      <Box
+        component="span"
+        style={{ display: 'inline-flex', flex: 'none', color: PHONE_MUTED }}
+      >
+        <Icon name="inbox" size={16} />
+      </Box>
+      <Text
+        truncate
+        fw={700}
+        style={{ fontSize: 'var(--mantine-font-size-sm)', minWidth: 0 }}
+      >
+        Inbox
+      </Text>
+      <Box style={{ flex: 1 }} />
+      {total > 0 && (
+        <UnstyledButton
+          aria-label="Mark everything read"
+          data-testid="phone-inbox-mark-all"
+          onClick={onMarkAllRead}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--mantine-spacing-sm)',
+            height: PHONE_TAP,
+            padding: '0 var(--mantine-spacing-sm)',
+            borderRadius: 'var(--mantine-radius-md)',
+            color: PHONE_MUTED,
           }}
+        >
+          <Icon name="check" size={16} />
+          <Box component="span" style={UNREAD_BADGE}>
+            {total}
+          </Box>
+        </UnstyledButton>
+      )}
+    </Group>
+  );
+}
+
+/**
+ * The phone inbox: `PhoneInboxHeader`, the card list (`Inbox`, `phone`
+ * mode), and the reader (`Reader`, `phone` mode) -- a route within the
+ * page, not a modal. Both stay mounted; only `readerOpen` toggles which is
+ * `display: none`, so the list's own scroll position survives a trip into
+ * the reader and back, which unmounting it would not.
+ */
+function PhoneInboxPage({
+  inbox,
+  daemonReachable,
+  buddies,
+  railRooms,
+  readerMembers,
+  openCard,
+  onOpenCard,
+  onMarkRoomRead,
+  onMarkAllRead,
+  onOpenRoom,
+  onReplied,
+  onSelectRoom,
+  onCloseRoom,
+  onFocusPane,
+}: {
+  inbox: InboxPayload;
+  daemonReachable: boolean;
+  buddies: Buddy[];
+  railRooms: FleetRoom[];
+  readerMembers: string[];
+  openCard: InboxCardData | undefined;
+  onOpenCard: (card: InboxCardData) => void;
+  onMarkRoomRead: (room: string) => void;
+  onMarkAllRead: () => void;
+  onOpenRoom: (room: string, messageId: number) => void;
+  onReplied: () => void;
+  onSelectRoom: (room: string) => void;
+  onCloseRoom: (room: string) => void;
+  onFocusPane: (paneId: string) => void;
+}) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [readerOpen, setReaderOpen] = useState(false);
+
+  return (
+    <ThemeOverrideWrapper theme={chatFontTheme}>
+      <Box
+        data-testid="phone-inbox-shell"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100dvh',
+          background: 'var(--ui-bg-1)',
+        }}
+      >
+        <PhoneInboxHeader
+          inbox={inbox}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onMarkAllRead={onMarkAllRead}
+        />
+
+        <Box
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Box
+            data-testid="phone-inbox-list"
+            style={{
+              display: readerOpen ? 'none' : 'flex',
+              flexDirection: 'column',
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
+            <Inbox
+              inbox={inbox}
+              reachable={daemonReachable}
+              buddies={buddies}
+              readerMembers={readerMembers}
+              openCard={openCard}
+              onOpenCard={card => {
+                onOpenCard(card);
+                setReaderOpen(true);
+              }}
+              onMarkRoomRead={onMarkRoomRead}
+              onMarkAllRead={onMarkAllRead}
+              onOpenRoom={onOpenRoom}
+              onReplied={onReplied}
+              phone
+            />
+          </Box>
+
+          {readerOpen && openCard && (
+            <Box
+              data-testid="phone-inbox-reader"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                minHeight: 0,
+              }}
+            >
+              <Reader
+                phone
+                card={openCard}
+                daemonReachable={daemonReachable}
+                buddies={buddies}
+                roomMembers={readerMembers}
+                onBack={() => setReaderOpen(false)}
+                onOpenRoom={() => onOpenRoom(openCard.room, openCard.messageId)}
+                onReplied={onReplied}
+              />
+            </Box>
+          )}
+        </Box>
+
+        <FleetDrawer
+          opened={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          rooms={railRooms}
+          buddies={buddies}
+          daemonReachable={daemonReachable}
+          onSelectRoom={onSelectRoom}
+          onCloseRoom={onCloseRoom}
+          onFocusPane={onFocusPane}
         />
       </Box>
     </ThemeOverrideWrapper>
@@ -1418,9 +1310,32 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
     return <PageShellDemoPage />;
   }
 
-  // The phone inbox is its own shell (PhoneInbox.dc.html) and is not built
-  // yet, so only a room route takes the phone path; `/` falls through to the
-  // desktop layout, whose PageShell already drawers its sidebar on a phone.
+  // Phone routes are their own shells, not the desktop layout squashed:
+  // `PhoneInboxPage` for `/` (PhoneInbox.dc.html), `PhoneChat` for an open
+  // room (Phone.dc.html). Anything else on a phone -- `/` with no rooms and
+  // no buddies yet -- falls through to the desktop layout, whose PageShell
+  // already drawers its sidebar on a phone.
+  if (route.name === 'home' && isMobile) {
+    return (
+      <PhoneInboxPage
+        inbox={inbox}
+        daemonReachable={daemon.reachable}
+        buddies={buddies}
+        railRooms={railRooms}
+        readerMembers={readerMembers}
+        openCard={openCard}
+        onOpenCard={card => setOpenCardId(card.messageId)}
+        onMarkRoomRead={room => void markRead(room)}
+        onMarkAllRead={() => void markAllRead()}
+        onOpenRoom={openRoomAt}
+        onReplied={refetchInbox}
+        onSelectRoom={selectRoom}
+        onCloseRoom={closeRoom}
+        onFocusPane={paneId => void focusPane(paneId)}
+      />
+    );
+  }
+
   if (
     route.name === 'room' &&
     isMobile &&
@@ -1430,7 +1345,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
       <PhoneChat
         daemon={daemon}
         buddies={buddies}
-        rooms={rooms}
+        railRooms={railRooms}
         activeRoom={activeRoom}
         setActiveRoom={selectRoom}
         activeRoomSummary={activeRoomSummary}
@@ -1440,6 +1355,8 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
         composerRef={composerRef}
         onOpenDm={openDm}
         onCloseRoom={closeRoom}
+        onMarkRead={room => void markRead(room)}
+        onFocusPane={paneId => void focusPane(paneId)}
       />
     );
   }
@@ -1511,7 +1428,6 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
                           onMarkAllRead={() => void markAllRead()}
                           onOpenRoom={openRoomAt}
                           onReplied={refetchInbox}
-                          compact={isMobile}
                         />
                       ),
                     }

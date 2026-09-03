@@ -13,6 +13,7 @@ import { HUMAN_HANDLE } from './human';
 import classes from './inbox.module.css';
 import { CtxChip, whereLabel } from './InboxCard';
 import { MessageMarkdown } from './MessageMarkdown';
+import { PHONE_BORDER, PHONE_TAP, tapButtonStyle } from './phone-chrome';
 import { speakerHue } from './speaker-hue';
 import prose from './transcript-prose.module.css';
 
@@ -53,6 +54,62 @@ function ContextLabel({ label }: { label: string }) {
       <Box style={rule} />
       <span>{label}</span>
       <Box style={rule} />
+    </Group>
+  );
+}
+
+/** The phone header (`Phone.dc.html`): back, `.ctx` chip, `<handle> needs
+    you`, open-room icon -- replaces `ReaderStrip` rather than squashing it,
+    since there is no room at 390px for the day note or the "shown with the
+    message before it" aside. */
+function ReaderPhoneHeader({
+  card,
+  onBack,
+  onOpenRoom,
+}: {
+  card: InboxCardData;
+  onBack: () => void;
+  onOpenRoom: () => void;
+}) {
+  const where = whereLabel(card);
+  return (
+    <Group
+      wrap="nowrap"
+      gap="xs"
+      data-testid="reader-phone-header"
+      style={{
+        height: 56,
+        flex: 'none',
+        padding: '0 var(--mantine-spacing-sm) 0 2px',
+        background: 'var(--tk-panel)',
+        borderBottom: `1px solid ${PHONE_BORDER}`,
+      }}
+    >
+      <UnstyledButton
+        aria-label="Back to the inbox"
+        data-testid="reader-back"
+        onClick={onBack}
+        style={tapButtonStyle(PHONE_TAP)}
+      >
+        <Icon name="chevronLeft" size={20} />
+      </UnstyledButton>
+      <CtxChip dm={card.kind === 'dm'}>{where}</CtxChip>
+      <Text
+        truncate
+        fw={700}
+        style={{ fontSize: 'var(--mantine-font-size-sm)', minWidth: 0 }}
+      >
+        {card.handle} needs you
+      </Text>
+      <Box style={{ flex: 1 }} />
+      <UnstyledButton
+        aria-label={`Open ${where}`}
+        data-testid="reader-open-room"
+        onClick={onOpenRoom}
+        style={tapButtonStyle(PHONE_TAP)}
+      >
+        <Icon name="externalLink" size={18} />
+      </UnstyledButton>
     </Group>
   );
 }
@@ -143,6 +200,12 @@ export interface ReaderProps {
   /** A reply landed. It posts and nothing else: no cursor moves, so a
       caller must not treat this as a mark-read. */
   onReplied?: () => void;
+  /** Phone chrome (`Phone.dc.html`): the 56px back/ctx/`needs you`/open-room
+      header replaces `reader-strip`, and the composer takes the 16px input,
+      44px targets. Required whenever `phone` is set -- it is the only way
+      back to the list. @default false */
+  phone?: boolean;
+  onBack?: () => void;
 }
 
 /**
@@ -162,6 +225,8 @@ export function Reader({
   roomMembers,
   onOpenRoom,
   onReplied,
+  phone = false,
+  onBack,
 }: ReaderProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { room, messageId } = card;
@@ -186,6 +251,33 @@ export function Reader({
   const before = messages.filter(m => m.id < messageId).at(-1);
   const where = whereLabel(card);
 
+  const composer = (
+    <Composer
+      // A different card is a different draft: remounting is what
+      // re-seeds the pre-tagged author and drops the previous one.
+      key={messageId}
+      room={room}
+      roomMembers={roomMembers}
+      buddies={buddies}
+      humanHandle={humanHandle}
+      isDm={card.kind === 'dm'}
+      daemonReachable={daemonReachable}
+      phone={phone}
+      prefill={{ body: `@${card.handle} `, mentions: [card.handle] }}
+      placeholder={`Reply in ${where} · @${card.handle} is already tagged`}
+      footerNote={
+        <Text
+          size="xs"
+          data-testid="reader-footer-note"
+          style={{ color: MUTED }}
+        >
+          · replying posts, nothing is marked read
+        </Text>
+      }
+      onPosted={onReplied}
+    />
+  );
+
   return (
     <Box
       data-testid="reader"
@@ -198,52 +290,60 @@ export function Reader({
         background: 'var(--tk-bg)',
       }}
     >
-      <Group
-        gap="sm"
-        wrap="nowrap"
-        align="center"
-        data-testid="reader-strip"
-        style={{
-          height: 40,
-          flex: 'none',
-          padding: '0 var(--mantine-spacing-xl)',
-          borderBottom: '1px solid var(--tk-border-soft)',
-        }}
-      >
-        <CtxChip dm={card.kind === 'dm'}>{where}</CtxChip>
-        <Text
-          component="span"
-          truncate
-          data-testid="reader-note"
+      {phone ? (
+        <ReaderPhoneHeader
+          card={card}
+          onBack={() => onBack?.()}
+          onOpenRoom={onOpenRoom}
+        />
+      ) : (
+        <Group
+          gap="sm"
+          wrap="nowrap"
+          align="center"
+          data-testid="reader-strip"
           style={{
-            minWidth: 0,
-            fontSize: 'var(--tk-fs-3xs)',
-            color: MUTED,
-          }}
-        >
-          {dayLabel(card.postedAt).toLowerCase()}
-          {before ? ' · shown with the message before it' : ''}
-        </Text>
-        <Box style={{ flex: 1 }} />
-        <UnstyledButton
-          data-testid="reader-open-room"
-          className={classes.link}
-          aria-label={`Open ${where} at this message`}
-          onClick={onOpenRoom}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
+            height: 40,
             flex: 'none',
-            fontSize: 'var(--tk-fs-3xs)',
-            fontWeight: 600,
-            color: ACCENT_TEXT,
+            padding: '0 var(--mantine-spacing-xl)',
+            borderBottom: '1px solid var(--tk-border-soft)',
           }}
         >
-          <Icon name="externalLink" size={12} />
-          open {where}
-        </UnstyledButton>
-      </Group>
+          <CtxChip dm={card.kind === 'dm'}>{where}</CtxChip>
+          <Text
+            component="span"
+            truncate
+            data-testid="reader-note"
+            style={{
+              minWidth: 0,
+              fontSize: 'var(--tk-fs-3xs)',
+              color: MUTED,
+            }}
+          >
+            {dayLabel(card.postedAt).toLowerCase()}
+            {before ? ' · shown with the message before it' : ''}
+          </Text>
+          <Box style={{ flex: 1 }} />
+          <UnstyledButton
+            data-testid="reader-open-room"
+            className={classes.link}
+            aria-label={`Open ${where} at this message`}
+            onClick={onOpenRoom}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              flex: 'none',
+              fontSize: 'var(--tk-fs-3xs)',
+              fontWeight: 600,
+              color: ACCENT_TEXT,
+            }}
+          >
+            <Icon name="externalLink" size={12} />
+            open {where}
+          </UnstyledButton>
+        </Group>
+      )}
 
       <Box
         data-testid="reader-body"
@@ -251,7 +351,9 @@ export function Reader({
           flex: 1,
           minHeight: 0,
           overflowY: 'auto',
-          padding: '8px var(--mantine-spacing-xl) 0',
+          padding: phone
+            ? 'var(--mantine-spacing-sm) var(--mantine-spacing-md) 0'
+            : '8px var(--mantine-spacing-xl) 0',
         }}
       >
         <div className={prose.col}>
@@ -283,37 +385,20 @@ export function Reader({
         </div>
       </Box>
 
-      <Box
-        style={{
-          padding: '0 var(--mantine-spacing-xl) var(--mantine-spacing-md)',
-        }}
-      >
-        <div className={prose.col}>
-          <Composer
-            // A different card is a different draft: remounting is what
-            // re-seeds the pre-tagged author and drops the previous one.
-            key={messageId}
-            room={room}
-            roomMembers={roomMembers}
-            buddies={buddies}
-            humanHandle={humanHandle}
-            isDm={card.kind === 'dm'}
-            daemonReachable={daemonReachable}
-            prefill={{ body: `@${card.handle} `, mentions: [card.handle] }}
-            placeholder={`Reply in ${where} · @${card.handle} is already tagged`}
-            footerNote={
-              <Text
-                size="xs"
-                data-testid="reader-footer-note"
-                style={{ color: MUTED }}
-              >
-                · replying posts, nothing is marked read
-              </Text>
-            }
-            onPosted={onReplied}
-          />
-        </div>
-      </Box>
+      {phone ? (
+        // Phone chrome already owns its own edge padding, background and
+        // border-top: the desktop's centred, padded `.col` wrapper below
+        // would double it.
+        composer
+      ) : (
+        <Box
+          style={{
+            padding: '0 var(--mantine-spacing-xl) var(--mantine-spacing-md)',
+          }}
+        >
+          <div className={prose.col}>{composer}</div>
+        </Box>
+      )}
     </Box>
   );
 }
