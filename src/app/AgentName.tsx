@@ -142,7 +142,6 @@ function RepoToken({ repo, metaFontSize }: { repo: string; metaFontSize?: string
         ...MUTED_XS,
         ...(metaFontSize ? { fontSize: metaFontSize } : {}),
         minWidth: 0,
-        alignSelf: 'baseline',
       }}
     >
       <span
@@ -185,7 +184,6 @@ function TaskLine({
         ...(metaFontSize ? { fontSize: metaFontSize } : {}),
         marginLeft: 'var(--mantine-spacing-sm)',
         minWidth: 0,
-        alignSelf: 'baseline',
       }}
     >
       {task.text}
@@ -435,7 +433,7 @@ export function AgentName({
       <Group
         gap={0}
         wrap="nowrap"
-        align="baseline"
+        align="center"
         component="span"
         className={hue ? undefined : classes.name}
         style={{ minWidth: 0 }}
