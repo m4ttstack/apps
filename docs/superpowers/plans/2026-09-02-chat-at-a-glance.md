@@ -111,6 +111,7 @@ describe('doing', () => {
 
 **Files:**
 - Create: `src/app/FleetTree.tsx`, `src/app/FleetTree.test.tsx`, `src/app/fleet-tree.module.css`
+- Modify (server, for the DM second line): `src/server/chat.ts` (the `/api/chat/rooms` handler gains `lastMessage?: { handle: string; body: string }` on DM summaries, body capped at 120 chars server-side, filled from the newest message of each DM room), `src/server/fixtures.ts` (fixture DM rooms carry it), `src/server/chat.test.ts`
 - Modify: `src/app/RoomRail.tsx` (its room/DM list body becomes `<FleetTree/>`; keep the close/menu wiring by passing it through), `src/app/App.tsx` (remove the `Roster` panel from the room page; delete the `join order` select from `PageBar`), `src/app/PageBar.tsx` (chips unchanged; DM bar gains per-end task chips), `src/app/Roster.tsx` (component retired from the page; keep `AgentCard` exports used by `AgentName`).
 - Test: `src/app/RoomRail.test.tsx`, `src/app/App.test.tsx` updated.
 
@@ -143,6 +144,9 @@ interface InboxPayload {
   needsYou: InboxCard[]; openAsks: InboxCard[];
   elsewhere: { room: string; kind: 'room' | 'dm'; unread: number; mentions: number }[];
 }
+
+// Exported for Task 7's transcript chip, so "unclaimed @here" has one definition:
+export function isOpenAsk(msg: ChatMessage, laterInRoom: ChatMessage[]): boolean;
 ```
 
 - [ ] **Step 1: Failing tests** (pure builder over message arrays + cursors, no HTTP): a message mentioning `matt` after the cursor → `needsYou` with `reason: 'mention'`; an agent message in a `x ↔ matt` DM after the cursor → `dm-turn`; `@here` message with no later `replyTo` pointing at it → `openAsks`; the same with a reply → excluded; everything before the cursor → excluded; remaining unread counted into `elsewhere`.
