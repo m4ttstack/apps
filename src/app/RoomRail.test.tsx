@@ -45,6 +45,26 @@ test('DM rooms sit in a direct section and are named by their pair, never the ha
   expect(screen.queryByText(/dm-9f3a/)).toBeNull();
 });
 
+test('a DM room with no participants renders nowhere, hashed id included', () => {
+  renderWithProviders(
+    <RoomRail
+      rooms={[
+        { room: 'build', memberCount: 3, unread: 0, mentions: 0 },
+        {
+          room: 'dm-orphaned-hash',
+          memberCount: 0,
+          unread: 1,
+          mentions: 0,
+          kind: 'dm',
+        },
+      ]}
+    />
+  );
+  expect(screen.queryByTestId('dm-row-dm-orphaned-hash')).toBeNull();
+  expect(screen.queryByTestId('room-row-dm-orphaned-hash')).toBeNull();
+  expect(screen.queryByText(/dm-orphaned-hash/)).toBeNull();
+});
+
 test('the active room carries the accent wash, and clicking a row selects it', () => {
   const onSelectRoom = vi.fn();
   renderWithProviders(

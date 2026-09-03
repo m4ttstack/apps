@@ -100,10 +100,13 @@ export function RoomRail({
   onSelectBuddy,
   sidebar = false,
 }: RoomRailProps) {
-  // A `dm` row with no participants has no pair to be named by, so it heads
-  // its own group like any other room rather than rendering an empty pair.
+  // A `dm` room with no participants has no pair to be named by, and
+  // falling into channelRooms would render its hashed room id (`roomLabel`
+  // in FleetTree.tsx falls back to `#${room.room}` there). The server drops
+  // the same room from the inbox for the same reason (`inbox.ts`); mirror
+  // that here rather than let it render at all.
   const directRooms = rooms.filter(r => r.kind === 'dm' && r.participants);
-  const channelRooms = rooms.filter(r => !directRooms.includes(r));
+  const channelRooms = rooms.filter(r => r.kind !== 'dm');
   const online = buddies.filter(b => b.status !== 'offline').length;
 
   return (
