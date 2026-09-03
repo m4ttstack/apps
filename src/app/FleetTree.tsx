@@ -143,43 +143,6 @@ export function groupByRepo(
   return groups;
 }
 
-/** An end of a DM pair, as the second line names it: its task line when the
-    pane title gave one, else the repo it works in. */
-function dmEnd(
-  handle: string,
-  byHandle: Map<string, RosterBuddy>,
-  now: number
-): { text: string; titled: boolean } {
-  const buddy = byHandle.get(handle);
-  const task = buddy ? doing(buddy, now) : null;
-  if (task?.kind === 'title') return { text: task.text, titled: true };
-  return { text: buddy?.repo ?? handle, titled: false };
-}
-
-/**
- * The DM entry's second line. A task line on either end wins, since that is
- * what the pair is actually doing; otherwise the newest message says more
- * than two repo names, and only when there is none does the pair form stand
- * in. Presence is withheld entirely while the daemon is down.
- */
-export function dmSecondLine(
-  room: FleetRoom,
-  byHandle: Map<string, RosterBuddy>,
-  now: number,
-  reachable: boolean
-): string {
-  if (!reachable) return 'last known';
-  const last = room.lastMessage
-    ? `${room.lastMessage.handle}: ${room.lastMessage.body}`
-    : undefined;
-  if (!room.participants) return last ?? '';
-  const a = dmEnd(room.participants.a, byHandle, now);
-  const b = dmEnd(room.participants.b, byHandle, now);
-  const pair = `${a.text} ↔ ${b.text}`;
-  if (a.titled || b.titled) return pair;
-  return last ?? pair;
-}
-
 /**
  * The first `cap` conversations, with the open one always among them: an
  * overflowed DM is otherwise unreachable, since the human is a silent third
@@ -691,21 +654,19 @@ function OfflineRow({
 }
 
 /**
- * `.dm2`: the pair on the first line, what the pair is doing on the second.
- * The hashed room name is structurally never rendered, not merely hidden --
- * the pair IS the name of a direct conversation.
+ * A direct conversation, named by its pair, one line like a channel row. The
+ * hashed room name is structurally never rendered -- the pair IS the name.
+ * A fixed height keeps the row from growing when the hover × appears.
  */
 function DmRow({
   room,
   active,
-  second,
   onSelect,
   onClose,
   onMarkRead,
 }: {
   room: FleetRoom;
   active: boolean;
-  second: string;
   onSelect?: () => void;
   onClose?: (room: string) => void;
   onMarkRead?: (room: string) => void;
@@ -738,11 +699,13 @@ function DmRow({
       }}
       style={{
         display: 'flex',
-        flexDirection: 'column',
-        gap: 1,
+        alignItems: 'center',
+        width: '100%',
         minWidth: 0,
+        height: 34,
         overflow: 'hidden',
-        padding: 'var(--mantine-spacing-xs) var(--mantine-spacing-md)',
+        gap: 4,
+        padding: '0 var(--mantine-spacing-md)',
         borderRadius: 'var(--mantine-radius-md)',
         cursor: 'pointer',
         background: active
@@ -752,37 +715,27 @@ function DmRow({
             : undefined,
       }}
     >
-      <Group gap={4} wrap="nowrap" style={{ minWidth: 0 }}>
-        {/* textContent, not three separate runs: the arrow needs its own
-            span for the purple, but a screen reader still reads one phrase. */}
-        <Text
-          fw={600}
-          truncate
-          style={{ fontSize: ROW_NAME_SIZE, flex: 1, minWidth: 0 }}
-        >
-          <AgentName handle={pair.a} withCard={false} withAvatar={false} />{' '}
-          <span style={{ color: 'var(--tk-purple)', flex: 'none' }}>↔</span>{' '}
-          <AgentName handle={pair.b} withCard={false} withAvatar={false} />
-        </Text>
-        {room.unread > 0 && <UnreadBadge count={room.unread} />}
-        {closable && (
-          <CloseControl
-            room={room}
-            testId={`dm-close-${room.room}`}
-            shown={hovered || focusWithin || menuOpened}
-            nudge={false}
-            onClose={onClose}
-          />
-        )}
-      </Group>
+      {/* textContent, not three separate runs: the arrow needs its own span
+          for the purple, but a screen reader still reads one phrase. */}
       <Text
-        component="span"
+        fw={600}
         truncate
-        data-testid={`dm-doing-${room.room}`}
-        style={{ ...MUTED_XS, minWidth: 0 }}
+        style={{ fontSize: ROW_NAME_SIZE, flex: 1, minWidth: 0 }}
       >
-        {second}
+        <AgentName handle={pair.a} withCard={false} withAvatar={false} />{' '}
+        <span style={{ color: 'var(--tk-purple)', flex: 'none' }}>↔</span>{' '}
+        <AgentName handle={pair.b} withCard={false} withAvatar={false} />
       </Text>
+      {room.unread > 0 && <UnreadBadge count={room.unread} />}
+      {closable && (
+        <CloseControl
+          room={room}
+          testId={`dm-close-${room.room}`}
+          shown={hovered || focusWithin || menuOpened}
+          nudge={false}
+          onClose={onClose}
+        />
+      )}
     </Box>
   );
 
@@ -868,7 +821,6 @@ export function FleetTree({
 }: FleetTreeProps) {
   const [dmsExpanded, setDmsExpanded] = useState(false);
   const groups = groupByRepo(rooms, buddies);
-  const byHandle = new Map(buddies.map(b => [b.handle, b]));
   // `dms` arrives already filtered by `visibleRooms`, so the cap counts only
   // conversations that are actually listed.
   const shownDms = dmsExpanded ? dms : visibleDms(dms, activeRoom);
@@ -934,7 +886,6 @@ export function FleetTree({
               key={room.room}
               room={room}
               active={room.room === activeRoom}
-              second={dmSecondLine(room, byHandle, now, daemonReachable)}
               onSelect={() => onOpenDm?.(room.room)}
               onClose={onClose}
               onMarkRead={onMarkRead}

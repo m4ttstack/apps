@@ -141,7 +141,7 @@ test('a lone signed-out member keeps its name and its age', () => {
   );
 });
 
-test("a DM's second line joins the two ends' task lines when either has one", () => {
+test('a DM row is one line: the pair, no subtitle', () => {
   renderTree({
     dms: [dm('jay', 'max')],
     buddies: [
@@ -151,29 +151,12 @@ test("a DM's second line joins the two ends' task lines when either has one", ()
       buddy('max', 'repo-tools', { paneTitle: 'max' }),
     ],
   });
-  expect(screen.getByTestId('dm-doing-dm-jay-max')).toHaveTextContent(
-    'Boxscore mattstack integration ↔ repo-tools'
+  expect(screen.getByTestId('dm-row-dm-jay-max')).toHaveTextContent(
+    'jay ↔ max'
   );
-});
-
-test('two untitled ends fall back to the last message', () => {
-  renderTree({
-    dms: [
-      dm('max', 'stan', {
-        lastMessage: {
-          handle: 'stan',
-          body: 'holding the console settings page until 2.8.1 lands',
-        },
-      }),
-    ],
-    buddies: [
-      buddy('max', 'rt', { paneTitle: 'max' }),
-      offline('stan', 'console', 17 * H),
-    ],
-  });
-  expect(screen.getByTestId('dm-doing-dm-max-stan')).toHaveTextContent(
-    'stan: holding the console settings page until 2.8.1 lands'
-  );
+  // The old preview line (a repo/task/last-message summary) is gone: it added
+  // height that shifted on hover and carried nothing the pair did not.
+  expect(screen.queryByTestId('dm-doing-dm-jay-max')).toBeNull();
 });
 
 test('the hashed DM room name is never rendered, only the pair', () => {
@@ -389,8 +372,6 @@ test('the daemon down withholds every presence claim in the tree', () => {
   );
   // The dot goes hollow: no background, a hairline instead.
   expect(screen.getByTestId('dot-max').style.background).toBe('transparent');
-  expect(screen.getByTestId('dm-doing-dm-jay-max')).toHaveTextContent(
-    'last known'
-  );
+  // No pane title leaks anywhere while the daemon is down.
   expect(screen.queryByText(/Boxscore mattstack integration/)).toBeNull();
 });
