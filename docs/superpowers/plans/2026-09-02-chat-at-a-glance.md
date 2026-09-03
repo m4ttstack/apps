@@ -6,7 +6,7 @@
 
 **Architecture:** The viewer server enriches the buddies it already returns with the herdr pane title (one `pane:list` join) and grows an inbox endpoint computed from unread pages; the client gets one `doing()` helper used by every handle surface, a `FleetTree` that replaces the rail lists and the roster, and an `Inbox` page with a reader column. rt (repo-tools) separately pins handles to panes.
 
-**Tech Stack:** Bun + Hono server, React + Mantine (`@mattstack/app-kit`) client, wouter routes, vitest/bun test, design audit via `design/audit.mjs`.
+**Tech Stack:** Bun + Hono server, React + Mantine (`@mattstack/app-kit`) client, wouter routes, vitest (NOT bun:test), design audit via `design/audit.mjs`.
 
 **Spec:** `docs/superpowers/specs/2026-09-02-chat-at-a-glance-design.md` (read it first; `design/ANATOMY.md` carries per-component structure, `design/artboards/*.dc.html` the drawn truth).
 
@@ -16,8 +16,9 @@
 - Never render presence while the daemon is unreachable (law 1); every new surface has a daemon-down state drawn in the artboards.
 - No em/en dashes in copy; times local; phone inputs 16px, controls 44px.
 - **Mantine comes from its docs, never from memory. This is mandatory for every task that writes or edits a component.** Before using a Mantine component or any prop on one, resolve it against the **mantine MCP server**: `mcp__mantine__list_items` (what exists), `mcp__mantine__get_item_props` (the props table, the authority for names, types and defaults), `mcp__mantine__get_item_doc` (usage and examples), `mcp__mantine__search_docs` (when the component name is unknown). `docs/mantine-llms.txt` is the vendored offline INDEX only... it names the pages and carries no prop signatures, so it settles "does this component exist" and never "what props does it take". The project is on Mantine **9.5.2**; a prop remembered from another version is a defect. State in the task report which components were resolved and through which tool.
+- **The app-kit contract binds every UI task, and its own docs are the authority.** Before writing or editing any component, invoke the **`building-with-mantine-kit` skill** (it covers picking components, theming, colors, icons, forms, layout and router links for an app already on the kit), then read the kit contract at **`~/Documents/GitHub/app-kit/AGENTS.md`** (import walls, icon registry, theme override patterns, modal/notification/form facades, the `MattstackShell`/`mountMattstackApp` layer, the server package) and this repo's **`AGENTS.md`** for what is specific to how chat consumes it. The hard rule the walls enforce: app code NEVER imports `@mantine/core`, `@mantine/hooks`, `@mantine/form`, `@mantine/modals`, `@mantine/notifications` or `lucide-react` directly... every Mantine-shaped import goes through the `@mattstack/app-kit/*` subpath barrels, and `src/app/icons.ts` is the one sanctioned place a lucide icon is registered. `mattstackEslint()` fails the build on a violation, so a wall breach is a defect, not a style note.
 - Comments follow clean-code rules: only non-obvious invariants, no narration.
-- After each task: `bun test` green, commit.
+- Tests are **vitest**: import from `'vitest'`, never `'bun:test'`, and run them with `bun run test` (`bun test` invokes Bun's own runner and will not see these suites). After each task: `bun run test` green, `bun run lint` clean (the import wall is enforced there), commit.
 
 ---
 
@@ -35,7 +36,7 @@
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { doing } from './doing';
 
 const base = { handle: 'max', status: 'live' as const, branch: 'main', cwd: '/Users/matt/Documents/GitHub/repo-tools' };
@@ -69,9 +70,9 @@ describe('doing', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure** — `bun test src/app/doing.test.ts`, expect module-not-found.
+- [ ] **Step 2: Run to verify failure** — `bun run test src/app/doing.test.ts`, expect module-not-found.
 - [ ] **Step 3: Implement** — reuse the existing relative-age formatter (`statusDetail.ts` has one; extract/share rather than duplicating). Ticket-prefix rule: strip the first segment of a `<something>/<rest>` branch only when `<rest>` matches `/^[a-z]+-\d/` (a ticket slug), so `feat/metrics-hardening` keeps its prefix.
-- [ ] **Step 4: `bun test src/app/doing.test.ts` green.**
+- [ ] **Step 4: `bun run test src/app/doing.test.ts` green.**
 - [ ] **Step 5: Commit** — `feat: doing() task-line resolver`.
 
 ### Task 2: fixtures on the FLEET table + `paneTitle` join
@@ -87,7 +88,7 @@ describe('doing', () => {
 - [ ] **Step 1: Failing test** — in `chat.test.ts`, with fixtures enabled, `GET /api/chat/buddies` returns `jay` with `paneTitle: 'Boxscore mattstack integration'` and `max` with `paneTitle: 'max'`; with a stubbed rt where `pane:list` fails, buddies still return (no `paneTitle`).
 - [ ] **Step 2: Run, expect fail.**
 - [ ] **Step 3: Implement** — in the buddies handler, alongside the per-buddy rooms wave, call the same pane-list client `src/server/panes.ts` uses (`listPanes` from rt-client); build `Map(sessionId -> title)`; spread `paneTitle` onto each buddy when the map has its `sessionId`. Failure of the pane call degrades to no titles (catch, empty map). Update fixtures.
-- [ ] **Step 4: `bun test src/server` green** (fixture tests updated to the new tables in the same commit).
+- [ ] **Step 4: `bun run test src/server` green** (fixture tests updated to the new tables in the same commit).
 - [ ] **Step 5: Commit** — `feat: buddies carry the live herdr pane title; fixtures mirror the FLEET table`.
 
 ### Task 3: task line on every existing handle surface
@@ -147,7 +148,7 @@ interface InboxPayload {
 - [ ] **Step 1: Failing tests** (pure builder over message arrays + cursors, no HTTP): a message mentioning `matt` after the cursor → `needsYou` with `reason: 'mention'`; an agent message in a `x ↔ matt` DM after the cursor → `dm-turn`; `@here` message with no later `replyTo` pointing at it → `openAsks`; the same with a reply → excluded; everything before the cursor → excluded; remaining unread counted into `elsewhere`.
 - [ ] **Step 2: Run, expect fail.**
 - [ ] **Step 3: Implement** `buildInbox(rooms: RoomSummaryWithCursor[], pagesByRoom: Map<string, ChatMessage[]>): InboxPayload` plus the Hono handler that fetches each room's unread page (existing message paging, capped at 50 per room) and Matt's cursors. Excerpt: strip markdown to plain text (first paragraph, code fences dropped).
-- [ ] **Step 4: `bun test src/server` green.**
+- [ ] **Step 4: `bun run test src/server` green.**
 - [ ] **Step 5: Commit** — `feat: /api/chat/inbox (needs-you, open-asks, elsewhere)`.
 
 ### Task 6: Inbox page + reader (desktop)
