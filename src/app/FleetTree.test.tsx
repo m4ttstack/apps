@@ -301,6 +301,41 @@ test('a workstream with no pane is not a target', () => {
   expect(row.style.cursor).toBe('default');
 });
 
+test('the focus-pane hint rides only the desktop pane rows', () => {
+  const { rerender } = renderTree({
+    rooms: [room('boxscore')],
+    buddies: [buddy('jay', 'boxscore', { pane: 'wBT:p1' })],
+    onFocusPane: vi.fn(),
+  });
+  // Desktop: the row focuses a pane, so it carries the hint.
+  expect(screen.getByTestId('ws-focus-hint-jay')).toBeInTheDocument();
+
+  // Phone: the same row opens a DM (`onSelectBuddy`) with no hover to hint on.
+  rerender(
+    <FleetTree
+      rooms={[room('boxscore')]}
+      dms={[]}
+      buddies={[buddy('jay', 'boxscore', { pane: 'wBT:p1' })]}
+      now={NOW}
+      onFocusPane={vi.fn()}
+      onSelectBuddy={vi.fn()}
+    />
+  );
+  expect(screen.queryByTestId('ws-focus-hint-jay')).toBeNull();
+
+  // No pane, no target, no hint.
+  rerender(
+    <FleetTree
+      rooms={[room('rt')]}
+      dms={[]}
+      buddies={[buddy('max', 'rt')]}
+      now={NOW}
+      onFocusPane={vi.fn()}
+    />
+  );
+  expect(screen.queryByTestId('ws-focus-hint-max')).toBeNull();
+});
+
 test('rooms and DMs both close, by hover × and by right-click menu', async () => {
   const onClose = vi.fn();
   const onMarkRead = vi.fn();

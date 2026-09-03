@@ -559,6 +559,10 @@ function WorkstreamRow({
       ? () => onFocusPane(pane)
       : undefined;
   const clickable = onClick !== undefined;
+  // The row's click focuses a herder pane only on the desktop path; the phone
+  // path (`onSelectBuddy`) opens a DM instead and has no hover to hint on.
+  const focusesPane =
+    !onSelectBuddy && pane !== undefined && onFocusPane !== undefined;
   return (
     <UnstyledButton
       className={classes.wsRow}
@@ -573,6 +577,7 @@ function WorkstreamRow({
       }
       onClick={onClick}
       style={{
+        position: 'relative',
         display: 'flex',
         alignItems: 'center',
         width: '100%',
@@ -631,6 +636,17 @@ function WorkstreamRow({
       >
         {reachable ? (task?.text ?? '') : 'presence withheld'}
       </Text>
+      {focusesPane && (
+        <Box
+          component="span"
+          aria-hidden
+          className={classes.focusHint}
+          data-testid={`ws-focus-hint-${handle}`}
+        >
+          <Icon name="maximize" size={11} />
+          focus pane
+        </Box>
+      )}
     </UnstyledButton>
   );
 }
