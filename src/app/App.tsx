@@ -60,13 +60,13 @@ import {
 import { Reader } from './Reader';
 import { isMsgTopic, useRelayFrames, useRelayOpen } from './relay-socket';
 import { FleetDrawer, RoomRail } from './RoomRail';
-import type { RosterBuddy } from './Roster';
+import type { RosterBuddy } from './roster-types';
 import { useAppRoute, useHash } from './routes';
 import { PAGE_SIZE, Transcript } from './Transcript';
 import { visibleRooms } from './visible-rooms';
 
 /**
- * `/api/chat/buddies`' own wire shape -- `Roster` reads the full
+ * `/api/chat/buddies`' own wire shape -- `FleetTree` reads the full
  * `PresenceRow` (branch/cwd/pane/statusText/signedInAt, ...), not just the
  * `status`/timestamp subset `statusDetail.ts` needs, so this is the full
  * roster row, not that narrower shape.
@@ -230,7 +230,7 @@ function useMessages(
 
 /**
  * Fetches one room's member list whenever `room` changes, mirroring
- * `useMessages`'s seed/refetch shape. `Roster` only ever needs "is this
+ * `useMessages`'s seed/refetch shape. `FleetTree` only ever needs "is this
  * handle in the open room", so the member rows collapse to handles here
  * rather than carrying their own `ChatMember` shape further than this hook.
  */

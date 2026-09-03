@@ -10,7 +10,7 @@ import {
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 import { BuddiesProvider } from './buddies-context';
-import type { RosterBuddy } from './Roster';
+import type { RosterBuddy } from './roster-types';
 import {
   FakeWebSocket,
   fetchMock,

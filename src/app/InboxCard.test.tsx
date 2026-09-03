@@ -8,7 +8,7 @@ import './icons';
 import type { InboxCard as InboxCardData } from '../server/inbox';
 import { BuddiesProvider } from './buddies-context';
 import { InboxCard } from './InboxCard';
-import type { RosterBuddy } from './Roster';
+import type { RosterBuddy } from './roster-types';
 import { installFetchMock } from './test-utils';
 
 const NOW = Date.UTC(2026, 8, 2, 15, 20);

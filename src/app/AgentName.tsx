@@ -19,7 +19,7 @@ import {
   STATUS_TEXT_COLOR,
   Tag,
 } from './presence-bits';
-import type { RosterBuddy } from './Roster';
+import type { RosterBuddy } from './roster-types';
 import { HANDLE_PALETTE } from './speaker-hue';
 import { STATUS_WORD, statusDetail } from './statusDetail';
 

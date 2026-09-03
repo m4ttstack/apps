@@ -62,8 +62,8 @@ export interface ComposerProps {
       channel's current membership. What separates "insert @handle" from
       "not in #room -- DM instead" in the popover. */
   roomMembers: string[];
-  /** The fleet, not the room -- same source `Roster` reads, so the popover
-      can offer a DM to a buddy who has never joined this room. */
+  /** The fleet, not the room -- same source `FleetTree` reads, so the
+      popover can offer a DM to a buddy who has never joined this room. */
   buddies: ComposerBuddy[];
   /** @default HUMAN_HANDLE (`./human`), the same single source every other
       caller of the human's own handle reads. */
@@ -411,8 +411,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
       // Phone: Enter always inserts a newline; only the button sends.
     }
 
-    /** `Roster`'s onPick, not the popover: there is no `@`-token to replace,
-      so this inserts at the caret (or the end, unfocused) instead. */
+    /** `FleetTree`'s onPick, not the popover: there is no `@`-token to
+      replace, so this inserts at the caret (or the end, unfocused) instead. */
     function insertMentionAtCaret(handle: string) {
       const el = textareaRef.current;
       const caret = el?.selectionStart ?? value.length;

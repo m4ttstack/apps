@@ -16,7 +16,7 @@ import { AgentName } from './AgentName';
 import { doing } from './doing';
 import classes from './fleet-tree.module.css';
 import { DOT_COLOR, MUTED_XS, MUTED_XS_DIM } from './presence-bits';
-import type { RosterBuddy } from './Roster';
+import type { RosterBuddy } from './roster-types';
 import { STATUS_WORD, statusDetail } from './statusDetail';
 
 /**
@@ -71,7 +71,7 @@ export interface FleetTreeProps {
       recently signed-out agent gets a group, room or no room. */
   buddies: RosterBuddy[];
   /** A prop, not `Date.now()` internally, so ages are testable without fake
-      timers -- the same seam `Roster`'s `now` is. */
+      timers. */
   now: number;
   activeRoom?: string;
   /** Withholds every presence claim when false. @default true */

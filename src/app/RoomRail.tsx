@@ -12,7 +12,7 @@ import { Icon } from '@mattstack/app-kit/icons';
 import { FleetTree, type FleetRoom } from './FleetTree';
 import { PHONE_MUTED, PHONE_TAP, tapButtonStyle } from './phone-chrome';
 import { MUTED_XS } from './presence-bits';
-import type { RosterBuddy } from './Roster';
+import type { RosterBuddy } from './roster-types';
 
 export interface RoomRailProps {
   rooms: FleetRoom[];

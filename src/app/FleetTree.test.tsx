@@ -6,7 +6,7 @@ import { expect, test, vi } from 'vitest';
 import './icons';
 
 import { FleetTree, type FleetRoom } from './FleetTree';
-import type { RosterBuddy } from './Roster';
+import type { RosterBuddy } from './roster-types';
 
 const NOW = 1_700_000_000_000;
 const M = 60_000;
