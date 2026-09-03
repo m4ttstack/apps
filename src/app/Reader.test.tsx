@@ -139,14 +139,14 @@ test('replying posts to the card’s room with the author pre-tagged, and moves 
   await waitFor(() => expect(props.onReplied).toHaveBeenCalled());
 });
 
-test('the footer never claims a reply marks anything read', async () => {
+test('no composer decoration, and nothing claims a reply marks read', async () => {
   serveWindow([opened]);
   renderReader();
   await screen.findByTestId('reader-message-412');
-  expect(screen.getByTestId('reader-footer-note')).toHaveTextContent(
-    'nothing is marked read'
-  );
-  expect(screen.queryByText(/replying marks this read/i)).toBeNull();
+  expect(screen.queryByTestId('reader-footer-note')).toBeNull();
+  expect(screen.queryByTestId('composer-kbd')).toBeNull();
+  expect(screen.queryByText(/posting as/i)).toBeNull();
+  expect(screen.queryByText(/marks this read/i)).toBeNull();
 });
 
 test('open #boxscore hands the room and the message back to the caller', async () => {
@@ -179,14 +179,13 @@ test('phone: open-room still hands the room and message back to the caller', asy
   expect(props.onOpenRoom).toHaveBeenCalledTimes(1);
 });
 
-test('phone: the footer still never claims a reply marks anything read', async () => {
+test('phone: no composer decoration either, and no marks-read claim', async () => {
   serveWindow([opened]);
   renderReader({ phone: true, onBack: vi.fn() });
   await screen.findByTestId('reader-message-412');
-  expect(screen.getByTestId('reader-footer-note')).toHaveTextContent(
-    'nothing is marked read'
-  );
-  expect(screen.queryByText(/replying marks this read/i)).toBeNull();
+  expect(screen.queryByTestId('reader-footer-note')).toBeNull();
+  expect(screen.queryByText(/posting as/i)).toBeNull();
+  expect(screen.queryByText(/marks this read/i)).toBeNull();
 });
 
 test('daemon down: the composer is disabled and keeps the pre-tagged draft', async () => {

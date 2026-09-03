@@ -265,15 +265,6 @@ export function Reader({
       phone={phone}
       prefill={{ body: `@${card.handle} `, mentions: [card.handle] }}
       placeholder={`Reply in ${where} · @${card.handle} is already tagged`}
-      footerNote={
-        <Text
-          size="xs"
-          data-testid="reader-footer-note"
-          style={{ color: MUTED }}
-        >
-          · replying posts, nothing is marked read
-        </Text>
-      }
       onPosted={onReplied}
     />
   );

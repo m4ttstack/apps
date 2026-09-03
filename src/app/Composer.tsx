@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react';
+import type { ChangeEvent, KeyboardEvent } from 'react';
 import {
   Box,
   Group,
@@ -91,9 +91,6 @@ export interface ComposerProps {
       daemon-down copy always wins over it: it is a failure state, not a
       caller's framing. */
   placeholder?: string;
-  /** Appended after `posting as <handle>`, for a caller whose composer needs
-      to say what sending does (and, as importantly, what it does not). */
-  footerNote?: ReactNode;
   /** Called after a post has landed and the draft has cleared. */
   onPosted?: () => void;
 }
@@ -277,7 +274,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
       onOpenDm,
       prefill,
       placeholder: placeholderProp,
-      footerNote,
       onPosted,
     },
     ref
@@ -548,22 +544,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
                     overflowY: 'auto',
                   }}
                 />
-                {!phone && daemonReachable && (
-                  <Group
-                    gap="xs"
-                    wrap="nowrap"
-                    style={{
-                      flex: 'none',
-                      alignSelf: 'flex-end',
-                      fontSize: inputFontSize,
-                      height: `calc(${INPUT_LINE_HEIGHT}em + var(--mantine-spacing-sm))`,
-                      paddingBottom: 'var(--mantine-spacing-sm)',
-                    }}
-                  >
-                    <Kbd>↵ send</Kbd>
-                    <Kbd>⇧↵ newline</Kbd>
-                  </Group>
-                )}
               </Box>
               <UnstyledButton
                 aria-label="Send"
@@ -617,51 +597,19 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
           </Popover.Dropdown>
         </Popover>
 
-        <Group
-          gap="xs"
-          wrap="nowrap"
-          style={{ paddingTop: 'var(--mantine-spacing-xs)' }}
-        >
-          {!daemonReachable ? (
+        {!daemonReachable && (
+          <Group
+            gap="xs"
+            wrap="nowrap"
+            style={{ paddingTop: 'var(--mantine-spacing-xs)' }}
+          >
             <Text size="xs" style={{ color: BAD_TEXT }}>
               Can&apos;t post: rt daemon unreachable. Your draft is kept.
             </Text>
-          ) : (
-            <>
-              <Text size="xs" style={{ color: MUTED }}>
-                posting as
-              </Text>
-              <Text size="xs" fw={600}>
-                {humanHandle}
-              </Text>
-              {footerNote}
-            </>
-          )}
-        </Group>
+          </Group>
+        )}
       </Box>
     );
   }
 );
 
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <Box
-      component="span"
-      data-testid="composer-kbd"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        height: 16,
-        padding: '0 var(--mantine-spacing-xs)',
-        border: `1px solid ${BORDER}`,
-        borderBottomWidth: 2,
-        borderRadius: 'var(--mantine-radius-sm)',
-        fontSize: 'var(--tk-fs-4xs)',
-        color: MUTED,
-        background: 'var(--ui-bg-3)',
-      }}
-    >
-      {children}
-    </Box>
-  );
-}
