@@ -165,7 +165,15 @@ export function RoomMenu({
       radius="md"
       shadow="md"
       styles={{
-        item: { minHeight: size >= 44 ? 44 : 24, color: 'var(--tk-fg)' },
+        item: {
+          minHeight: size >= 44 ? 44 : 24,
+          color: 'var(--tk-fg)',
+          // The 44px touch variant grows its type and padding to the tap
+          // scale; the desk keeps Mantine's default item size.
+          ...(size >= 44
+            ? { fontSize: 'var(--tk-fs-2xs)', padding: '3.2px 9.6px' }
+            : {}),
+        },
         dropdown: {
           display: 'flex',
           flexDirection: 'column',
