@@ -251,6 +251,31 @@ test('the + renders only with onNewRoom, disables with the daemon down, and fire
   expect(onNewRoom).toHaveBeenCalled();
 });
 
+test('the desktop RoomRail wires a workstream tap to onFocusPane, not onSelectBuddy', async () => {
+  const onFocusPane = vi.fn();
+  renderWithProviders(
+    <RoomRail
+      rooms={[{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }]}
+      buddies={[
+        {
+          sessionId: 's-jay',
+          handle: 'jay',
+          baseHandle: 'jay',
+          repo: 'build',
+          signedInAt: 1,
+          lastSeenAt: 1,
+          status: 'live',
+          rooms: ['build'],
+          pane: 'wBT:p1',
+        },
+      ]}
+      onFocusPane={onFocusPane}
+    />
+  );
+  await userEvent.click(screen.getByTestId('ws-jay'));
+  expect(onFocusPane).toHaveBeenCalledWith('wBT:p1');
+});
+
 test('the fleet drawer carries the tree and no BUDDIES heading', () => {
   renderWithProviders(
     <FleetDrawer

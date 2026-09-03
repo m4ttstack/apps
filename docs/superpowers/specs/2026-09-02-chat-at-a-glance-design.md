@@ -205,8 +205,8 @@ kept; cards keep rendering (they are history, not presence).
 
 - `/` on the phone: the inbox card list (three sections, full width).
 - Card tap: the phone reader (back arrow, `.ctx` chip, `<handle> needs
-you`, open-room icon; the message; the 16px composer; `replying marks
-this read`).
+you`, open-room icon; the message; the 16px composer; `replying posts,
+nothing is marked read`).
 - The drawer becomes the fleet tree verbatim (44px-friendly rows) plus the
   daemon-health line; the separate BUDDIES drawer section is gone with the
   roster.

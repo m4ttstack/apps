@@ -1193,6 +1193,8 @@ const inboxPayload = {
   elsewhere: [{ room: 'ops', kind: 'room' as const, unread: 9, mentions: 0 }],
 };
 
+const EMPTY_INBOX = { needsYou: [], openAsks: [], elsewhere: [] };
+
 /** `/api/chat/inbox` answers with `payload`; the reader's window fetch
     answers with the opened message alone. Every other route is empty. */
 function serveInbox(payload = inboxPayload) {
@@ -1319,7 +1321,7 @@ test('phone: tapping a card opens the reader in place, and back returns to the s
   await screen.findByTestId('inbox-card-412');
 
   expect(screen.getByTestId('phone-inbox-list')).toHaveStyle({
-    display: 'flex',
+    visibility: 'visible',
   });
   expect(screen.queryByTestId('phone-inbox-reader')).toBeNull();
   const list = screen.getByTestId('phone-inbox-list');
@@ -1328,16 +1330,70 @@ test('phone: tapping a card opens the reader in place, and back returns to the s
   expect(await screen.findByTestId('reader-phone-header')).toHaveTextContent(
     'meg needs you'
   );
-  // The list is hidden, not unmounted -- its scroll position survives.
+  // The list stays laid out (never `display: none`) and unmounted -- its
+  // scroll position survives; see the toggle's own comment for why.
   expect(screen.getByTestId('phone-inbox-list')).toBe(list);
   expect(screen.getByTestId('phone-inbox-list')).toHaveStyle({
-    display: 'none',
+    visibility: 'hidden',
   });
 
   await userEvent.click(screen.getByTestId('reader-back'));
   expect(screen.queryByTestId('phone-inbox-reader')).toBeNull();
   expect(screen.getByTestId('phone-inbox-list')).toBe(list);
   expect(screen.getByTestId('phone-inbox-list')).toHaveStyle({
-    display: 'flex',
+    visibility: 'visible',
+  });
+});
+
+test('phone: mark-all-read while the reader is open still leaves the list reachable', async () => {
+  // A stateful mock, not `serveInbox()`: the scenario needs `/api/chat/inbox`
+  // to answer full, then empty, once the reader's own mark-all sweep has
+  // run -- `serveInbox()`'s fixed payload never changes across refetches.
+  installFetchMock();
+  let inboxCalls = 0;
+  fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === '/api/chat/inbox') {
+      inboxCalls += 1;
+      return jsonResponse(inboxCalls === 1 ? inboxPayload : EMPTY_INBOX);
+    }
+    if (url.startsWith('/api/chat/messages/'))
+      return jsonResponse({
+        messages: [
+          {
+            id: 412,
+            room: 'build',
+            handle: 'meg',
+            body: '@matt is the exporter ready to ship?',
+            mentions: ['matt'],
+            postedAt: inboxPayload.needsYou[0]?.postedAt ?? 1,
+          },
+        ],
+      });
+    return jsonResponse({});
+  });
+
+  setViewportWidth(390);
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(<App />);
+  await screen.findByTestId('inbox-card-412');
+
+  await userEvent.click(screen.getByTestId('card-lead-412'));
+  await screen.findByTestId('reader-phone-header');
+  expect(screen.getByTestId('phone-inbox-list')).toHaveStyle({
+    visibility: 'hidden',
+  });
+
+  await userEvent.click(screen.getByTestId('phone-inbox-mark-all'));
+
+  // The reader's card is gone (mark-all-read emptied the inbox), so the
+  // reader itself unmounts, AND the list must not be left hidden with no
+  // way back to it.
+  await waitFor(() =>
+    expect(screen.queryByTestId('reader-phone-header')).toBeNull()
+  );
+  expect(screen.queryByTestId('phone-inbox-reader')).toBeNull();
+  expect(screen.getByTestId('phone-inbox-list')).toHaveStyle({
+    visibility: 'visible',
   });
 });

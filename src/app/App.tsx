@@ -710,9 +710,10 @@ function PhoneInboxHeader({
 /**
  * The phone inbox: `PhoneInboxHeader`, the card list (`Inbox`, `phone`
  * mode), and the reader (`Reader`, `phone` mode) -- a route within the
- * page, not a modal. Both stay mounted; only `readerOpen` toggles which is
- * `display: none`, so the list's own scroll position survives a trip into
- * the reader and back, which unmounting it would not.
+ * page, not a modal. Both stay mounted, stacked via `position: absolute`
+ * and toggled with `visibility` (see the comment at the toggle for why),
+ * so the list's own scroll position survives a trip into the reader and
+ * back, which unmounting it would not.
  */
 function PhoneInboxPage({
   inbox,
@@ -747,6 +748,17 @@ function PhoneInboxPage({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [readerOpen, setReaderOpen] = useState(false);
+  // A mark-all-read tapped while the reader is open can empty the inbox
+  // out from under it: `openCard` (App()'s own derivation) falls back to
+  // undefined once no card is left to fall back to. Without this, the
+  // reader would unmount (its own `openCard &&` guard below) while the
+  // list stayed hidden -- a header with no card and no way back. Closing
+  // the reader here is what makes the list reachable again the moment its
+  // card disappears, not just the moment the human taps back.
+  useEffect(() => {
+    if (!openCard) setReaderOpen(false);
+  }, [openCard]);
+  const showReader = readerOpen && openCard !== undefined;
 
   return (
     <ThemeOverrideWrapper theme={chatFontTheme}>
@@ -765,21 +777,24 @@ function PhoneInboxPage({
           onMarkAllRead={onMarkAllRead}
         />
 
-        <Box
-          style={{
-            flex: 1,
-            minHeight: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+        <Box style={{ position: 'relative', flex: 1, minHeight: 0 }}>
           <Box
             data-testid="phone-inbox-list"
             style={{
-              display: readerOpen ? 'none' : 'flex',
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
               flexDirection: 'column',
-              flex: 1,
-              minHeight: 0,
+              // `visibility`, not `display: none`: `display: none`
+              // destroys the scroll container's box, and a real browser
+              // resets `scrollTop` on redisplay -- exactly the position
+              // this toggle exists to preserve. `visibility: hidden` (with
+              // `position: absolute` above so the hidden box doesn't still
+              // claim layout space) keeps the box, and its scroll offset,
+              // intact underneath the reader. Do not "simplify" this back
+              // to `display`.
+              visibility: showReader ? 'hidden' : 'visible',
+              pointerEvents: showReader ? 'none' : undefined,
             }}
           >
             <Inbox
@@ -800,14 +815,14 @@ function PhoneInboxPage({
             />
           </Box>
 
-          {readerOpen && openCard && (
+          {showReader && openCard && (
             <Box
               data-testid="phone-inbox-reader"
               style={{
+                position: 'absolute',
+                inset: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                flex: 1,
-                minHeight: 0,
               }}
             >
               <Reader

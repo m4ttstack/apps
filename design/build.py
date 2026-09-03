@@ -650,7 +650,7 @@ def reader(down=False):
 </div>
 </div></div>
 <div class="stack" style="padding: 0 20px 11.2px;"><div class="col">
-{composer('Reply in #boxscore — @jay is already tagged', down=down, note='replying marks this read')}
+{composer('Reply in #boxscore — @jay is already tagged', down=down, note='replying posts, nothing is marked read')}
 </div></div>
 </div>""")
 
@@ -859,7 +859,7 @@ def phone_reader_board():
       <div class="input focus" style="flex: 1; min-height: 44px; font-size: 16px;"><span>keep it in this one <span class="at">@</span></span><span style="width: 1px; height: 18px; background: var(--fg);"></span></div>
       <button class="aicon tap filled" aria-label="Send">{ic('send', 18)}</button>
     </div>
-    <div class="row" style="gap: 4.8px; padding-top: 6px;"><span class="xs muted">posting as</span><span class="xs" style="font-weight: 600;">matt</span><span class="xs muted">· replying marks this read</span></div>
+    <div class="row" style="gap: 4.8px; padding-top: 6px;"><span class="xs muted">posting as</span><span class="xs" style="font-weight: 600;">matt</span><span class="xs muted">· replying posts, nothing is marked read</span></div>
   </div>
 </div>
 """ + tail(390, 844)
