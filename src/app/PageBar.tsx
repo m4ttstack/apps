@@ -38,7 +38,7 @@ const CHIP_BASE = {
   fontSize: 'var(--tk-fs-3xs)',
   fontWeight: 500,
   whiteSpace: 'nowrap',
-  border: '1px solid var(--mantine-color-default-border)',
+  border: '1px solid var(--tk-border)',
   color: 'var(--tk-muted-text)',
 } as const;
 

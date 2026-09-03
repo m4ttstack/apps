@@ -28,4 +28,7 @@
   --tk-fs-2xs: 0.76rem; /* 12.16px */
   --tk-fs-3xs: 0.66rem; /* 10.56px */
   --tk-fs-4xs: 0.59rem; /* 9.5px */
+  /* The smallest step the artboards use: the `.tag` room chip inside an
+     agent's hover card, and nothing else. */
+  --tk-fs-5xs: 0.53rem; /* 8.5px */
 }
