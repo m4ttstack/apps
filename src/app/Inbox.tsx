@@ -11,6 +11,7 @@ import { Icon } from '@mattstack/app-kit/icons';
 import type { InboxCard as InboxCardData, InboxPayload } from '../server/inbox';
 import type { ComposerBuddy } from './Composer';
 import classes from './inbox.module.css';
+import { Chip } from './Chip';
 import { CtxChip, InboxCard } from './InboxCard';
 import { Reader } from './Reader';
 import { isMsgTopic, useRelayFrames } from './relay-socket';
@@ -29,23 +30,6 @@ const EMPTY_INBOX: InboxPayload = {
   elsewhere: [],
 };
 
-// One chip size across the app: the compact `CtxChip` spec (16px tall,
-// fs-4xs, sm radius). The summary pills used to sit at 22px/fs-3xs, which
-// read as a second, larger version of the same component beside the context
-// chips in cards and the reader strip.
-const CHIP_BASE = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  height: 16,
-  borderRadius: 'var(--mantine-radius-sm)',
-  padding: '0 6px',
-  fontSize: 'var(--tk-fs-4xs)',
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
-  border: `1px solid ${BORDER}`,
-  color: MUTED,
-} as const;
 
 export const UNREAD_BADGE = {
   display: 'inline-flex',
@@ -214,58 +198,38 @@ export function InboxBar({
         {reachable ? (
           <>
             {inbox.needsYou.length > 0 && (
-              <Box
-                component="span"
-                data-testid="inbox-chip-needs-you"
-                style={{
-                  ...CHIP_BASE,
-                  color: ACCENT_TEXT,
-                  borderColor: `color-mix(in srgb, ${ACCENT_TEXT} 45%, transparent)`,
-                }}
-              >
+              <Chip tone="accent" testId="inbox-chip-needs-you">
                 @ {inbox.needsYou.length} need you
-              </Box>
+              </Chip>
             )}
             {asks > 0 && (
-              <Box
-                component="span"
-                data-testid="inbox-chip-open-asks"
-                style={{
-                  ...CHIP_BASE,
-                  color: 'var(--mantine-color-ok-text)',
-                  borderColor:
-                    'color-mix(in srgb, var(--mantine-color-ok-text) 45%, transparent)',
-                }}
+              <Chip
+                tone="ok"
+                testId="inbox-chip-open-asks"
+                leftSection={
+                  <Box
+                    component="span"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      flex: 'none',
+                      background: 'var(--tk-dot-ok)',
+                    }}
+                  />
+                }
               >
-                <Box
-                  component="span"
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    flex: 'none',
-                    background: 'var(--tk-dot-ok)',
-                  }}
-                />
                 {asks} open ask{asks === 1 ? '' : 's'}
-              </Box>
+              </Chip>
             )}
-            <Box
-              component="span"
-              data-testid="inbox-chip-elsewhere"
-              style={CHIP_BASE}
-            >
+            <Chip testId="inbox-chip-elsewhere">
               {elsewhereUnread(inbox)} unread elsewhere
-            </Box>
+            </Chip>
           </>
         ) : (
-          <Box
-            component="span"
-            data-testid="inbox-chip-withheld"
-            style={CHIP_BASE}
-          >
+          <Chip testId="inbox-chip-withheld">
             last known · presence withheld
-          </Box>
+          </Chip>
         )}
       </Group>
       {total > 0 && (

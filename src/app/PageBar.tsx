@@ -13,6 +13,8 @@ import {
   UnstyledButton,
 } from '@mattstack/app-kit/core';
 import { AnimatedChevron, Icon } from '@mattstack/app-kit/icons';
+
+import { Chip } from './Chip';
 import type { BuddyStatus, RoomSummary } from '@mattstack/rt-client';
 
 import { AgentName } from './AgentName';
@@ -33,22 +35,6 @@ const PAGE_BAR_ROW = {
   minWidth: 0,
 } as const;
 
-// One chip size across the app: the compact `CtxChip` spec (16px tall,
-// fs-4xs, sm radius), so the page bar's chips read as the same component as
-// the context chips in cards and the reader strip rather than a larger twin.
-const CHIP_BASE = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  height: 16,
-  borderRadius: 'var(--mantine-radius-sm)',
-  padding: '0 6px',
-  fontSize: 'var(--tk-fs-4xs)',
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
-  border: '1px solid var(--tk-border)',
-  color: 'var(--tk-muted-text)',
-} as const;
 
 /** The artboard's two 30px controls sit on `bg1` with the hairline border,
     which is Mantine's `default` variant on the tokyo surface tokens. */
@@ -231,14 +217,9 @@ function TaskChips({ buddies, now }: { buddies: PageBarBuddy[]; now: number }) {
         if (!task || task.kind === 'signed-out' || !task.text.trim())
           return null;
         return (
-          <Box
-            key={buddy.handle}
-            component="span"
-            style={CHIP_BASE}
-            data-testid={`chip-task-${buddy.handle}`}
-          >
+          <Chip key={buddy.handle} testId={`chip-task-${buddy.handle}`}>
             {task.text}
-          </Box>
+          </Chip>
         );
       })}
     </>
@@ -263,12 +244,10 @@ function DmChips({
   if (!reachable) {
     return (
       <>
-        <Box component="span" style={CHIP_BASE} data-testid="chip-signed-in">
+        <Chip testId="chip-signed-in">
           {signedInTotal} in room · last known
-        </Box>
-        <Box component="span" style={CHIP_BASE} data-testid="chip-withheld">
-          presence withheld
-        </Box>
+        </Chip>
+        <Chip testId="chip-withheld">presence withheld</Chip>
       </>
     );
   }
@@ -277,51 +256,37 @@ function DmChips({
   const offline = buddies.filter(b => b.status === 'offline');
   return (
     <>
-      <Box component="span" style={CHIP_BASE} data-testid="chip-signed-in">
-        {signedInTotal} in room
-      </Box>
+      <Chip testId="chip-signed-in">{signedInTotal} in room</Chip>
       {live.length > 0 && (
-        <Box
-          component="span"
-          style={{
-            ...CHIP_BASE,
-            borderColor:
-              'color-mix(in srgb, var(--mantine-color-ok-text) 45%, transparent)',
-            color: 'var(--mantine-color-ok-text)',
-          }}
-          data-testid="chip-live"
+        <Chip
+          tone="ok"
+          testId="chip-live"
+          leftSection={<Dot color="var(--tk-dot-ok)" testId="dot-live" />}
         >
-          <Dot color="var(--tk-dot-ok)" testId="dot-live" />
           {live.length} {STATUS_WORD.live}
           <NamesSuffix handles={live.map(b => b.handle)} />
-        </Box>
+        </Chip>
       )}
       {idle.length > 0 && (
-        <Box
-          component="span"
-          style={{
-            ...CHIP_BASE,
-            borderColor:
-              'color-mix(in srgb, var(--mantine-color-warn-text) 45%, transparent)',
-            color: 'var(--mantine-color-warn-text)',
-          }}
-          data-testid="chip-idle"
+        <Chip
+          tone="warn"
+          testId="chip-idle"
+          leftSection={<Dot color="var(--tk-dot-warn)" testId="dot-idle" />}
         >
-          <Dot color="var(--tk-dot-warn)" testId="dot-idle" />
           {idle.length} {STATUS_WORD.idle}
           <NamesSuffix handles={idle.map(b => b.handle)} />
-        </Box>
+        </Chip>
       )}
       {offline.length > 0 && (
-        <Box component="span" style={CHIP_BASE} data-testid="chip-offline">
-          <Dot hollow testId="dot-offline" />
+        <Chip
+          testId="chip-offline"
+          leftSection={<Dot hollow testId="dot-offline" />}
+        >
           {offline.length} {STATUS_WORD.offline}
           <NamesSuffix handles={offline.map(b => b.handle)} />
-        </Box>
+        </Chip>
       )}
-      <Box component="span" style={CHIP_BASE} data-testid="chip-wakes">
-        wakes: {wakeMode}
-      </Box>
+      <Chip testId="chip-wakes">wakes: {wakeMode}</Chip>
       <TaskChips buddies={buddies} now={now} />
     </>
   );
@@ -387,10 +352,22 @@ function RoomMembers({
           onClick={() => setOpened(o => !o)}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
+          // The one interactive chip: a button (it opens the roster and is a
+          // Popover target), styled to the same spec as `Chip`.
           style={{
-            ...CHIP_BASE,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            height: 16,
+            padding: '0 6px',
+            borderRadius: 'var(--mantine-radius-sm)',
+            fontSize: 'var(--tk-fs-4xs)',
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            border: '1px solid var(--tk-border-soft)',
+            color: 'var(--tk-muted-text)',
             cursor: 'pointer',
-            background: hovered || opened ? 'var(--ui-bg-4)' : undefined,
+            background: hovered || opened ? 'var(--ui-bg-4)' : 'transparent',
           }}
         >
           {live.length > 0 && (

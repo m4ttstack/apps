@@ -2,6 +2,7 @@ import { Box, Group, Text, UnstyledButton } from '@mattstack/app-kit/core';
 
 import type { InboxCard as InboxCardData } from '../server/inbox';
 import { AgentName, type AgentNameSize } from './AgentName';
+import { Chip } from './Chip';
 import { useBuddies } from './buddies-context';
 import { localTime } from './day-label';
 import { doing, type DoingLine } from './doing';
@@ -11,11 +12,7 @@ import { speakerHue } from './speaker-hue';
 import { formatElapsed } from './statusDetail';
 
 const BORDER = 'var(--tk-border)';
-const BORDER_SOFT = 'var(--tk-border-soft)';
-const PURPLE = 'var(--tk-purple)';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
-
-const WARN_TEXT = 'var(--mantine-color-warn-text)';
 
 /** `.ctx`: the small outlined token naming where a message lives, or (with
     `warn`) flagging an unclaimed `@here`. A DM's is `.ctx.dm`, in purple,
@@ -32,26 +29,10 @@ export function CtxChip({
   warn?: boolean;
   testId?: string;
 }) {
-  const tone = warn ? WARN_TEXT : dm ? PURPLE : undefined;
   return (
-    <Box
-      component="span"
-      data-testid={testId}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        height: 16,
-        padding: '0 6px',
-        borderRadius: 'var(--mantine-radius-sm)',
-        fontSize: 'var(--tk-fs-4xs)',
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-        border: `1px solid ${tone ? `color-mix(in srgb, ${tone} 45%, transparent)` : BORDER_SOFT}`,
-        color: tone ?? MUTED_XS.color,
-      }}
-    >
+    <Chip tone={warn ? 'warn' : dm ? 'dm' : 'muted'} testId={testId}>
       {children}
-    </Box>
+    </Chip>
   );
 }
 
