@@ -2,8 +2,8 @@ import { Box, Group, Text, UnstyledButton } from '@mattstack/app-kit/core';
 
 import type { InboxCard as InboxCardData } from '../server/inbox';
 import { AgentName, type AgentNameSize } from './AgentName';
-import { Chip } from './Chip';
 import { useBuddies } from './buddies-context';
+import { Chip } from './Chip';
 import { localTime } from './day-label';
 import { doing, type DoingLine } from './doing';
 import classes from './inbox.module.css';

@@ -32,7 +32,6 @@ const PAGE_BAR_ROW = {
   minWidth: 0,
 } as const;
 
-
 /** The artboard's two 30px controls sit on `bg1` with the hairline border,
     which is Mantine's `default` variant on the tokyo surface tokens. */
 const CONTROL_SURFACE = {

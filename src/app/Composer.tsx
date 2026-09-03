@@ -589,4 +589,3 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
     );
   }
 );
-

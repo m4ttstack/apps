@@ -9,9 +9,9 @@ import {
 import { Icon } from '@mattstack/app-kit/icons';
 
 import type { InboxCard as InboxCardData, InboxPayload } from '../server/inbox';
+import { Chip } from './Chip';
 import type { ComposerBuddy } from './Composer';
 import classes from './inbox.module.css';
-import { Chip } from './Chip';
 import { CtxChip, InboxCard } from './InboxCard';
 import { Reader } from './Reader';
 import { isMsgTopic, useRelayFrames } from './relay-socket';
@@ -29,7 +29,6 @@ const EMPTY_INBOX: InboxPayload = {
   openAsks: [],
   elsewhere: [],
 };
-
 
 export const UNREAD_BADGE = {
   display: 'inline-flex',

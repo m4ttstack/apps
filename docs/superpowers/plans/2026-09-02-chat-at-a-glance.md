@@ -299,8 +299,8 @@ other unread, and the label has to say so). This part removes the root cause.
   viewer's `postMarkRead`, must not change behaviour until Task 11 opts in.
 
 - [ ] **Step 6: Failing test** — mark with `upto` set to the middle message of a
-  room leaves the later messages unread and the earlier ones read; mark with no
-  `upto` still clears the room entirely.
+      room leaves the later messages unread and the earlier ones read; mark with no
+      `upto` still clears the room entirely.
 - [ ] **Step 7: Run, expect fail.**
 - [ ] **Step 8: Implement across store, handler, rt-client and CLI.**
 - [ ] **Step 9: Tests green; publish the rt-client version this repo will consume.**
@@ -331,9 +331,9 @@ other unread, and the label has to say so). This part removes the root cause.
   `mark read` passes the card's `messageId`, so a room's other unread survives.
 
 - [ ] **Step 1: Failing tests** — a card's `mark read` posts `{room, upto}` with
-  the card's message id and the room's other unread count is unchanged; replying
-  in the reader posts AND marks up to that message; `mark all read` still clears
-  whole rooms with no `upto`.
+      the card's message id and the room's other unread count is unchanged; replying
+      in the reader posts AND marks up to that message; `mark all read` still clears
+      whole rooms with no `upto`.
 - [ ] **Step 2: Run, expect fail.**
 - [ ] **Step 3: Implement; the label loses its room name.**
 - [ ] **Step 4: Tests green, lint/typecheck/format clean.**

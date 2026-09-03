@@ -82,7 +82,12 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>(function Chip(
       // element is the same DOM node either way, so cast past the union.
       ref={ref as never}
       {...(interactive
-        ? { component: 'button', type: 'button', onClick, 'aria-label': ariaLabel }
+        ? {
+            component: 'button',
+            type: 'button',
+            onClick,
+            'aria-label': ariaLabel,
+          }
         : {})}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

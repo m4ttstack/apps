@@ -133,7 +133,13 @@ const RULE = { height: 1, background: 'var(--tk-border-soft)' } as const;
 
 /** `• repo` after a name: a real bullet (a middle dot reads as a speck at
     10px), 3px either side, the repo truncating before the name ever does. */
-function RepoToken({ repo, metaFontSize }: { repo: string; metaFontSize?: string }) {
+function RepoToken({
+  repo,
+  metaFontSize,
+}: {
+  repo: string;
+  metaFontSize?: string;
+}) {
   return (
     <Text
       component="span"
