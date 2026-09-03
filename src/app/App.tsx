@@ -963,7 +963,15 @@ function ChatPage({
           {/* The sidebar is the fleet now, not just the rooms: a machine with
               agents signed in and no room yet still has a tree to show. */}
           {(rooms.length > 0 || buddies.length > 0) && (
-            <PageShell.Sidebar>
+            <PageShell.Sidebar
+              // The kit's sidebar ScrollArea content defaults to
+              // `min-width: min-content`, so the fleet tree's widest
+              // unbreakable row (a long DM pair or task line) sizes the whole
+              // column past `sidebarWidth` and the y-only viewport clips it
+              // with no ellipsis. Pinning the content to 0 lets each row's
+              // own `truncate` engage instead.
+              scrollAreaProps={{ styles: { content: { minWidth: 0 } } }}
+            >
               <RoomRail
                 sidebar
                 rooms={railRooms}
