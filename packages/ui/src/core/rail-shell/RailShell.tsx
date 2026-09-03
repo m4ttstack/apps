@@ -47,7 +47,7 @@ export interface RailShellProps {
   railOpened: boolean;
   onToggleRail: () => void;
   onCloseRail: () => void;
-  /** Slim rail width, in px. @default RAIL_WIDTH (68) */
+  /** Slim rail width, in px. @default RAIL_WIDTH (56) */
   railWidth?: number;
   /** Expanded rail width, in px. @default RAIL_WIDTH_EXPANDED (260) */
   railWidthExpanded?: number;
