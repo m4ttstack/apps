@@ -153,6 +153,6 @@ Do not implement it because the artboard shows it:
   `RailRoom.joined` is still typed and currently unread.
 
 (Focusing a herdr pane from a fleet-tree row, previously on this list, is
-now drawn AND meant: the picker already addresses a pane by id
-(`/api/panes/:id/peek`), and the 2026-09-02 round makes click-to-focus part
-of the tree's contract.)
+now drawn AND built: `POST /api/panes/:id/focus` was already wired for the
+hover card's `focus pane` button, and the 2026-09-02 round makes clicking a
+workstream row use it too.)

@@ -203,6 +203,23 @@ const DM_ROOM: Record<string, string> = {
   'edie|stan': 'dm-5b9e02771ac4',
   'kai|remy': 'dm-e41f7a3c68bd',
 };
+/** design/build.py's LAST table: the newest message per pair, which the tree's
+    DM second line falls back to. `jay|max` has none on purpose -- jay's pane
+    title wins there, so the fallback never runs. */
+const DM_LAST: Record<string, { handle: string; body: string }> = {
+  'max|stan': {
+    handle: 'stan',
+    body: 'holding the console settings page until 2.8.1 lands',
+  },
+  'edie|stan': {
+    handle: 'edie',
+    body: 'pack compile is green, cutting the loop over',
+  },
+  'kai|remy': {
+    handle: 'remy',
+    body: 'tail died again at 03:12, restarting the daemon',
+  },
+};
 const dmPartners = new Set(DMS.flatMap(([a, c]) => [a, c]));
 
 export function fixtureBuddies(now = Date.now()): Buddy[] {
@@ -232,7 +249,9 @@ export function fixtureBuddies(now = Date.now()): Buddy[] {
 /** `max ↔ stan`, this cast's busiest DM. */
 export const FIXTURE_DM = DM_ROOM['max|stan']!;
 
-export function fixtureRooms(): RoomSummary[] {
+export function fixtureRooms(): (RoomSummary & {
+  lastMessage?: { handle: string; body: string };
+})[] {
   const repoRooms = (['rt', 'skills', 'boxscore', 'console'] as const).map(
     room => {
       const [mentions, unread] = ROOMS_META[room]!;
@@ -244,14 +263,18 @@ export function fixtureRooms(): RoomSummary[] {
       };
     }
   );
-  const dmRooms = DMS.map(([a, c, unread]) => ({
-    room: DM_ROOM[`${a}|${c}`]!,
-    memberCount: 3,
-    unread,
-    mentions: 0,
-    kind: 'dm' as const,
-    participants: { a, b: c },
-  }));
+  const dmRooms = DMS.map(([a, c, unread]) => {
+    const lastMessage = DM_LAST[`${a}|${c}`];
+    return {
+      room: DM_ROOM[`${a}|${c}`]!,
+      memberCount: 3,
+      unread,
+      mentions: 0,
+      kind: 'dm' as const,
+      participants: { a, b: c },
+      ...(lastMessage ? { lastMessage } : {}),
+    };
+  });
   return [...repoRooms, ...dmRooms];
 }
 

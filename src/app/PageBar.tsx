@@ -4,7 +4,6 @@ import {
   Button,
   Group,
   Menu,
-  Select,
   Text,
   Tooltip,
 } from '@mattstack/app-kit/core';
@@ -12,6 +11,7 @@ import { Icon } from '@mattstack/app-kit/icons';
 import type { BuddyStatus, RoomSummary } from '@mattstack/rt-client';
 
 import { AgentName } from './AgentName';
+import { doing, type DoingInput } from './doing';
 import { postMarkRead } from './mark-read';
 import { STATUS_WORD } from './statusDetail';
 import { useExpandAll } from './use-expand-all';
@@ -64,12 +64,9 @@ const UNREAD_BADGE = {
   whiteSpace: 'nowrap',
 } as const;
 
-export type RoomOrder = 'join' | 'name';
-
-export interface PageBarBuddy {
-  handle: string;
-  status: BuddyStatus;
-}
+/** Wide enough for `doing()`: a DM's bar carries each end's task line, and
+    that is resolved from the same presence row the chips count. */
+export type PageBarBuddy = DoingInput;
 
 export interface PageBarProps {
   room: RoomSummary;
@@ -84,9 +81,9 @@ export interface PageBarProps {
   /** Opens the pane picker to invite agents to this room. The button renders
       only when this is wired, and is disabled while the daemon is down. */
   onAddAgents?: () => void;
-  /** The rail's sort, the artboard's `join order` select. */
-  order?: RoomOrder;
-  onOrderChange?: (order: RoomOrder) => void;
+  /** A prop, not `Date.now()` internally, so a DM's task chips are testable
+      without fake timers. @default Date.now() */
+  now?: number;
 }
 
 function Dot({
@@ -201,14 +198,37 @@ export function RoomMenu({
   );
 }
 
+/** A DM's two ends, each carrying what it is doing: the pair IS the room, so
+    the bar names the work rather than counting members. Offline and away rows
+    resolve to no line and drop out. */
+function TaskChips({ buddies, now }: { buddies: PageBarBuddy[]; now: number }) {
+  return (
+    <>
+      {buddies.map(buddy => {
+        const task = doing(buddy, now);
+        if (!task || task.kind === 'signed-out') return null;
+        return (
+          <Box
+            key={buddy.handle}
+            component="span"
+            style={CHIP_BASE}
+            data-testid={`chip-task-${buddy.handle}`}
+          >
+            {task.text}
+          </Box>
+        );
+      })}
+    </>
+  );
+}
+
 export function PageBar({
   room,
   buddies,
   reachable = true,
   onMarkedRead,
   onAddAgents,
-  order = 'join',
-  onOrderChange,
+  now = Date.now(),
 }: PageBarProps) {
   const [expandAll, setExpandAll] = useExpandAll();
   const handleMarkRead = () => {
@@ -281,28 +301,6 @@ export function PageBar({
         >
           mark read
         </Button>
-      )}
-      {onOrderChange && (
-        <Select
-          size="xs"
-          radius="md"
-          w={168}
-          ml="sm"
-          aria-label="Room order"
-          data-testid="room-order"
-          value={order}
-          onChange={value => {
-            if (value) onOrderChange(value as RoomOrder);
-          }}
-          allowDeselect={false}
-          withCheckIcon={false}
-          data={[
-            { value: 'join', label: 'join order' },
-            { value: 'name', label: 'by name' },
-          ]}
-          rightSection={<Icon name="chevronDown" size={14} />}
-          styles={{ input: CONTROL_SURFACE }}
-        />
       )}
       <Tooltip
         label={expandAll ? 'Clip long messages' : 'Show every message in full'}
@@ -424,6 +422,7 @@ export function PageBar({
         <Box component="span" style={CHIP_BASE} data-testid="chip-wakes">
           wakes: {wakeMode}
         </Box>
+        {room.kind === 'dm' && <TaskChips buddies={buddies} now={now} />}
       </Group>
       <Group gap={0} ml="auto" wrap="nowrap">
         {controls}

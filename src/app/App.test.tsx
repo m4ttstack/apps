@@ -179,7 +179,7 @@ test('unknown paths render the not-found page inside the chat chrome', () => {
   expect(screen.getByText('No rooms')).toBeTruthy();
 });
 
-test('the roster is actually mounted, not merely written', () => {
+test('the fleet tree lists every buddy, repo or no repo', () => {
   renderWithProviders(
     <App
       initialState={{
@@ -198,7 +198,10 @@ test('the roster is actually mounted, not merely written', () => {
       }}
     />
   );
-  expect(screen.getByTestId('row-rt-chat-wt')).toBeInTheDocument();
+  // No `repo` on this presence row, so it heads its own `no repo` group
+  // rather than dropping out of the only listing the fleet has.
+  expect(screen.getByTestId('ws-rt-chat-wt')).toBeInTheDocument();
+  expect(screen.getByTestId('repo-row-no repo')).toHaveTextContent('no room');
 });
 
 test('seeded messages survive to the first room, even if the fetch rejects', async () => {
@@ -359,7 +362,7 @@ test('a same-room hash change scrolls to the new anchor', () => {
   }
 });
 
-test('the rooms rail lives in the PageShell sidebar and the roster is the right panel', () => {
+test('the fleet tree lives in the PageShell sidebar, and no roster panel remains', () => {
   window.history.replaceState(null, '', '/r/build');
   renderWithProviders(<App initialState={twoRooms} />);
   const sidebar = document.getElementById('page-shell-sidebar');
@@ -372,9 +375,8 @@ test('the rooms rail lives in the PageShell sidebar and the roster is the right 
   expect(
     within(content as HTMLElement).getByTestId('transcript')
   ).toBeInTheDocument();
-  expect(
-    within(content as HTMLElement).getByTestId('roster')
-  ).toBeInTheDocument();
+  expect(screen.queryByTestId('roster')).toBeNull();
+  expect(screen.queryByTestId('room-order')).toBeNull();
   expect(
     within(screen.getByTestId('page-bar')).getByText('build')
   ).toBeInTheDocument();
@@ -485,7 +487,7 @@ test('DM on a sender’s card opens the pair’s room and focuses the composer t
       body: JSON.stringify({ to: 'fred' }),
     })
   );
-  await screen.findByTestId(`room-row-${dmRoom.room}`);
+  await screen.findByTestId(`dm-row-${dmRoom.room}`);
   expect(window.location.pathname).toBe(`/r/${dmRoom.room}`);
   // `focus()` defers through requestAnimationFrame.
   await waitFor(() =>

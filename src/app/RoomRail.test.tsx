@@ -39,7 +39,7 @@ test('DM rooms sit in a direct section and are named by their pair, never the ha
   // three spans so `.arrows` can carry its own colour, and getByText reads
   // only an element's DIRECT text children. Scoping to the row asserts more
   // than the plan's original line did -- that THIS row is named by its pair.
-  expect(screen.getByTestId('room-row-dm-9f3a2b1c0d4e')).toHaveTextContent(
+  expect(screen.getByTestId('dm-row-dm-9f3a2b1c0d4e')).toHaveTextContent(
     'deck-main ↔ rt-chat-wt'
   );
   expect(screen.queryByText(/dm-9f3a/)).toBeNull();
@@ -127,10 +127,10 @@ test('the hover × closes that row without selecting it', async () => {
       onSelectRoom={onSelectRoom}
     />
   );
-  const close = screen.getByTestId('room-close-dm-1');
+  const close = screen.getByTestId('dm-close-dm-1');
   expect(close).toHaveAttribute('aria-label', 'Close fred ↔ gitq-main');
   expect(close.style.display).toBe('none');
-  await userEvent.hover(screen.getByTestId('room-row-dm-1'));
+  await userEvent.hover(screen.getByTestId('dm-row-dm-1'));
   expect(close.style.display).toBe('');
   await userEvent.click(close);
   expect(onCloseRoom).toHaveBeenCalledWith('dm-1');
@@ -198,6 +198,43 @@ test('without onCloseRoom there is no × and right-click does nothing', () => {
   expect(screen.queryByTestId('room-close-build')).toBeNull();
   fireEvent.contextMenu(screen.getByTestId('room-row-build'));
   expect(screen.queryByTestId('room-context-build')).toBeNull();
+});
+
+test('the header names the fleet and counts it, and withholds the count when the daemon is down', () => {
+  const buddies = [
+    {
+      sessionId: 's-max',
+      handle: 'max',
+      baseHandle: 'max',
+      repo: 'rt',
+      signedInAt: 1,
+      lastSeenAt: 2,
+      status: 'live' as const,
+      rooms: ['rt'],
+    },
+    {
+      sessionId: 's-kai',
+      handle: 'kai',
+      baseHandle: 'kai',
+      repo: 'rt',
+      signedInAt: 2,
+      lastSeenAt: 3,
+      signedOutAt: 3,
+      status: 'offline' as const,
+      rooms: ['rt'],
+    },
+  ];
+  const rooms = [{ room: 'rt', memberCount: 2, unread: 0, mentions: 0 }];
+  const { rerender } = renderWithProviders(
+    <RoomRail rooms={rooms} buddies={buddies} />
+  );
+  expect(screen.getByRole('heading', { name: 'FLEET' })).toBeInTheDocument();
+  expect(screen.getByTestId('fleet-count')).toHaveTextContent('1 on · 1 off');
+
+  rerender(
+    <RoomRail rooms={rooms} buddies={buddies} daemonReachable={false} />
+  );
+  expect(screen.getByTestId('fleet-count')).toHaveTextContent('last known');
 });
 
 test('the + renders only with onNewRoom, disables with the daemon down, and fires', async () => {

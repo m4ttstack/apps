@@ -14,6 +14,8 @@ import type { DoingLine } from './doing';
 import {
   DOT_COLOR,
   headTruncatePath,
+  MUTED_XS,
+  MUTED_XS_DIM,
   STATUS_TEXT_COLOR,
   Tag,
 } from './presence-bits';
@@ -93,18 +95,6 @@ const LABEL = {
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
   color: 'var(--tk-muted-text)',
-} as const;
-
-const MUTED_XS = {
-  fontSize: 'var(--tk-fs-3xs)',
-  color: 'var(--tk-muted-text)',
-} as const;
-
-/** `.doing.dim`: the honest "nothing better known" state for a `kind:
-    'path'` task line -- one step dimmer than `MUTED_XS`. */
-const MUTED_XS_DIM = {
-  fontSize: 'var(--tk-fs-3xs)',
-  color: 'var(--tk-muted)',
 } as const;
 
 const RULE = { height: 1, background: 'var(--tk-border-soft)' } as const;

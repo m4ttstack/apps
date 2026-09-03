@@ -22,7 +22,16 @@ vi.mock('@mattstack/rt-client', () => ({
 const rt = await import('@mattstack/rt-client');
 const { routes } = await import('./routes');
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  // The rooms handler now reads each DM room's newest message for the fleet
+  // tree's second line. Most tests do not care what it is, only that the call
+  // resolves like the daemon's would.
+  vi.mocked(rt.chatMessages).mockResolvedValue({
+    ok: true,
+    data: { messages: [] },
+  });
+});
 afterEach(() => {
   delete process.env.CHAT_FIXTURES;
 });
@@ -50,6 +59,81 @@ test("rooms returns the daemon's payload, DM rows included", async () => {
     kind: 'dm',
     participants: { a: 'deck-main', b: 'rt-chat-wt' },
   });
+});
+
+test('only DM rows carry lastMessage, one line, capped at 120 chars', async () => {
+  vi.mocked(rt.chatRooms).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      rooms: [
+        { room: 'build', memberCount: 3, unread: 0, mentions: 0 },
+        {
+          room: 'dm-9f3a',
+          memberCount: 3,
+          unread: 1,
+          mentions: 0,
+          kind: 'dm',
+          participants: { a: 'edie', b: 'stan' },
+        },
+      ],
+    },
+  });
+  vi.mocked(rt.chatMessages).mockResolvedValue({
+    ok: true,
+    data: {
+      messages: [
+        {
+          id: 9,
+          room: 'dm-9f3a',
+          handle: 'edie',
+          body: `pack compile is green,\n\ncutting ${'x'.repeat(200)}`,
+          postedAt: 1,
+          mentions: [],
+        },
+      ],
+    },
+  });
+
+  const body = await (
+    await routes.request('/api/chat/rooms?handle=matt')
+  ).json();
+
+  expect(body.rooms[0].lastMessage).toBeUndefined();
+  expect(rt.chatMessages).toHaveBeenCalledTimes(1);
+  expect(rt.chatMessages).toHaveBeenCalledWith(
+    expect.objectContaining({ room: 'dm-9f3a', limit: 1 }),
+    expect.anything()
+  );
+  expect(body.rooms[1].lastMessage.handle).toBe('edie');
+  expect(body.rooms[1].lastMessage.body).toHaveLength(120);
+  expect(
+    body.rooms[1].lastMessage.body.startsWith(
+      'pack compile is green, cutting x'
+    )
+  ).toBe(true);
+});
+
+test('a DM whose tail cannot be read still lists, without lastMessage', async () => {
+  vi.mocked(rt.chatRooms).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      rooms: [
+        {
+          room: 'dm-9f3a',
+          memberCount: 3,
+          unread: 1,
+          mentions: 0,
+          kind: 'dm',
+          participants: { a: 'edie', b: 'stan' },
+        },
+      ],
+    },
+  });
+  vi.mocked(rt.chatMessages).mockResolvedValue({ ok: false, error: 'nope' });
+
+  const res = await routes.request('/api/chat/rooms?handle=matt');
+  expect(res.status).toBe(200);
+  expect((await res.json()).rooms[0].lastMessage).toBeUndefined();
 });
 
 test('an ok:false from the daemon becomes a 502, not a crash', async () => {

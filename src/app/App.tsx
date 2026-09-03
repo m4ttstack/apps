@@ -37,10 +37,11 @@ import { chatFontTheme } from './chat-font-theme';
 import { AppMark } from './chrome/AppMark';
 import { Composer, type ComposerHandle } from './Composer';
 import { PageShellDemoPage } from './demo/PageShellDemoPage';
+import type { FleetRoom } from './FleetTree';
 import { HUMAN_HANDLE } from './human';
 import { postMarkRead } from './mark-read';
 import { NewRoomModal } from './NewRoomModal';
-import { PageBar, RoomMenu, type RoomOrder } from './PageBar';
+import { PageBar, RoomMenu } from './PageBar';
 import { PanePickerProvider, usePanePicker } from './PanePicker';
 import { useRelayFrames, useRelayOpen } from './relay-socket';
 import { RoomRail } from './RoomRail';
@@ -67,7 +68,7 @@ export type Buddy = RosterBuddy;
 export interface AppInitialState {
   daemonReachable?: boolean;
   buddies?: Buddy[];
-  rooms?: RoomSummary[];
+  rooms?: FleetRoom[];
   members?: ChatMember[];
   messages?: ChatMessage[];
 }
@@ -126,16 +127,16 @@ function useBuddies(seed: Buddy[] | undefined): {
  * mount-time fetch never saw -- `openDm` opens or reuses a room this list
  * has no reason to have fetched yet.
  */
-function useRooms(seed: RoomSummary[] | undefined) {
-  const [rooms, setRooms] = useState<RoomSummary[]>(seed ?? []);
+function useRooms(seed: FleetRoom[] | undefined) {
+  const [rooms, setRooms] = useState<FleetRoom[]>(seed ?? []);
 
   // Resolves to the fetched list for a caller that wants it directly. A
   // failed fetch resolves to [] with `rooms` left untouched, rather than
   // reading as every room vanishing.
-  const refetchRooms = useCallback(async (): Promise<RoomSummary[]> => {
+  const refetchRooms = useCallback(async (): Promise<FleetRoom[]> => {
     try {
       const res = await fetch('/api/chat/rooms');
-      const data = (await res.json()) as { rooms?: RoomSummary[] };
+      const data = (await res.json()) as { rooms?: FleetRoom[] };
       const next = data.rooms ?? [];
       setRooms(next);
       return next;
@@ -959,13 +960,11 @@ function PhoneChat({
 interface ChatPageProps {
   rooms: RoomSummary[];
   openRooms: RoomSummary[];
-  railRooms: RoomSummary[];
+  railRooms: FleetRoom[];
   activeRoom: string | undefined;
   activeRoomSummary: RoomSummary | undefined;
   selectRoom: (room: string) => void;
-  roomOrder: RoomOrder;
-  setRoomOrder: (order: RoomOrder) => void;
-  refetchRooms: () => Promise<RoomSummary[]>;
+  refetchRooms: () => Promise<FleetRoom[]>;
   daemon: ReturnType<typeof useDaemonHealth>;
   buddies: Buddy[];
   roomMembers: string[];
@@ -975,6 +974,7 @@ interface ChatPageProps {
   onOpenDm: (handle: string) => void;
   onCloseRoom: (room: string) => void;
   onMarkRead: (room: string) => void;
+  onFocusPane: (paneId: string) => void;
 }
 
 /**
@@ -991,8 +991,6 @@ function ChatPage({
   activeRoom,
   activeRoomSummary,
   selectRoom,
-  roomOrder,
-  setRoomOrder,
   refetchRooms,
   daemon,
   buddies,
@@ -1003,6 +1001,7 @@ function ChatPage({
   onOpenDm,
   onCloseRoom,
   onMarkRead,
+  onFocusPane,
 }: ChatPageProps) {
   const pickPanes = usePanePicker();
   const panesAvailable = usePanesAvailable();
@@ -1060,11 +1059,15 @@ function ChatPage({
           sidebarWidth={244}
           drawerStateKey="chat-rooms-sidebar"
         >
-          {rooms.length > 0 && (
+          {/* The sidebar is the fleet now, not just the rooms: a machine with
+              agents signed in and no room yet still has a tree to show. */}
+          {(rooms.length > 0 || buddies.length > 0) && (
             <PageShell.Sidebar>
               <RoomRail
                 sidebar
                 rooms={railRooms}
+                buddies={buddies}
+                now={Date.now()}
                 activeRoom={activeRoom}
                 onSelectRoom={selectRoom}
                 daemonReachable={daemon.reachable}
@@ -1073,6 +1076,7 @@ function ChatPage({
                 }
                 onCloseRoom={onCloseRoom}
                 onMarkRead={onMarkRead}
+                onFocusPane={onFocusPane}
               />
             </PageShell.Sidebar>
           )}
@@ -1083,8 +1087,6 @@ function ChatPage({
                   room={activeRoomSummary}
                   buddies={buddies.filter(b => roomMembers.includes(b.handle))}
                   reachable={daemon.reachable}
-                  order={roomOrder}
-                  onOrderChange={setRoomOrder}
                   onMarkedRead={() => void refetchRooms()}
                   onAddAgents={panesAvailable ? addAgents : undefined}
                 />
@@ -1149,21 +1151,6 @@ function ChatPage({
                       }
                     />
                   )
-                )}
-                {(railRooms.length > 0 || buddies.length > 0) && (
-                  <Roster
-                    panel
-                    buddies={buddies}
-                    now={Date.now()}
-                    roomMembers={roomMembers}
-                    daemonReachable={daemon.reachable}
-                    // Desktop: a click only mentions; DM lives on the hover
-                    // card's button. The phone drawer keeps tap-to-DM above --
-                    // it has no hover card to carry the action.
-                    onPick={(handle, { inRoom }) => {
-                      if (inRoom) composerRef.current?.insertMention(handle);
-                    }}
-                  />
                 )}
               </Group>
             </PageShell.Content>
@@ -1343,13 +1330,8 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
     }),
     [openDm, focusPane]
   );
-  const [roomOrder, setRoomOrder] = useState<RoomOrder>('join');
-  const orderedRooms =
-    roomOrder === 'name'
-      ? [...rooms].sort((a, b) => a.room.localeCompare(b.room))
-      : rooms;
   const openRooms = rooms.filter(r => r.archivedAt === undefined);
-  const railRooms = visibleRooms(orderedRooms, activeRoom);
+  const railRooms = visibleRooms(rooms, activeRoom);
 
   const messages = useMessages(activeRoom, initialState?.messages);
   const { members: roomMembers, refetchMembers } = useRoomMembers(
@@ -1430,8 +1412,6 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
               activeRoom={activeRoom}
               activeRoomSummary={activeRoomSummary}
               selectRoom={selectRoom}
-              roomOrder={roomOrder}
-              setRoomOrder={setRoomOrder}
               refetchRooms={refetchRooms}
               daemon={daemon}
               buddies={buddies}
@@ -1442,6 +1422,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
               onOpenDm={openDm}
               onCloseRoom={closeRoom}
               onMarkRead={markRead}
+              onFocusPane={paneId => void focusPane(paneId)}
             />
           ) : (
             <NotFoundPage />

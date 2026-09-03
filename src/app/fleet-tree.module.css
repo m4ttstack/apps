@@ -1,0 +1,7 @@
+/* A workstream row's hover wash. It lives in CSS rather than a `useHover`
+   state because nothing about the row's BEHAVIOUR turns on hover -- unlike
+   the room and DM rows, whose × must exist in the DOM for keyboard focus
+   and for a test to reach, so those keep the JS state. */
+.wsRow:hover {
+  background: var(--ui-bg-4);
+}

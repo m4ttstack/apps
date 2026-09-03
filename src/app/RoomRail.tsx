@@ -1,44 +1,24 @@
-import { useState } from 'react';
-import {
-  ActionIcon,
-  Box,
-  Group,
-  Menu,
-  Stack,
-  Text,
-  Tooltip,
-  UnstyledButton,
-} from '@mattstack/app-kit/core';
+import { Group, Stack, Text, UnstyledButton } from '@mattstack/app-kit/core';
 import { useHover } from '@mattstack/app-kit/hooks';
 import { Icon } from '@mattstack/app-kit/icons';
-import type { RoomSummary } from '@mattstack/rt-client';
 
-import { AgentName } from './AgentName';
-
-/**
- * `.accent-deep` has no direct `--tk-*` token: the artboard's own palette
- * only defines it as a DERIVATION (`.app --accent-deep: #206cd2`, a specific
- * shade one step past plain accent; `.app.dark --accent-deep: var(--accent)`,
- * i.e. no separate shade at all in dark). `--mantine-color-accent-7` is
- * exactly the light shade the ramp was resampled to land on; the dark half
- * collapses back to the plain accent text color. `light-dark()` is the same
- * idiom `useSchemeColors.ts` already uses for a per-scheme formula that
- * ISN'T just "the same var, different scheme block".
- */
-const ACCENT_DEEP =
-  'light-dark(var(--mantine-color-accent-7), var(--mantine-color-accent-text))';
-const ACCENT_ON = 'light-dark(var(--mantine-color-white), var(--tk-bg))';
-const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
-const ACCENT_WASH = `color-mix(in srgb, ${ACCENT_TEXT} var(--tk-wash), transparent)`;
-const BORDER_DEFAULT = 'var(--mantine-color-default-border)';
+import { FleetTree, type FleetRoom } from './FleetTree';
+import { MUTED_XS } from './presence-bits';
+import type { RosterBuddy } from './Roster';
 
 export interface RoomRailProps {
-  rooms: RoomSummary[];
+  rooms: FleetRoom[];
+  /** The whole fleet: the tree groups these by repo under each room. */
+  buddies?: RosterBuddy[];
+  /** A prop, not `Date.now()` internally, so sign-out ages are testable
+      without fake timers. @default Date.now() */
+  now?: number;
   /** The room open in the transcript, so its row carries the accent wash. */
   activeRoom?: string;
   onSelectRoom?: (room: string) => void;
   /** rt daemon reachability: the `+` is disabled while it is down, since a
-      room cannot be created without it. @default true */
+      room cannot be created without it, and every presence claim in the tree
+      is withheld. @default true */
   daemonReachable?: boolean;
   /** Opens the new-room modal. The `+` renders only when this is wired. */
   onNewRoom?: () => void;
@@ -48,6 +28,8 @@ export interface RoomRailProps {
   onCloseRoom?: (room: string) => void;
   /** The right-click menu's Mark read, offered only on a row with unread. */
   onMarkRead?: (room: string) => void;
+  /** Brings a workstream's herdr pane to the front. */
+  onFocusPane?: (paneId: string) => void;
   /** Inside `PageShell.Sidebar`: the sidebar is the surface, so no card. */
   sidebar?: boolean;
 }
@@ -87,255 +69,28 @@ function NewRoomButton({
 }
 
 /**
- * `@N`, filled accent. The glyph -- not just the colour -- is what
- * distinguishes this from `UnreadBadge`: a colourblind reader, or a
- * screenshot, still gets the difference.
- */
-function MentionBadge({ count }: { count: number }) {
-  return (
-    <Box
-      component="span"
-      aria-label={`${count} mention`}
-      data-testid="mention-badge"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        height: 18,
-        lineHeight: 1,
-        borderRadius: 'var(--mantine-radius-xl)',
-        padding: '0 var(--mantine-spacing-sm)',
-        fontSize: 'var(--tk-fs-3xs)',
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-        flex: 'none',
-        background: ACCENT_DEEP,
-        color: ACCENT_ON,
-      }}
-    >
-      @{count}
-    </Box>
-  );
-}
-
-/** Plain `N`, outlined -- the difference from `MentionBadge` is the glyph. */
-function UnreadBadge({ count }: { count: number }) {
-  return (
-    <Box
-      component="span"
-      aria-label={`${count} unread`}
-      data-testid="unread-badge"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        height: 18,
-        lineHeight: 1,
-        borderRadius: 'var(--mantine-radius-xl)',
-        padding: '0 var(--mantine-spacing-sm)',
-        fontSize: 'var(--tk-fs-3xs)',
-        fontWeight: 500,
-        whiteSpace: 'nowrap',
-        flex: 'none',
-        border: `1px solid ${BORDER_DEFAULT}`,
-        color: 'var(--tk-muted-text)',
-      }}
-    >
-      {count}
-    </Box>
-  );
-}
-
-/**
- * `a ↔ b`. The hashed room name is structurally never in the tree, not
- * merely hidden by CSS.
- *
- * The arrow is its own span so it can carry the artboard's purple, but the
- * surrounding text stays one flat run: this element's textContent is still
- * the whole phrase, so a screen reader reads it as one, and `getByText`
- * matches here and nowhere else (the span alone is just "↔").
- */
-function DmPairName({ room, active }: { room: RoomSummary; active: boolean }) {
-  const { a, b } = room.participants!;
-  return (
-    <Text
-      size="sm"
-      fw={active ? 600 : undefined}
-      truncate
-      style={{ flex: 1, minWidth: 0 }}
-    >
-      <AgentName handle={a} withCard={false} withAvatar={false} />{' '}
-      <span style={{ color: 'var(--tk-purple)', flex: 'none' }}>↔</span>{' '}
-      <AgentName handle={b} withCard={false} withAvatar={false} />
-    </Text>
-  );
-}
-
-function roomLabel(room: RoomSummary): string {
-  return room.kind === 'dm' && room.participants
-    ? `${room.participants.a} ↔ ${room.participants.b}`
-    : `#${room.room}`;
-}
-
-/**
- * A rail row is a `div[role=button]`, not a `<button>`: the close control
- * inside it is a real button, and a button may not nest a button. Enter and
- * Space select, like the button they replace. The × shows on hover, on
- * focus within, and while the row's menu is open; the menu is Mantine's
- * `Menu.ContextMenu` (right-click, and a long press on touch), positioned
- * at the cursor, one instance per row.
- */
-function RoomRow({
-  room,
-  active,
-  onSelect,
-  onClose,
-  onMarkRead,
-}: {
-  room: RoomSummary;
-  active: boolean;
-  onSelect?: () => void;
-  onClose?: (room: string) => void;
-  onMarkRead?: (room: string) => void;
-}) {
-  const isDm = room.kind === 'dm';
-  const label = roomLabel(room);
-  const { ref, hovered } = useHover<HTMLDivElement>();
-  const [menuOpened, setMenuOpened] = useState(false);
-  const [focusWithin, setFocusWithin] = useState(false);
-  const closable = onClose !== undefined;
-  const showClose = closable && (hovered || focusWithin || menuOpened);
-
-  const row = (
-    <Box
-      ref={ref}
-      role="button"
-      tabIndex={0}
-      data-testid={`room-row-${room.room}`}
-      data-active={active ? 'true' : undefined}
-      onClick={onSelect}
-      onKeyDown={e => {
-        if (e.target !== e.currentTarget) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect?.();
-        }
-      }}
-      onFocus={() => setFocusWithin(true)}
-      onBlur={e => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null))
-          setFocusWithin(false);
-      }}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        minWidth: 0,
-        width: '100%',
-        height: 34,
-        gap: 'var(--mantine-spacing-sm)',
-        padding: '0 var(--mantine-spacing-md)',
-        borderRadius: 'var(--mantine-radius-md)',
-        cursor: 'pointer',
-        background: active
-          ? ACCENT_WASH
-          : hovered || menuOpened
-            ? 'var(--ui-bg-4)'
-            : undefined,
-        color: active ? ACCENT_TEXT : undefined,
-      }}
-    >
-      {!isDm && (
-        <Icon
-          name="hash"
-          size={14}
-          color={active ? ACCENT_TEXT : 'var(--tk-muted-text)'}
-          style={{ flex: 'none' }}
-        />
-      )}
-      {isDm && room.participants ? (
-        <DmPairName room={room} active={active} />
-      ) : (
-        <Text
-          fw={active ? 600 : undefined}
-          truncate
-          style={{ flex: 1, minWidth: 0 }}
-        >
-          {room.room}
-        </Text>
-      )}
-      {room.mentions > 0 && <MentionBadge count={room.mentions} />}
-      {room.unread > 0 && <UnreadBadge count={room.unread} />}
-      {closable && (
-        <Tooltip label="Close" position="top" withinPortal>
-          <ActionIcon
-            variant="subtle"
-            size="sm"
-            radius="md"
-            color="gray"
-            aria-label={`Close ${label}`}
-            data-testid={`room-close-${room.room}`}
-            onClick={e => {
-              e.stopPropagation();
-              onClose(room.room);
-            }}
-            style={{
-              display: showClose ? undefined : 'none',
-              flex: 'none',
-              marginRight: -4,
-              color: 'var(--tk-muted-text)',
-            }}
-          >
-            <Icon name="close" size={14} />
-          </ActionIcon>
-        </Tooltip>
-      )}
-    </Box>
-  );
-
-  if (!closable) return row;
-
-  return (
-    <Menu onChange={setMenuOpened} radius="md" shadow="md" withinPortal>
-      <Menu.ContextMenu>{row}</Menu.ContextMenu>
-      <Menu.Dropdown data-testid={`room-context-${room.room}`}>
-        <Menu.Label>{label}</Menu.Label>
-        {room.unread > 0 && onMarkRead && (
-          <Menu.Item
-            data-testid="room-context-mark-read"
-            leftSection={<Icon name="check" size={14} />}
-            rightSection={<UnreadBadge count={room.unread} />}
-            onClick={() => onMarkRead(room.room)}
-          >
-            Mark read
-          </Menu.Item>
-        )}
-        <Menu.Item
-          data-testid="room-context-close"
-          leftSection={<Icon name="close" size={14} />}
-          onClick={() => onClose(room.room)}
-        >
-          Close
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
-  );
-}
-
-/**
- * The 232px rooms rail: a header row (`ROOMS` + count), the plain rooms,
- * then -- only when at least one DM exists -- a `DIRECT` section of `.pair`
- * rows and a footnote.
+ * The 244px sidebar: a `FLEET` header carrying the fleet count and the `+`,
+ * then the tree itself. The rail owns the frame and the header; `FleetTree`
+ * owns every row inside it.
  */
 export function RoomRail({
   rooms,
+  buddies = [],
+  now = Date.now(),
   activeRoom,
   onSelectRoom,
   daemonReachable = true,
   onNewRoom,
   onCloseRoom,
   onMarkRead,
+  onFocusPane,
   sidebar = false,
 }: RoomRailProps) {
-  const channelRooms = rooms.filter(r => r.kind !== 'dm');
-  const directRooms = rooms.filter(r => r.kind === 'dm');
+  // A `dm` row with no participants has no pair to be named by, so it heads
+  // its own group like any other room rather than rendering an empty pair.
+  const directRooms = rooms.filter(r => r.kind === 'dm' && r.participants);
+  const channelRooms = rooms.filter(r => !directRooms.includes(r));
+  const online = buddies.filter(b => b.status !== 'offline').length;
 
   return (
     <Stack
@@ -370,11 +125,13 @@ export function RoomRail({
             letterSpacing: '0.04em',
           }}
         >
-          ROOMS
+          FLEET
         </Text>
         <Group gap={2} wrap="nowrap">
-          <Text size="xs" style={{ color: 'var(--tk-muted-text)' }}>
-            {channelRooms.length}
+          <Text component="span" data-testid="fleet-count" style={MUTED_XS}>
+            {daemonReachable
+              ? `${online} on · ${buddies.length - online} off`
+              : 'last known'}
           </Text>
           {onNewRoom && (
             <NewRoomButton disabled={!daemonReachable} onClick={onNewRoom} />
@@ -382,54 +139,19 @@ export function RoomRail({
         </Group>
       </Group>
 
-      {channelRooms.map(room => (
-        <RoomRow
-          key={room.room}
-          room={room}
-          active={room.room === activeRoom}
-          onSelect={() => onSelectRoom?.(room.room)}
-          onClose={onCloseRoom}
-          onMarkRead={onMarkRead}
-        />
-      ))}
-
-      {directRooms.length > 0 && (
-        <>
-          <Group
-            gap="sm"
-            wrap="nowrap"
-            style={{
-              padding:
-                'var(--mantine-spacing-md) var(--mantine-spacing-md) var(--mantine-spacing-xs)',
-              borderBottom: `1px solid var(--tk-border-soft)`,
-            }}
-          >
-            <Text
-              component="h3"
-              fw={700}
-              style={{
-                margin: 0,
-                fontSize: 'var(--tk-fs-4xs)',
-                color: 'var(--tk-muted-text)',
-                letterSpacing: '0.06em',
-              }}
-            >
-              DIRECT
-            </Text>
-          </Group>
-
-          {directRooms.map(room => (
-            <RoomRow
-              key={room.room}
-              room={room}
-              active={room.room === activeRoom}
-              onSelect={() => onSelectRoom?.(room.room)}
-              onClose={onCloseRoom}
-              onMarkRead={onMarkRead}
-            />
-          ))}
-        </>
-      )}
+      <FleetTree
+        rooms={channelRooms}
+        dms={directRooms}
+        buddies={buddies}
+        now={now}
+        activeRoom={activeRoom}
+        daemonReachable={daemonReachable}
+        onOpenRoom={onSelectRoom}
+        onOpenDm={onSelectRoom}
+        onFocusPane={onFocusPane}
+        onClose={onCloseRoom}
+        onMarkRead={onMarkRead}
+      />
     </Stack>
   );
 }

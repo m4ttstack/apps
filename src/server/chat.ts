@@ -183,6 +183,52 @@ async function unjoinedFleetRooms(
   });
 }
 
+interface DmLastMessage {
+  handle: string;
+  body: string;
+}
+
+/** A one-line preview, so the whole body of a long post never crosses the
+    wire for text the sidebar truncates anyway. */
+const DM_PREVIEW_CAP = 120;
+
+/**
+ * The newest message per DM room, for the fleet tree's DM second line.
+ * That line prefers what the two ends are doing; this is the fallback for a
+ * pair whose panes report no title, and only DM rooms carry it -- a channel
+ * row has badges to say what changed.
+ *
+ * One `chatMessages` per DM room, in parallel and non-fatal: a room whose
+ * tail fails to read renders the pair form instead of failing the listing.
+ */
+async function withDmLastMessage(
+  rooms: RoomSummary[]
+): Promise<(RoomSummary & { lastMessage?: DmLastMessage })[]> {
+  const dms = rooms.filter(r => r.kind === 'dm');
+  if (dms.length === 0) return rooms;
+  const tails = await Promise.all(
+    dms.map(r =>
+      chatMessages({ room: r.room, limit: 1 }, rtOpts()).catch(() => null)
+    )
+  );
+  const byRoom = new Map<string, DmLastMessage>();
+  dms.forEach((room, i) => {
+    const tail = tails[i];
+    const message = tail?.ok ? tail.data?.messages.at(-1) : undefined;
+    if (!message) return;
+    byRoom.set(room.room, {
+      handle: message.handle,
+      // Collapsed, not just cut: a body's newlines and fences would otherwise
+      // reach the client as a "one-line" preview that is nothing of the sort.
+      body: message.body.replace(/\s+/g, ' ').trim().slice(0, DM_PREVIEW_CAP),
+    });
+  });
+  return rooms.map(room => {
+    const lastMessage = byRoom.get(room.room);
+    return lastMessage ? { ...room, lastMessage } : room;
+  });
+}
+
 export const chat = new Hono()
   .get('/api/chat/rooms', async c => {
     if (fixturesEnabled()) return c.json({ rooms: fixtureRooms() }, 200);
@@ -194,7 +240,8 @@ export const chat = new Hono()
 
     const joined = res.data?.rooms ?? [];
     const extra = await unjoinedFleetRooms(joined);
-    return c.json({ rooms: [...joined, ...extra] }, 200);
+    const rooms = await withDmLastMessage([...joined, ...extra]);
+    return c.json({ rooms }, 200);
   })
   .get('/api/chat/who/:room', async c => {
     const room = c.req.param('room');

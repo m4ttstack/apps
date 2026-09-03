@@ -109,6 +109,41 @@ test('a DM room shows the pair as its title and wakes: all regardless of default
   expect(screen.getByText('wakes: all')).toBeInTheDocument();
 });
 
+test('a DM bar carries one task chip per end, and the join-order select is gone', () => {
+  const now = 1_700_000_000_000;
+  renderWithProviders(
+    <PageBar
+      room={{
+        room: 'dm-8c1d4e6a2f90',
+        memberCount: 3,
+        unread: 0,
+        mentions: 0,
+        kind: 'dm',
+        participants: { a: 'jay', b: 'max' },
+      }}
+      now={now}
+      buddies={[
+        {
+          handle: 'jay',
+          status: 'live',
+          paneTitle: 'Boxscore mattstack integration',
+        },
+        { handle: 'max', status: 'idle', cwd: '/x/repo-tools', branch: 'main' },
+        { handle: 'kai', status: 'offline', signedOutAt: now - 60_000 },
+      ]}
+    />
+  );
+  expect(screen.getByTestId('chip-task-jay')).toHaveTextContent(
+    'Boxscore mattstack integration'
+  );
+  expect(screen.getByTestId('chip-task-max')).toHaveTextContent(
+    'repo-tools · main'
+  );
+  // A signed-out end has no task, only an age: the chips never carry one.
+  expect(screen.queryByTestId('chip-task-kai')).toBeNull();
+  expect(screen.queryByTestId('room-order')).toBeNull();
+});
+
 test('the ⋯ menu offers Close for a channel, with no confirm', async () => {
   const onClose = vi.fn();
   renderWithProviders(

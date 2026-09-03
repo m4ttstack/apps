@@ -1,0 +1,812 @@
+import { Fragment, useState } from 'react';
+import {
+  ActionIcon,
+  Box,
+  Group,
+  Menu,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from '@mattstack/app-kit/core';
+import { useHover } from '@mattstack/app-kit/hooks';
+import { Icon } from '@mattstack/app-kit/icons';
+import type { RoomSummary } from '@mattstack/rt-client';
+
+import { AgentName } from './AgentName';
+import { doing } from './doing';
+import classes from './fleet-tree.module.css';
+import { DOT_COLOR, MUTED_XS, MUTED_XS_DIM } from './presence-bits';
+import type { RosterBuddy } from './Roster';
+import { STATUS_WORD, statusDetail } from './statusDetail';
+
+/**
+ * `.accent-deep` has no direct `--tk-*` token: the artboard's own palette
+ * only defines it as a DERIVATION (`.app --accent-deep: #206cd2`, a specific
+ * shade one step past plain accent; `.app.dark --accent-deep: var(--accent)`,
+ * i.e. no separate shade at all in dark). `--mantine-color-accent-7` is
+ * exactly the light shade the ramp was resampled to land on; the dark half
+ * collapses back to the plain accent text color. `light-dark()` is the same
+ * idiom `useSchemeColors.ts` already uses for a per-scheme formula that
+ * ISN'T just "the same var, different scheme block".
+ */
+const ACCENT_DEEP =
+  'light-dark(var(--mantine-color-accent-7), var(--mantine-color-accent-text))';
+const ACCENT_ON = 'light-dark(var(--mantine-color-white), var(--tk-bg))';
+const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
+const ACCENT_WASH = `color-mix(in srgb, ${ACCENT_TEXT} var(--tk-wash), transparent)`;
+const BORDER_DEFAULT = 'var(--mantine-color-default-border)';
+
+/** `.ws`'s own `padding-left`. No spacing token lands on it: it is the room
+    row's 9.6px plus the tree's one indent step. */
+const WORKSTREAM_INDENT = 26.4;
+
+/** The group heading a presence row lands under when its cwd derived no repo.
+    A space keeps it from ever colliding with a real repo name. */
+const NO_REPO = 'no repo';
+
+export interface DmLastMessage {
+  handle: string;
+  body: string;
+}
+
+/** `/api/chat/rooms`' own shape: the daemon's `RoomSummary` plus the newest
+    message per DM room, joined in by `src/server/chat.ts` so a DM entry whose
+    two ends have no task line still has an honest second line. */
+export type FleetRoom = RoomSummary & { lastMessage?: DmLastMessage };
+
+export interface FleetTreeProps {
+  /** Channel rooms, in listing order: each heads the group of agents working
+      in the repo it is named for. */
+  rooms: FleetRoom[];
+  /** DM rooms, in listing order, rendered under `DIRECT`. */
+  dms: FleetRoom[];
+  /** The whole fleet, not one room's members: every repo with a signed-in or
+      recently signed-out agent gets a group, room or no room. */
+  buddies: RosterBuddy[];
+  /** A prop, not `Date.now()` internally, so ages are testable without fake
+      timers -- the same seam `Roster`'s `now` is. */
+  now: number;
+  activeRoom?: string;
+  /** Withholds every presence claim when false. @default true */
+  daemonReachable?: boolean;
+  onOpenRoom?: (room: string) => void;
+  onOpenDm?: (room: string) => void;
+  /** Brings a workstream's herdr pane to the front. A row whose buddy has no
+      pane, or that is rendered without this, is not clickable. */
+  onFocusPane?: (paneId: string) => void;
+  /** The row's hover × and its right-click menu. Neither renders without it. */
+  onClose?: (room: string) => void;
+  /** The right-click menu's Mark read, offered only on a row with unread. */
+  onMarkRead?: (room: string) => void;
+}
+
+export interface FleetGroup {
+  repo: string;
+  /** The repo's room, when it has one. A repo with agents and no room heads
+      its group with a plain, unclickable label instead. */
+  room?: FleetRoom;
+  online: RosterBuddy[];
+  offline: RosterBuddy[];
+}
+
+/**
+ * One group per repo: every room first, in listing order, then the repos that
+ * have agents but no room. A room's group key is its own name, since a repo's
+ * room is the one sign-in derives from that repo's cwd.
+ *
+ * Members keep sign-in order inside a group and are never re-sorted by status,
+ * so a working<->idle flip cannot move a row out from under the pointer.
+ */
+export function groupByRepo(
+  rooms: FleetRoom[],
+  buddies: RosterBuddy[]
+): FleetGroup[] {
+  const byRepo = new Map<string, RosterBuddy[]>();
+  for (const buddy of [...buddies].sort(
+    (a, b) => a.signedInAt - b.signedInAt
+  )) {
+    // A presence row whose cwd derived no repo still gets a group: this is
+    // the only place the fleet is listed, so nobody may fall out of it.
+    const repo = buddy.repo || NO_REPO;
+    const members = byRepo.get(repo);
+    if (members) members.push(buddy);
+    else byRepo.set(repo, [buddy]);
+  }
+
+  const split = (members: RosterBuddy[]) => ({
+    online: members.filter(b => b.status !== 'offline'),
+    offline: members.filter(b => b.status === 'offline'),
+  });
+
+  const groups: FleetGroup[] = rooms.map(room => ({
+    repo: room.room,
+    room,
+    ...split(byRepo.get(room.room) ?? []),
+  }));
+  const withRoom = new Set(rooms.map(r => r.room));
+  for (const [repo, members] of byRepo) {
+    if (withRoom.has(repo)) continue;
+    groups.push({ repo, ...split(members) });
+  }
+  return groups;
+}
+
+/** An end of a DM pair, as the second line names it: its task line when the
+    pane title gave one, else the repo it works in. */
+function dmEnd(
+  handle: string,
+  byHandle: Map<string, RosterBuddy>,
+  now: number
+): { text: string; titled: boolean } {
+  const buddy = byHandle.get(handle);
+  const task = buddy ? doing(buddy, now) : null;
+  if (task?.kind === 'title') return { text: task.text, titled: true };
+  return { text: buddy?.repo ?? handle, titled: false };
+}
+
+/**
+ * The DM entry's second line. A task line on either end wins, since that is
+ * what the pair is actually doing; otherwise the newest message says more
+ * than two repo names, and only when there is none does the pair form stand
+ * in. Presence is withheld entirely while the daemon is down.
+ */
+export function dmSecondLine(
+  room: FleetRoom,
+  byHandle: Map<string, RosterBuddy>,
+  now: number,
+  reachable: boolean
+): string {
+  if (!reachable) return 'last known';
+  const last = room.lastMessage
+    ? `${room.lastMessage.handle}: ${room.lastMessage.body}`
+    : undefined;
+  if (!room.participants) return last ?? '';
+  const a = dmEnd(room.participants.a, byHandle, now);
+  const b = dmEnd(room.participants.b, byHandle, now);
+  const pair = `${a.text} ↔ ${b.text}`;
+  if (a.titled || b.titled) return pair;
+  return last ?? pair;
+}
+
+/** `.dot`: 8px, hollow whenever it has no live status to claim. */
+function Dot({
+  status,
+  reachable,
+  testId,
+}: {
+  status: RosterBuddy['status'];
+  reachable: boolean;
+  testId: string;
+}) {
+  const hollow = !reachable || status === 'offline';
+  return (
+    <Box
+      component="span"
+      data-testid={testId}
+      style={{
+        width: 8,
+        height: 8,
+        flex: 'none',
+        borderRadius: '50%',
+        background: hollow ? 'transparent' : DOT_COLOR[status],
+        border: hollow ? '1px solid var(--tk-border)' : undefined,
+      }}
+    />
+  );
+}
+
+/**
+ * `@N`, filled accent. The glyph -- not just the colour -- is what
+ * distinguishes this from `UnreadBadge`: a colourblind reader, or a
+ * screenshot, still gets the difference.
+ */
+function MentionBadge({ count }: { count: number }) {
+  return (
+    <Box
+      component="span"
+      aria-label={`${count} mention`}
+      data-testid="mention-badge"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        height: 18,
+        lineHeight: 1,
+        borderRadius: 'var(--mantine-radius-xl)',
+        padding: '0 var(--mantine-spacing-sm)',
+        fontSize: 'var(--tk-fs-3xs)',
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+        flex: 'none',
+        background: ACCENT_DEEP,
+        color: ACCENT_ON,
+      }}
+    >
+      @{count}
+    </Box>
+  );
+}
+
+/** Plain `N`, outlined -- the difference from `MentionBadge` is the glyph. */
+function UnreadBadge({ count }: { count: number }) {
+  return (
+    <Box
+      component="span"
+      aria-label={`${count} unread`}
+      data-testid="unread-badge"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        height: 18,
+        lineHeight: 1,
+        borderRadius: 'var(--mantine-radius-xl)',
+        padding: '0 var(--mantine-spacing-sm)',
+        fontSize: 'var(--tk-fs-3xs)',
+        fontWeight: 500,
+        whiteSpace: 'nowrap',
+        flex: 'none',
+        border: `1px solid ${BORDER_DEFAULT}`,
+        color: 'var(--tk-muted-text)',
+      }}
+    >
+      {count}
+    </Box>
+  );
+}
+
+function roomLabel(room: FleetRoom): string {
+  return room.kind === 'dm' && room.participants
+    ? `${room.participants.a} ↔ ${room.participants.b}`
+    : `#${room.room}`;
+}
+
+/** The 22px hover × plus the row's right-click menu, the pair of close
+    affordances every room and DM row carries. */
+function CloseControl({
+  room,
+  testId,
+  shown,
+  nudge,
+  onClose,
+}: {
+  room: FleetRoom;
+  testId: string;
+  shown: boolean;
+  /** `.room .close` pulls back into the row's own padding; `.dm2 .close`
+      does not. */
+  nudge: boolean;
+  onClose: (room: string) => void;
+}) {
+  return (
+    <Tooltip label="Close" position="top" withinPortal>
+      <ActionIcon
+        variant="subtle"
+        size="sm"
+        radius="md"
+        color="gray"
+        aria-label={`Close ${roomLabel(room)}`}
+        data-testid={testId}
+        onClick={e => {
+          e.stopPropagation();
+          onClose(room.room);
+        }}
+        style={{
+          display: shown ? undefined : 'none',
+          flex: 'none',
+          marginRight: nudge ? -4 : undefined,
+          color: 'var(--tk-muted-text)',
+        }}
+      >
+        <Icon name="close" size={14} />
+      </ActionIcon>
+    </Tooltip>
+  );
+}
+
+function RowMenu({
+  room,
+  testId,
+  onChange,
+  onClose,
+  onMarkRead,
+  children,
+}: {
+  room: FleetRoom;
+  testId: string;
+  onChange: (opened: boolean) => void;
+  onClose: (room: string) => void;
+  onMarkRead?: (room: string) => void;
+  children: React.ReactElement;
+}) {
+  return (
+    <Menu onChange={onChange} radius="md" shadow="md" withinPortal>
+      <Menu.ContextMenu>{children}</Menu.ContextMenu>
+      <Menu.Dropdown data-testid={testId}>
+        <Menu.Label>{roomLabel(room)}</Menu.Label>
+        {room.unread > 0 && onMarkRead && (
+          <Menu.Item
+            data-testid="room-context-mark-read"
+            leftSection={<Icon name="check" size={14} />}
+            rightSection={<UnreadBadge count={room.unread} />}
+            onClick={() => onMarkRead(room.room)}
+          >
+            Mark read
+          </Menu.Item>
+        )}
+        <Menu.Item
+          data-testid="room-context-close"
+          leftSection={<Icon name="close" size={14} />}
+          onClick={() => onClose(room.room)}
+        >
+          Close
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
+/**
+ * A tree row is a `div[role=button]`, not a `<button>`: the close control
+ * inside it is a real button, and a button may not nest a button. Enter and
+ * Space select, like the button they replace. The × shows on hover, on
+ * focus within, and while the row's menu is open; the menu is Mantine's
+ * `Menu.ContextMenu` (right-click, and a long press on touch), positioned
+ * at the cursor, one instance per row.
+ */
+function RoomRow({
+  room,
+  active,
+  onSelect,
+  onClose,
+  onMarkRead,
+}: {
+  room: FleetRoom;
+  active: boolean;
+  onSelect?: () => void;
+  onClose?: (room: string) => void;
+  onMarkRead?: (room: string) => void;
+}) {
+  const { ref, hovered } = useHover<HTMLDivElement>();
+  const [menuOpened, setMenuOpened] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const closable = onClose !== undefined;
+
+  const row = (
+    <Box
+      ref={ref}
+      role="button"
+      tabIndex={0}
+      data-testid={`room-row-${room.room}`}
+      data-active={active ? 'true' : undefined}
+      onClick={onSelect}
+      onKeyDown={e => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect?.();
+        }
+      }}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={e => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null))
+          setFocusWithin(false);
+      }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        minWidth: 0,
+        width: '100%',
+        height: 34,
+        gap: 'var(--mantine-spacing-sm)',
+        padding: '0 var(--mantine-spacing-md)',
+        borderRadius: 'var(--mantine-radius-md)',
+        cursor: 'pointer',
+        background: active
+          ? ACCENT_WASH
+          : hovered || menuOpened
+            ? 'var(--ui-bg-4)'
+            : undefined,
+        color: active ? ACCENT_TEXT : undefined,
+      }}
+    >
+      <Icon
+        name="hash"
+        size={14}
+        color={active ? ACCENT_TEXT : 'var(--tk-muted-text)'}
+        style={{ flex: 'none' }}
+      />
+      <Text
+        fw={active ? 600 : undefined}
+        truncate
+        style={{ flex: 1, minWidth: 0 }}
+      >
+        {room.room}
+      </Text>
+      {room.mentions > 0 && <MentionBadge count={room.mentions} />}
+      {room.unread > 0 && <UnreadBadge count={room.unread} />}
+      {closable && (
+        <CloseControl
+          room={room}
+          testId={`room-close-${room.room}`}
+          shown={hovered || focusWithin || menuOpened}
+          nudge
+          onClose={onClose}
+        />
+      )}
+    </Box>
+  );
+
+  if (!closable) return row;
+  return (
+    <RowMenu
+      room={room}
+      testId={`room-context-${room.room}`}
+      onChange={setMenuOpened}
+      onClose={onClose}
+      onMarkRead={onMarkRead}
+    >
+      {row}
+    </RowMenu>
+  );
+}
+
+/** A repo with agents but no room: the same 34px row, no hash, the name
+    muted, and `no room` where the badges would sit. Not a target. */
+function RepoRow({ repo }: { repo: string }) {
+  return (
+    <Box
+      data-testid={`repo-row-${repo}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        minWidth: 0,
+        width: '100%',
+        height: 34,
+        gap: 'var(--mantine-spacing-sm)',
+        padding: '0 var(--mantine-spacing-md)',
+        borderRadius: 'var(--mantine-radius-md)',
+        cursor: 'default',
+      }}
+    >
+      {/* `.grp`: one step under the room name it stands in for, muted, since
+          this heading is a label rather than a place to go. */}
+      <Text
+        size="sm"
+        truncate
+        style={{ flex: 1, minWidth: 0, color: 'var(--tk-muted-text)' }}
+      >
+        {repo}
+      </Text>
+      <Text component="span" style={{ ...MUTED_XS, flex: 'none' }}>
+        no room
+      </Text>
+    </Box>
+  );
+}
+
+/** One signed-in session inside its repo: dot, handle, and the task line
+    filling the rest of the row. Clicking brings its pane to the front. */
+function WorkstreamRow({
+  buddy,
+  now,
+  reachable,
+  onFocusPane,
+}: {
+  buddy: RosterBuddy;
+  now: number;
+  reachable: boolean;
+  onFocusPane?: (paneId: string) => void;
+}) {
+  const { handle, pane } = buddy;
+  const task = reachable ? doing(buddy, now) : null;
+  const clickable = pane !== undefined && onFocusPane !== undefined;
+  return (
+    <UnstyledButton
+      className={classes.wsRow}
+      component={clickable ? 'button' : 'div'}
+      data-testid={`ws-${handle}`}
+      aria-label={clickable ? `Focus ${handle}'s pane` : undefined}
+      onClick={clickable ? () => onFocusPane(pane) : undefined}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        minWidth: 0,
+        overflow: 'hidden',
+        height: 30,
+        gap: 'var(--mantine-spacing-sm)',
+        padding: `0 var(--mantine-spacing-md) 0 ${WORKSTREAM_INDENT}px`,
+        borderRadius: 'var(--mantine-radius-md)',
+        cursor: clickable ? 'pointer' : 'default',
+        textAlign: 'left',
+      }}
+    >
+      <Tooltip
+        label={
+          reachable
+            ? `${STATUS_WORD[buddy.status]} · ${statusDetail(buddy, now)}`
+            : 'presence withheld while the daemon is down'
+        }
+        position="left"
+        openDelay={300}
+        withArrow
+      >
+        <Box component="span" style={{ display: 'inline-flex', flex: 'none' }}>
+          <Dot
+            status={buddy.status}
+            reachable={reachable}
+            testId={`dot-${handle}`}
+          />
+        </Box>
+      </Tooltip>
+      <Text component="span" size="xs" fw={600} style={{ flex: 'none' }}>
+        <AgentName
+          handle={handle}
+          variant="name"
+          withAvatar={false}
+          buddy={buddy}
+          reachable={reachable}
+          now={now}
+        />
+      </Text>
+      <Text
+        component="span"
+        truncate
+        data-testid={`ws-doing-${handle}`}
+        style={{
+          ...(task?.kind === 'path' || !reachable ? MUTED_XS_DIM : MUTED_XS),
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
+        {reachable ? (task?.text ?? '') : 'presence withheld'}
+      </Text>
+    </UnstyledButton>
+  );
+}
+
+/** The repo's signed-out members as one muted line. Two or more collapse to
+    a count and their names; a single one keeps its name and its age. */
+function OfflineRow({
+  repo,
+  offline,
+  now,
+}: {
+  repo: string;
+  offline: RosterBuddy[];
+  now: number;
+}) {
+  const only = offline.length === 1 ? offline[0]! : undefined;
+  return (
+    <Box
+      data-testid={`offline-${repo}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        minWidth: 0,
+        overflow: 'hidden',
+        height: 26,
+        gap: 'var(--mantine-spacing-sm)',
+        padding: `0 var(--mantine-spacing-md) 0 ${WORKSTREAM_INDENT}px`,
+        borderRadius: 'var(--mantine-radius-md)',
+        cursor: 'default',
+        ...MUTED_XS,
+      }}
+    >
+      <Dot status="offline" reachable testId={`dot-offline-${repo}`} />
+      <Text component="span" inherit truncate style={{ minWidth: 0 }}>
+        {only
+          ? `${only.handle} · ${statusDetail(only, now)}`
+          : `${offline.length} signed out · ${offline.map(b => b.handle).join(' ')}`}
+      </Text>
+    </Box>
+  );
+}
+
+/**
+ * `.dm2`: the pair on the first line, what the pair is doing on the second.
+ * The hashed room name is structurally never rendered, not merely hidden --
+ * the pair IS the name of a direct conversation.
+ */
+function DmRow({
+  room,
+  active,
+  second,
+  onSelect,
+  onClose,
+  onMarkRead,
+}: {
+  room: FleetRoom;
+  active: boolean;
+  second: string;
+  onSelect?: () => void;
+  onClose?: (room: string) => void;
+  onMarkRead?: (room: string) => void;
+}) {
+  const { ref, hovered } = useHover<HTMLDivElement>();
+  const [menuOpened, setMenuOpened] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const closable = onClose !== undefined;
+  const pair = room.participants!;
+
+  const row = (
+    <Box
+      ref={ref}
+      role="button"
+      tabIndex={0}
+      data-testid={`dm-row-${room.room}`}
+      data-active={active ? 'true' : undefined}
+      onClick={onSelect}
+      onKeyDown={e => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect?.();
+        }
+      }}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={e => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null))
+          setFocusWithin(false);
+      }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1,
+        minWidth: 0,
+        overflow: 'hidden',
+        padding: 'var(--mantine-spacing-xs) var(--mantine-spacing-md)',
+        borderRadius: 'var(--mantine-radius-md)',
+        cursor: 'pointer',
+        background: active
+          ? ACCENT_WASH
+          : hovered || menuOpened
+            ? 'var(--ui-bg-4)'
+            : undefined,
+      }}
+    >
+      <Group gap={4} wrap="nowrap" style={{ minWidth: 0 }}>
+        {/* textContent, not three separate runs: the arrow needs its own
+            span for the purple, but a screen reader still reads one phrase. */}
+        <Text
+          size="sm"
+          fw={active ? 600 : undefined}
+          truncate
+          style={{ flex: 1, minWidth: 0 }}
+        >
+          <AgentName handle={pair.a} withCard={false} withAvatar={false} />{' '}
+          <span style={{ color: 'var(--tk-purple)', flex: 'none' }}>↔</span>{' '}
+          <AgentName handle={pair.b} withCard={false} withAvatar={false} />
+        </Text>
+        {room.unread > 0 && <UnreadBadge count={room.unread} />}
+        {closable && (
+          <CloseControl
+            room={room}
+            testId={`dm-close-${room.room}`}
+            shown={hovered || focusWithin || menuOpened}
+            nudge={false}
+            onClose={onClose}
+          />
+        )}
+      </Group>
+      <Text
+        component="span"
+        truncate
+        data-testid={`dm-doing-${room.room}`}
+        style={{ ...MUTED_XS, minWidth: 0 }}
+      >
+        {second}
+      </Text>
+    </Box>
+  );
+
+  if (!closable) return row;
+  return (
+    <RowMenu
+      room={room}
+      testId={`dm-context-${room.room}`}
+      onChange={setMenuOpened}
+      onClose={onClose}
+      onMarkRead={onMarkRead}
+    >
+      {row}
+    </RowMenu>
+  );
+}
+
+/**
+ * The sidebar's one tree. Every repo the fleet works in heads a group -- its
+ * room when it has one, a plain label when it does not -- with that repo's
+ * signed-in sessions under it and its signed-out members rolled into a line.
+ * Direct conversations follow, named by their pair.
+ *
+ * This replaces both of the surfaces it succeeds (a flat rooms rail and a
+ * separate roster panel): a handle read next to the room it works in answers
+ * "who is this" without a second column to cross-reference.
+ */
+export function FleetTree({
+  rooms,
+  dms,
+  buddies,
+  now,
+  activeRoom,
+  daemonReachable = true,
+  onOpenRoom,
+  onOpenDm,
+  onFocusPane,
+  onClose,
+  onMarkRead,
+}: FleetTreeProps) {
+  const groups = groupByRepo(rooms, buddies);
+  const byHandle = new Map(buddies.map(b => [b.handle, b]));
+
+  return (
+    <Fragment>
+      {groups.map(group => (
+        <Fragment key={group.repo}>
+          {group.room ? (
+            <RoomRow
+              room={group.room}
+              active={group.room.room === activeRoom}
+              onSelect={() => onOpenRoom?.(group.repo)}
+              onClose={onClose}
+              onMarkRead={onMarkRead}
+            />
+          ) : (
+            <RepoRow repo={group.repo} />
+          )}
+          {group.online.map(buddy => (
+            <WorkstreamRow
+              key={buddy.handle}
+              buddy={buddy}
+              now={now}
+              reachable={daemonReachable}
+              onFocusPane={onFocusPane}
+            />
+          ))}
+          {group.offline.length > 0 && (
+            <OfflineRow repo={group.repo} offline={group.offline} now={now} />
+          )}
+        </Fragment>
+      ))}
+
+      {dms.length > 0 && (
+        <>
+          <Group
+            gap="sm"
+            wrap="nowrap"
+            style={{
+              padding:
+                'var(--mantine-spacing-md) var(--mantine-spacing-md) var(--mantine-spacing-xs)',
+              borderBottom: '1px solid var(--tk-border-soft)',
+            }}
+          >
+            <Text
+              component="h3"
+              fw={700}
+              style={{
+                margin: 0,
+                fontSize: 'var(--tk-fs-4xs)',
+                color: 'var(--tk-muted-text)',
+                letterSpacing: '0.06em',
+              }}
+            >
+              DIRECT
+            </Text>
+          </Group>
+          {dms.map(room => (
+            <DmRow
+              key={room.room}
+              room={room}
+              active={room.room === activeRoom}
+              second={dmSecondLine(room, byHandle, now, daemonReachable)}
+              onSelect={() => onOpenDm?.(room.room)}
+              onClose={onClose}
+              onMarkRead={onMarkRead}
+            />
+          ))}
+        </>
+      )}
+    </Fragment>
+  );
+}
