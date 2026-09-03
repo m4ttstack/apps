@@ -55,8 +55,8 @@ import { visibleRooms } from './visible-rooms';
 /**
  * `/api/chat/buddies`' own wire shape -- `Roster` reads the full
  * `PresenceRow` (branch/cwd/pane/statusText/signedInAt, ...), not just the
- * `status`/timestamp subset `statusDetail.ts` needs, so this is no longer
- * the narrower type Task 4 left here.
+ * `status`/timestamp subset `statusDetail.ts` needs, so this is the full
+ * roster row, not that narrower shape.
  */
 export type Buddy = RosterBuddy;
 
@@ -343,10 +343,8 @@ export function resultLine(
  * No rooms at all: nobody is signed in anywhere and the human has joined
  * nothing. Distinct from "rooms exist but none selected".
  *
- * The copy matters. This used to read "the chat feature hasn't landed here
- * yet", which was Task 1 scaffold text and became actively false the moment
- * chat shipped -- it said the app was unfinished when the truth was that the
- * fleet was asleep.
+ * The copy matters: it must say the fleet is asleep, never that the app is
+ * unfinished, which is what a "hasn't landed yet" placeholder would claim.
  */
 function RoomsPlaceholder({
   anyBuddies,
@@ -372,7 +370,7 @@ function RoomsPlaceholder({
 }
 
 /* ------------------------------------------------------------------ */
-/* Phone chrome (Task 7) -- Phone.dc.html / PhoneRooms.dc.html.        */
+/* Phone chrome -- Phone.dc.html / PhoneRooms.dc.html.                 */
 /* Nothing above this point is responsive; the phone layout is its own */
 /* shell, not a squashed version of the desktop one.                   */
 /* ------------------------------------------------------------------ */
