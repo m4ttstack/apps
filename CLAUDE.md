@@ -81,12 +81,17 @@ tunnel.
 
 The board has no card/panel wrapper around its content (unlike mr-board,
 where every row group sits inside tui-kit's `<Panel>`, giving it
-`var(--surface-wash-panel-88)` against the flat canvas). Deck's page body
-(`core/board/board.css`) therefore uses `var(--card)` directly for
-background... it reads as `#f6f6fa` light / `#2c3352` dark, correct in both
-themes for free. If a surface still needs more contrast, step up through the
-kit's existing surface tokens (`--bg` -> `--panel` -> `--card`) before
-hand-picking a hex: `--bg` also feeds formulas elsewhere in the kit
+`var(--surface-wash-panel-88)` against the flat canvas). Nothing wraps the
+apps table, so deck's page body IS the content surface and takes
+`var(--card)` directly (`core/board/board.css`), reading as `#ffffff` light /
+`#2c3352` dark. Since tui-kit 0.2.0 the light ramp is near-white and the four
+rungs sit within ~1.03 of each other (`--chrome` #f3f4f7, `--bg` #f7f8fa,
+`--panel` #fbfbfc, `--card` #ffffff), so surface fill no longer carries
+structure the way it did... reach for `--border` / `--border-soft` before
+hunting for a bigger fill step. Deck paints no chrome-role surface, so
+`--chrome` is unused here. If a surface still needs more contrast, step up
+through the kit's existing surface tokens (`--bg` -> `--panel` -> `--card`)
+before hand-picking a hex: `--bg` also feeds formulas elsewhere in the kit
 (`--surface-wash-bg-55`, text-on-accent colors), so reassigning that shared
 token ripples beyond the page canvas. A literal hex works, but confirm it
 against the kit's actual token values (`tui-kit/src/generated/theme.css`)
