@@ -251,26 +251,45 @@ export function fixtureBuddies(now = Date.now()): Buddy[] {
 /** `max ↔ stan`, this cast's busiest DM. */
 export const FIXTURE_DM = DM_ROOM['max|stan']!;
 
+/**
+ * Rooms `chat:mark` has cleared this process. Without it the mark-read
+ * controls the artboards draw on every surface do nothing here, and the
+ * read/unread states that hang off the count -- the fold, above all -- are
+ * unreachable, so a fixtures run can neither show nor audit them.
+ */
+const marked = new Set<string>();
+
+/** `POST /api/chat/mark` under fixtures. No room clears every room: that is
+    the sweep's own meaning everywhere else in this app. */
+export function fixtureMark(room?: string): void {
+  if (room) marked.add(room);
+  else {
+    for (const r of fixtureRooms()) marked.add(r.room);
+  }
+}
+
 export function fixtureRooms(): (RoomSummary & {
   lastMessage?: { handle: string; body: string };
 })[] {
   const repoRooms = (['rt', 'skills', 'boxscore', 'console'] as const).map(
     room => {
       const [mentions, unread] = ROOMS_META[room]!;
+      const read = marked.has(room);
       return {
         room,
         memberCount: FLEET.filter(f => REPO_ROOMS[f.repo] === room).length,
-        unread,
-        mentions,
+        unread: read ? 0 : unread,
+        mentions: read ? 0 : mentions,
       };
     }
   );
   const dmRooms = DMS.map(([a, c, unread]) => {
     const lastMessage = DM_LAST[`${a}|${c}`];
+    const room = DM_ROOM[`${a}|${c}`]!;
     return {
-      room: DM_ROOM[`${a}|${c}`]!,
+      room,
       memberCount: 3,
-      unread,
+      unread: marked.has(room) ? 0 : unread,
       mentions: 0,
       kind: 'dm' as const,
       participants: { a, b: c },

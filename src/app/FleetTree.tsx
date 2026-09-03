@@ -34,7 +34,7 @@ const ACCENT_DEEP =
 const ACCENT_ON = 'light-dark(var(--mantine-color-white), var(--tk-bg))';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
 const ACCENT_WASH = `color-mix(in srgb, ${ACCENT_TEXT} var(--tk-wash), transparent)`;
-const BORDER_DEFAULT = 'var(--mantine-color-default-border)';
+const BORDER = 'var(--tk-border)';
 
 /** `.ws`'s own `padding-left`. No spacing token lands on it: it is the room
     row's 9.6px plus the tree's one indent step. */
@@ -285,7 +285,7 @@ function UnreadBadge({ count }: { count: number }) {
         fontWeight: 500,
         whiteSpace: 'nowrap',
         flex: 'none',
-        border: `1px solid ${BORDER_DEFAULT}`,
+        border: `1px solid ${BORDER}`,
         color: 'var(--tk-muted-text)',
       }}
     >

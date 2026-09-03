@@ -263,7 +263,7 @@ export function AgentCard({
           display: 'grid',
           gridTemplateColumns: '52px minmax(0, 1fr)',
           alignItems: 'baseline',
-          columnGap: 'var(--mantine-spacing-sm)',
+          columnGap: 8,
           rowGap: 3,
           margin: 0,
         }}

@@ -24,6 +24,7 @@ import {
   fixtureBuddies,
   fixtureInbox,
   fixtureInvite,
+  fixtureMark,
   fixtureMembers,
   fixtureMessages,
   fixtureRooms,
@@ -374,6 +375,10 @@ export const chat = new Hono()
     }),
     async c => {
       const { room } = c.req.valid('json');
+      if (fixturesEnabled()) {
+        fixtureMark(room);
+        return c.json({ ok: true }, 200);
+      }
       const res = await chatMark({ handle: humanHandle(c), room }, rtOpts());
       if (!res.ok) return c.json({ error: res.error }, 502);
       return c.json(res.data, 200);
