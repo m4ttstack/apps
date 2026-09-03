@@ -29,8 +29,8 @@ const HERE_RE = /(^|[^\w])@here\b/i;
 /**
  * Daemon claims expire after five minutes and are not visible to this
  * viewer, so a reply is the only durable signal that an ask was answered.
- * Exported so Task 7's transcript chip shares this definition instead of
- * drifting from it.
+ * Exported so the transcript's own `@here · unclaimed` chip reads the same
+ * definition the inbox does, rather than drifting from it.
  */
 export function isOpenAsk(
   msg: ChatMessage,

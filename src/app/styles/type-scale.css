@@ -17,6 +17,14 @@
    * `chatFontTheme`, which is why row names could not reach 11.2px through it.
    */
   --tk-fs-small: 0.7rem; /* 11.2px */
+  /*
+   * The inbox card's `.lead` size. Also off-ladder, and named after the
+   * artboard class for the same reason as `--tk-fs-small` above: it sits
+   * between `chatFontTheme`'s xs (13px) and sm (15px), so no Mantine step
+   * reaches it. The artboards were generated from console's theme, where
+   * stock sm still resolved to this value.
+   */
+  --tk-fs-lead: 0.875rem; /* 14px */
   --tk-fs-2xs: 0.76rem; /* 12.16px */
   --tk-fs-3xs: 0.66rem; /* 10.56px */
   --tk-fs-4xs: 0.59rem; /* 9.5px */

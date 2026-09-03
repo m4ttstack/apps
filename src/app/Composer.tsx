@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import type { ChangeEvent, KeyboardEvent } from 'react';
+import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react';
 import {
   Box,
   Group,
@@ -80,6 +80,22 @@ export interface ComposerProps {
   /** A buddy outside the room was picked in the `@` popover: the caller
       opens the DM room and moves there; the draft stays in this instance. */
   onOpenDm?: (handle: string) => void;
+  /**
+   * Seeds the draft, and the mentions posted with it, so a reply can open
+   * with its recipient already tagged. Read ONCE, at mount: a caller that
+   * needs a different seed remounts this composer with a `key`, which is
+   * also what discards the previous draft on purpose.
+   */
+  prefill?: { body: string; mentions?: string[] };
+  /** Replaces the computed placeholder while the daemon is reachable. The
+      daemon-down copy always wins over it: it is a failure state, not a
+      caller's framing. */
+  placeholder?: string;
+  /** Appended after `posting as <handle>`, for a caller whose composer needs
+      to say what sending does (and, as importantly, what it does not). */
+  footerNote?: ReactNode;
+  /** Called after a post has landed and the draft has cleared. */
+  onPosted?: () => void;
 }
 
 /** The imperative surface the roster and the app drive: insert a mention at
@@ -259,11 +275,20 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
       daemonReachable = true,
       phone = false,
       onOpenDm,
+      prefill,
+      placeholder: placeholderProp,
+      footerNote,
+      onPosted,
     },
     ref
   ) {
-    const [value, setValue] = useState('');
-    const [mentions, setMentions] = useState<string[]>([]);
+    // Lazy initialisers, never an effect keyed on `prefill`: an object
+    // literal prop changes identity every render, so syncing on it would
+    // overwrite whatever had been typed since.
+    const [value, setValue] = useState(() => prefill?.body ?? '');
+    const [mentions, setMentions] = useState<string[]>(
+      () => prefill?.mentions ?? []
+    );
     const [sending, setSending] = useState(false);
     const [token, setToken] = useState<MentionToken | null>(null);
     const [focused, setFocused] = useState(false);
@@ -359,6 +384,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
         if (!res.ok) throw new Error('post failed');
         setValue('');
         setMentions([]);
+        onPosted?.();
       } catch {
         notifications.error("Couldn't send. The draft is kept.");
       } finally {
@@ -418,13 +444,15 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
       ? phone
         ? 'rt daemon unreachable'
         : "Can't post: rt daemon unreachable. Your draft is kept."
-      : isDm
-        ? phone
-          ? `Message ${roomMembers.join(' ↔ ')}`
-          : `Message ${roomMembers.join(' ↔ ')} (both will wake)`
-        : phone
-          ? `Message #${room}`
-          : `Message #${room} (@ to mention)`;
+      : placeholderProp
+        ? placeholderProp
+        : isDm
+          ? phone
+            ? `Message ${roomMembers.join(' ↔ ')}`
+            : `Message ${roomMembers.join(' ↔ ')} (both will wake)`
+          : phone
+            ? `Message #${room}`
+            : `Message #${room} (@ to mention)`;
 
     const inputBorderColor = !daemonReachable
       ? BORDER
@@ -606,6 +634,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
               <Text size="xs" fw={600}>
                 {humanHandle}
               </Text>
+              {footerNote}
             </>
           )}
         </Group>

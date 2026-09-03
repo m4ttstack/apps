@@ -58,21 +58,24 @@ function renderAt(path: string) {
   return renderWithProviders(<App />);
 }
 
-test('/ renders the chat shell: wordmark, Rooms rail entry, placeholder home', () => {
+test('/ is the Inbox: the rail names both views and the landing view is the inbox', () => {
   renderAt('/');
 
   expect(screen.getByText('chat')).toBeTruthy();
 
   const rail = within(screen.getByRole('navigation', { name: 'App sections' }));
-  const rooms = rail.getByRole('link', { name: 'Rooms' });
-  expect(rooms).toBeTruthy();
-  expect(rooms.getAttribute('aria-current')).toBe('page');
+  const inbox = rail.getByRole('link', { name: 'Inbox' });
+  expect(inbox.getAttribute('aria-current')).toBe('page');
+  expect(
+    rail.getByRole('link', { name: 'Rooms' }).getAttribute('aria-current')
+  ).toBeNull();
 
   expect(
     within(screen.getByRole('banner')).getByRole('button', { name: 'Apps' })
   ).toBeTruthy();
 
-  expect(screen.getByText('No rooms')).toBeTruthy();
+  expect(screen.getByTestId('inbox-bar')).toHaveTextContent('Inbox');
+  expect(screen.getByTestId('inbox-elsewhere-note')).toBeInTheDocument();
 });
 
 test('the rail hosts the color-scheme control', () => {
@@ -130,7 +133,7 @@ test('the phone transcript wrapper is a flex column, so the bare transcript can 
   // renders empty on a phone. jsdom never computes real layout, so this pins
   // the wrapper's actual style contract instead of a faked measurement.
   setViewportWidth(390);
-  window.history.replaceState(null, '', '/');
+  window.history.replaceState(null, '', '/r/build');
   renderWithProviders(
     <App
       initialState={{
@@ -176,7 +179,7 @@ test('unknown paths render the not-found page inside the chat chrome', () => {
   fireEvent.click(screen.getByRole('link', { name: /Back home/ }));
 
   expect(window.location.pathname).toBe('/');
-  expect(screen.getByText('No rooms')).toBeTruthy();
+  expect(screen.getByTestId('inbox-bar')).toBeInTheDocument();
 });
 
 test('the fleet tree lists every buddy, repo or no repo', () => {
@@ -204,13 +207,14 @@ test('the fleet tree lists every buddy, repo or no repo', () => {
   expect(screen.getByTestId('repo-row-no repo')).toHaveTextContent('no room');
 });
 
-test('seeded messages survive to the first room, even if the fetch rejects', async () => {
+test('seeded messages survive to the opened room, even if the fetch rejects', async () => {
   // `activeRoom` is undefined on the first render, so a seed bound to `room`
   // at mount binds to undefined and is discarded the moment a real room
   // lands. The seed then only ever worked when the fetch happened to return
   // the same thing -- which is the seam not working at all.
   installFetchMock();
   fetchMock.mockRejectedValue(new Error('network down'));
+  window.history.replaceState(null, '', '/r/build');
 
   renderWithProviders(
     <App
@@ -302,7 +306,7 @@ test('a #m-<id> anchor scrolls that message into view', () => {
   }
 });
 
-test('Back to / after picking a room shows the first room again', () => {
+test('Back to / after picking a room returns to the inbox, with no room open', () => {
   window.history.replaceState(null, '', '/');
   renderWithProviders(<App initialState={twoRooms} />);
   fireEvent.click(screen.getByText('ops'));
@@ -313,9 +317,8 @@ test('Back to / after picking a room shows the first room again', () => {
     window.history.replaceState(null, '', '/');
     window.dispatchEvent(new PopStateEvent('popstate'));
   });
-  expect(
-    within(screen.getByTestId('page-bar')).getByText('build')
-  ).toBeInTheDocument();
+  expect(screen.queryByTestId('page-bar')).toBeNull();
+  expect(screen.getByTestId('inbox-bar')).toBeInTheDocument();
 });
 
 test('a same-room hash change scrolls to the new anchor', () => {
@@ -382,8 +385,8 @@ test('the fleet tree lives in the PageShell sidebar, and no roster panel remains
   ).toBeInTheDocument();
 });
 
-test('with every room closed, the rail still mounts and the placeholder says rooms come back', () => {
-  window.history.replaceState(null, '', '/');
+test('with every room closed, a room link still mounts the rail and says rooms come back', () => {
+  window.history.replaceState(null, '', '/r/gone');
   renderWithProviders(
     <App
       initialState={{
@@ -614,7 +617,7 @@ function errorResponse(status: number): Response {
   } as Response;
 }
 
-test('the home route lands on the first OPEN room, and a closed room never shows a read-only bar', () => {
+test('the rail’s Rooms entry points at the first OPEN room, and a closed room is never listed', () => {
   window.history.replaceState(null, '', '/');
   renderWithProviders(
     <App
@@ -636,12 +639,13 @@ test('the home route lands on the first OPEN room, and a closed room never shows
       }}
     />
   );
-  expect(
-    within(screen.getByTestId('page-bar')).getByText('build')
-  ).toBeInTheDocument();
+  const rail = within(screen.getByRole('navigation', { name: 'App sections' }));
+  expect(rail.getByRole('link', { name: 'Rooms' })).toHaveAttribute(
+    'href',
+    '/r/build'
+  );
   expect(screen.queryByTestId('archived-bar')).toBeNull();
   expect(screen.queryByTestId('room-row-closed-first')).toBeNull();
-  expect(screen.getByTestId('composer')).toBeInTheDocument();
 });
 
 test('a closed room reached by link opens with a live composer and is listed only while open', async () => {
@@ -676,7 +680,7 @@ test('a closed room reached by link opens with a live composer and is listed onl
   expect(screen.queryByTestId('room-row-retro')).toBeNull();
 });
 
-test('closing the open room from the rail lands on / and the first open room', async () => {
+test('closing the open room from the rail lands on the inbox', async () => {
   installFetchMock();
   const build = { room: 'build', memberCount: 1, unread: 0, mentions: 0 };
   fetchMock.mockImplementation((url: string) => {
@@ -711,11 +715,8 @@ test('closing the open room from the rail lands on / and the first open room', a
     })
   );
   await waitFor(() => expect(window.location.pathname).toBe('/'));
-  expect(
-    within(screen.getByTestId('page-bar')).getByText('build')
-  ).toBeInTheDocument();
+  expect(screen.getByTestId('inbox-bar')).toBeInTheDocument();
   expect(screen.queryByTestId('room-row-ghost')).toBeNull();
-  expect(screen.getByTestId('composer')).toBeInTheDocument();
 });
 
 test('closing another room from its rail × drops the row at once and keeps the page', async () => {
@@ -1159,4 +1160,138 @@ test('add agents invites the picked panes and shows the result line on the trans
   expect(await screen.findByTestId('transcript-notice')).toHaveTextContent(
     'invited 1 · acme pane accepted'
   );
+});
+
+const inboxPayload = {
+  needsYou: [
+    {
+      room: 'build',
+      kind: 'room' as const,
+      messageId: 412,
+      handle: 'meg',
+      postedAt: Date.now() - 60_000,
+      excerpt: '@matt is the exporter ready to ship?',
+      reason: 'mention' as const,
+    },
+  ],
+  openAsks: [],
+  elsewhere: [{ room: 'ops', kind: 'room' as const, unread: 9, mentions: 0 }],
+};
+
+/** `/api/chat/inbox` answers with `payload`; the reader's window fetch
+    answers with the opened message alone. Every other route is empty. */
+function serveInbox(payload = inboxPayload) {
+  installFetchMock();
+  fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === '/api/chat/inbox') return jsonResponse(payload);
+    if (url.startsWith('/api/chat/messages/'))
+      return jsonResponse({
+        messages: [
+          {
+            id: 412,
+            room: 'build',
+            handle: 'meg',
+            body: '@matt is the exporter ready to ship?',
+            mentions: ['matt'],
+            postedAt: payload.needsYou[0]?.postedAt ?? 1,
+          },
+        ],
+      });
+    return jsonResponse({});
+  });
+}
+
+test('the inbox lands from /api/chat/inbox, with the first card already in the reader', async () => {
+  serveInbox();
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(<App />);
+
+  expect(await screen.findByTestId('inbox-card-412')).toBeInTheDocument();
+  expect(screen.getByTestId('inbox-card-412').dataset.open).toBe('true');
+  expect(await screen.findByTestId('reader-message-412')).toHaveTextContent(
+    'is the exporter ready to ship?'
+  );
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/chat/messages/build?before=413&limit=2'
+  );
+});
+
+test('a chat/<room>/msg frame refetches the inbox, the same rule the rail follows', async () => {
+  serveInbox();
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(<App />);
+  await screen.findByTestId('inbox-card-412');
+
+  const calls = () =>
+    fetchMock.mock.calls.filter(c => String(c[0]) === '/api/chat/inbox').length;
+  const before = calls();
+  act(() => {
+    FakeWebSocket.instances.at(-1)?.onmessage?.({
+      data: JSON.stringify({ topic: 'chat/build/msg', payload: { id: 9 } }),
+    });
+  });
+  await waitFor(() => expect(calls()).toBeGreaterThan(before));
+});
+
+test('a card’s mark read posts the room-level mark and refetches the inbox', async () => {
+  serveInbox();
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(<App />);
+  await screen.findByTestId('inbox-card-412');
+
+  await userEvent.click(
+    screen.getByRole('button', { name: /mark #build read/i })
+  );
+  await waitFor(() =>
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/chat/mark',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ room: 'build' }),
+      })
+    )
+  );
+});
+
+test('mark all read is the per-room mark, once per room that has unread', async () => {
+  serveInbox();
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(
+    <App
+      initialState={{
+        daemonReachable: true,
+        buddies: [],
+        rooms: [
+          { room: 'build', memberCount: 1, unread: 1, mentions: 1 },
+          { room: 'ops', memberCount: 1, unread: 9, mentions: 0 },
+          { room: 'quiet', memberCount: 1, unread: 0, mentions: 0 },
+        ],
+        members: [],
+      }}
+    />
+  );
+  await screen.findByTestId('inbox-card-412');
+
+  await userEvent.click(screen.getByTestId('inbox-mark-all-read'));
+  await waitFor(() => {
+    const marked = fetchMock.mock.calls
+      .filter(c => String(c[0]) === '/api/chat/mark')
+      .map(c => (c[1] as RequestInit).body);
+    expect(marked).toEqual([
+      JSON.stringify({ room: 'build' }),
+      JSON.stringify({ room: 'ops' }),
+    ]);
+  });
+});
+
+test('open on a card leaves the inbox for the room, parked on that message', async () => {
+  serveInbox();
+  window.history.replaceState(null, '', '/');
+  renderWithProviders(<App />);
+  await screen.findByTestId('inbox-card-412');
+
+  await userEvent.click(screen.getByTestId('card-open-412'));
+  await waitFor(() => expect(window.location.pathname).toBe('/r/build'));
+  expect(window.location.hash).toBe('#m-412');
 });

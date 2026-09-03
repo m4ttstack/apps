@@ -663,6 +663,12 @@ export const TARGETS = [
   { spec: '.peek', find: '[data-testid^="pane-peek-"]:not([data-testid^="pane-peek-button-"])', props: ['padding', 'background', 'border-radius', 'font-size', 'line-height', 'white-space', 'overflow-x', 'color'], why: { padding: 'shorthand not enumerated by getComputedStyle; longhands verified by eye', 'white-space': WHITE_SPACE_NOT_ENUMERATED, 'line-height': LINE_HEIGHT_RESOLVES_TO_PX } },
   { spec: '.btn.sm', find: '[data-testid="add-agents-button"]', props: ['height', 'font-size', 'font-weight', 'border-radius'] },
   { spec: '.notice', find: '[data-testid="transcript-notice"]', props: ['padding', 'text-align', 'font-size', 'color'], why: { padding: 'shorthand not enumerated by getComputedStyle; longhands verified by eye' } },
+  // The inbox, the landing view (design/artboards/Main.dc.html). `find`
+  // targets the card list's own testids under CHAT_FIXTURES=1, same
+  // prefix-selector convention the pane picker's entries use.
+  { spec: '.card2', find: '[data-testid^="inbox-card-"]', props: ['display', 'flex-direction', 'gap', 'border-radius', 'min-width', 'background', 'cursor'], why: { padding: 'shorthand not enumerated by getComputedStyle; longhands verified by eye', border: 'full shorthand (width/style/colour combined); not separately enumerated, verified by eye' } },
+  { spec: '.lead', find: '[data-testid^="card-lead-"]', props: ['display', 'font-size', 'font-family', 'overflow', 'overflow-wrap', '-webkit-line-clamp', '-webkit-box-orient'], why: { 'line-height': LINE_HEIGHT_RESOLVES_TO_PX } },
+  { spec: '.ctx', find: '[data-testid^="card-ctx-"]', props: ['align-items', 'height', 'border-radius', 'font-size', 'font-weight', 'white-space', 'color'], why: { display: 'authored inline-flex blockifies to flex as a flex item in the meta row; verified in source', padding: 'shorthand not enumerated by getComputedStyle; longhands verified by eye', border: 'full shorthand (width/style/colour combined); not separately enumerated, verified by eye', 'white-space': WHITE_SPACE_NOT_ENUMERATED } },
 ];
 
 const norm = v => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : v);

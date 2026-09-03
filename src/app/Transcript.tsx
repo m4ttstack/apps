@@ -23,7 +23,7 @@ import ScrollToBottom, {
 
 import { AgentName } from './AgentName';
 import { useBuddies } from './buddies-context';
-import { dayKey, dayLabel } from './day-label';
+import { dayKey, dayLabel, localTime } from './day-label';
 import { doing } from './doing';
 import { MessageMarkdown } from './MessageMarkdown';
 import { NewPill } from './NewPill';
@@ -184,16 +184,6 @@ export interface TranscriptProps {
   notice?: ReactNode;
 }
 
-function pad(n: number): string {
-  return String(n).padStart(2, '0');
-}
-
-/** Local time, deliberately -- never the UTC the timestamp is stored in. */
-function formatLocalTime(ts: number): string {
-  const d = new Date(ts);
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 function MessageBody({
   message,
   humanHandle,
@@ -349,7 +339,7 @@ function MessageRow({
           title={new Date(message.postedAt).toLocaleString()}
           style={{ color: 'var(--tk-muted-text)' }}
         >
-          {formatLocalTime(message.postedAt)}
+          {localTime(message.postedAt)}
         </Text>
       </div>
       <MessageBody
