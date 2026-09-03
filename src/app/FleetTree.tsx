@@ -44,15 +44,9 @@ const WORKSTREAM_INDENT = 26.4;
     A space keeps it from ever colliding with a real repo name. */
 const NO_REPO = 'no repo';
 
-/**
- * `.ws .h` and `.grp` are both 11.2px, which no `--tk-fs-*` step lands on:
- * the ladder runs 12.16 / 10.56 / 9.5, and the Mantine `sm` that WOULD be
- * 11.2px on the tokyo base is lifted to 15px inside `chatFontTheme`'s
- * subtree, which this tree sits in. `3xs` is the nearest step (0.64px under)
- * and matches `.doing`; weight 600 against muted colour is what separates a
- * handle from its task line here.
- */
-const ROW_NAME_SIZE = 'var(--tk-fs-3xs)';
+/** `.ws .h` and `.grp`, the two 11.2px names in the tree. A Mantine size
+    cannot carry them: `chatFontTheme` lifts `sm` to 15px in this subtree. */
+const ROW_NAME_SIZE = 'var(--tk-fs-small)';
 
 /** The artboards draw four `.dm2` rows, then the `N more` line. */
 const DM_VISIBLE = 4;

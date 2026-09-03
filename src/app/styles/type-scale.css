@@ -1,14 +1,22 @@
 /*
  * Sub-xs type steps for chat's dense meta text. Mantine's scale stops at
  * `xs` (0.75rem), but the artboards run smaller: chips, timestamps, status
- * letters and section labels. These three tokens carry those sizes so a
- * component references a token, never a literal, per design/CONFORMANCE.md.
- * rem at a 16px root, matching the artboards' own value relationship.
+ * letters and section labels. These tokens carry those sizes so a component
+ * references a token, never a literal, per design/CONFORMANCE.md. rem at a
+ * 16px root, matching the artboards' own value relationship.
  *
  * Defined on :root (not the scoped theme wrapper) so portalled surfaces --
  * menus, tooltips, agent hover cards -- resolve them too.
  */
 :root {
+  /*
+   * Off-ladder on purpose. 11.2px sits BETWEEN `2xs` and `3xs`, so numbering
+   * it would mean renumbering both and every one of their usages; it is named
+   * instead, after the artboards' own `.sm` class (design/build.py), which is
+   * this size. Not Mantine's `sm` -- that is 14px stock and 15px under
+   * `chatFontTheme`, which is why row names could not reach 11.2px through it.
+   */
+  --tk-fs-small: 0.7rem; /* 11.2px */
   --tk-fs-2xs: 0.76rem; /* 12.16px */
   --tk-fs-3xs: 0.66rem; /* 10.56px */
   --tk-fs-4xs: 0.59rem; /* 9.5px */

@@ -253,12 +253,14 @@ test('the workstream handle and the roomless group label share the tree row size
     rooms: [room('rt')],
     buddies: [buddy('max', 'rt'), buddy('gail', 'board')],
   });
-  // 11.2px in the artboard; `3xs` is the nearest step the app's own scale
-  // carries, since `chatFontTheme` lifts Mantine's 11.2px `sm` out of reach.
+  // 11.2px, one step above the `3xs` task line beside it, as drawn.
   expect(screen.getByTestId('ws-handle-max').style.fontSize).toBe(
-    'var(--tk-fs-3xs)'
+    'var(--tk-fs-small)'
   );
   expect(screen.getByTestId('repo-name-board').style.fontSize).toBe(
+    'var(--tk-fs-small)'
+  );
+  expect(screen.getByTestId('ws-doing-max').style.fontSize).toBe(
     'var(--tk-fs-3xs)'
   );
 });
