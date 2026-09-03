@@ -1041,3 +1041,98 @@ test('fixtures mode answers POST /api/chat/invite from fixtureInvite, keyed by p
     ).status
   ).toBe(400);
 });
+
+test('GET /api/chat/inbox fetches only unread rooms, capped at 50, and builds the payload as matt', async () => {
+  vi.mocked(rt.chatRooms).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      rooms: [
+        { room: 'rt', memberCount: 5, unread: 200, mentions: 1 },
+        { room: 'skills', memberCount: 3, unread: 0, mentions: 0 },
+      ],
+    },
+  });
+  vi.mocked(rt.chatMessages).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      messages: [
+        {
+          id: 900,
+          room: 'rt',
+          handle: 'jay',
+          body: '@matt take a look',
+          mentions: ['matt'],
+          postedAt: 1,
+        },
+      ],
+    },
+  });
+
+  const res = await routes.request('/api/chat/inbox?handle=matt');
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({
+    needsYou: [
+      {
+        room: 'rt',
+        kind: 'room',
+        messageId: 900,
+        handle: 'jay',
+        postedAt: 1,
+        excerpt: '@matt take a look',
+        reason: 'mention',
+      },
+    ],
+    openAsks: [],
+    elsewhere: [{ room: 'rt', kind: 'room', unread: 199, mentions: 1 }],
+  });
+  expect(rt.chatMessages).toHaveBeenCalledTimes(1);
+  expect(rt.chatMessages).toHaveBeenCalledWith(
+    { room: 'rt', limit: 50 },
+    expect.anything()
+  );
+});
+
+test('GET /api/chat/inbox 502s when the room listing itself fails', async () => {
+  vi.mocked(rt.chatRooms).mockResolvedValueOnce({
+    ok: false,
+    error: 'daemon unreachable',
+  });
+  const res = await routes.request('/api/chat/inbox?handle=matt');
+  expect(res.status).toBe(502);
+  expect(await res.json()).toEqual({ error: 'daemon unreachable' });
+});
+
+test('GET /api/chat/inbox degrades a failed per-room message fetch to elsewhere rather than 502ing', async () => {
+  vi.mocked(rt.chatRooms).mockResolvedValueOnce({
+    ok: true,
+    data: {
+      rooms: [{ room: 'rt', memberCount: 5, unread: 3, mentions: 0 }],
+    },
+  });
+  vi.mocked(rt.chatMessages).mockResolvedValueOnce({
+    ok: false,
+    error: 'boom',
+  });
+  const res = await routes.request('/api/chat/inbox?handle=matt');
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({
+    needsYou: [],
+    openAsks: [],
+    elsewhere: [{ room: 'rt', kind: 'room', unread: 3, mentions: 0 }],
+  });
+});
+
+test('fixtures mode answers GET /api/chat/inbox from fixtureInbox without touching the daemon', async () => {
+  process.env.CHAT_FIXTURES = '1';
+  const res = await routes.request('/api/chat/inbox?handle=matt');
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as {
+    needsYou: unknown[];
+    openAsks: { room: string; reason: string }[];
+    elsewhere: { room: string }[];
+  };
+  expect(body.openAsks.every(c => c.reason === 'open-ask')).toBe(true);
+  expect(body.elsewhere.map(e => e.room)).toContain('rt');
+  expect(rt.chatRooms).not.toHaveBeenCalled();
+  expect(rt.chatMessages).not.toHaveBeenCalled();
+});

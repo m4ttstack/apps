@@ -22,12 +22,14 @@ import { validator } from 'hono/validator';
 
 import {
   fixtureBuddies,
+  fixtureInbox,
   fixtureInvite,
   fixtureMembers,
   fixtureMessages,
   fixtureRooms,
   fixturesEnabled,
 } from './fixtures';
+import { buildInbox } from './inbox';
 
 /**
  * Resolved at CALL time (mirrors rt-client's own `defaultSock()` convention):
@@ -242,6 +244,38 @@ export const chat = new Hono()
     const extra = await unjoinedFleetRooms(joined);
     const rooms = await withDmLastMessage([...joined, ...extra]);
     return c.json({ rooms }, 200);
+  })
+  // `RoomSummary.unread` is a count, not a cursor id -- the daemon keeps
+  // the actual read position internally and never exposes it. The newest
+  // `min(unread, 50)` messages in a room stand in for "after the cursor",
+  // fetched with the existing paging (no `before`, so `chatMessages`
+  // returns the newest page). A room whose message fetch fails still
+  // contributes its unread/mentions counts to `elsewhere` via `buildInbox`.
+  .get('/api/chat/inbox', async c => {
+    const handle = humanHandle(c);
+    if (fixturesEnabled()) return c.json(fixtureInbox(handle), 200);
+
+    const roomsRes = await chatRooms({ handle }, rtOpts());
+    if (!roomsRes.ok || !roomsRes.data) {
+      return c.json({ error: roomsRes.error ?? 'rooms: no data' }, 502);
+    }
+    const unreadRooms = roomsRes.data.rooms.filter(r => r.unread > 0);
+
+    const pages = await Promise.all(
+      unreadRooms.map(r =>
+        chatMessages(
+          { room: r.room, limit: Math.min(r.unread, 50) },
+          rtOpts()
+        ).catch(() => null)
+      )
+    );
+    const pagesByRoom = new Map<string, ChatMessage[]>();
+    unreadRooms.forEach((r, i) => {
+      const res = pages[i];
+      if (res?.ok && res.data) pagesByRoom.set(r.room, res.data.messages);
+    });
+
+    return c.json(buildInbox(unreadRooms, pagesByRoom, handle), 200);
   })
   .get('/api/chat/who/:room', async c => {
     const room = c.req.param('room');

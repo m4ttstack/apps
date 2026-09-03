@@ -30,6 +30,8 @@ import type {
   RoomSummary,
 } from '@mattstack/rt-client';
 
+import { buildInbox, type InboxPayload } from './inbox';
+
 /** Off unless explicitly asked for. Read at call time, never cached. */
 export function fixturesEnabled(): boolean {
   return process.env.CHAT_FIXTURES === '1';
@@ -406,6 +408,25 @@ export function fixtureMessages(room: string, now = Date.now()): ChatMessage[] {
       mentions: [],
     },
   ];
+}
+
+/**
+ * `/api/chat/inbox` under `CHAT_FIXTURES=1`: reuses `buildInbox` over
+ * `fixtureRooms()`/`fixtureMessages()` rather than hand-authoring a payload,
+ * so a change to the fixture tables stays reflected here for free.
+ */
+export function fixtureInbox(
+  humanHandle: string,
+  now = Date.now()
+): InboxPayload {
+  const rooms = fixtureRooms();
+  const pagesByRoom = new Map<string, ChatMessage[]>();
+  for (const room of rooms) {
+    if (room.unread <= 0) continue;
+    const messages = fixtureMessages(room.room, now);
+    pagesByRoom.set(room.room, messages.slice(-Math.min(room.unread, 50)));
+  }
+  return buildInbox(rooms, pagesByRoom, humanHandle);
 }
 
 /** The picker artboard's rows: one per state it draws. Keep in step with
