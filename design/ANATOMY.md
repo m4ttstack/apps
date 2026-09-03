@@ -123,7 +123,13 @@ Each card is a `.card2` (`gap: 6px`, `padding: 9.6px 11.2px`, radius 6px,
 | --- | --- |
 | who | the `.hpill` handle (12.16px, with its avatar sprite), `· repo`, the task line filling, the time |
 | lead | `.lead` — first lines of the message at 14px IBM Plex Sans, clamped to 2 lines |
-| meta | the `.ctx` chip for where it lives (`#boxscore`, or the pair with `.ctx.dm`), the age (`29m ago` / `unclaimed 1h 17m`), then `open · mark read` links |
+| meta | the `.ctx` chip for where it lives (`#boxscore`, or the pair with `.ctx.dm`), the age (`29m ago` / `unclaimed 1h 17m`), then the `open #boxscore · mark #boxscore read` links |
+
+`chat:mark` takes `{handle, room}` and has no per-message cursor, so a card's
+`mark read` is the ROOM-level mark and clears that room's other unread too.
+Its label names the room for exactly that reason: `mark #rt read`, never a
+bare `mark read`. A DM names its pair instead (`mark edie ↔ matt read`), since
+the hashed room name is never rendered.
 
 The **reader** shows the opened card's message in full, in the transcript's
 own `.col`/`.msg`/`.prose` anatomy, with **the message before it** rendered
@@ -131,9 +137,10 @@ above at `.msg.context` (opacity 0.62) under a `.day` label
 (`earlier in #boxscore`) and a `.divider` reading `the message you opened`.
 Its top strip (40px) carries the `.ctx` chip, a context note, and an
 `open #boxscore` link (external icon) to jump to the room. The composer
-below is prefilled context: `Reply in #boxscore — @jay is already tagged`;
-the footer notes `replying marks this read`. Replying is the one act that
-both posts and advances the read cursor.
+below is prefilled context: `Reply in #boxscore · @jay is already tagged`;
+the footer notes `replying posts, nothing is marked read`. Replying posts and
+does nothing else: there is no per-message cursor for it to advance, and the
+copy must not imply one. Clearing unread is the card's own `mark #room read`.
 
 Daemon down: the banner sits above both panels; chips become
 `last known · presence withheld`; card task lines and ages become
@@ -232,7 +239,8 @@ the room reads `not in #room — DM instead`; `@here` sits last with its cost
   `bg3`. Cards are the tap targets.
 - **Reader** (answering @matt): header is back arrow + `.ctx` chip +
   `<handle> needs you` + an open-room icon; the message in full; the 16px
-  composer with the @ popover above it; footer `replying marks this read`.
+  composer with the @ popover above it; footer `replying posts, nothing is
+  marked read`.
 - **Drawer**: Mantine Drawer left, size sm (320px), overlay 0.4 — the fleet
   tree verbatim (44px-friendly rows), then the daemon health line and the
   scheme toggle at the bottom.

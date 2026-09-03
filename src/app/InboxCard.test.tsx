@@ -142,8 +142,22 @@ test('open jumps to the room, clicking the body opens the reader', async () => {
 test('daemon down: the task line and the age both read last known', () => {
   renderCard(mention, { reachable: false });
   expect(screen.getByTestId('card-age-412')).toHaveTextContent('last known');
-  expect(screen.getByTestId('card-task-412')).toHaveTextContent('last known');
+  // `doing-<handle>` is `AgentName`'s own task line: the card renders the
+  // same unit the message header does, at its own scale.
+  expect(screen.getByTestId('doing-jay')).toHaveTextContent('last known');
   expect(screen.getByTestId('inbox-card-412')).not.toHaveTextContent(
+    'Boxscore mattstack integration'
+  );
+});
+
+test('the handle is the shared chip: hue, sprite, repo token and task line', () => {
+  renderCard(mention);
+  const chip = screen.getByTestId('speaker-chip');
+  expect(chip).toHaveTextContent('jay');
+  // The card's own scale, not the message header's 22px sprite.
+  expect(chip.querySelector('svg')).toHaveAttribute('width', '10');
+  expect(screen.getByTestId('inbox-card-412')).toHaveTextContent('boxscore');
+  expect(screen.getByTestId('doing-jay')).toHaveTextContent(
     'Boxscore mattstack integration'
   );
 });

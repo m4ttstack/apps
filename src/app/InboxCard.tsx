@@ -1,16 +1,15 @@
 import { Box, Group, Text, UnstyledButton } from '@mattstack/app-kit/core';
 
 import type { InboxCard as InboxCardData } from '../server/inbox';
-import { AgentName } from './AgentName';
+import { AgentName, type AgentNameSize } from './AgentName';
 import { useBuddies } from './buddies-context';
 import { localTime } from './day-label';
-import { doing } from './doing';
+import { doing, type DoingLine } from './doing';
 import classes from './inbox.module.css';
+import { MUTED_XS } from './presence-bits';
 import { speakerHue } from './speaker-hue';
 import { formatElapsed } from './statusDetail';
 
-const MUTED = 'var(--tk-muted-text)';
-const MUTED_DIM = 'var(--tk-muted)';
 const BORDER = 'var(--tk-border)';
 const BORDER_SOFT = 'var(--tk-border-soft)';
 const PURPLE = 'var(--tk-purple)';
@@ -42,7 +41,7 @@ export function CtxChip({
         fontWeight: 600,
         whiteSpace: 'nowrap',
         border: `1px solid ${dm ? `color-mix(in srgb, ${PURPLE} 45%, transparent)` : BORDER_SOFT}`,
-        color: dm ? PURPLE : MUTED,
+        color: dm ? PURPLE : MUTED_XS.color,
       }}
     >
       {children}
@@ -57,6 +56,21 @@ export function whereLabel(card: InboxCardData): string {
     ? `${card.participants.a} ↔ ${card.participants.b}`
     : `#${card.room}`;
 }
+
+/** The card's own scale: the artboard's 12.16px handle beside a 10px sprite,
+    a step under the message header's. */
+const CARD_HANDLE: AgentNameSize = {
+  font: 'var(--tk-fs-2xs)',
+  avatar: 10,
+};
+
+/**
+ * What the task line says while the daemon is down. `kind: 'path'` is not a
+ * pretence about where the agent is: it is the dim `.doing.dim` treatment,
+ * which exists for exactly this "nothing better known" case and is what the
+ * DaemonDown artboard draws on a card.
+ */
+const WITHHELD_TASK: DoingLine = { text: 'last known', kind: 'path' };
 
 /** An unanswered `@here` is measured by how long nobody has picked it up;
     everything else by how long it has been waiting for Matt. */
@@ -129,61 +143,22 @@ export function InboxCard({
       }}
     >
       <Group gap="sm" wrap="nowrap" align="center" style={{ minWidth: 0 }}>
-        <Box
-          component="span"
-          style={{
-            display: 'inline-flex',
-            flex: 'none',
-            alignItems: 'center',
-            borderRadius: 'var(--mantine-radius-sm)',
-            padding: '0 6px',
-            marginLeft: -6,
-            fontSize: 'var(--tk-fs-2xs)',
-            fontWeight: 600,
-            color: speakerHue(card.handle),
-            background: `color-mix(in srgb, ${speakerHue(card.handle)} var(--tk-wash), transparent)`,
-          }}
-        >
-          <AgentName handle={card.handle} />
+        {/* The handle, its repo token and its task line are one unit, the
+            same one the message header renders -- only the scale differs, so
+            the hue chip's hover wash and the `.doing.dim` fallback come with
+            it rather than being restated here. */}
+        <Box style={{ flex: 1, minWidth: 0 }}>
+          <AgentName
+            handle={card.handle}
+            variant="inline"
+            hue={speakerHue(card.handle)}
+            size={CARD_HANDLE}
+            reachable={reachable}
+            now={now}
+            task={reachable ? task : WITHHELD_TASK}
+          />
         </Box>
-        {author?.repo && (
-          <Text
-            component="span"
-            truncate
-            style={{
-              flex: 'none',
-              minWidth: 0,
-              fontSize: 'var(--tk-fs-3xs)',
-              color: MUTED,
-            }}
-          >
-            <span style={{ fontSize: 'var(--tk-fs-2xs)', margin: '0 3px' }}>
-              •
-            </span>
-            {author.repo}
-          </Text>
-        )}
-        <Text
-          component="span"
-          truncate
-          data-testid={`card-task-${card.messageId}`}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontSize: 'var(--tk-fs-3xs)',
-            color: !reachable || task?.kind === 'path' ? MUTED_DIM : MUTED,
-          }}
-        >
-          {reachable ? (task?.text ?? '') : 'last known'}
-        </Text>
-        <Text
-          component="span"
-          style={{
-            flex: 'none',
-            fontSize: 'var(--tk-fs-3xs)',
-            color: MUTED,
-          }}
-        >
+        <Text component="span" style={{ ...MUTED_XS, flex: 'none' }}>
           {localTime(card.postedAt)}
         </Text>
       </Group>
@@ -221,11 +196,7 @@ export function InboxCard({
           component="span"
           truncate
           data-testid={`card-age-${card.messageId}`}
-          style={{
-            minWidth: 0,
-            fontSize: 'var(--tk-fs-3xs)',
-            color: MUTED,
-          }}
+          style={{ ...MUTED_XS, minWidth: 0 }}
         >
           {reachable ? ageLabel(card, now) : 'last known'}
         </Text>
@@ -247,10 +218,7 @@ export function InboxCard({
         >
           open {where}
         </UnstyledButton>
-        <Text
-          component="span"
-          style={{ fontSize: 'var(--tk-fs-3xs)', color: MUTED }}
-        >
+        <Text component="span" style={MUTED_XS}>
           ·
         </Text>
         <UnstyledButton

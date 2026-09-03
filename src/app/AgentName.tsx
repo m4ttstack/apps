@@ -33,20 +33,34 @@ const AVATAR_SIZE: Record<AgentNameVariant, number> = {
   name: 14,
 };
 
+/**
+ * The `inline` variant at a caller-chosen scale. The two numbers travel
+ * together because a sprite sized against a different type step throws the
+ * chip's optical balance out; the artboards pair 13.6px with a 22px sprite in
+ * a message header and 12.16px with a 10px one on an inbox card.
+ */
+export interface AgentNameSize {
+  /** Any CSS length, normally a `--tk-fs-*` token. */
+  font: string;
+  avatar: number;
+}
+
 /** Every handle gets one, deterministically, from the same theme-token
     palette the name chip's hue rotation draws from -- see `HANDLE_PALETTE`. */
 function HandleAvatar({
   handle,
   variant,
+  size,
 }: {
   handle: string;
   variant: AgentNameVariant;
+  size?: number;
 }) {
   return (
     <Invadr
       id={handle}
       palette={HANDLE_PALETTE}
-      size={AVATAR_SIZE[variant]}
+      size={size ?? AVATAR_SIZE[variant]}
       className={classes.avatar}
     />
   );
@@ -74,6 +88,9 @@ export interface AgentNameProps {
   /** `inline` only: renders the handle as a chip in this hue (color and
       wash background). Unset keeps today's plain-name rendering. */
   hue?: string;
+  /** `inline` only: the handle's type size and its sprite's, for a caller
+      whose row is not the message header's. Unset keeps the header's own. */
+  size?: AgentNameSize;
   /** The roster already holds the buddy and its room membership; these
       override the context lookup so the roster renders outside a provider
       (and in its own tests) the same way. */
@@ -329,6 +346,7 @@ export function AgentName({
   now,
   inRoom,
   hue,
+  size,
   task,
 }: AgentNameProps) {
   const ctx = useBuddies();
@@ -398,8 +416,21 @@ export function AgentName({
               : { flex: 'none' }
           }
         >
-          {withAvatar && <HandleAvatar handle={handle} variant={variant} />}
-          <Text component="span" size="lg" fw={600} style={{ flex: 'none' }}>
+          {withAvatar && (
+            <HandleAvatar
+              handle={handle}
+              variant={variant}
+              size={size?.avatar}
+            />
+          )}
+          <Text
+            component="span"
+            size="lg"
+            fw={600}
+            style={
+              size ? { flex: 'none', fontSize: size.font } : { flex: 'none' }
+            }
+          >
             {handle}
           </Text>
         </Group>

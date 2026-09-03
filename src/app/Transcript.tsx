@@ -170,9 +170,9 @@ export interface TranscriptProps {
       view once per room+anchor, the first time it is in the list. */
   anchor?: string;
   onMarkRead?: () => void;
-  /** Task 7's `Composer`, rendered inside this SAME card below the
-      messages -- the artboard draws one `.card` (scroll area, then the
-      composer row), never two stacked cards. */
+  /** The `Composer`, rendered inside this SAME card below the messages --
+      the artboard draws one `.card` (scroll area, then the composer row),
+      never two stacked cards. */
   footer?: ReactNode;
   /** Phone.dc.html draws the transcript with NO card of its own -- flush on
       the page background, no border or radius -- since the phone shell's
