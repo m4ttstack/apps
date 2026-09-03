@@ -1511,6 +1511,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
                           onMarkAllRead={() => void markAllRead()}
                           onOpenRoom={openRoomAt}
                           onReplied={refetchInbox}
+                          compact={isMobile}
                         />
                       ),
                     }

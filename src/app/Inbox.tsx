@@ -319,6 +319,13 @@ export interface InboxProps {
   onOpenRoom: (room: string, messageId: number) => void;
   /** A reply landed in the reader. Posting only: no cursor moved. */
   onReplied: () => void;
+  /**
+   * The phone: one full-width column of cards and no reader beside it, since
+   * a 560px list plus a reader does not fit a 390px screen. A card tap then
+   * opens its room, there being nowhere else for it to go. A stopgap until
+   * the phone's own inbox shell (PhoneInbox.dc.html) is built.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -340,6 +347,7 @@ export function Inbox({
   onMarkAllRead,
   onOpenRoom,
   onReplied,
+  compact = false,
 }: InboxProps) {
   const asks = inbox.openAsks.length;
   const dmRows = inbox.elsewhere.filter(row => row.kind === 'dm');
@@ -353,7 +361,9 @@ export function Inbox({
       open={openCard?.messageId === item.messageId}
       reachable={reachable}
       now={now}
-      onOpen={() => onOpenCard(item)}
+      onOpen={() =>
+        compact ? onOpenRoom(item.room, item.messageId) : onOpenCard(item)
+      }
       onMarkRead={() => onMarkRoomRead(item.room)}
       onOpenRoom={() => onOpenRoom(item.room, item.messageId)}
     />
@@ -370,15 +380,16 @@ export function Inbox({
       <Box
         data-testid="inbox-list"
         style={{
-          width: LIST_WIDTH,
-          flex: 'none',
+          width: compact ? '100%' : LIST_WIDTH,
+          flex: compact ? 1 : 'none',
+          minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
           padding: '11.2px 14.4px',
           overflowY: 'auto',
           background: 'var(--tk-card)',
-          borderRight: `1px solid ${BORDER}`,
+          borderRight: compact ? undefined : `1px solid ${BORDER}`,
         }}
       >
         {inbox.needsYou.length > 0 && (
@@ -459,7 +470,7 @@ export function Inbox({
         </Text>
       </Box>
 
-      {openCard ? (
+      {compact ? null : openCard ? (
         <Reader
           card={openCard}
           humanHandle={humanHandle}
