@@ -87,7 +87,7 @@ describe('doing', () => {
 
 - [ ] **Step 1: Failing test** — in `chat.test.ts`, with fixtures enabled, `GET /api/chat/buddies` returns `jay` with `paneTitle: 'Boxscore mattstack integration'` and `max` with `paneTitle: 'max'`; with a stubbed rt where `pane:list` fails, buddies still return (no `paneTitle`).
 - [ ] **Step 2: Run, expect fail.**
-- [ ] **Step 3: Implement** — in the buddies handler, alongside the per-buddy rooms wave, call the same pane-list client `src/server/panes.ts` uses (`listPanes` from rt-client); build `Map(sessionId -> title)`; spread `paneTitle` onto each buddy when the map has its `sessionId`. Failure of the pane call degrades to no titles (catch, empty map). Update fixtures.
+- [ ] **Step 3: Implement** — in the buddies handler, alongside the per-buddy rooms wave, call the same pane-list client `src/server/panes.ts` uses: `paneList(rtOpts())` from `@mattstack/rt-client` (the export is `paneList`, NOT `listPanes`), which resolves to `{ ok, data?: { panes: ChatPane[] }, error? }`. Build `Map(sessionId -> title)` from `data.panes`; spread `paneTitle` onto each buddy when the map has its `sessionId`. Any failure degrades to no titles (empty map), including the `herdr unavailable` error prefix that `panes.ts` already treats as a normal state rather than a 502. Update fixtures.
 - [ ] **Step 4: `bun run test src/server` green** (fixture tests updated to the new tables in the same commit).
 - [ ] **Step 5: Commit** — `feat: buddies carry the live herdr pane title; fixtures mirror the FLEET table`.
 
