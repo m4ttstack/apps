@@ -47,10 +47,16 @@ function folderName(cwd?: string): string | undefined {
  * `statusDetail(row, now)` -- so a caller pinning the clock for a test gets
  * a deterministic sign-out age instead of one that drifts with wall time.
  */
-export function doing(b: DoingInput, now: number = Date.now()): DoingLine | null {
+export function doing(
+  b: DoingInput,
+  now: number = Date.now()
+): DoingLine | null {
   if (b.status === 'offline') {
     if (b.signedOutAt === undefined) return null;
-    return { text: `signed out ${formatElapsed(now - b.signedOutAt)} ago`, kind: 'signed-out' };
+    return {
+      text: `signed out ${formatElapsed(now - b.signedOutAt)} ago`,
+      kind: 'signed-out',
+    };
   }
 
   if (b.statusText) {

@@ -107,12 +107,7 @@ test('the author header carries the fleet task line beside the sender', async ()
     rooms: ['boxscore'],
   };
   renderWithProviders(
-    <BuddiesProvider
-      buddies={[jay]}
-      roomMembers={['jay']}
-      now={now}
-      reachable
-    >
+    <BuddiesProvider buddies={[jay]} roomMembers={['jay']} now={now} reachable>
       <Transcript
         room="boxscore"
         messages={[

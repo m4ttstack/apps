@@ -41,14 +41,14 @@ The visual decisions were made on two canvases:
 
 ## Decisions Matt ratified (2026-09-02, via forms)
 
-| Decision | Choice |
-| --- | --- |
-| Organizing model | **A · Inbox + fleet**: inbox landing view, fleet-tree sidebar, rooms as the full record one click away. Picked from four drawn directions. |
-| Task line source | **The viewer joins herdr live** through the existing daemon pane list; no new rt presence field. Fallback: branch (when not `main`), else worktree folder; offline rows show sign-out age only. |
-| Handle continuity | **rt pins a handle to its herdr pane**, so a sign-out/sign-in on the same pane keeps the name (the one repo-tools change). |
-| Room roster panel | **Dropped.** The fleet tree is the one fleet view; page-bar chips carry the room's counts and name small counts. |
-| Message folding | **Fold by default**: read messages above the cursor render their first block + `N more lines`; unread messages render whole; the existing expand-all toggle unfolds. |
-| Phone | **In scope**: phone inbox, phone reader (answering @matt), fleet drawer. |
+| Decision          | Choice                                                                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Organizing model  | **A · Inbox + fleet**: inbox landing view, fleet-tree sidebar, rooms as the full record one click away. Picked from four drawn directions.                                                      |
+| Task line source  | **The viewer joins herdr live** through the existing daemon pane list; no new rt presence field. Fallback: branch (when not `main`), else worktree folder; offline rows show sign-out age only. |
+| Handle continuity | **rt pins a handle to its herdr pane**, so a sign-out/sign-in on the same pane keeps the name (the one repo-tools change).                                                                      |
+| Room roster panel | **Dropped.** The fleet tree is the one fleet view; page-bar chips carry the room's counts and name small counts.                                                                                |
+| Message folding   | **Fold by default**: read messages above the cursor render their first block + `N more lines`; unread messages render whole; the existing expand-all toggle unfolds.                            |
+| Phone             | **In scope**: phone inbox, phone reader (answering @matt), fleet drawer.                                                                                                                        |
 
 ## Part 1: the task line
 
@@ -205,8 +205,8 @@ kept; cards keep rendering (they are history, not presence).
 
 - `/` on the phone: the inbox card list (three sections, full width).
 - Card tap: the phone reader (back arrow, `.ctx` chip, `<handle> needs
-  you`, open-room icon; the message; the 16px composer; `replying marks
-  this read`).
+you`, open-room icon; the message; the 16px composer; `replying marks
+this read`).
 - The drawer becomes the fleet tree verbatim (44px-friendly rows) plus the
   daemon-health line; the separate BUDDIES drawer section is gone with the
   roster.
