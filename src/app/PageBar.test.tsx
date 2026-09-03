@@ -109,6 +109,23 @@ test('a DM room shows the pair as its title and wakes: all regardless of default
   expect(screen.getByText('wakes: all')).toBeInTheDocument();
 });
 
+test('a DM without participants shows a neutral title, never its hashed id', () => {
+  renderWithProviders(
+    <PageBar
+      room={{
+        room: 'dm-9f3a2b1c0d4e',
+        memberCount: 2,
+        unread: 0,
+        mentions: 0,
+        kind: 'dm',
+      }}
+      buddies={[]}
+    />
+  );
+  expect(screen.getByText('Direct message')).toBeInTheDocument();
+  expect(screen.queryByText(/dm-9f3a2b1c0d4e/)).toBeNull();
+});
+
 test('a DM bar carries one task chip per end, and the join-order select is gone', () => {
   const now = 1_700_000_000_000;
   renderWithProviders(

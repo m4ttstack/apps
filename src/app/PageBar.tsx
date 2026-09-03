@@ -132,9 +132,15 @@ function NamesSuffix({ handles }: { handles: string[] }) {
 /** The hash is an icon beside the title, as the artboard draws it, not a
     character in it; a DM is named by its pair. */
 function roomTitle(room: RoomSummary): string {
-  return room.kind === 'dm' && room.participants
-    ? `${room.participants.a} ↔ ${room.participants.b}`
-    : room.room;
+  // A DM is named by its pair, never by its hashed room id (Law 5). A DM
+  // that arrives without participants (a direct link to a malformed room)
+  // gets a neutral label rather than leaking the hash.
+  if (room.kind === 'dm') {
+    return room.participants
+      ? `${room.participants.a} ↔ ${room.participants.b}`
+      : 'Direct message';
+  }
+  return room.room;
 }
 
 function markReadLabel(room: RoomSummary): string {
