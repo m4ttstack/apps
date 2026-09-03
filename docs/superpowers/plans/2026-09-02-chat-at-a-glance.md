@@ -186,9 +186,10 @@ export function isOpenAsk(msg: ChatMessage, laterInRoom: ChatMessage[]): boolean
 - Modify: `src/app/Transcript.tsx`, `src/app/MessageMarkdown.tsx` (first-block render mode), `src/app/use-expand-all.ts` (expand-all also unfolds).
 
 **Interfaces:**
-- Produces: `foldPlan(msgs: ChatMessage[], cursor: number | undefined): Map<number, { folded: boolean; moreLines: number }>`; `MessageMarkdown` gains `firstBlockOnly?: boolean`.
+- Produces: `foldPlan(msgs: ChatMessage[], unreadCount: number | undefined, anchorId?: string): Map<number, { folded: boolean; moreLines: number }>`; `MessageMarkdown` gains `firstBlockOnly?: boolean`.
+- **There is no cursor id to fold against.** `Transcript` already locates the read boundary from a COUNT, not an id: `dividerAt = messages.length - unreadCount` (`Transcript.tsx:636-640`), and its own prop comment at `:164-168` says there is no `lastReadId` in that surface. So fold messages at index `< dividerAt` and render those at `>= dividerAt` whole, reusing the exact boundary the divider already draws so the fold line and the `N new` divider can never disagree. When `unreadCount` is undefined or 0, nothing is unread and everything folds.
 
-- [ ] **Step 1: Failing tests** — messages with id ≤ cursor fold, ids past it render whole; `moreLines` counts source lines after the first block; the anchored (`#m-<id>`) message never folds; expand-all unfolds; an `@here` message with no reply renders the `unclaimed <age>` chip (reuse the Task 5 builder's predicate, exported).
+- [ ] **Step 1: Failing tests** — messages before `dividerAt` fold, those at or after it render whole, and the fold boundary equals the divider's; `moreLines` counts source lines after the first block; the anchored (`#m-<id>`) message never folds; expand-all unfolds; an `@here` message with no reply renders the `unclaimed <age>` chip (reuse the Task 5 builder's predicate, exported).
 - [ ] **Step 2: Run, expect fail.**
 - [ ] **Step 3: Implement** — `.foldrow` per spec.json; the 480px `.fold`/`show more` path untouched and composing.
 - [ ] **Step 4: Tests green; eyeball `Room.dc.html` parity with fixtures.**
