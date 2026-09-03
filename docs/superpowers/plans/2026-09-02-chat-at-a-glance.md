@@ -265,7 +265,7 @@ export function isOpenAsk(
 - [ ] **Step 3: `node design/audit.mjs <capture>` green (or each mismatch fixed in the component, never by relaxing spec.json).**
 - [ ] **Step 4: Commit** — `design: audit targets for the inbox + fleet-tree surfaces`.
 
-### Task 10 (repo-tools): pin handles to herdr panes
+### Task 10 (repo-tools): pin handles to herdr panes, and add `chat:mark --upto`
 
 **Files (in `~/Documents/GitHub/repo-tools`, its own worktree and PR):**
 
@@ -279,7 +279,67 @@ export function isOpenAsk(
 - [ ] **Step 2: Run, expect fail.**
 - [ ] **Step 3: Implement; suffix-on-collision untouched.**
 - [ ] **Step 4: Tests green.**
-- [ ] **Step 5: Commit + PR** — `feat(chat): pin drawn handles to their herdr pane`.
+- [ ] **Step 5: Commit** — `feat(chat): pin drawn handles to their herdr pane`.
+
+**Part B, added 2026-09-02 on Matt's call: `chat:mark --upto <messageId>`.**
+
+Three defects in this round traced to one root cause: the daemon exposes no
+per-message read cursor, so `chat:mark` can only clear a whole room. That forced
+the viewer's inbox into coarse behaviour (a card's `mark read` clears its room's
+other unread, and the label has to say so). This part removes the root cause.
+
+- Modify: `lib/state/chat-store.ts` (`markRead` gains an optional message id; when
+  given, the cursor advances to THAT message rather than to the newest, so later
+  messages stay unread), `lib/daemon/handlers/chat.ts` (`chat:mark`'s payload
+  gains `upto?: number`), `packages/rt-client/src/commands.ts` + `client.ts`
+  (`chatMark` payload type and function signature), `commands/chat.ts` (the CLI
+  gains `--upto`), tests beside each.
+- Backward compatibility is required: `chat:mark` with no `upto` must behave
+  exactly as today (clear the whole room). Existing callers, including this
+  viewer's `postMarkRead`, must not change behaviour until Task 11 opts in.
+
+- [ ] **Step 6: Failing test** — mark with `upto` set to the middle message of a
+  room leaves the later messages unread and the earlier ones read; mark with no
+  `upto` still clears the room entirely.
+- [ ] **Step 7: Run, expect fail.**
+- [ ] **Step 8: Implement across store, handler, rt-client and CLI.**
+- [ ] **Step 9: Tests green; publish the rt-client version this repo will consume.**
+- [ ] **Step 10: Commit + PR** — one PR carrying both parts.
+
+---
+
+### Task 11: spend `--upto` in the viewer, and restore the surgical read
+
+**Depends on Task 10 Part B landing and its rt-client version being consumable.**
+
+**Files:**
+
+- Modify: `src/app/mark-read.ts` (`postMarkRead(room, upto?)`), `src/server/chat.ts`
+  (the `/api/chat/mark` route accepts and forwards `upto`), `src/app/InboxCard.tsx`
+  (the label reverts to a plain `mark read`, since it is no longer clearing the
+  room), `src/app/Reader.tsx` (replying advances the cursor to the card's message,
+  the one act that both posts and marks read), plus their tests.
+- Modify **in the same commit**: `docs/superpowers/specs/2026-09-02-chat-at-a-glance-design.md`
+  and `design/ANATOMY.md`. Both were written one way, corrected mid-round when the
+  daemon turned out to lack the cursor, and now revert. A review in this round
+  already caught `ANATOMY.md` drifting out of step with the code on exactly this
+  point, so the docs move with the behaviour or not at all.
+
+**Interfaces:**
+
+- Produces: `postMarkRead(room: string, upto?: number): Promise<void>`; a card's
+  `mark read` passes the card's `messageId`, so a room's other unread survives.
+
+- [ ] **Step 1: Failing tests** — a card's `mark read` posts `{room, upto}` with
+  the card's message id and the room's other unread count is unchanged; replying
+  in the reader posts AND marks up to that message; `mark all read` still clears
+  whole rooms with no `upto`.
+- [ ] **Step 2: Run, expect fail.**
+- [ ] **Step 3: Implement; the label loses its room name.**
+- [ ] **Step 4: Tests green, lint/typecheck/format clean.**
+- [ ] **Step 5: Commit** — `feat: inbox marks read up to a card's message`.
+
+---
 
 ---
 
