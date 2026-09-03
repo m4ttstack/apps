@@ -227,3 +227,25 @@
     )
   );
 }
+
+.foldrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mantine-color-accent-text);
+  font-size: var(--tk-fs-3xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tri {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid currentColor;
+}

@@ -1,5 +1,12 @@
 import type { ChatMessage, RoomSummary } from '@mattstack/rt-client';
 
+/** `Transcript.tsx` imports `isOpenAsk` below as a VALUE, not just its type,
+    so it can reuse the same `@here · unclaimed` predicate the inbox uses --
+    that only stays safe for the browser bundle because this module's only
+    import is a type-only one. Never add a runtime import (a client, a
+    daemon call, anything from `../app/**`) here, or that value import pulls
+    it into the client bundle too. */
+
 export interface InboxCard {
   room: string;
   kind: 'room' | 'dm';

@@ -15,18 +15,24 @@ const BORDER_SOFT = 'var(--tk-border-soft)';
 const PURPLE = 'var(--tk-purple)';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
 
-/** `.ctx`: the small outlined token naming where a message lives. A DM's is
-    `.ctx.dm`, in purple, and carries the pair -- the hashed room name is
-    never rendered anywhere in this app. */
+const WARN_TEXT = 'var(--mantine-color-warn-text)';
+
+/** `.ctx`: the small outlined token naming where a message lives, or (with
+    `warn`) flagging an unclaimed `@here`. A DM's is `.ctx.dm`, in purple,
+    and carries the pair -- the hashed room name is never rendered anywhere
+    in this app. `dm` and `warn` are never both set on the same chip. */
 export function CtxChip({
   children,
   dm = false,
+  warn = false,
   testId,
 }: {
   children: React.ReactNode;
   dm?: boolean;
+  warn?: boolean;
   testId?: string;
 }) {
+  const tone = warn ? WARN_TEXT : dm ? PURPLE : undefined;
   return (
     <Box
       component="span"
@@ -40,8 +46,8 @@ export function CtxChip({
         fontSize: 'var(--tk-fs-4xs)',
         fontWeight: 600,
         whiteSpace: 'nowrap',
-        border: `1px solid ${dm ? `color-mix(in srgb, ${PURPLE} 45%, transparent)` : BORDER_SOFT}`,
-        color: dm ? PURPLE : MUTED_XS.color,
+        border: `1px solid ${tone ? `color-mix(in srgb, ${tone} 45%, transparent)` : BORDER_SOFT}`,
+        color: tone ?? MUTED_XS.color,
       }}
     >
       {children}

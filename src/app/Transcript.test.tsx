@@ -1,6 +1,12 @@
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
 import type { ChatMessage } from '@mattstack/rt-client';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 import { BuddiesProvider } from './buddies-context';
@@ -82,8 +88,14 @@ test('a reconnect refetches the tail without a frame', async () => {
 });
 
 test('a fenced block renders as a CodeBlock inside the message, never widening the column', async () => {
+  // Unread, so read-fold never clips it to its first block: this test is
+  // about the fence rendering, not the fold.
   renderWithProviders(
-    <Transcript room="build" messages={[longCodeBlockMessage]} />
+    <Transcript
+      room="build"
+      messages={[longCodeBlockMessage]}
+      unreadCount={1}
+    />
   );
   const block = await screen.findByTestId('code-block');
   await waitFor(() => expect(block).toHaveTextContent('Cannot find module'));
@@ -204,9 +216,12 @@ test("each speaker's handle chip carries its own hue, and the human's is accent"
 });
 
 test('markdown structure reaches the row: paragraphs, a list, code untouched', () => {
+  // Unread, so read-fold never clips this multi-block body to its first
+  // paragraph: this test is about the markdown rendering, not the fold.
   renderWithProviders(
     <Transcript
       room="build"
+      unreadCount={1}
       messages={[
         {
           id: 1,
@@ -878,4 +893,185 @@ test('the anchored message mounts unfolded; a short body never folds', () => {
     />
   );
   expect(screen.getAllByTestId('message-fold')).toHaveLength(1);
+});
+
+/** A two-block body: `moreLines` for it is always 1 (the second block is
+    one line), so a folded one always reads "1 more line". */
+function twoBlockMessage(id: number, postedAt = id): ChatMessage {
+  return {
+    id,
+    room: 'build',
+    handle: 'fred',
+    body: `lead ${id}\n\nsecond ${id}`,
+    mentions: [],
+    postedAt,
+  };
+}
+
+test('messages before the read boundary fold to their first block; those from it on render whole', () => {
+  renderWithProviders(
+    <Transcript
+      room="build"
+      unreadCount={2}
+      messages={[1, 2, 3, 4].map(id => twoBlockMessage(id))}
+    />
+  );
+  const read1 = screen.getByTestId('message-1');
+  const read2 = screen.getByTestId('message-2');
+  const unread3 = screen.getByTestId('message-3');
+  const unread4 = screen.getByTestId('message-4');
+  expect(read1).not.toHaveTextContent('second 1');
+  expect(read2).not.toHaveTextContent('second 2');
+  expect(within(read1).getByTestId('read-fold-toggle')).toHaveTextContent(
+    '1 more line'
+  );
+  expect(unread3).toHaveTextContent('second 3');
+  expect(unread4).toHaveTextContent('second 4');
+  expect(within(unread3).queryByTestId('read-fold-toggle')).toBeNull();
+  expect(within(unread4).queryByTestId('read-fold-toggle')).toBeNull();
+});
+
+test("clicking a folded message's control unfolds only that message", () => {
+  renderWithProviders(
+    <Transcript
+      room="build"
+      unreadCount={0}
+      messages={[twoBlockMessage(1), twoBlockMessage(2)]}
+    />
+  );
+  const first = screen.getByTestId('message-1');
+  const second = screen.getByTestId('message-2');
+  fireEvent.click(within(first).getByTestId('read-fold-toggle'));
+  expect(first).toHaveTextContent('second 1');
+  expect(within(first).queryByTestId('read-fold-toggle')).toBeNull();
+  expect(second).not.toHaveTextContent('second 2');
+  expect(within(second).getByTestId('read-fold-toggle')).toBeInTheDocument();
+});
+
+test('an undefined unreadCount folds every message', () => {
+  renderWithProviders(
+    <Transcript room="build" messages={[twoBlockMessage(1)]} />
+  );
+  expect(screen.getByTestId('message-1')).not.toHaveTextContent('second 1');
+});
+
+test('the anchored message renders whole even before the read boundary', () => {
+  // jsdom has no scrollIntoView; the anchor effect calls it unconditionally.
+  const original = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = function () {};
+  try {
+    renderWithProviders(
+      <Transcript
+        room="build"
+        unreadCount={0}
+        anchor="m-1"
+        messages={[twoBlockMessage(1), twoBlockMessage(2)]}
+      />
+    );
+    expect(screen.getByTestId('message-1')).toHaveTextContent('second 1');
+    expect(screen.getByTestId('message-2')).not.toHaveTextContent('second 2');
+  } finally {
+    Element.prototype.scrollIntoView = original;
+  }
+});
+
+test('the app-wide expand-all preference also unfolds read-folded messages', () => {
+  window.localStorage.setItem('chat-expand-all', 'true');
+  renderWithProviders(
+    <Transcript room="build" messages={[twoBlockMessage(1)]} />
+  );
+  expect(screen.getByTestId('message-1')).toHaveTextContent('second 1');
+  expect(screen.queryByTestId('read-fold-toggle')).toBeNull();
+});
+
+test('an unread room message with an unanswered @here carries the unclaimed chip', () => {
+  renderWithProviders(
+    <Transcript
+      room="build"
+      unreadCount={1}
+      messages={[
+        {
+          id: 1,
+          room: 'build',
+          handle: 'fred',
+          body: '@here needs eyes on this',
+          mentions: [],
+          postedAt: Date.now() - 60_000,
+        },
+      ]}
+    />
+  );
+  expect(screen.getByTestId('unclaimed-chip')).toHaveTextContent(
+    '@here · unclaimed'
+  );
+});
+
+test('a reply to the @here message clears the unclaimed chip', () => {
+  renderWithProviders(
+    <Transcript
+      room="build"
+      unreadCount={2}
+      messages={[
+        {
+          id: 1,
+          room: 'build',
+          handle: 'fred',
+          body: '@here needs eyes on this',
+          mentions: [],
+          postedAt: 1,
+        },
+        {
+          id: 2,
+          room: 'build',
+          handle: 'max',
+          body: 'on it',
+          mentions: [],
+          replyTo: 1,
+          postedAt: 2,
+        },
+      ]}
+    />
+  );
+  expect(screen.queryByTestId('unclaimed-chip')).toBeNull();
+});
+
+test('a read @here message never carries the unclaimed chip', () => {
+  renderWithProviders(
+    <Transcript
+      room="build"
+      unreadCount={0}
+      messages={[
+        {
+          id: 1,
+          room: 'build',
+          handle: 'fred',
+          body: '@here needs eyes on this',
+          mentions: [],
+          postedAt: 1,
+        },
+      ]}
+    />
+  );
+  expect(screen.queryByTestId('unclaimed-chip')).toBeNull();
+});
+
+test('a DM never carries the unclaimed chip, even for an unanswered @here', () => {
+  renderWithProviders(
+    <Transcript
+      room="build"
+      isDm
+      unreadCount={1}
+      messages={[
+        {
+          id: 1,
+          room: 'build',
+          handle: 'fred',
+          body: '@here needs eyes on this',
+          mentions: [],
+          postedAt: 1,
+        },
+      ]}
+    />
+  );
+  expect(screen.queryByTestId('unclaimed-chip')).toBeNull();
 });

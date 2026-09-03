@@ -910,6 +910,7 @@ function PhoneChat({
               humanHandle={HUMAN_HANDLE}
               anchor={anchor}
               unreadCount={activeRoomSummary?.unread}
+              isDm={activeRoomSummary?.kind === 'dm'}
               bare
             />
           </Box>
@@ -1138,6 +1139,7 @@ function ChatPage({
                       humanHandle={HUMAN_HANDLE}
                       anchor={anchor}
                       unreadCount={activeRoomSummary?.unread}
+                      isDm={activeRoomSummary?.kind === 'dm'}
                       notice={
                         notice?.room === activeRoom ? notice.node : undefined
                       }
