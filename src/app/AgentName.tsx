@@ -232,6 +232,7 @@ export function AgentCard({
         </Group>
         <Text
           component="span"
+          data-testid={`status-${buddy.handle}`}
           style={{
             fontSize: 'var(--tk-fs-3xs)',
             fontWeight: 500,

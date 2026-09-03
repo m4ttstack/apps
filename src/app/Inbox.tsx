@@ -429,12 +429,15 @@ export function Inbox({
             style={{ minWidth: 0 }}
           >
             {roomRows.map(row => (
-              <CtxChip key={row.room}>
+              <CtxChip
+                key={row.room}
+                testId={`inbox-elsewhere-room-${row.room}`}
+              >
                 #{row.room} {row.unread}
               </CtxChip>
             ))}
             {dmRows.length > 0 && (
-              <CtxChip dm>
+              <CtxChip dm testId="inbox-elsewhere-dm">
                 {dmRows.length} DM{dmRows.length === 1 ? '' : 's'} · {dmUnread}
               </CtxChip>
             )}
