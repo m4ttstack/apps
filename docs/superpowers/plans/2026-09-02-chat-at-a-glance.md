@@ -100,6 +100,7 @@ describe('doing', () => {
 **Interfaces:**
 - Consumes: `doing()` from Task 1, `paneTitle` from Task 2.
 - Produces: `AgentNameProps` includes `task?: { text: string; kind: string } | null`.
+- **First, amend `doing()`**: give it an optional second parameter `now: number = Date.now()` and use it for the offline age, matching `statusDetail(row, now)`'s convention. `AgentName` already takes a `now` prop so its tests can pin the clock; without this, any roster test that pins `now` gets a non-deterministic sign-out age. Every caller in this task passes the `now` it already has. Add one test to `doing.test.ts` asserting a pinned `now` yields a fixed string.
 
 - [ ] **Step 1: Failing tests** — roster row for a buddy with `paneTitle: 'Boxscore mattstack integration'` renders that text; a `main`-branch buddy renders `repo-tools · main` with the dim class; an away buddy renders the quoted away line and no task line; message header for `jay` includes the task text.
 - [ ] **Step 2: Run, expect fail.**
