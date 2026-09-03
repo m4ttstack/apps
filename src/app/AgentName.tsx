@@ -43,7 +43,22 @@ export interface AgentNameSize {
   /** Any CSS length, normally a `--tk-fs-*` token. */
   font: string;
   avatar: number;
+  /** Overrides the meta line (repo token + task) size; defaults to
+      `MUTED_XS`. Set where the name is large enough that the default meta
+      reads as a speck beside it (the message header). */
+  meta?: string;
 }
+
+/** The message header's scale, shared by the reader and the transcript so a
+    speaker reads the same in both: the name at the body size with a meta a
+    step up from the roster's, one tier above the inbox card's `CARD_HANDLE`.
+    Wired here because reader/transcript passing no size fell to the `lg`
+    default (18px), which towered over the 16px body once the UI went sans. */
+export const MESSAGE_HANDLE: AgentNameSize = {
+  font: 'var(--mantine-font-size-md)',
+  avatar: 20,
+  meta: 'var(--mantine-font-size-xs)',
+};
 
 /** Every handle gets one, deterministically, from the same theme-token
     palette the name chip's hue rotation draws from -- see `HANDLE_PALETTE`. */
@@ -118,14 +133,26 @@ const RULE = { height: 1, background: 'var(--tk-border-soft)' } as const;
 
 /** `• repo` after a name: a real bullet (a middle dot reads as a speck at
     10px), 3px either side, the repo truncating before the name ever does. */
-function RepoToken({ repo }: { repo: string }) {
+function RepoToken({ repo, metaFontSize }: { repo: string; metaFontSize?: string }) {
   return (
     <Text
       component="span"
       truncate
-      style={{ ...MUTED_XS, minWidth: 0, alignSelf: 'baseline' }}
+      style={{
+        ...MUTED_XS,
+        ...(metaFontSize ? { fontSize: metaFontSize } : {}),
+        minWidth: 0,
+        alignSelf: 'baseline',
+      }}
     >
-      <span style={{ fontSize: 'var(--tk-fs-2xs)', margin: '0 3px' }}>•</span>
+      <span
+        style={{
+          fontSize: metaFontSize ?? 'var(--tk-fs-2xs)',
+          margin: '0 3px',
+        }}
+      >
+        •
+      </span>
       {repo}
     </Text>
   );
@@ -139,7 +166,15 @@ function repoToken(buddy: RosterBuddy | undefined): string | undefined {
 
 /** `.doing`, after the repo token: what this handle is doing right now.
     `kind: 'away'` is never passed here -- see `AgentNameProps.task`. */
-function TaskLine({ handle, task }: { handle: string; task: DoingLine }) {
+function TaskLine({
+  handle,
+  task,
+  metaFontSize,
+}: {
+  handle: string;
+  task: DoingLine;
+  metaFontSize?: string;
+}) {
   return (
     <Text
       component="span"
@@ -147,6 +182,7 @@ function TaskLine({ handle, task }: { handle: string; task: DoingLine }) {
       data-testid={`doing-${handle}`}
       style={{
         ...(task.kind === 'path' ? MUTED_XS_DIM : MUTED_XS),
+        ...(metaFontSize ? { fontSize: metaFontSize } : {}),
         marginLeft: 'var(--mantine-spacing-sm)',
         minWidth: 0,
         alignSelf: 'baseline',
@@ -435,8 +471,10 @@ export function AgentName({
             {handle}
           </Text>
         </Group>
-        {repo && <RepoToken repo={repo} />}
-        {showTask && <TaskLine handle={handle} task={task!} />}
+        {repo && <RepoToken repo={repo} metaFontSize={size?.meta} />}
+        {showTask && (
+          <TaskLine handle={handle} task={task!} metaFontSize={size?.meta} />
+        )}
       </Group>
     );
   } else {

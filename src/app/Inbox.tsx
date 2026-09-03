@@ -29,15 +29,19 @@ const EMPTY_INBOX: InboxPayload = {
   elsewhere: [],
 };
 
+// One chip size across the app: the compact `CtxChip` spec (16px tall,
+// fs-4xs, sm radius). The summary pills used to sit at 22px/fs-3xs, which
+// read as a second, larger version of the same component beside the context
+// chips in cards and the reader strip.
 const CHIP_BASE = {
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 'var(--mantine-spacing-xs)',
-  height: 22,
-  borderRadius: 'var(--mantine-radius-md)',
-  padding: '0 var(--mantine-spacing-sm)',
-  fontSize: 'var(--tk-fs-3xs)',
-  fontWeight: 500,
+  gap: 4,
+  height: 16,
+  borderRadius: 'var(--mantine-radius-sm)',
+  padding: '0 6px',
+  fontSize: 'var(--tk-fs-4xs)',
+  fontWeight: 600,
   whiteSpace: 'nowrap',
   border: `1px solid ${BORDER}`,
   color: MUTED,

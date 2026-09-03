@@ -23,7 +23,7 @@ import ScrollToBottom, {
 } from 'react-scroll-to-bottom';
 
 import { isOpenAsk } from '../shared/open-ask';
-import { AgentName } from './AgentName';
+import { AgentName, MESSAGE_HANDLE } from './AgentName';
 import { useBuddies } from './buddies-context';
 import { dayKey, dayLabel, localTime } from './day-label';
 import { doing } from './doing';
@@ -387,6 +387,7 @@ function MessageRow({
           variant="inline"
           hue={speakerHue(message.handle, humanHandle)}
           task={task}
+          size={MESSAGE_HANDLE}
         />
         {mine && <YouBadge />}
         <Text

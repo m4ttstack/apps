@@ -4,7 +4,7 @@ import { Icon } from '@mattstack/app-kit/icons';
 import type { ChatMessage } from '@mattstack/rt-client';
 
 import type { InboxCard as InboxCardData } from '../server/inbox';
-import { AgentName } from './AgentName';
+import { AgentName, MESSAGE_HANDLE } from './AgentName';
 import { useBuddies } from './buddies-context';
 import { Composer, type ComposerBuddy } from './Composer';
 import { dayLabel, localTime } from './day-label';
@@ -164,6 +164,7 @@ function ReaderMessage({
           variant="inline"
           hue={speakerHue(message.handle, humanHandle)}
           task={task}
+          size={MESSAGE_HANDLE}
         />
         <Text
           size="xs"

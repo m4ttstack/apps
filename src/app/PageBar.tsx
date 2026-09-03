@@ -33,15 +33,18 @@ const PAGE_BAR_ROW = {
   minWidth: 0,
 } as const;
 
+// One chip size across the app: the compact `CtxChip` spec (16px tall,
+// fs-4xs, sm radius), so the page bar's chips read as the same component as
+// the context chips in cards and the reader strip rather than a larger twin.
 const CHIP_BASE = {
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 'var(--mantine-spacing-xs)',
-  height: 22,
-  borderRadius: 'var(--mantine-radius-md)',
-  padding: '0 var(--mantine-spacing-sm)',
-  fontSize: 'var(--tk-fs-3xs)',
-  fontWeight: 500,
+  gap: 4,
+  height: 16,
+  borderRadius: 'var(--mantine-radius-sm)',
+  padding: '0 6px',
+  fontSize: 'var(--tk-fs-4xs)',
+  fontWeight: 600,
   whiteSpace: 'nowrap',
   border: '1px solid var(--tk-border)',
   color: 'var(--tk-muted-text)',
