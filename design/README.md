@@ -3,8 +3,12 @@
 The approved mockups for plan 2 (`docs/superpowers/plans/2026-08-23-rt-chat-viewer.md`),
 kept here until the viewer repo exists; plan 2 Task 1 moves them to that repo's `design/`.
 
-Canvas (editable, hosted): https://claude.ai/code/artifact/de1b5844-40c0-4cba-be93-5cd23e7a946f
-(re-published 2026-09-02; the pre-inbox canvas at 933b24c5 was deleted)
+**The artboards in this directory are the reference.** A hosted canvas is a
+convenience, not a record: artifacts belong to the Claude Code account that
+published them, so a link stops resolving as soon as the active account
+changes. Re-seed one from these files whenever it is wanted (the `/design`
+skill's `seed-canvas.mjs`, every `artboards/*.dc.html` plus `canvas.json`),
+and do not treat a dead link as lost work.
 
 | file | what it is |
 | --- | --- |
