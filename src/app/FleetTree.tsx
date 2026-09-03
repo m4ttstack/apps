@@ -756,10 +756,9 @@ function DmRow({
         {/* textContent, not three separate runs: the arrow needs its own
             span for the purple, but a screen reader still reads one phrase. */}
         <Text
-          size="sm"
-          fw={active ? 600 : undefined}
+          fw={600}
           truncate
-          style={{ flex: 1, minWidth: 0 }}
+          style={{ fontSize: ROW_NAME_SIZE, flex: 1, minWidth: 0 }}
         >
           <AgentName handle={pair.a} withCard={false} withAvatar={false} />{' '}
           <span style={{ color: 'var(--tk-purple)', flex: 'none' }}>↔</span>{' '}

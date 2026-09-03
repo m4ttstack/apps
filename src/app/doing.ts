@@ -72,7 +72,11 @@ export function doing(
   }
 
   const folder = folderName(b.cwd);
-  const branchText = b.branch ?? 'main';
+  // `|| 'main'`, not `?? 'main'`: an agent that reports an empty-string branch
+  // (seen in real presence) would otherwise resolve to empty text and render
+  // an empty chip. `??` only catches null/undefined, so the empty string slips
+  // through.
+  const branchText = b.branch || 'main';
   const text = folder ? `${folder} · ${branchText}` : branchText;
   return { text, kind: 'path' };
 }

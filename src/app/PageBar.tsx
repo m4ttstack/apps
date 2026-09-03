@@ -228,7 +228,8 @@ function TaskChips({ buddies, now }: { buddies: PageBarBuddy[]; now: number }) {
     <>
       {buddies.map(buddy => {
         const task = doing(buddy, now);
-        if (!task || task.kind === 'signed-out') return null;
+        if (!task || task.kind === 'signed-out' || !task.text.trim())
+          return null;
         return (
           <Box
             key={buddy.handle}
