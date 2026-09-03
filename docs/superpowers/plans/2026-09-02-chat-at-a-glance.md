@@ -15,7 +15,7 @@
 - Tokens over literals: sizes/colors come from the theme; the design audit (`CONFORMANCE.md`) is the acceptance gate for UI tasks — new components get TARGETS entries.
 - Never render presence while the daemon is unreachable (law 1); every new surface has a daemon-down state drawn in the artboards.
 - No em/en dashes in copy; times local; phone inputs 16px, controls 44px.
-- Mantine props from docs (`docs/mantine-llms.txt` or the mantine MCP), never memory.
+- **Mantine comes from its docs, never from memory. This is mandatory for every task that writes or edits a component.** Before using a Mantine component or any prop on one, resolve it against the **mantine MCP server**: `mcp__mantine__list_items` (what exists), `mcp__mantine__get_item_props` (the props table, the authority for names, types and defaults), `mcp__mantine__get_item_doc` (usage and examples), `mcp__mantine__search_docs` (when the component name is unknown). `docs/mantine-llms.txt` is the vendored offline INDEX only... it names the pages and carries no prop signatures, so it settles "does this component exist" and never "what props does it take". The project is on Mantine **9.5.2**; a prop remembered from another version is a defect. State in the task report which components were resolved and through which tool.
 - Comments follow clean-code rules: only non-obvious invariants, no narration.
 - After each task: `bun test` green, commit.
 
