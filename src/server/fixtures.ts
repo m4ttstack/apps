@@ -398,6 +398,55 @@ export function fixtureMessages(room: string, now = Date.now()): ChatMessage[] {
     ];
   }
 
+  // The Main artboard's own inbox thread: max's set-up, then jay's question
+  // for Matt. The pair is what the reader draws, context message included.
+  if (room === 'boxscore') {
+    return [
+      {
+        id: 411,
+        room,
+        handle: 'max',
+        body: '@jay when you pick metrics-hardening up: rt 2.8.1 moved the settings resolver, so read every knob through `getSetting`. Details in our DM.',
+        postedAt: now - 99 * M,
+        mentions: ['jay'],
+      },
+      {
+        id: 412,
+        room,
+        handle: 'jay',
+        body:
+          '@matt metrics-hardening is ready for review: PR #12, 31 tests green.\n\n' +
+          'What landed: p95 gauges on the ingest path, retry counters on the exporter, and `metrics.flushMs` read through `getSetting` at machine scope (max confirmed the scope in our DM).\n\n' +
+          'Want the dashboard split into its own PR, or keep it in this one?',
+        postedAt: now - 29 * M,
+        mentions: ['matt'],
+      },
+    ];
+  }
+
+  // The artboard's second NEEDS YOU card: a DM Matt is not part of, which
+  // still needs him because it names him.
+  if (room === DM_ROOM['edie|stan']) {
+    return [
+      {
+        id: 719,
+        room,
+        handle: 'stan',
+        body: 'the console settings page is holding until 2.8.1 lands.',
+        postedAt: now - 40 * M,
+        mentions: [],
+      },
+      {
+        id: 720,
+        room,
+        handle: 'edie',
+        body: '@matt the loop needs a call: keep the skills compile step inside rt, or move it into the pack so acme owns it?',
+        postedAt: now - 18 * M,
+        mentions: ['matt'],
+      },
+    ];
+  }
+
   return [
     {
       id: 1,

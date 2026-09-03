@@ -5,6 +5,7 @@ import {
   fixtureAccounts,
   fixtureBuddies,
   fixtureDirectories,
+  fixtureInbox,
   fixtureInvite,
   fixtureMembers,
   fixtureMessages,
@@ -105,9 +106,20 @@ test('the #rt transcript carries the tsc-red thread, ending in the full log', ()
   );
 });
 
-test('a room outside the #rt cast still returns a starter message', () => {
+test('a room outside the scripted casts still returns a starter message', () => {
   expect(fixtureMessages('skills')).toHaveLength(1);
-  expect(fixtureMessages('boxscore')[0]!.handle).toBe('jay');
+  expect(fixtureMessages('skills')[0]!.handle).toBe('edie');
+});
+
+test('the inbox fixtures carry the two cards the Main artboard draws', () => {
+  const inbox = fixtureInbox('matt');
+  expect(inbox.needsYou.map(c => c.handle)).toEqual(['edie', 'jay']);
+  expect(inbox.needsYou.map(c => c.kind)).toEqual(['dm', 'room']);
+  expect(inbox.openAsks.map(c => c.messageId)).toEqual([603, 602]);
+  // The reader's context message: jay's card has the one before it in the
+  // same room, which is what the artboard's `.msg.context` row draws.
+  const boxscore = fixtureMessages('boxscore');
+  expect(boxscore.map(m => m.handle)).toEqual(['max', 'jay']);
 });
 
 test('the pane fixtures cover every row state the picker artboard draws', () => {

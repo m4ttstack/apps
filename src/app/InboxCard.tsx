@@ -188,9 +188,17 @@ export function InboxCard({
         </Text>
       </Group>
 
-      <Box
+      {/* A real button, not just the card's own click: the lead is the
+          keyboard path to the reader, and the card cannot be one itself
+          without nesting the meta row's two buttons inside it. */}
+      <UnstyledButton
         data-testid={`card-lead-${card.messageId}`}
         className={classes.lead}
+        aria-label={`Read ${card.handle}'s message in ${where}`}
+        onClick={event => {
+          event.stopPropagation();
+          onOpen();
+        }}
         // Two lines of the message, no more: the card is a pointer at the
         // thing, and the reader beside it is where the thing is read.
         style={{
@@ -198,10 +206,12 @@ export function InboxCard({
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
+          width: '100%',
+          textAlign: 'left',
         }}
       >
         {card.excerpt}
-      </Box>
+      </UnstyledButton>
 
       <Group gap="sm" wrap="nowrap" align="center" style={{ minWidth: 0 }}>
         <CtxChip dm={isDm} testId={`card-ctx-${card.messageId}`}>
