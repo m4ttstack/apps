@@ -78,9 +78,14 @@ export interface FleetTreeProps {
   daemonReachable?: boolean;
   onOpenRoom?: (room: string) => void;
   onOpenDm?: (room: string) => void;
-  /** Brings a workstream's herdr pane to the front. A row whose buddy has no
-      pane, or that is rendered without this, is not clickable. */
+  /** Desktop: brings a workstream's herdr pane to the front. A row whose
+      buddy has no pane, or that is rendered without this (and without
+      `onSelectBuddy`), is not clickable. */
   onFocusPane?: (paneId: string) => void;
+  /** Phone: opens a DM with the workstream's buddy instead of focusing a
+      pane. Takes priority over `onFocusPane` -- callers wire one or the
+      other, never both. */
+  onSelectBuddy?: (handle: string) => void;
   /** The row's hover × and its right-click menu. Neither renders without it. */
   onClose?: (room: string) => void;
   /** The right-click menu's Mark read, offered only on a row with unread. */
@@ -531,22 +536,42 @@ function WorkstreamRow({
   now,
   reachable,
   onFocusPane,
+  onSelectBuddy,
 }: {
   buddy: RosterBuddy;
   now: number;
   reachable: boolean;
+  /** Desktop: brings the buddy's herdr pane to the front. Ignored when
+      `onSelectBuddy` is given -- the two are mutually exclusive per caller,
+      never both wired to the same tree. */
   onFocusPane?: (paneId: string) => void;
+  /** Phone: opens a DM with the buddy instead. Focusing a pane is
+      meaningless on a phone -- the whole premise of the phone surface is
+      that Matt is away from the machine -- so this takes priority over
+      `onFocusPane` whenever both are somehow present. */
+  onSelectBuddy?: (handle: string) => void;
 }) {
   const { handle, pane } = buddy;
   const task = reachable ? doing(buddy, now) : null;
-  const clickable = pane !== undefined && onFocusPane !== undefined;
+  const onClick = onSelectBuddy
+    ? () => onSelectBuddy(handle)
+    : pane !== undefined && onFocusPane
+      ? () => onFocusPane(pane)
+      : undefined;
+  const clickable = onClick !== undefined;
   return (
     <UnstyledButton
       className={classes.wsRow}
       component={clickable ? 'button' : 'div'}
       data-testid={`ws-${handle}`}
-      aria-label={clickable ? `Focus ${handle}'s pane` : undefined}
-      onClick={clickable ? () => onFocusPane(pane) : undefined}
+      aria-label={
+        onSelectBuddy
+          ? `Message ${handle}`
+          : clickable
+            ? `Focus ${handle}'s pane`
+            : undefined
+      }
+      onClick={onClick}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -822,6 +847,7 @@ export function FleetTree({
   onOpenRoom,
   onOpenDm,
   onFocusPane,
+  onSelectBuddy,
   onClose,
   onMarkRead,
 }: FleetTreeProps) {
@@ -855,6 +881,7 @@ export function FleetTree({
               now={now}
               reachable={daemonReachable}
               onFocusPane={onFocusPane}
+              onSelectBuddy={onSelectBuddy}
             />
           ))}
           {group.offline.length > 0 && (

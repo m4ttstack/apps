@@ -528,7 +528,6 @@ function PhoneChat({
   onOpenDm,
   onCloseRoom,
   onMarkRead,
-  onFocusPane,
 }: {
   daemon: ReturnType<typeof useDaemonHealth>;
   buddies: Buddy[];
@@ -545,7 +544,6 @@ function PhoneChat({
   onOpenDm: (handle: string) => void;
   onCloseRoom: (room: string) => void;
   onMarkRead: (room: string) => void;
-  onFocusPane: (paneId: string) => void;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -628,7 +626,7 @@ function PhoneChat({
           daemonReachable={daemon.reachable}
           onCloseRoom={onCloseRoom}
           onMarkRead={onMarkRead}
-          onFocusPane={onFocusPane}
+          onOpenDm={onOpenDm}
         />
       </Box>
     </ThemeOverrideWrapper>
@@ -730,7 +728,7 @@ function PhoneInboxPage({
   onReplied,
   onSelectRoom,
   onCloseRoom,
-  onFocusPane,
+  onOpenDm,
 }: {
   inbox: InboxPayload;
   daemonReachable: boolean;
@@ -745,7 +743,7 @@ function PhoneInboxPage({
   onReplied: () => void;
   onSelectRoom: (room: string) => void;
   onCloseRoom: (room: string) => void;
-  onFocusPane: (paneId: string) => void;
+  onOpenDm: (handle: string) => void;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [readerOpen, setReaderOpen] = useState(false);
@@ -834,7 +832,7 @@ function PhoneInboxPage({
           daemonReachable={daemonReachable}
           onSelectRoom={onSelectRoom}
           onCloseRoom={onCloseRoom}
-          onFocusPane={onFocusPane}
+          onOpenDm={onOpenDm}
         />
       </Box>
     </ThemeOverrideWrapper>
@@ -1331,7 +1329,7 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
         onReplied={refetchInbox}
         onSelectRoom={selectRoom}
         onCloseRoom={closeRoom}
-        onFocusPane={paneId => void focusPane(paneId)}
+        onOpenDm={openDm}
       />
     );
   }
@@ -1356,7 +1354,6 @@ export function App({ initialState }: { initialState?: AppInitialState } = {}) {
         onOpenDm={openDm}
         onCloseRoom={closeRoom}
         onMarkRead={room => void markRead(room)}
-        onFocusPane={paneId => void focusPane(paneId)}
       />
     );
   }

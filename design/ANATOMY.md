@@ -72,7 +72,9 @@ a room:
   session in that repo, sign-in order: 8px dot (tooltip
   `working · seen 12s ago`), handle at 11.2px / 600, then the task line
   filling the row. `.ws.on` marks the selected workstream. Clicking focuses
-  the pane on desktop; opens its feed on the phone.
+  the pane on desktop; on the phone it opens a DM with that buddy instead,
+  since focusing a herdr pane is meaningless while Matt is away from the
+  machine.
 - **Offline rows collapse per repo** into one `.ws.more` line (26px,
   muted): `6 signed out · kai ida jax sid elsa wren`, truncating. A single
   offline member keeps its name and age: `gail · signed out 3m ago`. After

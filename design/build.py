@@ -1009,7 +1009,7 @@ def indicators():
 {entry('<span class="at me" style="margin-left: 8px;">@matt</span><span class="sm">washed</span>', 'A mention of you, inline', 'Other handles render as plain accent text; yours gets the wash so it is findable while scrolling. It is also what puts a message in NEEDS YOU.')}
 {entry('<span class="badge-outline" style="margin-left: 8px;">you</span><span class="sm">on a message</span>', 'The human', 'matt carries no status and no task line: there is no session behind him.')}
     </div>
-    <span class="xs muted">The tree indicates, it never regroups: workstreams stay under their repo in sign-in order, never re-sorted by status. Clicking a workstream row focuses its herdr pane on the desk and opens its feed on a phone.</span>
+    <span class="xs muted">The tree indicates, it never regroups: workstreams stay under their repo in sign-in order, never re-sorted by status. Clicking a workstream row focuses its herdr pane on the desk; on a phone it opens a DM with that buddy instead, since focusing a pane means nothing while you're away from the machine.</span>
   </div>
 </div>
 """ + tail(880, 1560)

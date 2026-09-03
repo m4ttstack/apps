@@ -36,8 +36,13 @@ export interface RoomRailProps {
   onCloseRoom?: (room: string) => void;
   /** The right-click menu's Mark read, offered only on a row with unread. */
   onMarkRead?: (room: string) => void;
-  /** Brings a workstream's herdr pane to the front. */
+  /** Desktop: brings a workstream's herdr pane to the front. Ignored when
+      `onSelectBuddy` is given. */
   onFocusPane?: (paneId: string) => void;
+  /** Phone: opens a DM with a workstream's buddy instead of focusing a
+      pane, which is meaningless while Matt is away from the machine. Takes
+      priority over `onFocusPane`. */
+  onSelectBuddy?: (handle: string) => void;
   /** Inside `PageShell.Sidebar`: the sidebar is the surface, so no card. */
   sidebar?: boolean;
 }
@@ -92,6 +97,7 @@ export function RoomRail({
   onCloseRoom,
   onMarkRead,
   onFocusPane,
+  onSelectBuddy,
   sidebar = false,
 }: RoomRailProps) {
   // A `dm` row with no participants has no pair to be named by, so it heads
@@ -157,6 +163,7 @@ export function RoomRail({
         onOpenRoom={onSelectRoom}
         onOpenDm={onSelectRoom}
         onFocusPane={onFocusPane}
+        onSelectBuddy={onSelectBuddy}
         onClose={onCloseRoom}
         onMarkRead={onMarkRead}
       />
@@ -175,7 +182,12 @@ export interface FleetDrawerProps {
   activeRoom?: string;
   daemonReachable?: boolean;
   onSelectRoom: (room: string) => void;
-  onFocusPane?: (paneId: string) => void;
+  /** Tapping a workstream row opens a DM with that buddy, then closes the
+      drawer -- not `onFocusPane`. Focusing a herdr pane is meaningless on a
+      phone: the whole premise of this surface is that Matt is away from
+      the machine. A DM is always meaningful, on or off the machine, and is
+      already a first-class way to reach an agent here. */
+  onOpenDm: (handle: string) => void;
   onCloseRoom?: (room: string) => void;
   onMarkRead?: (room: string) => void;
 }
@@ -195,12 +207,17 @@ export function FleetDrawer({
   activeRoom,
   daemonReachable = true,
   onSelectRoom,
-  onFocusPane,
+  onOpenDm,
   onCloseRoom,
   onMarkRead,
 }: FleetDrawerProps) {
   const { computedColorScheme, setColorScheme } = useColorScheme();
   const isDark = computedColorScheme === 'dark';
+
+  function selectBuddy(handle: string) {
+    onOpenDm(handle);
+    onClose();
+  }
 
   function selectRoom(room: string) {
     onSelectRoom(room);
@@ -260,7 +277,7 @@ export function FleetDrawer({
             daemonReachable={daemonReachable}
             onCloseRoom={onCloseRoom}
             onMarkRead={onMarkRead}
-            onFocusPane={onFocusPane}
+            onSelectBuddy={selectBuddy}
           />
         </Box>
 

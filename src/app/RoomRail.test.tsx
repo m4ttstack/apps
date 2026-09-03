@@ -259,6 +259,7 @@ test('the fleet drawer carries the tree and no BUDDIES heading', () => {
       rooms={[{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }]}
       buddies={[]}
       onSelectRoom={vi.fn()}
+      onOpenDm={vi.fn()}
     />
   );
   expect(screen.getByRole('heading', { name: 'FLEET' })).toBeInTheDocument();
@@ -276,10 +277,41 @@ test('the fleet drawer selects a room and closes itself', async () => {
       rooms={[{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }]}
       buddies={[]}
       onSelectRoom={onSelectRoom}
+      onOpenDm={vi.fn()}
     />
   );
   await userEvent.click(screen.getByTestId('room-row-build'));
   expect(onSelectRoom).toHaveBeenCalledWith('build');
+  expect(onClose).toHaveBeenCalled();
+});
+
+test('tapping a workstream row in the fleet drawer opens a DM, not a focused pane', async () => {
+  const onOpenDm = vi.fn();
+  const onClose = vi.fn();
+  renderWithProviders(
+    <FleetDrawer
+      opened
+      onClose={onClose}
+      rooms={[{ room: 'build', memberCount: 1, unread: 0, mentions: 0 }]}
+      buddies={[
+        {
+          sessionId: 's-jay',
+          handle: 'jay',
+          baseHandle: 'jay',
+          repo: 'build',
+          signedInAt: 1,
+          lastSeenAt: 1,
+          status: 'live',
+          rooms: ['build'],
+          pane: 'wBT:p1',
+        },
+      ]}
+      onSelectRoom={vi.fn()}
+      onOpenDm={onOpenDm}
+    />
+  );
+  await userEvent.click(screen.getByTestId('ws-jay'));
+  expect(onOpenDm).toHaveBeenCalledWith('jay');
   expect(onClose).toHaveBeenCalled();
 });
 
@@ -292,6 +324,7 @@ test('the fleet drawer names the daemon health and closes on its own close contr
       rooms={[]}
       buddies={[]}
       onSelectRoom={vi.fn()}
+      onOpenDm={vi.fn()}
       daemonReachable={false}
     />
   );

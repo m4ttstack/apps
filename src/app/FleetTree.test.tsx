@@ -276,6 +276,20 @@ test('clicking a workstream focuses its pane', async () => {
   expect(onFocusPane).toHaveBeenCalledWith('wBT:p1');
 });
 
+test('onSelectBuddy wins over onFocusPane: the phone drawer opens a DM, not a pane', async () => {
+  const onFocusPane = vi.fn();
+  const onSelectBuddy = vi.fn();
+  renderTree({
+    rooms: [room('boxscore')],
+    buddies: [buddy('jay', 'boxscore', { pane: 'wBT:p1' })],
+    onFocusPane,
+    onSelectBuddy,
+  });
+  await userEvent.click(screen.getByTestId('ws-jay'));
+  expect(onSelectBuddy).toHaveBeenCalledWith('jay');
+  expect(onFocusPane).not.toHaveBeenCalled();
+});
+
 test('a workstream with no pane is not a target', () => {
   renderTree({
     rooms: [room('rt')],
