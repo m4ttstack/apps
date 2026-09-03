@@ -104,7 +104,7 @@ test('daemon down: the chip reads last known and the roster withholds presence',
   expect(screen.queryByText('working')).toBeNull();
 });
 
-test('a DM room shows the pair as its title and wakes: all regardless of defaultWake', () => {
+test('a DM shows the pair as its title, wakes: all in its member popover', async () => {
   renderWithProviders(
     <PageBar
       room={{
@@ -119,7 +119,12 @@ test('a DM room shows the pair as its title and wakes: all regardless of default
     />
   );
   expect(screen.getByText('deck-main ↔ rt-chat-wt')).toBeInTheDocument();
-  expect(screen.getByText('wakes: all')).toBeInTheDocument();
+  // A DM uses the same members chip + roster as a channel, so wakes moves
+  // into the popover header.
+  await userEvent.click(screen.getByTestId('members-chip'));
+  expect(await screen.findByTestId('members-wakes')).toHaveTextContent(
+    'wakes: all'
+  );
 });
 
 test('a DM without participants shows a neutral title, never its hashed id', () => {
@@ -139,7 +144,7 @@ test('a DM without participants shows a neutral title, never its hashed id', () 
   expect(screen.queryByText(/dm-9f3a2b1c0d4e/)).toBeNull();
 });
 
-test('a DM bar carries one task chip per end, and the join-order select is gone', () => {
+test('a DM lists each end and its task in the member roster, join-order gone', async () => {
   const now = 1_700_000_000_000;
   renderWithProviders(
     <PageBar
@@ -163,14 +168,16 @@ test('a DM bar carries one task chip per end, and the join-order select is gone'
       ]}
     />
   );
-  expect(screen.getByTestId('chip-task-jay')).toHaveTextContent(
+  await userEvent.click(screen.getByTestId('members-chip'));
+  expect(await screen.findByTestId('members-row-jay')).toHaveTextContent(
     'Boxscore mattstack integration'
   );
-  expect(screen.getByTestId('chip-task-max')).toHaveTextContent(
+  expect(screen.getByTestId('members-row-max')).toHaveTextContent(
     'repo-tools · main'
   );
-  // A signed-out end has no task, only an age: the chips never carry one.
-  expect(screen.queryByTestId('chip-task-kai')).toBeNull();
+  expect(screen.getByTestId('members-row-kai')).toBeInTheDocument();
+  // No fanned-out task chips on the bar any more, and no join-order select.
+  expect(screen.queryByTestId('chip-task-jay')).toBeNull();
   expect(screen.queryByTestId('room-order')).toBeNull();
 });
 

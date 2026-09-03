@@ -13,8 +13,6 @@ import {
   UnstyledButton,
 } from '@mattstack/app-kit/core';
 import { AnimatedChevron, Icon } from '@mattstack/app-kit/icons';
-
-import { Chip } from './Chip';
 import type { BuddyStatus, RoomSummary } from '@mattstack/rt-client';
 
 import { AgentName } from './AgentName';
@@ -106,23 +104,6 @@ function Dot({
   );
 }
 
-/** A chip whose count is at most two names its handles, so the stuck agent
-    is read first rather than found last; each name carries its card. */
-function NamesSuffix({ handles }: { handles: string[] }) {
-  if (handles.length === 0 || handles.length > 2) return null;
-  return (
-    <>
-      {': '}
-      {handles.map((h, i) => (
-        <span key={h}>
-          {i > 0 && ', '}
-          <AgentName handle={h} />
-        </span>
-      ))}
-    </>
-  );
-}
-
 /** The hash is an icon beside the title, as the artboard draws it, not a
     character in it; a DM is named by its pair. */
 function roomTitle(room: RoomSummary): string {
@@ -203,92 +184,6 @@ export function RoomMenu({
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>
-  );
-}
-
-/** A DM's two ends, each carrying what it is doing: the pair IS the room, so
-    the bar names the work rather than counting members. Offline and away rows
-    resolve to no line and drop out. */
-function TaskChips({ buddies, now }: { buddies: PageBarBuddy[]; now: number }) {
-  return (
-    <>
-      {buddies.map(buddy => {
-        const task = doing(buddy, now);
-        if (!task || task.kind === 'signed-out' || !task.text.trim())
-          return null;
-        return (
-          <Chip key={buddy.handle} testId={`chip-task-${buddy.handle}`}>
-            {task.text}
-          </Chip>
-        );
-      })}
-    </>
-  );
-}
-
-/** The DM header's chips, unchanged from the pre-roster bar: a DM is named by
-    its pair and carries each end's task, so it counts its two members and
-    states the wake mode inline rather than behind a roster. */
-function DmChips({
-  buddies,
-  reachable,
-  now,
-  wakeMode,
-}: {
-  buddies: PageBarBuddy[];
-  reachable: boolean;
-  now: number;
-  wakeMode: string;
-}) {
-  const signedInTotal = signedInCount(buddies);
-  if (!reachable) {
-    return (
-      <>
-        <Chip testId="chip-signed-in">
-          {signedInTotal} in room · last known
-        </Chip>
-        <Chip testId="chip-withheld">presence withheld</Chip>
-      </>
-    );
-  }
-  const live = buddies.filter(b => b.status === 'live');
-  const idle = buddies.filter(b => b.status === 'idle');
-  const offline = buddies.filter(b => b.status === 'offline');
-  return (
-    <>
-      <Chip testId="chip-signed-in">{signedInTotal} in room</Chip>
-      {live.length > 0 && (
-        <Chip
-          tone="ok"
-          testId="chip-live"
-          leftSection={<Dot color="var(--tk-dot-ok)" testId="dot-live" />}
-        >
-          {live.length} {STATUS_WORD.live}
-          <NamesSuffix handles={live.map(b => b.handle)} />
-        </Chip>
-      )}
-      {idle.length > 0 && (
-        <Chip
-          tone="warn"
-          testId="chip-idle"
-          leftSection={<Dot color="var(--tk-dot-warn)" testId="dot-idle" />}
-        >
-          {idle.length} {STATUS_WORD.idle}
-          <NamesSuffix handles={idle.map(b => b.handle)} />
-        </Chip>
-      )}
-      {offline.length > 0 && (
-        <Chip
-          testId="chip-offline"
-          leftSection={<Dot hollow testId="dot-offline" />}
-        >
-          {offline.length} {STATUS_WORD.offline}
-          <NamesSuffix handles={offline.map(b => b.handle)} />
-        </Chip>
-      )}
-      <Chip testId="chip-wakes">wakes: {wakeMode}</Chip>
-      <TaskChips buddies={buddies} now={now} />
-    </>
   );
 }
 
@@ -595,22 +490,13 @@ export function PageBar({
         wrap="nowrap"
         style={{ flex: '1 1 0%', minWidth: 0, overflowX: 'auto' }}
       >
-        {room.kind === 'dm' ? (
-          <DmChips
-            buddies={buddies}
-            reachable={reachable}
-            now={now}
-            wakeMode={wakeMode}
-          />
-        ) : (
-          <RoomMembers
-            room={room}
-            buddies={buddies}
-            reachable={reachable}
-            now={now}
-            wakeMode={wakeMode}
-          />
-        )}
+        <RoomMembers
+          room={room}
+          buddies={buddies}
+          reachable={reachable}
+          now={now}
+          wakeMode={wakeMode}
+        />
       </Group>
       <Group gap={0} ml="auto" wrap="nowrap">
         {controls}

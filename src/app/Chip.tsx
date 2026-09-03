@@ -92,9 +92,11 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>(function Chip(
       rightSection={rightSection}
       styles={{
         root,
-        // The label is the chip's whole point here; let it show in full
-        // rather than ellipsis inside a fixed Badge width.
-        label: { overflow: 'visible' },
+        // Badge's label ships an 18px line-height that overflows the 16px
+        // chip and drops the text low; a 14px line box (the content height
+        // inside the 1px borders) centres it. `overflow: visible` lets the
+        // whole label show rather than ellipsis inside a fixed Badge width.
+        label: { overflow: 'visible', lineHeight: '14px' },
         section: { marginInline: 0 },
       }}
     >
