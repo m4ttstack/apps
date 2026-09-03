@@ -16,7 +16,7 @@ afterEach(() => {
   window.localStorage.removeItem('chat-expand-all');
 });
 
-test('the page bar counts the fleet, names handles behind a small count, and shows the room’s wake mode', () => {
+test('the members chip opens a roster grouped by status, wake mode in its header', async () => {
   renderWithProviders(
     <PageBar
       room={{
@@ -34,12 +34,21 @@ test('the page bar counts the fleet, names handles behind a small count, and sho
       ]}
     />
   );
-  expect(screen.getByText('3 in room')).toBeInTheDocument();
-  expect(screen.getByTestId('chip-live')).toHaveTextContent('2 working: a, b');
-  expect(screen.getByTestId('chip-offline')).toHaveTextContent(
-    '1 offline: gitq-main'
+  const chip = screen.getByTestId('members-chip');
+  expect(chip).toHaveTextContent('3 in room');
+  await userEvent.click(chip);
+  expect(await screen.findByTestId('members-dropdown')).toBeInTheDocument();
+  expect(screen.getByTestId('members-wakes')).toHaveTextContent(
+    'wakes: mention'
   );
-  expect(screen.getByText('wakes: mention')).toBeInTheDocument();
+  // Status reads from the group each member sits under, not a per-chip label.
+  expect(screen.getByText('working')).toBeInTheDocument();
+  expect(screen.getByText('idle')).toBeInTheDocument();
+  expect(screen.getByText('offline')).toBeInTheDocument();
+  expect(screen.getByTestId('members-row-a')).toBeInTheDocument();
+  expect(screen.getByTestId('members-row-b')).toBeInTheDocument();
+  expect(screen.getByTestId('members-row-c')).toBeInTheDocument();
+  expect(screen.getByTestId('members-row-gitq-main')).toBeInTheDocument();
 });
 
 test('mark read is explicit: rendering never calls it, the control does', async () => {
@@ -62,19 +71,19 @@ test('mark read is explicit: rendering never calls it, the control does', async 
   );
 });
 
-test('a room with a small idle count also names its handles', () => {
+test('the roster lists a member under its status group', async () => {
   renderWithProviders(
     <PageBar
       room={{ room: 'build', memberCount: 3, unread: 0, mentions: 0 }}
       buddies={[{ handle: 'board-fix-auth', status: 'idle' }]}
     />
   );
-  expect(screen.getByTestId('chip-idle')).toHaveTextContent(
-    '1 idle: board-fix-auth'
-  );
+  await userEvent.click(screen.getByTestId('members-chip'));
+  expect(await screen.findByText('idle')).toBeInTheDocument();
+  expect(screen.getByTestId('members-row-board-fix-auth')).toBeInTheDocument();
 });
 
-test('daemon down: exactly two plain chips, last known and withheld', () => {
+test('daemon down: the chip reads last known and the roster withholds presence', async () => {
   renderWithProviders(
     <PageBar
       room={{ room: 'build', memberCount: 3, unread: 0, mentions: 0 }}
@@ -85,10 +94,14 @@ test('daemon down: exactly two plain chips, last known and withheld', () => {
       reachable={false}
     />
   );
-  expect(screen.getByText('2 in room · last known')).toBeInTheDocument();
-  expect(screen.getByText('presence withheld')).toBeInTheDocument();
-  expect(screen.queryByTestId('chip-live')).toBeNull();
-  expect(screen.queryByTestId('chip-wakes')).toBeNull();
+  const chip = screen.getByTestId('members-chip');
+  expect(chip).toHaveTextContent('2 in room · last known');
+  await userEvent.click(chip);
+  expect(
+    await screen.findByText('presence withheld while the daemon is down')
+  ).toBeInTheDocument();
+  // No status groups while presence is withheld.
+  expect(screen.queryByText('working')).toBeNull();
 });
 
 test('a DM room shows the pair as its title and wakes: all regardless of defaultWake', () => {
@@ -195,7 +208,7 @@ test('the ⋯ menu offers Close this conversation for a DM, fleet or not', async
   expect(onClose).toHaveBeenCalledWith('dm-aaaa1111bbbb');
 });
 
-test('a closed room still shows mark read and the wakes chip; nothing says archived', () => {
+test('a closed room still shows mark read and its wake mode; nothing says archived', async () => {
   renderWithProviders(
     <PageBar
       room={{
@@ -209,9 +222,12 @@ test('a closed room still shows mark read and the wakes chip; nothing says archi
     />
   );
   expect(screen.queryByTestId('chip-archived')).toBeNull();
-  expect(screen.getByTestId('chip-wakes')).toBeInTheDocument();
   expect(screen.getByTestId('mark-read-button')).toBeInTheDocument();
   expect(screen.queryByText(/archiv/i)).toBeNull();
+  await userEvent.click(screen.getByTestId('members-chip'));
+  expect(await screen.findByTestId('members-wakes')).toHaveTextContent(
+    'wakes: mention'
+  );
 });
 
 test('add agents sits before mark read, only when wired, disabled while the daemon is down', async () => {

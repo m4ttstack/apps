@@ -1,13 +1,18 @@
+import { useState } from 'react';
 import {
   ActionIcon,
   Box,
   Button,
   Group,
   Menu,
+  Popover,
+  ScrollArea,
+  Stack,
   Text,
   Tooltip,
+  UnstyledButton,
 } from '@mattstack/app-kit/core';
-import { Icon } from '@mattstack/app-kit/icons';
+import { AnimatedChevron, Icon } from '@mattstack/app-kit/icons';
 import type { BuddyStatus, RoomSummary } from '@mattstack/rt-client';
 
 import { AgentName } from './AgentName';
@@ -236,6 +241,257 @@ function TaskChips({ buddies, now }: { buddies: PageBarBuddy[]; now: number }) {
   );
 }
 
+/** The DM header's chips, unchanged from the pre-roster bar: a DM is named by
+    its pair and carries each end's task, so it counts its two members and
+    states the wake mode inline rather than behind a roster. */
+function DmChips({
+  buddies,
+  reachable,
+  now,
+  wakeMode,
+}: {
+  buddies: PageBarBuddy[];
+  reachable: boolean;
+  now: number;
+  wakeMode: string;
+}) {
+  const signedInTotal = signedInCount(buddies);
+  if (!reachable) {
+    return (
+      <>
+        <Box component="span" style={CHIP_BASE} data-testid="chip-signed-in">
+          {signedInTotal} in room · last known
+        </Box>
+        <Box component="span" style={CHIP_BASE} data-testid="chip-withheld">
+          presence withheld
+        </Box>
+      </>
+    );
+  }
+  const live = buddies.filter(b => b.status === 'live');
+  const idle = buddies.filter(b => b.status === 'idle');
+  const offline = buddies.filter(b => b.status === 'offline');
+  return (
+    <>
+      <Box component="span" style={CHIP_BASE} data-testid="chip-signed-in">
+        {signedInTotal} in room
+      </Box>
+      {live.length > 0 && (
+        <Box
+          component="span"
+          style={{
+            ...CHIP_BASE,
+            borderColor:
+              'color-mix(in srgb, var(--mantine-color-ok-text) 45%, transparent)',
+            color: 'var(--mantine-color-ok-text)',
+          }}
+          data-testid="chip-live"
+        >
+          <Dot color="var(--tk-dot-ok)" testId="dot-live" />
+          {live.length} {STATUS_WORD.live}
+          <NamesSuffix handles={live.map(b => b.handle)} />
+        </Box>
+      )}
+      {idle.length > 0 && (
+        <Box
+          component="span"
+          style={{
+            ...CHIP_BASE,
+            borderColor:
+              'color-mix(in srgb, var(--mantine-color-warn-text) 45%, transparent)',
+            color: 'var(--mantine-color-warn-text)',
+          }}
+          data-testid="chip-idle"
+        >
+          <Dot color="var(--tk-dot-warn)" testId="dot-idle" />
+          {idle.length} {STATUS_WORD.idle}
+          <NamesSuffix handles={idle.map(b => b.handle)} />
+        </Box>
+      )}
+      {offline.length > 0 && (
+        <Box component="span" style={CHIP_BASE} data-testid="chip-offline">
+          <Dot hollow testId="dot-offline" />
+          {offline.length} {STATUS_WORD.offline}
+          <NamesSuffix handles={offline.map(b => b.handle)} />
+        </Box>
+      )}
+      <Box component="span" style={CHIP_BASE} data-testid="chip-wakes">
+        wakes: {wakeMode}
+      </Box>
+      <TaskChips buddies={buddies} now={now} />
+    </>
+  );
+}
+
+const MUTED = { color: 'var(--tk-muted-text)' } as const;
+
+const GROUP_LABEL = {
+  fontSize: 'var(--tk-fs-4xs)',
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: 'var(--tk-muted-text)',
+} as const;
+
+/** One membership chip in place of the fanned-out live/idle/offline chips:
+    a status-dot summary that opens the room's full roster on click. The
+    roster groups by status so each row's status reads from its section, and
+    the wake mode moves into the popover header so the bar sheds a chip. */
+function RoomMembers({
+  room,
+  buddies,
+  reachable,
+  now,
+  wakeMode,
+}: {
+  room: RoomSummary;
+  buddies: PageBarBuddy[];
+  reachable: boolean;
+  now: number;
+  wakeMode: string;
+}) {
+  const [opened, setOpened] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const signedIn = signedInCount(buddies);
+  const live = buddies.filter(b => b.status === 'live');
+  const idle = buddies.filter(b => b.status === 'idle');
+  const offline = buddies.filter(b => b.status === 'offline');
+  const groups = [
+    { key: 'live', word: STATUS_WORD.live, members: live },
+    { key: 'idle', word: STATUS_WORD.idle, members: idle },
+    { key: 'offline', word: STATUS_WORD.offline, members: offline },
+  ].filter(g => g.members.length > 0);
+
+  const roomLabel = room.kind === 'dm' ? 'conversation' : `#${room.room}`;
+
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-start"
+      withinPortal
+      shadow="md"
+      radius="md"
+      width={276}
+      trapFocus
+      styles={{ dropdown: { padding: 0, background: 'var(--tk-panel)' } }}
+    >
+      <Popover.Target>
+        <UnstyledButton
+          data-testid="members-chip"
+          aria-label={`Members of ${roomLabel}`}
+          onClick={() => setOpened(o => !o)}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          style={{
+            ...CHIP_BASE,
+            cursor: 'pointer',
+            background: hovered || opened ? 'var(--ui-bg-4)' : undefined,
+          }}
+        >
+          {live.length > 0 && (
+            <Dot color="var(--tk-dot-ok)" testId="members-dot-live" />
+          )}
+          {idle.length > 0 && (
+            <Dot color="var(--tk-dot-warn)" testId="members-dot-idle" />
+          )}
+          {live.length === 0 && idle.length === 0 && (
+            <Dot hollow testId="members-dot-off" />
+          )}
+          <span>
+            {signedIn} in room
+            {reachable ? '' : ' · last known'}
+          </span>
+          <AnimatedChevron opened={opened} size={12} />
+        </UnstyledButton>
+      </Popover.Target>
+      <Popover.Dropdown data-testid="members-dropdown">
+        <Group
+          justify="space-between"
+          wrap="nowrap"
+          gap="sm"
+          style={{
+            padding: 'var(--mantine-spacing-sm) var(--mantine-spacing-md)',
+            borderBottom: '1px solid var(--tk-border-soft)',
+          }}
+        >
+          <Text fw={700} size="sm">
+            {signedIn} in {roomLabel}
+          </Text>
+          <Text
+            component="span"
+            data-testid="members-wakes"
+            style={{ ...MUTED, fontSize: 'var(--tk-fs-3xs)' }}
+          >
+            wakes: {wakeMode}
+          </Text>
+        </Group>
+        {reachable ? (
+          <ScrollArea.Autosize
+            mah={320}
+            type="auto"
+            scrollbars="y"
+            styles={{ content: { minWidth: 0 } }}
+          >
+            <Stack
+              gap="sm"
+              style={{
+                padding: 'var(--mantine-spacing-sm) var(--mantine-spacing-xs)',
+              }}
+            >
+              {groups.map(g => (
+                <Box key={g.key}>
+                  <Group
+                    gap={6}
+                    wrap="nowrap"
+                    style={{
+                      padding: '0 var(--mantine-spacing-sm)',
+                      marginBottom: 3,
+                    }}
+                  >
+                    <Text component="span" style={GROUP_LABEL}>
+                      {g.word}
+                    </Text>
+                    <Text
+                      component="span"
+                      style={{ ...MUTED, fontSize: 'var(--tk-fs-3xs)' }}
+                    >
+                      {g.members.length}
+                    </Text>
+                  </Group>
+                  <Stack gap={1}>
+                    {g.members.map(b => (
+                      <Box
+                        key={b.handle}
+                        data-testid={`members-row-${b.handle}`}
+                        style={{ padding: '2px var(--mantine-spacing-sm)' }}
+                      >
+                        <AgentName
+                          handle={b.handle}
+                          variant="row"
+                          reachable={reachable}
+                          now={now}
+                          task={doing(b, now)}
+                        />
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          </ScrollArea.Autosize>
+        ) : (
+          <Box style={{ padding: 'var(--mantine-spacing-md)' }}>
+            <Text style={{ ...MUTED, fontSize: 'var(--tk-fs-2xs)' }}>
+              presence withheld while the daemon is down
+            </Text>
+          </Box>
+        )}
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
 export function PageBar({
   room,
   buddies,
@@ -342,40 +598,7 @@ export function PageBar({
     </>
   );
 
-  if (!reachable) {
-    return (
-      <Group
-        align="center"
-        wrap="nowrap"
-        gap="sm"
-        style={PAGE_BAR_ROW}
-        data-testid="page-bar"
-      >
-        {title}
-        <Group
-          gap="sm"
-          wrap="nowrap"
-          style={{ flex: '1 1 0%', minWidth: 0, overflowX: 'auto' }}
-        >
-          <Box component="span" style={CHIP_BASE} data-testid="chip-signed-in">
-            {signedInCount(buddies)} in room · last known
-          </Box>
-          <Box component="span" style={CHIP_BASE} data-testid="chip-withheld">
-            presence withheld
-          </Box>
-        </Group>
-        <Group gap={0} ml="auto" wrap="nowrap">
-          {controls}
-        </Group>
-      </Group>
-    );
-  }
-
   const wakeMode = room.kind === 'dm' ? 'all' : (room.defaultWake ?? 'mention');
-  const live = buddies.filter(b => b.status === 'live');
-  const idle = buddies.filter(b => b.status === 'idle');
-  const offline = buddies.filter(b => b.status === 'offline');
-  const signedInTotal = signedInCount(buddies);
 
   return (
     <Group
@@ -391,52 +614,22 @@ export function PageBar({
         wrap="nowrap"
         style={{ flex: '1 1 0%', minWidth: 0, overflowX: 'auto' }}
       >
-        <Box component="span" style={CHIP_BASE} data-testid="chip-signed-in">
-          {signedInTotal} in room
-        </Box>
-        {live.length > 0 && (
-          <Box
-            component="span"
-            style={{
-              ...CHIP_BASE,
-              borderColor:
-                'color-mix(in srgb, var(--mantine-color-ok-text) 45%, transparent)',
-              color: 'var(--mantine-color-ok-text)',
-            }}
-            data-testid="chip-live"
-          >
-            <Dot color="var(--tk-dot-ok)" testId="dot-live" />
-            {live.length} {STATUS_WORD.live}
-            <NamesSuffix handles={live.map(b => b.handle)} />
-          </Box>
+        {room.kind === 'dm' ? (
+          <DmChips
+            buddies={buddies}
+            reachable={reachable}
+            now={now}
+            wakeMode={wakeMode}
+          />
+        ) : (
+          <RoomMembers
+            room={room}
+            buddies={buddies}
+            reachable={reachable}
+            now={now}
+            wakeMode={wakeMode}
+          />
         )}
-        {idle.length > 0 && (
-          <Box
-            component="span"
-            style={{
-              ...CHIP_BASE,
-              borderColor:
-                'color-mix(in srgb, var(--mantine-color-warn-text) 45%, transparent)',
-              color: 'var(--mantine-color-warn-text)',
-            }}
-            data-testid="chip-idle"
-          >
-            <Dot color="var(--tk-dot-warn)" testId="dot-idle" />
-            {idle.length} {STATUS_WORD.idle}
-            <NamesSuffix handles={idle.map(b => b.handle)} />
-          </Box>
-        )}
-        {offline.length > 0 && (
-          <Box component="span" style={CHIP_BASE} data-testid="chip-offline">
-            <Dot hollow testId="dot-offline" />
-            {offline.length} {STATUS_WORD.offline}
-            <NamesSuffix handles={offline.map(b => b.handle)} />
-          </Box>
-        )}
-        <Box component="span" style={CHIP_BASE} data-testid="chip-wakes">
-          wakes: {wakeMode}
-        </Box>
-        {room.kind === 'dm' && <TaskChips buddies={buddies} now={now} />}
       </Group>
       <Group gap={0} ml="auto" wrap="nowrap">
         {controls}
