@@ -10,6 +10,7 @@ import {
   chatRooms,
   chatWho,
   getSetting,
+  paneList,
   type ChatMessage,
   type InviteResult,
   type RoomSummary,
@@ -56,6 +57,26 @@ function parseIntParam(raw: string | undefined): number | undefined {
 }
 
 const CHAT_NAME = /^[a-z0-9._-]+$/;
+
+/**
+ * sessionId -> the herdr pane title Claude Code maintains for that session.
+ * Degrades to an empty map on any failure, herdr being down included: the
+ * buddy roster is the important half of `/api/chat/buddies` and must never
+ * 502 because the pane list could not be read.
+ */
+async function paneTitleBySessionId(): Promise<Map<string, string>> {
+  try {
+    const res = await paneList(rtOpts());
+    if (!res?.ok || !res.data) return new Map();
+    const map = new Map<string, string>();
+    for (const pane of res.data.panes) {
+      if (pane.sessionId && pane.title) map.set(pane.sessionId, pane.title);
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
 
 /** The daemon's own defaults for `chat:messages`, so fixtures page the
     same way: the newest `limit` (1..500, 50 unasked), oldest first, and
@@ -183,12 +204,13 @@ export const chat = new Hono()
     if (!res.ok) return c.json({ error: res.error }, 502);
     return c.json(res.data, 200);
   })
-  // Buddies composition (1 + rooms daemon calls, deliberately uncached):
+  // Buddies composition (2 + rooms daemon calls, deliberately uncached):
   // chatBuddies() gives the roster; the human's own chatRooms() gives the
   // set of rooms worth asking about; one chatWho() per room inverts
   // room -> members into handle -> rooms. Never re-derives a daemon-owned
   // status and never spawns git for `branch` -- both come straight off
-  // chatBuddies()'s PresenceRow.
+  // chatBuddies()'s PresenceRow. The pane list rides alongside the rooms
+  // wave as one more call, joined onto each buddy by sessionId.
   .get('/api/chat/buddies', async c => {
     if (fixturesEnabled()) return c.json({ buddies: fixtureBuddies() }, 200);
     const buddiesRes = await chatBuddies(rtOpts());
@@ -201,11 +223,14 @@ export const chat = new Hono()
     // human's rooms: the human is in no room he never joined, which was
     // every fleet room, so every buddy read as being nowhere. One wave of
     // calls, in buddy order, so a failure is that buddy's alone.
-    const perBuddy = await Promise.all(
-      buddiesRes.data.buddies.map(b =>
-        chatRooms({ handle: b.handle }, rtOpts()).catch(() => null)
-      )
-    );
+    const [perBuddy, paneTitles] = await Promise.all([
+      Promise.all(
+        buddiesRes.data.buddies.map(b =>
+          chatRooms({ handle: b.handle }, rtOpts()).catch(() => null)
+        )
+      ),
+      paneTitleBySessionId(),
+    ]);
     const roomsByHandle = new Map<string, string[]>();
     buddiesRes.data.buddies.forEach((b, i) => {
       const r = perBuddy[i];
@@ -218,10 +243,14 @@ export const chat = new Hono()
       roomsByHandle.set(b.handle, tags);
     });
 
-    const buddies = buddiesRes.data.buddies.map(buddy => ({
-      ...buddy,
-      rooms: roomsByHandle.get(buddy.handle) ?? [],
-    }));
+    const buddies = buddiesRes.data.buddies.map(buddy => {
+      const paneTitle = paneTitles.get(buddy.sessionId);
+      return {
+        ...buddy,
+        rooms: roomsByHandle.get(buddy.handle) ?? [],
+        ...(paneTitle !== undefined ? { paneTitle } : {}),
+      };
+    });
     return c.json({ buddies }, 200);
   })
   .get(
