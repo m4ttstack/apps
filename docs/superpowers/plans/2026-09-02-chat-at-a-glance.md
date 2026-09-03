@@ -160,13 +160,20 @@ export function isOpenAsk(msg: ChatMessage, laterInRoom: ChatMessage[]): boolean
 
 **Files:**
 - Create: `src/app/Inbox.tsx`, `src/app/InboxCard.tsx`, `src/app/Reader.tsx`, tests for each, `src/app/inbox.module.css`
-- Modify: `src/app/routes.ts` (`home` renders Inbox; the rail's two entries), `src/app/App.tsx` (route wiring; closing the open conversation navigates to `/`), `src/app/mark-read.ts` (cursor-to-message-id variant).
+- Modify: `src/app/routes.ts` (`home` renders Inbox; the rail's two entries), `src/app/App.tsx` (route wiring; closing the open conversation navigates to `/`).
+- **`src/app/mark-read.ts` is NOT modified.** The daemon's `chat:mark` takes `{handle, room?}` only (`markRead(handle, room, db)`, `lib/daemon/handlers/chat.ts:1038`), so there is no per-message cursor. Read semantics below.
+
+**Read semantics, corrected against the daemon.** Per-message cursors do not exist, so:
+- A card's `mark read` calls the existing room-level mark for that card's room, and its label names the room (`mark #rt read`, not a bare `mark read`), because it also clears that room's other unread.
+- Replying in the reader posts and nothing else. It does NOT advance a cursor, and the footer copy must not claim it does.
+- `mark all read` keeps today's meaning: the per-room mark, for every room.
+- A future `chat:mark --upto <messageId>` in rt would allow true per-card granularity. Out of scope here.
 
 **Interfaces:**
 - Consumes: `InboxPayload` (Task 5), anchor-window message fetch (exists from the paging round), `doing()`.
-- Produces: `Reader({ card, onReplied })`; replying posts via the existing composer post path with the author pre-tagged, then advances the room cursor to `card.messageId`.
+- Produces: `Reader({ card, onReplied })`; replying posts via the existing composer post path with the author pre-tagged, and moves no cursor.
 
-- [ ] **Step 1: Failing tests** — sections render in order with counts; a card click sets the reader to that message and fetches one message of context above; `mark read` on a card calls the cursor advance with the card's message id; reply posts `@jay …` to `#boxscore` and marks read; `open #boxscore` links to `/r/boxscore#m-<id>`; daemon-down disables the reader composer and swaps ages to `last known`.
+- [ ] **Step 1: Failing tests** — sections render in order with counts; a card click sets the reader to that message and fetches one message of context above; `mark read` on a card calls the room-level mark for that card's room and its label names the room; reply posts `@jay ...` to `#boxscore` and moves no cursor; `open #boxscore` links to `/r/boxscore#m-<id>`; daemon-down disables the reader composer and swaps ages to `last known`.
 - [ ] **Step 2: Run, expect fail.**
 - [ ] **Step 3: Implement** per ANATOMY "Inbox": 560px card list on bg3, reader on bg1, `.card2` anatomy, `.msg.context` + `the message you opened` divider. WS liveness: refetch inbox on any msg frame and on mark-read, same rules as the rail.
 - [ ] **Step 4: Tests green; fixture eyeball against `Main.dc.html`.**

@@ -164,10 +164,17 @@ message you opened`. Fetch: the anchor-paging window that already serves
 `/r/<room>#m-<id>`.
 
 The reader's composer posts to the room (or DM) with the card author
-pre-tagged; **a successful reply also advances that room's cursor to the
-card's message id** — the one act that both posts and marks read. `mark
-read` on a card advances the cursor to that message id (later messages stay
-unread). `mark all read` calls the existing per-room mark for every room.
+pre-tagged.
+
+**Read semantics.** Corrected 2026-09-02 during execution against the daemon:
+`chat:mark` takes `{handle, room?}` and marks a whole room read
+(`markRead(handle, room, db)`); there is no per-message cursor, so this design's
+earlier claim that a card could advance the cursor to one message id was not
+implementable. Instead: a card's `mark read` performs the room-level mark and
+labels itself with the room it clears (`mark #rt read`); replying in the reader
+posts and moves no cursor; `mark all read` keeps its per-room meaning. A future
+`chat:mark --upto <messageId>` in rt would restore per-card granularity and is
+the natural follow-up.
 
 ### Daemon down
 
