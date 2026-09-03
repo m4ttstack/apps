@@ -10,7 +10,6 @@ import {
   Stack,
   Text,
   Tooltip,
-  UnstyledButton,
 } from '@mattstack/app-kit/core';
 import { AnimatedChevron, Icon } from '@mattstack/app-kit/icons';
 import type { BuddyStatus, RoomSummary } from '@mattstack/rt-client';
@@ -215,7 +214,6 @@ function RoomMembers({
   wakeMode: string;
 }) {
   const [opened, setOpened] = useState(false);
-  const [hovered, setHovered] = useState(false);
   const signedIn = signedInCount(buddies);
   const live = buddies.filter(b => b.status === 'live');
   const idle = buddies.filter(b => b.status === 'idle');
@@ -241,45 +239,40 @@ function RoomMembers({
       styles={{ dropdown: { padding: 0, background: 'var(--tk-panel)' } }}
     >
       <Popover.Target>
-        <UnstyledButton
+        <Button
+          variant="default"
+          size="xs"
+          radius="md"
           data-testid="members-chip"
           aria-label={`Members of ${roomLabel}`}
           onClick={() => setOpened(o => !o)}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          // The one interactive chip: a button (it opens the roster and is a
-          // Popover target), styled to the same spec as `Chip`.
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            height: 16,
-            padding: '0 6px',
-            borderRadius: 'var(--mantine-radius-sm)',
-            fontSize: 'var(--tk-fs-4xs)',
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
-            border: '1px solid var(--tk-border-soft)',
-            color: 'var(--tk-muted-text)',
-            cursor: 'pointer',
-            background: hovered || opened ? 'var(--ui-bg-4)' : 'transparent',
+          leftSection={
+            <Group gap={3} wrap="nowrap">
+              {live.length > 0 && (
+                <Dot color="var(--tk-dot-ok)" testId="members-dot-live" />
+              )}
+              {idle.length > 0 && (
+                <Dot color="var(--tk-dot-warn)" testId="members-dot-idle" />
+              )}
+              {live.length === 0 && idle.length === 0 && (
+                <Dot hollow testId="members-dot-off" />
+              )}
+            </Group>
+          }
+          rightSection={<AnimatedChevron opened={opened} size={14} />}
+          // The same default/xs control surface as the add-agents and
+          // mark-read buttons beside it, so the bar's controls all match.
+          styles={{
+            root: {
+              ...CONTROL_SURFACE,
+              fontWeight: 500,
+              ...(opened ? { background: 'var(--ui-bg-4)' } : {}),
+            },
           }}
         >
-          {live.length > 0 && (
-            <Dot color="var(--tk-dot-ok)" testId="members-dot-live" />
-          )}
-          {idle.length > 0 && (
-            <Dot color="var(--tk-dot-warn)" testId="members-dot-idle" />
-          )}
-          {live.length === 0 && idle.length === 0 && (
-            <Dot hollow testId="members-dot-off" />
-          )}
-          <span>
-            {signedIn} in room
-            {reachable ? '' : ' · last known'}
-          </span>
-          <AnimatedChevron opened={opened} size={12} />
-        </UnstyledButton>
+          {signedIn} in room
+          {reachable ? '' : ' · last known'}
+        </Button>
       </Popover.Target>
       <Popover.Dropdown data-testid="members-dropdown">
         <Group
