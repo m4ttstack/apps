@@ -20,7 +20,7 @@ import classes from './RailShell.module.css';
 
 /** Mini icon rail geometry: a slim always-visible icon strip that expands
  * into a labeled drawer. The app shell animates between the two widths. */
-export const RAIL_WIDTH = 68;
+export const RAIL_WIDTH = 56;
 export const RAIL_WIDTH_EXPANDED = 260;
 
 export interface RailShellProps {
