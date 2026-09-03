@@ -79,7 +79,7 @@ test('every agent sits under the repo room it works in, in sign-in order', () =>
   // The tree is one flat DOM list, so "under" is a claim about ORDER: the rt
   // room row, then its two members, then the next room.
   const rows = screen
-    .getAllByTestId(/^(room-row-|ws-(?!doing))/)
+    .getAllByTestId(/^(room-row-|ws-(?!doing|handle))/)
     .map(el => el.dataset.testid);
   expect(rows).toEqual([
     'room-row-rt',
@@ -182,6 +182,85 @@ test('the hashed DM room name is never rendered, only the pair', () => {
     'edie ↔ stan'
   );
   expect(screen.queryByText(/dm-edie/)).toBeNull();
+});
+
+test('DMs cap at four and the rest collapse into an expandable line', async () => {
+  renderTree({
+    dms: [
+      dm('max', 'stan'),
+      dm('jay', 'max'),
+      dm('edie', 'stan'),
+      dm('kai', 'remy'),
+      dm('kai', 'max', { unread: 1 }),
+      dm('max', 'wren', { unread: 8 }),
+      dm('gail', 'max', { unread: 6 }),
+    ],
+    buddies: [],
+  });
+
+  expect(screen.getAllByTestId(/^dm-row-/)).toHaveLength(4);
+  const more = screen.getByTestId('dm-more');
+  expect(more).toHaveTextContent(
+    '3 more · kai ↔ max 1, max ↔ wren 8, gail ↔ max 6'
+  );
+  expect(more).toHaveAttribute('aria-expanded', 'false');
+  // Not the inert offline roll-up: this one is the only way to those three.
+  expect(more.tagName).toBe('BUTTON');
+  expect(more.style.cursor).toBe('pointer');
+
+  await userEvent.click(more);
+  expect(screen.getAllByTestId(/^dm-row-/)).toHaveLength(7);
+  expect(screen.getByTestId('dm-more')).toHaveTextContent('show fewer');
+
+  await userEvent.click(screen.getByTestId('dm-more'));
+  expect(screen.getAllByTestId(/^dm-row-/)).toHaveLength(4);
+});
+
+test('the collapse never hides the open conversation', () => {
+  renderTree({
+    dms: [
+      dm('max', 'stan'),
+      dm('jay', 'max'),
+      dm('edie', 'stan'),
+      dm('kai', 'remy'),
+      dm('gail', 'max'),
+    ],
+    activeRoom: 'dm-gail-max',
+    buddies: [],
+  });
+
+  // Still four rows: the active one displaces the last, rather than adding a
+  // fifth past the drawn cap.
+  const shown = screen.getAllByTestId(/^dm-row-/).map(el => el.dataset.testid);
+  expect(shown).toEqual([
+    'dm-row-dm-max-stan',
+    'dm-row-dm-jay-max',
+    'dm-row-dm-edie-stan',
+    'dm-row-dm-gail-max',
+  ]);
+  expect(screen.getByTestId('dm-more')).toHaveTextContent(
+    '1 more · kai ↔ remy'
+  );
+});
+
+test('four or fewer DMs render no overflow control at all', () => {
+  renderTree({ dms: [dm('max', 'stan'), dm('jay', 'max')], buddies: [] });
+  expect(screen.queryByTestId('dm-more')).toBeNull();
+});
+
+test('the workstream handle and the roomless group label share the tree row size', () => {
+  renderTree({
+    rooms: [room('rt')],
+    buddies: [buddy('max', 'rt'), buddy('gail', 'board')],
+  });
+  // 11.2px in the artboard; `3xs` is the nearest step the app's own scale
+  // carries, since `chatFontTheme` lifts Mantine's 11.2px `sm` out of reach.
+  expect(screen.getByTestId('ws-handle-max').style.fontSize).toBe(
+    'var(--tk-fs-3xs)'
+  );
+  expect(screen.getByTestId('repo-name-board').style.fontSize).toBe(
+    'var(--tk-fs-3xs)'
+  );
 });
 
 test('clicking a workstream focuses its pane', async () => {

@@ -44,6 +44,19 @@ const WORKSTREAM_INDENT = 26.4;
     A space keeps it from ever colliding with a real repo name. */
 const NO_REPO = 'no repo';
 
+/**
+ * `.ws .h` and `.grp` are both 11.2px, which no `--tk-fs-*` step lands on:
+ * the ladder runs 12.16 / 10.56 / 9.5, and the Mantine `sm` that WOULD be
+ * 11.2px on the tokyo base is lifted to 15px inside `chatFontTheme`'s
+ * subtree, which this tree sits in. `3xs` is the nearest step (0.64px under)
+ * and matches `.doing`; weight 600 against muted colour is what separates a
+ * handle from its task line here.
+ */
+const ROW_NAME_SIZE = 'var(--tk-fs-3xs)';
+
+/** The artboards draw four `.dm2` rows, then the `N more` line. */
+const DM_VISIBLE = 4;
+
 export interface DmLastMessage {
   handle: string;
   body: string;
@@ -166,6 +179,35 @@ export function dmSecondLine(
   const pair = `${a.text} ↔ ${b.text}`;
   if (a.titled || b.titled) return pair;
   return last ?? pair;
+}
+
+/**
+ * The first `cap` conversations, with the open one always among them: an
+ * overflowed DM is otherwise unreachable, since the human is a silent third
+ * party in an agent-to-agent pair and nothing else in the UI opens one. An
+ * active DM past the cap displaces the last visible row rather than adding a
+ * fifth, so the drawn count holds.
+ */
+export function visibleDms(
+  dms: FleetRoom[],
+  activeRoom: string | undefined,
+  cap: number = DM_VISIBLE
+): FleetRoom[] {
+  if (dms.length <= cap) return dms;
+  const head = dms.slice(0, cap);
+  if (head.some(d => d.room === activeRoom)) return head;
+  const active = dms.find(d => d.room === activeRoom);
+  return active ? [...head.slice(0, cap - 1), active] : head;
+}
+
+/** `3 more · kai ↔ max 1, max ↔ wren 8`: every hidden pair with its unread,
+    truncating when the line runs past the sidebar. */
+function overflowLabel(hidden: FleetRoom[]): string {
+  const pairs = hidden.map(d => {
+    const { a, b } = d.participants!;
+    return `${a} ↔ ${b}${d.unread > 0 ? ` ${d.unread}` : ''}`;
+  });
+  return `${hidden.length} more · ${pairs.join(', ')}`;
 }
 
 /** `.dot`: 8px, hollow whenever it has no live status to claim. */
@@ -467,12 +509,17 @@ function RepoRow({ repo }: { repo: string }) {
         cursor: 'default',
       }}
     >
-      {/* `.grp`: one step under the room name it stands in for, muted, since
-          this heading is a label rather than a place to go. */}
+      {/* `.grp`: muted, since this heading is a label rather than a place
+          to go. */}
       <Text
-        size="sm"
         truncate
-        style={{ flex: 1, minWidth: 0, color: 'var(--tk-muted-text)' }}
+        data-testid={`repo-name-${repo}`}
+        style={{
+          fontSize: ROW_NAME_SIZE,
+          flex: 1,
+          minWidth: 0,
+          color: 'var(--tk-muted-text)',
+        }}
       >
         {repo}
       </Text>
@@ -538,7 +585,12 @@ function WorkstreamRow({
           />
         </Box>
       </Tooltip>
-      <Text component="span" size="xs" fw={600} style={{ flex: 'none' }}>
+      <Text
+        component="span"
+        fw={600}
+        data-testid={`ws-handle-${handle}`}
+        style={{ fontSize: ROW_NAME_SIZE, flex: 'none' }}
+      >
         <AgentName
           handle={handle}
           variant="name"
@@ -715,6 +767,48 @@ function DmRow({
 }
 
 /**
+ * The `N more` control. It shares the offline roll-up's look (26px, muted,
+ * truncating) but not its `cursor: default`: this one is the only way to
+ * reach a conversation the cap hides, so it has to answer a click.
+ */
+function DmOverflowRow({
+  hidden,
+  expanded,
+  onToggle,
+}: {
+  hidden: FleetRoom[];
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <UnstyledButton
+      className={classes.moreRow}
+      data-testid="dm-more"
+      aria-expanded={expanded}
+      onClick={onToggle}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        minWidth: 0,
+        overflow: 'hidden',
+        height: 26,
+        gap: 'var(--mantine-spacing-sm)',
+        padding: '0 var(--mantine-spacing-md)',
+        borderRadius: 'var(--mantine-radius-md)',
+        cursor: 'pointer',
+        textAlign: 'left',
+        ...MUTED_XS,
+      }}
+    >
+      <Text component="span" inherit truncate style={{ minWidth: 0 }}>
+        {expanded ? 'show fewer' : overflowLabel(hidden)}
+      </Text>
+    </UnstyledButton>
+  );
+}
+
+/**
  * The sidebar's one tree. Every repo the fleet works in heads a group -- its
  * room when it has one, a plain label when it does not -- with that repo's
  * signed-in sessions under it and its signed-out members rolled into a line.
@@ -737,8 +831,13 @@ export function FleetTree({
   onClose,
   onMarkRead,
 }: FleetTreeProps) {
+  const [dmsExpanded, setDmsExpanded] = useState(false);
   const groups = groupByRepo(rooms, buddies);
   const byHandle = new Map(buddies.map(b => [b.handle, b]));
+  // `dms` arrives already filtered by `visibleRooms`, so the cap counts only
+  // conversations that are actually listed.
+  const shownDms = dmsExpanded ? dms : visibleDms(dms, activeRoom);
+  const hiddenDms = dms.filter(d => !shownDms.includes(d));
 
   return (
     <Fragment>
@@ -794,7 +893,7 @@ export function FleetTree({
               DIRECT
             </Text>
           </Group>
-          {dms.map(room => (
+          {shownDms.map(room => (
             <DmRow
               key={room.room}
               room={room}
@@ -805,6 +904,13 @@ export function FleetTree({
               onMarkRead={onMarkRead}
             />
           ))}
+          {(hiddenDms.length > 0 || dmsExpanded) && (
+            <DmOverflowRow
+              hidden={hiddenDms}
+              expanded={dmsExpanded}
+              onToggle={() => setDmsExpanded(!dmsExpanded)}
+            />
+          )}
         </>
       )}
     </Fragment>
