@@ -12,11 +12,13 @@ import { Icon } from '@mattstack/app-kit/icons';
 import { notifications } from '@mattstack/app-kit/notifications';
 import type { BuddyStatus } from '@mattstack/rt-client';
 
+import { doing, type DoingLine } from './doing';
 import { HUMAN_HANDLE } from './human';
 import { STATUS_WORD } from './statusDetail';
 import { useAutoGrowTextarea } from './use-auto-grow-textarea';
 
 const MUTED = 'var(--tk-muted-text)';
+const MUTED_DIM = 'var(--tk-muted)';
 const INPUT_LINE_HEIGHT = 1.4;
 const BORDER = 'var(--tk-border)';
 const BORDER_SOFT = 'var(--tk-border-soft)';
@@ -46,6 +48,10 @@ const BAD_TEXT = 'var(--mantine-color-bad-text)';
 export interface ComposerBuddy {
   handle: string;
   status: BuddyStatus;
+  branch?: string;
+  cwd?: string;
+  paneTitle?: string;
+  statusText?: string;
 }
 
 export interface ComposerProps {
@@ -129,17 +135,21 @@ function BuddyOption({
   status,
   inRoom,
   room,
+  task,
   onSelect,
 }: {
   handle: string;
   status: 'live' | 'idle';
   inRoom: boolean;
   room: string;
+  task: DoingLine | null;
   onSelect: (handle: string, inRoom: boolean) => void;
 }) {
   const subtext = !inRoom
     ? { text: `not in #${room}, DM instead`, color: PURPLE }
-    : undefined;
+    : task
+      ? { text: task.text, color: task.kind === 'path' ? MUTED_DIM : MUTED }
+      : undefined;
 
   return (
     <UnstyledButton
@@ -568,6 +578,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
                   status={b.status as 'live' | 'idle'}
                   inRoom={roomMembers.includes(b.handle)}
                   room={room}
+                  task={doing(b)}
                   onSelect={selectBuddy}
                 />
               ))}

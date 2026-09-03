@@ -29,4 +29,12 @@ describe('doing', () => {
   test('offline with no signedOutAt gives null', () => {
     expect(doing({ ...base, status: 'offline' })).toBeNull();
   });
+  test('a pinned now yields a fixed sign-out age, not one derived from wall time', () => {
+    const pinned = 1_700_000_000_000;
+    const line = doing(
+      { ...base, status: 'offline', signedOutAt: pinned - 5 * 60_000 },
+      pinned
+    );
+    expect(line).toEqual({ text: 'signed out 5m ago', kind: 'signed-out' });
+  });
 });

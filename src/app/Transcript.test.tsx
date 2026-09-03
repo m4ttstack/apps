@@ -3,6 +3,8 @@ import type { ChatMessage } from '@mattstack/rt-client';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
+import { BuddiesProvider } from './buddies-context';
+import type { RosterBuddy } from './Roster';
 import {
   FakeWebSocket,
   fetchMock,
@@ -86,6 +88,49 @@ test('a fenced block renders as a CodeBlock inside the message, never widening t
   const block = await screen.findByTestId('code-block');
   await waitFor(() => expect(block).toHaveTextContent('Cannot find module'));
   expect(screen.getByTestId('transcript-column')).toBeInTheDocument();
+});
+
+test('the author header carries the fleet task line beside the sender', async () => {
+  installFakeWebSocket();
+  installFetchMock();
+  const now = Date.now();
+  const jay: RosterBuddy = {
+    sessionId: 'jay',
+    handle: 'jay',
+    baseHandle: 'jay',
+    status: 'live',
+    repo: 'boxscore',
+    branch: 'feat/metrics-hardening',
+    paneTitle: 'Boxscore mattstack integration',
+    signedInAt: now - 60_000,
+    lastSeenAt: now,
+    rooms: ['boxscore'],
+  };
+  renderWithProviders(
+    <BuddiesProvider
+      buddies={[jay]}
+      roomMembers={['jay']}
+      now={now}
+      reachable
+    >
+      <Transcript
+        room="boxscore"
+        messages={[
+          {
+            id: 1,
+            room: 'boxscore',
+            handle: 'jay',
+            body: 'pushed the fix',
+            mentions: [],
+            postedAt: now,
+          },
+        ]}
+      />
+    </BuddiesProvider>
+  );
+  expect(await screen.findByTestId('doing-jay')).toHaveTextContent(
+    'Boxscore mattstack integration'
+  );
 });
 
 test('a mention of the human is marked as me; the human’s own post is marked mine', () => {

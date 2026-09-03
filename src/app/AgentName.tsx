@@ -10,6 +10,7 @@ import { Invadr } from 'invadrs/react';
 
 import classes from './agent-name.module.css';
 import { useBuddies } from './buddies-context';
+import type { DoingLine } from './doing';
 import {
   DOT_COLOR,
   headTruncatePath,
@@ -78,6 +79,12 @@ export interface AgentNameProps {
   reachable?: boolean;
   now?: number;
   inRoom?: boolean;
+  /** `doing()`'s result for this handle, the caller's own since it already
+      holds the buddy row and the clock (`now`) this renders under. `row`
+      and `inline` render it after the repo token; the hover card renders
+      it as its own second line. An away message (`kind: 'away'`) is
+      skipped here -- the existing italic curly-quote line covers it. */
+  task?: DoingLine | null;
 }
 
 const LABEL = {
@@ -91,6 +98,13 @@ const LABEL = {
 const MUTED_XS = {
   fontSize: 'var(--tk-fs-3xs)',
   color: 'var(--tk-muted-text)',
+} as const;
+
+/** `.doing.dim`: the honest "nothing better known" state for a `kind:
+    'path'` task line -- one step dimmer than `MUTED_XS`. */
+const MUTED_XS_DIM = {
+  fontSize: 'var(--tk-fs-3xs)',
+  color: 'var(--tk-muted)',
 } as const;
 
 const RULE = { height: 1, background: 'var(--tk-border-soft)' } as const;
@@ -114,6 +128,26 @@ function RepoToken({ repo }: { repo: string }) {
     first name is doing, short enough to sit inline. */
 function repoToken(buddy: RosterBuddy | undefined): string | undefined {
   return buddy?.repo || undefined;
+}
+
+/** `.doing`, after the repo token: what this handle is doing right now.
+    `kind: 'away'` is never passed here -- see `AgentNameProps.task`. */
+function TaskLine({ handle, task }: { handle: string; task: DoingLine }) {
+  return (
+    <Text
+      component="span"
+      truncate
+      data-testid={`doing-${handle}`}
+      style={{
+        ...(task.kind === 'path' ? MUTED_XS_DIM : MUTED_XS),
+        marginLeft: 'var(--mantine-spacing-sm)',
+        minWidth: 0,
+        alignSelf: 'baseline',
+      }}
+    >
+      {task.text}
+    </Text>
+  );
 }
 
 function CardRow({
@@ -146,11 +180,13 @@ export function AgentCard({
   reachable: reachableProp,
   now: nowProp,
   inRoom: inRoomProp,
+  task,
 }: {
   buddy: RosterBuddy;
   reachable?: boolean;
   now?: number;
   inRoom?: boolean;
+  task?: DoingLine | null;
 }) {
   const ctx = useBuddies();
   const reachable = reachableProp ?? ctx?.reachable ?? true;
@@ -202,6 +238,11 @@ export function AgentCard({
           {reachable ? STATUS_WORD[buddy.status] : '—'}
         </Text>
       </Group>
+      {reachable && task && task.kind !== 'away' && task.kind !== 'path' && (
+        <Text component="span" size="sm" fw={500} truncate>
+          {task.text}
+        </Text>
+      )}
       {reachable && buddy.statusText && (
         <Text component="span" style={{ ...MUTED_XS, fontStyle: 'italic' }}>
           “{buddy.statusText}”
@@ -247,6 +288,17 @@ export function AgentCard({
         <>
           <Box style={RULE} />
           <Group gap="xs" wrap="nowrap">
+            {buddy.pane !== undefined && ctx.actions.focusPane && (
+              <Button
+                size="xs"
+                variant="default"
+                radius="md"
+                onClick={() => ctx.actions?.focusPane?.(buddy.pane!)}
+                data-testid={`card-focus-${buddy.handle}`}
+              >
+                Focus pane
+              </Button>
+            )}
             <Button
               size="xs"
               variant="default"
@@ -266,17 +318,6 @@ export function AgentCard({
             >
               DM
             </Button>
-            {buddy.pane !== undefined && ctx.actions.focusPane && (
-              <Button
-                size="xs"
-                variant="default"
-                radius="md"
-                onClick={() => ctx.actions?.focusPane?.(buddy.pane!)}
-                data-testid={`card-focus-${buddy.handle}`}
-              >
-                Focus pane
-              </Button>
-            )}
           </Group>
         </>
       )}
@@ -298,11 +339,13 @@ export function AgentName({
   now,
   inRoom,
   hue,
+  task,
 }: AgentNameProps) {
   const ctx = useBuddies();
   const buddy = buddyProp ?? ctx?.byHandle.get(handle);
   const reachable = reachableProp ?? ctx?.reachable ?? true;
   const repo = repoToken(buddy);
+  const showTask = task && task.kind !== 'away';
 
   let label: React.ReactNode;
   if (variant === 'row') {
@@ -327,6 +370,7 @@ export function AgentName({
                 {handle}
               </Text>
               {repo && <RepoToken repo={repo} />}
+              {showTask && <TaskLine handle={handle} task={task!} />}
             </Group>
           </Group>
           {reachable && buddy?.statusText && (
@@ -370,6 +414,7 @@ export function AgentName({
           </Text>
         </Group>
         {repo && <RepoToken repo={repo} />}
+        {showTask && <TaskLine handle={handle} task={task!} />}
       </Group>
     );
   } else {
@@ -432,6 +477,7 @@ export function AgentName({
           reachable={reachableProp}
           now={now}
           inRoom={inRoom}
+          task={task}
         />
       </HoverCard.Dropdown>
     </HoverCard>

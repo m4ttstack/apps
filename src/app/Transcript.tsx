@@ -22,7 +22,9 @@ import ScrollToBottom, {
 } from 'react-scroll-to-bottom';
 
 import { AgentName } from './AgentName';
+import { useBuddies } from './buddies-context';
 import { dayKey, dayLabel } from './day-label';
+import { doing } from './doing';
 import { MessageMarkdown } from './MessageMarkdown';
 import { NewPill } from './NewPill';
 import { useRelayFrames, useRelayOpen } from './relay-socket';
@@ -322,6 +324,11 @@ function MessageRow({
   anchored: boolean;
 }) {
   const mine = humanHandle !== undefined && message.handle === humanHandle;
+  // matt has no session behind him, so no buddy row and no task line -- the
+  // lookup below falls through to `undefined` for him on its own.
+  const ctx = useBuddies();
+  const author = ctx?.byHandle.get(message.handle);
+  const task = ctx?.reachable && author ? doing(author, ctx.now) : null;
   return (
     <div
       id={`m-${message.id}`}
@@ -334,6 +341,7 @@ function MessageRow({
           handle={message.handle}
           variant="inline"
           hue={speakerHue(message.handle, humanHandle)}
+          task={task}
         />
         {mine && <YouBadge />}
         <Text

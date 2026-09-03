@@ -42,11 +42,15 @@ function folderName(cwd?: string): string | undefined {
  * non-main branch, which beats the worktree folder. Offline short-circuits
  * the whole chain since none of those fields describe an agent that has
  * signed out.
+ *
+ * `now` is a parameter, not `Date.now()` internally, matching
+ * `statusDetail(row, now)` -- so a caller pinning the clock for a test gets
+ * a deterministic sign-out age instead of one that drifts with wall time.
  */
-export function doing(b: DoingInput): DoingLine | null {
+export function doing(b: DoingInput, now: number = Date.now()): DoingLine | null {
   if (b.status === 'offline') {
     if (b.signedOutAt === undefined) return null;
-    return { text: `signed out ${formatElapsed(Date.now() - b.signedOutAt)} ago`, kind: 'signed-out' };
+    return { text: `signed out ${formatElapsed(now - b.signedOutAt)} ago`, kind: 'signed-out' };
   }
 
   if (b.statusText) {

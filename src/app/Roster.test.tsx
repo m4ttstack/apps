@@ -1,5 +1,4 @@
 import { renderWithProviders as render } from '@mattstack/app-kit/test-utils';
-import type { PresenceRow } from '@mattstack/rt-client';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, test, vi } from 'vitest';
@@ -10,7 +9,7 @@ const now = 1_700_000_000_000;
 const b = (
   handle: string,
   status: RosterBuddy['status'],
-  extra: Partial<PresenceRow & { rooms: string[] }> = {}
+  extra: Partial<RosterBuddy> = {}
 ): RosterBuddy =>
   ({
     sessionId: handle,
@@ -67,6 +66,65 @@ test('one stable online list, then the offline section collapsed to one line', a
       .getByTestId('row-workforest-e2e')
       .querySelector('[data-testid=sub-workforest-e2e]')
   ).toBeNull();
+});
+
+test('a row carries the live herdr pane title as its task line', () => {
+  render(
+    <Roster
+      now={now}
+      roomMembers={[]}
+      buddies={[
+        b('jay', 'live', {
+          repo: 'boxscore',
+          paneTitle: 'Boxscore mattstack integration',
+        }),
+      ]}
+    />
+  );
+  expect(screen.getByTestId('doing-jay')).toHaveTextContent(
+    'Boxscore mattstack integration'
+  );
+  expect(screen.getByTestId('doing-jay')).toHaveStyle({
+    color: 'var(--tk-muted-text)',
+  });
+});
+
+test('a main-branch buddy falls back to the worktree folder, dim', () => {
+  render(
+    <Roster
+      now={now}
+      roomMembers={[]}
+      buddies={[
+        b('max', 'live', {
+          repo: 'rt',
+          branch: 'main',
+          cwd: '/Users/matt/Documents/GitHub/repo-tools',
+        }),
+      ]}
+    />
+  );
+  const line = screen.getByTestId('doing-max');
+  expect(line).toHaveTextContent('repo-tools · main');
+  expect(line).toHaveStyle({ color: 'var(--tk-muted)' });
+});
+
+test('an away message replaces the task line entirely', () => {
+  render(
+    <Roster
+      now={now}
+      roomMembers={[]}
+      buddies={[
+        b('board-fix-auth', 'live', {
+          paneTitle: 'Audit corrections',
+          statusText: 'rebasing #67, back in 10',
+        }),
+      ]}
+    />
+  );
+  expect(screen.getByTestId('away-board-fix-auth')).toHaveTextContent(
+    '“rebasing #67, back in 10”'
+  );
+  expect(screen.queryByTestId('doing-board-fix-auth')).toBeNull();
 });
 
 test('a buddy is identified by what it is: branch, pane, path, and its rooms as tags, in its detail card', async () => {
