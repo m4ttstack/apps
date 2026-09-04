@@ -1330,7 +1330,7 @@ test('phone: tapping a card opens the reader in place, and back returns to the s
   expect(await screen.findByTestId('reader-phone-header')).toHaveTextContent(
     'meg needs you'
   );
-  // The list stays laid out (never `display: none`) and unmounted -- its
+  // The list stays mounted and laid out (never `display: none`) -- its
   // scroll position survives; see the toggle's own comment for why.
   expect(screen.getByTestId('phone-inbox-list')).toBe(list);
   expect(screen.getByTestId('phone-inbox-list')).toHaveStyle({

@@ -847,6 +847,7 @@ function PhoneInboxPage({
           daemonReachable={daemonReachable}
           onSelectRoom={onSelectRoom}
           onCloseRoom={onCloseRoom}
+          onMarkRead={onMarkRoomRead}
           onOpenDm={onOpenDm}
         />
       </Box>

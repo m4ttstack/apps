@@ -35,7 +35,7 @@ test('the members chip opens a roster grouped by status, wake mode in its header
     />
   );
   const chip = screen.getByTestId('members-chip');
-  expect(chip).toHaveTextContent('3 in room');
+  expect(chip).toHaveTextContent('3 in #build');
   await userEvent.click(chip);
   expect(await screen.findByTestId('members-dropdown')).toBeInTheDocument();
   expect(screen.getByTestId('members-wakes')).toHaveTextContent(
@@ -95,7 +95,7 @@ test('daemon down: the chip reads last known and the roster withholds presence',
     />
   );
   const chip = screen.getByTestId('members-chip');
-  expect(chip).toHaveTextContent('2 in room · last known');
+  expect(chip).toHaveTextContent('2 in #build · last known');
   await userEvent.click(chip);
   expect(
     await screen.findByText('presence withheld while the daemon is down')

@@ -99,6 +99,7 @@ export function buildInbox(
         room.participants.b === humanHandle);
 
     let claimed = 0;
+    let claimedMentions = 0;
     for (const msg of messages) {
       const isMention = msg.mentions.includes(humanHandle);
       const isDmTurn =
@@ -107,6 +108,7 @@ export function buildInbox(
       if (isMention || isDmTurn) {
         needsYou.push(toCard(room, msg, isMention ? 'mention' : 'dm-turn'));
         claimed += 1;
+        if (isMention) claimedMentions += 1;
         continue;
       }
 
@@ -127,7 +129,9 @@ export function buildInbox(
         room: room.room,
         kind: roomKind(room),
         unread: remaining,
-        mentions: room.mentions,
+        // Mentions pulled into `needsYou` cards must not also count here, or
+        // the same mention shows in both fields.
+        mentions: Math.max(0, room.mentions - claimedMentions),
       });
     }
   }

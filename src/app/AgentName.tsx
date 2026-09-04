@@ -10,7 +10,7 @@ import { Invadr } from 'invadrs/react';
 
 import classes from './agent-name.module.css';
 import { useBuddies } from './buddies-context';
-import type { DoingLine } from './doing';
+import { doing, type DoingLine } from './doing';
 import {
   DOT_COLOR,
   headTruncatePath,
@@ -240,6 +240,11 @@ export function AgentCard({
   const now = nowProp ?? ctx?.now ?? Date.now();
   const status = buddy.status;
   const inRoom = inRoomProp ?? ctx?.roomMembers.includes(buddy.handle) ?? false;
+  // A caller that holds the buddy row usually passes `task`; when it does not
+  // (undefined, not an explicit `null`), derive it here so the hover card
+  // still shows the title/branch instead of nothing.
+  const displayTask =
+    task === undefined && reachable ? doing(buddy, now) : task;
   const branchPane = [
     buddy.branch,
     buddy.pane !== undefined ? `pane ${buddy.pane}` : undefined,
@@ -286,11 +291,14 @@ export function AgentCard({
           {reachable ? STATUS_WORD[buddy.status] : '—'}
         </Text>
       </Group>
-      {reachable && task && task.kind !== 'away' && task.kind !== 'path' && (
-        <Text component="span" size="sm" fw={500} truncate>
-          {task.text}
-        </Text>
-      )}
+      {reachable &&
+        displayTask &&
+        displayTask.kind !== 'away' &&
+        displayTask.kind !== 'path' && (
+          <Text component="span" size="sm" fw={500} truncate>
+            {displayTask.text}
+          </Text>
+        )}
       {reachable && buddy.statusText && (
         <Text component="span" style={{ ...MUTED_XS, fontStyle: 'italic' }}>
           “{buddy.statusText}”

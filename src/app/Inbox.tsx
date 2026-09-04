@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -71,17 +71,22 @@ export function useInbox(seed?: InboxPayload): {
   refetchInbox: () => void;
 } {
   const [inbox, setInbox] = useState<InboxPayload>(seed ?? EMPTY_INBOX);
+  const latestRequest = useRef(0);
 
   const refetchInbox = useCallback(() => {
+    const requestId = ++latestRequest.current;
     fetch('/api/chat/inbox')
       .then(res => res.json())
-      .then((data: Partial<InboxPayload>) =>
+      .then((data: Partial<InboxPayload>) => {
+        // A newer refetch already superseded this one: dropping the stale
+        // response keeps a slow request from clobbering fresher state.
+        if (requestId !== latestRequest.current) return;
         setInbox({
           needsYou: data.needsYou ?? [],
           openAsks: data.openAsks ?? [],
           elsewhere: data.elsewhere ?? [],
-        })
-      )
+        });
+      })
       .catch(() => {});
   }, []);
 

@@ -821,10 +821,13 @@ export function FleetTree({
 }: FleetTreeProps) {
   const [dmsExpanded, setDmsExpanded] = useState(false);
   const groups = groupByRepo(rooms, buddies);
-  // `dms` arrives already filtered by `visibleRooms`, so the cap counts only
-  // conversations that are actually listed.
-  const shownDms = dmsExpanded ? dms : visibleDms(dms, activeRoom);
-  const hiddenDms = dms.filter(d => !shownDms.includes(d));
+  // A DM is named by its pair, so a participant-less one would crash DmRow and
+  // overflowLabel. RoomRail filters them upstream, but the exported FleetTree
+  // guards its own input too. `namedDms` is then already `visibleRooms`-filtered,
+  // so the cap counts only conversations that are actually listed.
+  const namedDms = dms.filter(d => d.participants);
+  const shownDms = dmsExpanded ? namedDms : visibleDms(namedDms, activeRoom);
+  const hiddenDms = namedDms.filter(d => !shownDms.includes(d));
 
   return (
     <Fragment>
@@ -857,7 +860,7 @@ export function FleetTree({
         </Fragment>
       ))}
 
-      {dms.length > 0 && (
+      {namedDms.length > 0 && (
         <>
           <Group
             gap="sm"

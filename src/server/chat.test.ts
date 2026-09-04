@@ -1083,7 +1083,9 @@ test('GET /api/chat/inbox fetches only unread rooms, capped at 50, and builds th
       },
     ],
     openAsks: [],
-    elsewhere: [{ room: 'rt', kind: 'room', unread: 199, mentions: 1 }],
+    // mentions is 0, not 1: the room's single mention is the needsYou card
+    // above, so it must not also be counted here.
+    elsewhere: [{ room: 'rt', kind: 'room', unread: 199, mentions: 0 }],
   });
   expect(rt.chatMessages).toHaveBeenCalledTimes(1);
   expect(rt.chatMessages).toHaveBeenCalledWith(

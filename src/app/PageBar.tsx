@@ -269,7 +269,7 @@ function RoomMembers({
             },
           }}
         >
-          {signedIn} in room
+          {signedIn} in {roomLabel}
           {reachable ? '' : ' · last known'}
         </Button>
       </Popover.Target>
