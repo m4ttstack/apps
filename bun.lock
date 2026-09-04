@@ -17,7 +17,7 @@
         "@mattstack/app-server": "^0.1.2",
         "@mattstack/glance": "^0.24.0",
         "@mattstack/mantine-tokyo": "^0.3.0",
-        "@mattstack/rt-client": "^0.11.0",
+        "@mattstack/rt-client": "^0.14.0",
         "@tanstack/react-query": "^5.102.0",
         "hono": "^4.13.3",
         "react": "^19.2.7",
@@ -223,7 +223,7 @@
 
     "@mattstack/mantine-tokyo": ["@mattstack/mantine-tokyo@0.3.0", "", { "peerDependencies": { "@mantine/core": "^9.5.2" } }, "sha512-Pa8hNvkMAz7QOXvZxToaAe3j0VSSc69WGttvHOhRkRpFLMpzHZgKOBtVoXsOHtR/ITmm9ZHkDiSh8aTEb7ytMQ=="],
 
-    "@mattstack/rt-client": ["@mattstack/rt-client@0.11.1", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.13.0" } }, "sha512-JI6qMiRF8FZP6VKApZZfXys3XCKE2YsWMbzzqGgtXul/RVlaOB0pIbZhqKBcFP22pVykFecHWyklH+t5qcZWdg=="],
+    "@mattstack/rt-client": ["@mattstack/rt-client@0.14.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.23.0" } }, "sha512-4jn1FTE/DXQ3ZRAlWxf/CD/N7KpgVJydXGBFYCrfe8Vwke4gkFiSf23dQC3kNMEe/Ux8JdDT+O3bcVZsC9eRXQ=="],
 
     "@octokit/auth-token": ["@octokit/auth-token@6.0.0", "", {}, "sha512-P4YJBPdPSpWTQ1NU4XYdvHvXJJDxM6YwpS0FZHRgP7YFkdVxsWcpWGy/NVqlAA7PcPCnMacXlRm1y2PFZRWL/w=="],
 
