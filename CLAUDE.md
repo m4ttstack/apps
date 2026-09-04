@@ -27,6 +27,26 @@ LIVE from the linked manifest, never copied onto the record. Deck adopts its
 own minimal manifest this way too (just a `dev.deploy` button); its serve
 shape stays the bare `com.mattstack.deck` serve unit, never manifest-declared.
 
+Dev mode is only for mattstack's own apps. `managedBy` classifies every entry:
+`rt` (mattstack-owned), `deck` (deck itself), or `user` (someone's own local
+app, which they registered themselves and which is not bundled with
+mattstack). Only `rt` and `deck` entries carry `devLink`/`devDir`. A `user`
+app has no dev node, no dev-link, and nothing to link TO, so its own stored
+command is the whole story and the absence of a dev-link issue on one is
+correct rather than a missing signal. Everything above about manifests and
+`dev.*` applies to `rt`/`deck` entries only... do not audit a `user` app
+against a manifest `dev` node, and do not read its lack of one as drift.
+`deck status` prints this class in its third column, so check there before
+concluding anything about an app's shape.
+
+One asymmetry worth knowing when an app is down for no visible reason: dev
+commands are read live from the manifest, but the SERVE unit is rendered from
+the stored `record.command` (`src/registry/convert.ts`) and is only compared
+against what launchd has when `register` runs (`src/api/register.ts`). So a
+linked app that moves its entry point keeps a stale unit, with a correct
+manifest, until something re-registers it. `deck register --dir <path>`
+rewrites the unit from the manifest and is the fix.
+
 ## Settings and secrets go through rt, never raw files
 
 - Settings: `getSetting`/`setSetting` from `@mattstack/rt-client` (bundled into
