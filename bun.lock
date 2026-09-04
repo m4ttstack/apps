@@ -8,7 +8,7 @@
         "@mattstack/glance": "^0.21.0",
         "@mattstack/rt-client": "^0.11.1",
         "@mattstack/settings-kit": "^0.1.3",
-        "@mattstack/tui-kit": "^0.1.1",
+        "@mattstack/tui-kit": "^0.2.0",
         "invadrs": "^0.2.0",
         "pngjs": "^7.0.0",
         "react": "19.2.7",
@@ -42,7 +42,7 @@
 
     "@mattstack/settings-kit": ["@mattstack/settings-kit@0.1.3", "", { "peerDependencies": { "@mattstack/rt-client": ">=0.4.1 <1", "react": ">=18" }, "optionalPeers": ["react"] }, "sha512-qNPKrnfDF2zCq2T7vUEkMPiZPU491vKvR+/+NN3fvo0Dne3+9HrhNE9uSxxJU04bSTxP+v3Ok8AD3Fx8fKJh3Q=="],
 
-    "@mattstack/tui-kit": ["@mattstack/tui-kit@0.1.1", "", { "dependencies": { "@soribashi/core": "^0.4.0", "react-markdown": "^10.1.0", "remark-gfm": "^4.0.1" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0" } }, "sha512-IdpLSuQR9cF+urp9MoYMu6dCL1xOoLS8l4BxwF+kmF2QVlOwu4mzPBjTR8VUPIBbCuUSmv5r/rSkiNYPq6nJ/A=="],
+    "@mattstack/tui-kit": ["@mattstack/tui-kit@0.2.0", "", { "dependencies": { "@soribashi/core": "^0.4.0", "react-markdown": "^10.1.0", "remark-gfm": "^4.0.1" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0" } }, "sha512-8ZSoki1PIN0KhrUb6G+l6f1zKfM8zbXj7B6JMFzw3psWhwipHwmyKkj3OGsokGRt16jhsYPpwZhOCVIt+87XkQ=="],
 
     "@octokit/auth-token": ["@octokit/auth-token@6.0.0", "", {}, "sha512-P4YJBPdPSpWTQ1NU4XYdvHvXJJDxM6YwpS0FZHRgP7YFkdVxsWcpWGy/NVqlAA7PcPCnMacXlRm1y2PFZRWL/w=="],
 
