@@ -7,18 +7,28 @@
 2. `docs/superpowers/specs/2026-08-26-app-kit-design.md` -- the design:
    why these packages exist, the decisions taken during brainstorming, the
    full repo layout, and the migration plan for each consumer.
-3. `AGENTS.md` -- the contract for editing `packages/ui/src`,
+3. `docs/superpowers/specs/2026-09-06-apps-fold-in-design.md` -- the
+   fold-in: why publishing ends, why the five apps (chat, console,
+   boxscore, board, deck) move into this repo as `apps/<name>`, the
+   per-app migration shape, and the rename to `m4ttstack/apps`.
+4. `AGENTS.md` -- the contract for editing `packages/ui/src`,
    `packages/server/src`, or consuming either package: import walls, theme
    and icon extension points, the boot family, and the consumer
    requirements a migrating app must not skip.
 
 ## Consumer repos
 
-- **chat**: migrated onto `@mattstack/app-kit` / `@mattstack/app-server`;
-  its own `src/ui` copy of the kit is gone.
-- **console**: pending. Console migrates from its own post-wouter `main`,
-  in a separate plan, now that chat's migration has proven the packages
-  against a real app.
+The five mattstack apps are folding into this repo as `apps/<name>`
+workspace members, one PR per app, per
+`docs/superpowers/plans/2026-09-06-apps-fold-in.md`:
+
+- **chat**: first to fold in.
+- **console**, **boxscore**, **board**, **deck**: arriving after chat, in
+  that order, per the fold-in plan.
+
+Until an app's fold-in PR lands, it stays in its own repo and consumes
+the platform packages as described in README.md's "Bundle-transition
+tarballs" section.
 
 ## Mantine: look it up, don't recall it
 
@@ -39,13 +49,15 @@ from a different Mantine version.
 
 ## Publishing
 
-`@mattstack/app-kit`, `@mattstack/app-server`, `@mattstack/mantine-tokyo`,
-and `@mattstack/tui-kit` are all on npm. `packages/tokens` stays private
-and unpublished. The four published packages release together as one
-platform version (see `scripts/set-platform-version.ts`); publishing is
-still Matt's step, done by hand, one platform version at a time. Nothing
-in this repo automates a publish. A consumer that has not yet picked up a
-given platform bump depends on a packed tarball in the meantime (see
-`README.md`'s "Installation" section and `AGENTS.md`'s "Consumer
-requirements" §4) -- do not propose or wire up a publish workflow without
-Matt asking for one.
+Nothing in this repo publishes to npm. `@mattstack/app-kit`,
+`@mattstack/app-server`, `@mattstack/mantine-tokyo`, and
+`@mattstack/tui-kit` each carry a version (currently 0.4.0, bumped
+together via `scripts/set-platform-version.ts`), but that version is a
+tree-internal identity only: it has never been published and, per the
+fold-in decision, never will be. `packages/tokens` stays private and
+unpublished as before. Apps consume the packages via the workspace (see
+README.md's "Installation" section) once they fold in; a consumer that
+has not yet folded in depends on a packed tarball in the meantime (see
+README.md's "Bundle-transition tarballs" section and `AGENTS.md`'s
+"Consumer requirements" §4) -- do not propose or wire up a publish
+workflow.
