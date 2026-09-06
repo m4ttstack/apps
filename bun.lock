@@ -18,7 +18,7 @@
         "@mantine/spotlight": "^9.5.2",
         "@mattstack/app-kit": "workspace:*",
         "@mattstack/glance": "^0.24.0",
-        "@mattstack/rt-client": "^0.14.0",
+        "@mattstack/rt-client": "^0.16.0",
         "@storybook/addon-a11y": "^10.5.2",
         "@storybook/addon-docs": "^10.5.2",
         "@storybook/react-vite": "^10.5.2",
@@ -56,20 +56,20 @@
       },
       "peerDependencies": {
         "@mattstack/glance": "^0.24.0",
-        "@mattstack/rt-client": "^0.14.0",
+        "@mattstack/rt-client": "^0.16.0",
         "hono": "^4.13.3",
       },
     },
     "packages/tokyo": {
       "name": "@mattstack/mantine-tokyo",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "peerDependencies": {
         "@mantine/core": "^9.5.2",
       },
     },
     "packages/ui": {
       "name": "@mattstack/app-kit",
-      "version": "0.1.9",
+      "version": "0.2.0",
       "dependencies": {
         "@codemirror/commands": "^6.10.4",
         "@codemirror/lang-javascript": "^6.2.5",
@@ -93,7 +93,7 @@
         "@mantine/modals": "^9.5.2",
         "@mantine/notifications": "^9.5.2",
         "@mantine/spotlight": "^9.5.2",
-        "@mattstack/mantine-tokyo": "^0.2.0",
+        "@mattstack/mantine-tokyo": "^0.3.0",
         "@testing-library/react": "^16.3.2",
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
@@ -340,7 +340,7 @@
 
     "@mattstack/mantine-tokyo": ["@mattstack/mantine-tokyo@workspace:packages/tokyo"],
 
-    "@mattstack/rt-client": ["@mattstack/rt-client@0.14.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.23.0" } }, "sha512-4jn1FTE/DXQ3ZRAlWxf/CD/N7KpgVJydXGBFYCrfe8Vwke4gkFiSf23dQC3kNMEe/Ux8JdDT+O3bcVZsC9eRXQ=="],
+    "@mattstack/rt-client": ["@mattstack/rt-client@0.16.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.24.0" } }, "sha512-Eiel3Enyo+zU3TlvRA5Gv8emivEMult1/nZvg5FtToeNazXxwl7omCnBCVVeiD6/uvqzu8xE825v90PzQxkQiw=="],
 
     "@mdx-js/react": ["@mdx-js/react@3.1.1", "", { "dependencies": { "@types/mdx": "^2.0.0" }, "peerDependencies": { "@types/react": ">=16", "react": ">=16" } }, "sha512-f++rKLQgUVYDAtECQ6fn/is15GkEH9+nZPM3MS0RcxVqoTfawHvDlSCH7JbMhAM6uJ32v3eXLvLmLvjGu7PTQw=="],
 
