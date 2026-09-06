@@ -60,6 +60,10 @@
         "hono": "^4.13.3",
       },
     },
+    "packages/tokens": {
+      "name": "@mattstack/tokens",
+      "version": "0.0.0",
+    },
     "packages/tokyo": {
       "name": "@mattstack/mantine-tokyo",
       "version": "0.3.0",
@@ -381,6 +385,8 @@
     "@mattstack/mantine-tokyo": ["@mattstack/mantine-tokyo@workspace:packages/tokyo"],
 
     "@mattstack/rt-client": ["@mattstack/rt-client@0.14.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.23.0" } }, "sha512-4jn1FTE/DXQ3ZRAlWxf/CD/N7KpgVJydXGBFYCrfe8Vwke4gkFiSf23dQC3kNMEe/Ux8JdDT+O3bcVZsC9eRXQ=="],
+
+    "@mattstack/tokens": ["@mattstack/tokens@workspace:packages/tokens"],
 
     "@mattstack/tui-kit": ["@mattstack/tui-kit@workspace:packages/tui-kit"],
 
