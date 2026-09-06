@@ -18,7 +18,7 @@
         "@mantine/spotlight": "^9.5.2",
         "@mattstack/app-kit": "workspace:*",
         "@mattstack/glance": "^0.24.0",
-        "@mattstack/rt-client": "^0.14.0",
+        "@mattstack/rt-client": "^0.16.0",
         "@storybook/addon-a11y": "^10.5.2",
         "@storybook/addon-docs": "^10.5.2",
         "@storybook/react-vite": "^10.5.2",
@@ -50,13 +50,13 @@
     },
     "packages/server": {
       "name": "@mattstack/app-server",
-      "version": "0.1.2",
+      "version": "0.4.0",
       "bin": {
         "mattstack-embed-assets": "./bin/mattstack-embed-assets.ts",
       },
       "peerDependencies": {
         "@mattstack/glance": "^0.24.0",
-        "@mattstack/rt-client": "^0.14.0",
+        "@mattstack/rt-client": ">=0.14.0",
         "hono": "^4.13.3",
       },
     },
@@ -66,14 +66,14 @@
     },
     "packages/tokyo": {
       "name": "@mattstack/mantine-tokyo",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
         "@mantine/core": "^9.5.2",
       },
     },
     "packages/tui-kit": {
       "name": "@mattstack/tui-kit",
-      "version": "0.2.0",
+      "version": "0.4.0",
       "dependencies": {
         "@soribashi/core": "^0.4.0",
         "react-markdown": "^10.1.0",
@@ -111,7 +111,7 @@
     },
     "packages/ui": {
       "name": "@mattstack/app-kit",
-      "version": "0.2.0",
+      "version": "0.4.0",
       "dependencies": {
         "@codemirror/commands": "^6.10.4",
         "@codemirror/lang-javascript": "^6.2.5",
@@ -384,7 +384,7 @@
 
     "@mattstack/mantine-tokyo": ["@mattstack/mantine-tokyo@workspace:packages/tokyo"],
 
-    "@mattstack/rt-client": ["@mattstack/rt-client@0.14.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.23.0" } }, "sha512-4jn1FTE/DXQ3ZRAlWxf/CD/N7KpgVJydXGBFYCrfe8Vwke4gkFiSf23dQC3kNMEe/Ux8JdDT+O3bcVZsC9eRXQ=="],
+    "@mattstack/rt-client": ["@mattstack/rt-client@0.16.0", "", { "dependencies": { "jsonc-parser": "^3.3.1" }, "peerDependencies": { "@mattstack/glance": ">=0.24.0" } }, "sha512-Eiel3Enyo+zU3TlvRA5Gv8emivEMult1/nZvg5FtToeNazXxwl7omCnBCVVeiD6/uvqzu8xE825v90PzQxkQiw=="],
 
     "@mattstack/tokens": ["@mattstack/tokens@workspace:packages/tokens"],
 
