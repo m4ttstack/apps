@@ -2,7 +2,7 @@
 
 ## Reading order
 
-1. `README.md` -- what the three packages are, the subpath tables, the
+1. `README.md` -- what the four packages are, the subpath tables, the
    consumer snippets, local development and consumption.
 2. `docs/superpowers/specs/2026-08-26-app-kit-design.md` -- the design:
    why these packages exist, the decisions taken during brainstorming, the
@@ -14,12 +14,11 @@
 
 ## Consumer repos
 
-- **chat**: pending. Not yet migrated onto `@mattstack/app-kit` /
-  `@mattstack/app-server`; still carries its own `src/ui` copy of the kit.
-  The migration plan is in the spec's "Migration" section.
-- **console**: pending, and later than chat. Console migrates from its
-  own post-wouter `main`, in a separate plan, once chat's migration has
-  proven the packages against a real app.
+- **chat**: migrated onto `@mattstack/app-kit` / `@mattstack/app-server`;
+  its own `src/ui` copy of the kit is gone.
+- **console**: pending. Console migrates from its own post-wouter `main`,
+  in a separate plan, now that chat's migration has proven the packages
+  against a real app.
 
 ## Mantine: look it up, don't recall it
 
@@ -40,9 +39,13 @@ from a different Mantine version.
 
 ## Publishing
 
-Publishing any of the three packages to npm is Matt's step, done by hand,
-one version bumped at a time. Nothing in this repo automates a publish.
-Until a package is published, consumers depend on a packed tarball (see
-`README.md`'s "Consumption" section and `AGENTS.md`'s "Consumer
+`@mattstack/app-kit`, `@mattstack/app-server`, `@mattstack/mantine-tokyo`,
+and `@mattstack/tui-kit` are all on npm. `packages/tokens` stays private
+and unpublished. The four published packages release together as one
+platform version (see `scripts/set-platform-version.ts`); publishing is
+still Matt's step, done by hand, one platform version at a time. Nothing
+in this repo automates a publish. A consumer that has not yet picked up a
+given platform bump depends on a packed tarball in the meantime (see
+`README.md`'s "Installation" section and `AGENTS.md`'s "Consumer
 requirements" §4) -- do not propose or wire up a publish workflow without
 Matt asking for one.
