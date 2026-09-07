@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Development moved to [m4ttstack/apps](https://github.com/m4ttstack/apps) (`apps/board`). This repo remains for release history until the mattstack.app bundle cutover, then archives.
+
 # board
 
 One page of your team's open GitLab merge requests that are ready for review,
