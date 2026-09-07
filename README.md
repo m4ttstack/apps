@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Development moved to [m4ttstack/apps](https://github.com/m4ttstack/apps) (`apps/chat`). This repo remains for release history until the mattstack.app bundle cutover, then archives.
+
 # chat
 
 A web viewer for `rt chat`: the persistent group chat that lets a person and
