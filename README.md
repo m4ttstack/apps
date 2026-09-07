@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Development moved to [m4ttstack/apps](https://github.com/m4ttstack/apps) (`apps/console`). This repo remains for release history until the mattstack.app bundle cutover, then archives.
+
 # mattstack-console
 
 _Part of the [mattstack](https://github.com/m4ttstack) estate, alongside [`rt`](https://github.com/m4ttstack/rt),
