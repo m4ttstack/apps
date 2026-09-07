@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Development moved to [m4ttstack/apps](https://github.com/m4ttstack/apps) (`apps/boxscore`). This repo remains for release history until the mattstack.app bundle cutover, then archives.
+
 # Forge Leaderboard
 
 A local, single-operator dashboard that ranks a hand-picked set of GitLab users against
