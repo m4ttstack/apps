@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Development moved to [m4ttstack/apps](https://github.com/m4ttstack/apps) (`apps/deck`). This repo remains for release history until the mattstack.app bundle cutover, then archives.
+
 # Deck
 
 Give every local app a name, keep it running, share it when you want.
