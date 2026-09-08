@@ -34,10 +34,11 @@ byte-identical under app-prefixed tags (`chat-v0.1.0` style).
 
 The root `package.json`'s `workspaces.catalog` is the single home for
 shared dependency versions; every member declares `"catalog:"` rather than
-pinning its own version. `packages/tui-kit`'s `"typescript": "^7"` is the
-one deliberate exception -- the catalog's `~6` line would downgrade its
-compiler, so it opts out on purpose. Do not add a second exception without
-the same kind of reason. Member-level lockfiles are forbidden: the root
+pinning its own version. `packages/tui-kit` and `apps/board` each pin
+`"typescript": "^7"` as deliberate exceptions -- the catalog's `~6` line
+would downgrade their compiler, so both opt out on purpose, for the same
+reason. Do not add a further exception without the same kind of reason.
+Member-level lockfiles are forbidden: the root
 `bun.lock` is the only lockfile that owns resolution, so a workspace
 member never runs `bun install` scoped to itself in a way that would
 produce its own lock.
