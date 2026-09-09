@@ -98,7 +98,7 @@ const STYLE = `
     .thumb { width: 14px; height: 14px; border-radius: 50%; background: #ffffff; position: absolute; top: 2px; }
 `;
 
-// --- Data (sample values; roster is the live claimview roster plus boxscore's two extras) ---
+// --- Data (sample values; roster is the live acme-web roster plus boxscore's two extras) ---
 const GROUPS = [
   { key: "delivery", label: "Delivery", hint: "Linear", color: "green" },
   { key: "volume", label: "Volume", hint: "gameable", color: "mutedText" },
@@ -121,13 +121,13 @@ const COLS = [
   { key: "reciprocity", label: "Reciprocity", group: "quality", better: "desc" },
 ];
 const PEOPLE = [
-  { name: "Matthew Goodwin", user: "m4ttheweric", you: true, v: ["9", "4,812", "2,106", "14", "11", "88", "2.4/MR", "3.1h", "1.9h", "0%", "71%", "19", "4", "1.2"], r: [1, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4, 1, 2, 3], d: ["+2", "+640", "-212", "+3", "+1", "+9", "+0.3", "-1.4", "+0.2", "0", "+6", "+2", "+1", "+0.1"] },
-  { name: "Doug Treadwell", user: "doug-at-assured", v: ["8", "6,105", "3,988", "12", "6", "97", "1.1/MR", "2.7h", "6.8h", "8%", "50%", "18", "5", "0.6"], d: ["+3", "+1,930", "+1,204", "+4", "-2", "+21", "-0.2", "-0.6", "+2.1", "+8", "-11", "+1", "+2", "-0.2"] },
-  { name: "Leath Cooper", user: "leath1", v: ["7", "3,340", "1,522", "11", "16", "74", "3.1/MR", "5.8h", "1.2h", "9%", "64%", "17", "3", "1.6"], d: ["+1", "-410", "+88", "-1", "+4", "+2", "+0.6", "+0.9", "-0.4", "+9", "-5", "0", "0", "+0.3"] },
-  { name: "Ed Rocha", user: "edroch", v: ["6", "2,918", "905", "9", "8", "61", "1.7/MR", "6.4h", "4.3h", "0%", "78%", "15", "3", "0.9"], d: ["0", "+120", "-60", "0", "+1", "-4", "+0.1", "+1.1", "-0.8", "0", "+3", "-1", "0", "+0.1"] },
-  { name: "Jorge Coello", user: "jorgecoello", v: ["5", "1,764", "640", "7", "9", "52", "2.0/MR", "8.9h", "2.6h", "0%", "86%", "14", "2", "1.3"], d: ["+1", "+300", "+95", "+1", "+2", "+6", "+0.4", "-2.0", "-0.5", "0", "+4", "+1", "0", "+0.2"] },
-  { name: "Darrell Banks", user: "hacknightly", v: ["4", "2,230", "1,110", "6", "5", "40", "1.4/MR", "12.2h", "5.1h", "17%", "67%", "12", "2", "0.8"], d: ["-1", "-880", "-402", "-2", "-1", "-12", "-0.5", "+3.4", "+1.2", "+17", "-8", "-3", "-1", "-0.3"] },
-  { name: "Caleb Dudley", user: "CalebDudley-Assured", v: ["3", "1,102", "388", "5", "4", "33", "0.9/MR", "10.5h", "7.4h", "0%", "80%", "11", "2", "1.0"], d: ["+1", "+410", "+120", "+2", "+1", "+8", "+0.2", "-1.1", "-0.9", "0", "+5", "+2", "+1", "+0.2"] },
+  { name: "Alex Rivera", user: "alexrivera", you: true, v: ["9", "4,812", "2,106", "14", "11", "88", "2.4/MR", "3.1h", "1.9h", "0%", "71%", "19", "4", "1.2"], r: [1, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4, 1, 2, 3], d: ["+2", "+640", "-212", "+3", "+1", "+9", "+0.3", "-1.4", "+0.2", "0", "+6", "+2", "+1", "+0.1"] },
+  { name: "Owen Marsh", user: "owen-at-acme", v: ["8", "6,105", "3,988", "12", "6", "97", "1.1/MR", "2.7h", "6.8h", "8%", "50%", "18", "5", "0.6"], d: ["+3", "+1,930", "+1,204", "+4", "-2", "+21", "-0.2", "-0.6", "+2.1", "+8", "-11", "+1", "+2", "-0.2"] },
+  { name: "Nadia Fenwick", user: "nadia1", v: ["7", "3,340", "1,522", "11", "16", "74", "3.1/MR", "5.8h", "1.2h", "9%", "64%", "17", "3", "1.6"], d: ["+1", "-410", "+88", "-1", "+4", "+2", "+0.6", "+0.9", "-0.4", "+9", "-5", "0", "0", "+0.3"] },
+  { name: "Sam Kestrel", user: "samkestrel", v: ["6", "2,918", "905", "9", "8", "61", "1.7/MR", "6.4h", "4.3h", "0%", "78%", "15", "3", "0.9"], d: ["0", "+120", "-60", "0", "+1", "-4", "+0.1", "+1.1", "-0.8", "0", "+3", "-1", "0", "+0.1"] },
+  { name: "Marco Villanueva", user: "marcovillanueva", v: ["5", "1,764", "640", "7", "9", "52", "2.0/MR", "8.9h", "2.6h", "0%", "86%", "14", "2", "1.3"], d: ["+1", "+300", "+95", "+1", "+2", "+6", "+0.4", "-2.0", "-0.5", "0", "+4", "+1", "0", "+0.2"] },
+  { name: "Reggie Voss", user: "nightowl2", v: ["4", "2,230", "1,110", "6", "5", "40", "1.4/MR", "12.2h", "5.1h", "17%", "67%", "12", "2", "0.8"], d: ["-1", "-880", "-402", "-2", "-1", "-12", "-0.5", "+3.4", "+1.2", "+17", "-8", "-3", "-1", "-0.3"] },
+  { name: "Miles Chandler", user: "MilesChandler-Acme", v: ["3", "1,102", "388", "5", "4", "33", "0.9/MR", "10.5h", "7.4h", "0%", "80%", "11", "2", "1.0"], d: ["+1", "+410", "+120", "+2", "+1", "+8", "+0.2", "-1.1", "-0.9", "0", "+5", "+2", "+1", "+0.2"] },
 ];
 
 // --- Chrome ---
@@ -177,7 +177,7 @@ function controls({ trend, view, refreshing }) {
     <div class="btn"${refreshing ? ' style="opacity: 0.55"' : ""}>${icon("refresh", 14)}Refresh</div>
   </div>
   <div style="display: flex; gap: 14.4px; font-size: 10.56px; color: var(--tk-muted-text); margin-top: -7.2px">
-    <div>Scope: <span style="color: var(--tk-fg)">assured/assured-dev</span></div>
+    <div>Scope: <span style="color: var(--tk-fg)">acme/acme-web</span></div>
     <div>Window: <span style="color: var(--tk-fg)">2026-08-03 → 2026-09-02</span></div>
     <div>${refreshing ? "refreshing" : "cached 14 min ago"}</div>
     ${trend ? `<div style="color: var(--tk-accent-text)">trend vs 2026-07-04+</div>` : ""}
@@ -287,20 +287,20 @@ function detail() {
     </div>`;
   }).join("");
   const evRows = [
-    ["!4821", "CV-2310: extract claim classification sections under Incident", "+212", "−48", "2026-08-29"],
-    ["!4809", "CV-2298: gate object-interaction chips on a shared source", "+96", "−131", "2026-08-27"],
-    ["!4797", "CV-2287: multi-strategy select for JSON fact operations", "+338", "−72", "2026-08-25"],
-    ["!4788", "CV-2287: isJsonFactOperationValue helper + tests", "+64", "−9", "2026-08-22"],
-    ["!4771", "CV-2261: vehicle section layout parity with CV2", "+410", "−286", "2026-08-20"],
-    ["!4760", "CV-2250: island route registration for Detailed Questions", "+151", "−40", "2026-08-18"],
-    ["!4742", "CV-2244: remove dead codeowner section resolver", "+3", "−212", "2026-08-14"],
-    ["!4730", "CV-2239: incident island reads GFM Q&A source", "+276", "−118", "2026-08-12"],
-    ["!4718", "CV-2231: sticky summary strip on adjuster claim view", "+189", "−54", "2026-08-08"],
-    ["!4709", "CV-2226: dedupe workflow states by name in the Linear picker", "+22", "−31", "2026-08-07"],
-    ["!4701", "CV-2219: island loader reads the classification map once", "+87", "−140", "2026-08-06"],
-    ["!4694", "CV-2214: object-damage chip copy and tooltip parity", "+41", "−18", "2026-08-05"],
-    ["!4688", "CV-2208: incident timeline collapses system notes", "+133", "−62", "2026-08-04"],
-    ["!4680", "CV-2203: remove legacy vehicle section resolver", "+9", "−241", "2026-08-03"],
+    ["!1042", "ACME-410: extract cart line-item summary sections under Checkout", "+212", "−48", "2026-08-29"],
+    ["!1038", "ACME-402: gate promo-code chips on a shared source", "+96", "−131", "2026-08-27"],
+    ["!1035", "ACME-398: multi-strategy select for JSON discount operations", "+338", "−72", "2026-08-25"],
+    ["!1033", "ACME-398: isValidDiscountOperationValue helper + tests", "+64", "−9", "2026-08-22"],
+    ["!1029", "ACME-388: shipping section layout parity with the legacy renderer", "+410", "−286", "2026-08-20"],
+    ["!1026", "ACME-381: island route registration for Order Details", "+151", "−40", "2026-08-18"],
+    ["!1021", "ACME-376: remove dead codeowner section resolver", "+3", "−212", "2026-08-14"],
+    ["!1017", "ACME-370: fulfillment island reads the returns Q&A source", "+276", "−118", "2026-08-12"],
+    ["!1013", "ACME-364: sticky summary strip on order review checkout", "+189", "−54", "2026-08-08"],
+    ["!1009", "ACME-358: dedupe workflow states by name in the ticket picker", "+22", "−31", "2026-08-07"],
+    ["!1005", "ACME-352: island loader reads the classification map once", "+87", "−140", "2026-08-06"],
+    ["!1001", "ACME-347: shipping-damage chip copy and tooltip parity", "+41", "−18", "2026-08-05"],
+    ["!997", "ACME-341: fulfillment timeline collapses system notes", "+133", "−62", "2026-08-04"],
+    ["!993", "ACME-336: remove legacy shipping section resolver", "+9", "−241", "2026-08-03"],
   ];
   const ev = `<div class="paper" style="overflow: hidden">
     <table style="border-collapse: collapse; width: 100%">
@@ -310,9 +310,9 @@ function detail() {
   </div>`;
   const title = `<div style="display: flex; align-items: center; gap: 12px">
       <div class="btn btn-subtle" style="height: 26px; padding: 0 6px; margin-left: -6px">${icon("arrowLeft", 14)}Leaderboard</div>
-      <div style="font-size: 13.6px; font-weight: 600">Matthew Goodwin</div>
+      <div style="font-size: 13.6px; font-weight: 600">Alex Rivera</div>
       <span class="badge badge-accent">you</span>
-      <div style="font-size: 10.56px; color: var(--tk-muted-text)">@m4ttheweric · 2026-08-03 → 2026-09-02 · trend on</div>
+      <div style="font-size: 10.56px; color: var(--tk-muted-text)">@alexrivera · 2026-08-03 → 2026-09-02 · trend on</div>
     </div>
     <div style="font-size: 10.56px; color: var(--tk-muted-text)">14 of 14 metrics resolved</div>`;
   const content = `<div style="display: grid; grid-template-columns: 256px minmax(0, 1fr); gap: 18px; align-items: start">
@@ -321,7 +321,7 @@ function detail() {
       <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 12px">
         <div>
           <div style="font-size: 17.6px; font-weight: 700; line-height: 1.35">MRs merged</div>
-          <div style="font-size: 10.56px; color: var(--tk-muted-text); max-width: 560px">Count of MRs the user authored that merged in the window. With a Linear team set, only MRs that reference a CV ticket count.</div>
+          <div style="font-size: 10.56px; color: var(--tk-muted-text); max-width: 560px">Count of MRs the user authored that merged in the window. With a Linear team set, only MRs that reference an ACME ticket count.</div>
         </div>
         <div class="num" style="display: flex; align-items: baseline; gap: 9.6px">
           <span style="font-size: 21.6px; font-weight: 700">14</span>
@@ -329,7 +329,7 @@ function detail() {
           <span style="font-size: 12.16px">${deltaCell("+3", COLS[3])}</span>
         </div>
       </div>
-      <div style="font-size: 11.2px; color: var(--tk-muted-text)">14 merged · 2 without a CV ticket excluded · 1,988 lines net after file exclusions</div>
+      <div style="font-size: 11.2px; color: var(--tk-muted-text)">14 merged · 2 without an ACME ticket excluded · 1,988 lines net after file exclusions</div>
       ${ev}
     </div>
   </div>`;
@@ -368,9 +368,9 @@ function settings() {
     <div style="display: flex; align-items: baseline; gap: 9.6px; margin-bottom: 7.2px"><div style="font-size: 13.6px; font-weight: 700">${title}</div><div style="font-size: 10.56px; color: var(--tk-muted-text)">${sub}</div></div>
     <div class="paper" style="overflow: hidden">${body}</div>
   </div>`;
-  const team = section("Team", "claimview · team store · local until committed and pushed",
+  const team = section("Team", "acme-web · team store · local until committed and pushed",
     row("Roster", "mattstack.roster", "The people every mattstack app scores, lists, and routes to. Shared with the board.", "7 members", scope("team", "team store"), rosterPanel) +
-    row("Projects", "boxscore.projects", "GitLab projects whose merge requests count.", "assured/assured-dev", scope("team", "team store")) +
+    row("Projects", "boxscore.projects", "GitLab projects whose merge requests count.", "acme/acme-web", scope("team", "team store")) +
     row("Linear done states", "boxscore.linearDoneStates", "Ticket states that count as delivered. Empty means completed plus canceled types.", "Done · Ready for Merge · Ready for Testing · Deployed, Disabled · Ready for Release · Ready for CE · Carrier QA · Testing", scope("team", "team store")) +
     row("Size band", "boxscore.sizeBand", "Changed lines that make a merged MR reviewable.", "10 to 400 lines", scope("team", "team store")) +
     row("File exclusions", "boxscore.excludeFilePatterns", "Globs left out of added and deleted line counts.", "**/*.json · **/graphql.ts", scope("team", "team store")) +
@@ -381,7 +381,7 @@ function settings() {
     row("Default range", "boxscore.defaultRange", "The window the leaderboard opens on.", "30d", scope("user", "user store")));
   const from = section("Read from the suite", "not editable here",
     row("GitLab host", "mattstack.integrations · forge.host", "Where merge requests are fetched from.", "https://gitlab.com", scope("team", "team store"), "", false) +
-    row("Linear team", "mattstack.integrations · linear.teamKey", "Only tickets with this prefix count toward delivery.", "CV", scope("team", "team store"), "", false) +
+    row("Linear team", "mattstack.integrations · linear.teamKey", "Only tickets with this prefix count toward delivery.", "ACME", scope("team", "team store"), "", false) +
     row("Tokens", "secrets · rt domain", "GitLab and Linear tokens come from the secrets store, never from settings.", "gitlabToken set · linearApiKey set", scope("unset", "secrets"), "", false));
   const title = `<div style="font-size: 13.6px; font-weight: 600">Settings</div><div style="font-size: 10.56px; color: var(--tk-muted-text)">rt settings explain &lt;key&gt; shows the full chain</div>`;
   const content = `<div style="display: flex; flex-direction: column; gap: 18px; max-width: 1080px">${team}${you}${from}</div>`;
@@ -448,7 +448,7 @@ const canvas = {
     { file: "Settings.dc.html", title: "Settings", x: 1540, y: 2080, w: 1440, h: 1280 },
   ],
   annotations: [
-    { id: "brief", x: 0, y: -170, w: 520, text: "Boxscore on app-kit. Matched: Tokyo Day/Night tokens, JetBrains Mono 13.5px, console's 48px header + 40px page row, 68px rail, 6px radii, Mantine table spacing.\nEach artboard has a Dark tweak. Metric values are sample data; the roster is the live claimview one plus boxscore's two extras." },
+    { id: "brief", x: 0, y: -170, w: 520, text: "Boxscore on app-kit. Matched: Tokyo Day/Night tokens, JetBrains Mono 13.5px, console's 48px header + 40px page row, 68px rail, 6px radii, Mantine table spacing.\nEach artboard has a Dark tweak. Metric values are sample data; the roster is the live acme-web one plus boxscore's two extras." },
     { id: "settings-note", x: 0, y: 2320, w: 520, text: "Settings: sections mirror the scopes in the spec (team, user, read-only suite values). Roster is the featured composite because it is the shared key.\nEdits go through settings-kit; team values are local until committed and pushed, so the section header says so." },
   ],
   launch: { view: "canvas" },
