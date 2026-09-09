@@ -840,7 +840,7 @@ describe('runRefresh: Linear issue persistence', () => {
       fetchMergeRequestIndex: async () => [
         indexRow({
           iid: 42,
-          title: 'CV-9001: fix the thing',
+          title: 'ACME-9001: fix the thing',
           state: 'merged',
           authorUsername: 'alice',
         }),
@@ -859,7 +859,7 @@ describe('runRefresh: Linear issue persistence', () => {
     const issues = store.linearIssuesForMrKeys([mrKey('g/p', 42)]);
     expect(issues).toHaveLength(1);
     expect(issues[0]).toMatchObject({
-      identifier: 'CV-9001',
+      identifier: 'ACME-9001',
       linkedMrs: [{ iid: 42, projectPath: 'g/p' }],
     });
   });
@@ -870,10 +870,10 @@ describe('runRefresh: Linear issue persistence', () => {
     const store = getStore();
     store.upsertLinearIssues([
       {
-        id: 'uuid-CV-1',
-        identifier: 'CV-1',
+        id: 'uuid-ACME-1',
+        identifier: 'ACME-1',
         title: 'Ticket',
-        url: 'https://linear.app/acme/issue/CV-1',
+        url: 'https://linear.app/acme/issue/ACME-1',
         assignedUser: 'alice',
         linkedMrs: [{ iid: 42, projectPath: 'g/p' }],
         stateType: 'started',
@@ -884,7 +884,7 @@ describe('runRefresh: Linear issue persistence', () => {
       fetchMergeRequestIndex: async () => [
         indexRow({
           iid: 42,
-          title: 'CV-9001: fix the thing',
+          title: 'ACME-9001: fix the thing',
           state: 'merged',
           authorUsername: 'alice',
         }),
@@ -901,6 +901,6 @@ describe('runRefresh: Linear issue persistence', () => {
 
     const issues = store.linearIssuesForMrKeys([mrKey('g/p', 42)]);
     expect(issues).toHaveLength(1);
-    expect(issues[0]).toMatchObject({ identifier: 'CV-1' });
+    expect(issues[0]).toMatchObject({ identifier: 'ACME-1' });
   });
 });

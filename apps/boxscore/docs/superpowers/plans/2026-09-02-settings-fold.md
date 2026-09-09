@@ -19,7 +19,7 @@
 - Tests must never read `~/.mattstack`: every store-backed reader carries a test seam, and the default reader throws under vitest (`process.env.VITEST`).
 - Boxscore validation: `bun run test` (vitest) and `bun run typecheck` after every task. rt-client validation: `bun test` and `bun run check-types` inside `packages/rt-client`.
 - Commit after each task. No em dashes anywhere. Comments only for constraints code cannot show.
-- Execution-gated steps (Matt confirms each, at cutover, not during SDD): npm publish of rt-client 0.12.0 (OTP via bw), running the import script, committing/pushing the claimview team repo, merging either branch.
+- Execution-gated steps (Matt confirms each, at cutover, not during SDD): npm publish of rt-client 0.12.0 (OTP via bw), running the import script, committing/pushing the acme-web team repo, merging either branch.
 
 ---
 
@@ -649,8 +649,8 @@ In each listed test file, replace the legacy fakes with the seams:
 import { __setSettingReader } from "../server/config/index.js";
 
 const SETTINGS: Record<string, unknown> = {
-  "boxscore.projects": ["assured/assured-dev"],
-  "mattstack.roster": [{ username: "m4ttheweric", name: "Matthew Goodwin" }],
+  "boxscore.projects": ["acme/acme-web"],
+  "mattstack.roster": [{ username: "alexrivera", name: "Alex Rivera" }],
   "mattstack.integrations": { forge: { host: "gl.example" } },
 };
 beforeAll(() => __setSettingReader(<T,>(k: string) => SETTINGS[k] as T | undefined));
@@ -744,7 +744,7 @@ Run: `bun run test -- test/import-legacy.test.ts`. Expected: FAIL.
 4. **Secrets presence check** (names only, values never printed): `rtCommand("secrets:read", { token, scope: "extension" })`; if `gitlabToken` or `linearApiKey` is absent, exit 1 with instructions naming the missing key and the sops store, and write nothing further.
 5. **Write** each composed value with `setSetting(key, value, scope)` (skipped under `--dry-run`, which prints the planned writes instead).
 6. **Verify**: read every written key back with `getSetting` and deep-compare; any mismatch = exit 1 naming the key.
-7. **Report**: print that team-scope writes landed in the claimview team repo working copy and need `git commit` + `git push` there, then print the legacy-file removal list (`config.ts settings.json .env .env.example server/settings.ts server/env.ts`) as confirmation of what the fold branch deletes.
+7. **Report**: print that team-scope writes landed in the acme-web team repo working copy and need `git commit` + `git push` there, then print the legacy-file removal list (`config.ts settings.json .env .env.example server/settings.ts server/env.ts`) as confirmation of what the fold branch deletes.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -853,6 +853,6 @@ git add -A && git commit -m "cache lives under ~/.mattstack/boxscore; rt-client 
 1. Merge/land the repo-tools branch on main (per repo norms), then publish `@mattstack/rt-client` 0.12.0 (`bun publish` in the package; OTP from bw after Matt unlocks the vault).
 2. In the boxscore fold worktree: `bun install` (picks up 0.12.0).
 3. From the MAIN boxscore checkout (legacy files still present there): `bun /path/to/worktree/scripts/import-legacy-settings.ts --dry-run`, review, then run without `--dry-run`.
-4. Commit and push the claimview team repo working copy (`~/.mattstack/teams/claimview`) with the new keys.
+4. Commit and push the acme-web team repo working copy (`~/.mattstack/teams/acme-web`) with the new keys.
 5. Merge the boxscore fold branch into `feat/mattstack-integration-spec` (or per Matt), `rm -rf .cache .env settings.json` leftovers in the main checkout after the merge lands.
 6. `rt settings explain boxscore.projects` and one `bun server/cli.ts --range 7d` run as the smoke check.

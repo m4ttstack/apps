@@ -228,7 +228,7 @@ export function buildUserEvidence(
   out.currentStreak = mergeDayEvidence;
 
   // --- Issues done (Linear): gated-out issues surface only as counts in the summary ---
-  // Highest ticket number first, with numeric collation so CV-2007 outranks CV-938.
+  // Highest ticket number first, with numeric collation so ACME-2007 outranks ACME-938.
   const counted = [...c.issues.counted].sort((a, b) =>
     b.identifier.localeCompare(a.identifier, undefined, { numeric: true })
   );

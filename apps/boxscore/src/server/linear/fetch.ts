@@ -10,7 +10,7 @@ import { mapIssue } from './map.js';
 import type { RawIssue } from './raw-types.js';
 import { mrTicketHaystack } from './ticket.js';
 
-/** Extract Linear identifiers from a string, e.g. "CLAIMVIEW-123", "ENG-456", "HUB:299". */
+/** Extract Linear identifiers from a string, e.g. "ACME-123", "ENG-456", "HUB:299". */
 const LINEAR_ID_RE = /\b([A-Z]+[-:]\d+)\b/gi;
 
 /**

@@ -19,7 +19,7 @@ const rawIssue = (overrides: Partial<RawIssue> = {}): RawIssue => ({
 
 describe('eligibleForLinearDiscovery', () => {
   const at = (state: 'merged' | 'opened' | 'closed' | 'locked') =>
-    mr({ iid: 1, authorUsername: 'alice', title: 'Fix CV-100 bug', state });
+    mr({ iid: 1, authorUsername: 'alice', title: 'Fix ACME-100 bug', state });
 
   it('scans merged MRs (shipped work)', () => {
     expect(eligibleForLinearDiscovery(at('merged'))).toBe(true);

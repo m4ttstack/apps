@@ -10,7 +10,7 @@ afterEach(() => vi.unstubAllGlobals());
 const mergedMr = mr({
   iid: 1,
   authorUsername: 'alice',
-  title: 'Fix CLAIMVIEW-123 bug',
+  title: 'Fix ACME-123 bug',
   mergedAt: '2026-05-10T00:00:00.000Z',
   additions: 10,
   deletions: 5,

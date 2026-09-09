@@ -94,8 +94,8 @@ describe('resolveLinearTickets resilience', () => {
   // batch must fall back to individual lookups, exactly like the unknown-identifier path.
   it('falls back to individual lookups when a known-valid batch chunk fails', async () => {
     getStore().putLinearIds([
-      { id: 'CV-9001', valid: true },
-      { id: 'CV-9002', valid: true },
+      { id: 'ACME-9001', valid: true },
+      { id: 'ACME-9002', valid: true },
     ]);
     const calls = stubLinear(ids =>
       ids.length > 1 ? alwaysRateLimited() : okData(ids, rawFor)
@@ -104,62 +104,62 @@ describe('resolveLinearTickets resilience', () => {
     const warnings: LeaderboardWarning[] = [];
     const issues = await resolveLinearTickets(
       'key',
-      [sourceMr(1, 'CV-9001'), sourceMr(2, 'CV-9002')],
+      [sourceMr(1, 'ACME-9001'), sourceMr(2, 'ACME-9002')],
       warnings,
       []
     );
 
     expect(issues.map(i => i.identifier).sort()).toEqual([
-      'CV-9001',
-      'CV-9002',
+      'ACME-9001',
+      'ACME-9002',
     ]);
     // One batch query carrying both identifiers (retried, but never re-chunked), then
     // exactly one single-identifier fallback per identifier.
     const queries = distinctQueries(calls);
     expect(queries.filter(ids => ids.length > 1)).toEqual([
-      ['CV-9001', 'CV-9002'],
+      ['ACME-9001', 'ACME-9002'],
     ]);
     expect(
       calls
         .filter(ids => ids.length === 1)
         .flat()
         .sort()
-    ).toEqual(['CV-9001', 'CV-9002']);
+    ).toEqual(['ACME-9001', 'ACME-9002']);
   });
 
   // The batch exists to avoid N per-identifier round trips: when it succeeds, nothing
   // else may be issued.
   it('resolves known-valid identifiers in one batch query when the batch succeeds', async () => {
     getStore().putLinearIds([
-      { id: 'CV-9001', valid: true },
-      { id: 'CV-9002', valid: true },
+      { id: 'ACME-9001', valid: true },
+      { id: 'ACME-9002', valid: true },
     ]);
     const calls = stubLinear(ids => okData(ids, rawFor));
 
     const warnings: LeaderboardWarning[] = [];
     const issues = await resolveLinearTickets(
       'key',
-      [sourceMr(1, 'CV-9001'), sourceMr(2, 'CV-9002')],
+      [sourceMr(1, 'ACME-9001'), sourceMr(2, 'ACME-9002')],
       warnings,
       []
     );
 
     expect(issues.map(i => i.identifier).sort()).toEqual([
-      'CV-9001',
-      'CV-9002',
+      'ACME-9001',
+      'ACME-9002',
     ]);
-    expect(calls).toEqual([['CV-9001', 'CV-9002']]);
+    expect(calls).toEqual([['ACME-9001', 'ACME-9002']]);
     expect(warnings).toEqual([]);
   });
 
   it('warns when identifiers are lost even after the individual fallback', async () => {
-    getStore().putLinearIds([{ id: 'CV-9010', valid: true }]);
+    getStore().putLinearIds([{ id: 'ACME-9010', valid: true }]);
     stubLinear(alwaysRateLimited);
 
     const warnings: LeaderboardWarning[] = [];
     const issues = await resolveLinearTickets(
       'key',
-      [sourceMr(1, 'CV-9010')],
+      [sourceMr(1, 'ACME-9010')],
       warnings,
       []
     );
@@ -174,9 +174,9 @@ describe('resolveLinearTickets resilience', () => {
     stubLinear(alwaysRateLimited);
 
     const warnings: LeaderboardWarning[] = [];
-    await resolveLinearTickets('key', [sourceMr(1, 'CV-9020')], warnings, []);
+    await resolveLinearTickets('key', [sourceMr(1, 'ACME-9020')], warnings, []);
 
-    expect(getStore().isValidLinearId('CV-9020')).toBeNull();
+    expect(getStore().isValidLinearId('ACME-9020')).toBeNull();
   });
 
   // Linear throws "Entity not found" for a nonexistent id rather than returning null,
@@ -192,38 +192,38 @@ describe('resolveLinearTickets resilience', () => {
     const warnings: LeaderboardWarning[] = [];
     const issues = await resolveLinearTickets(
       'key',
-      [sourceMr(1, 'CV-9040')],
+      [sourceMr(1, 'ACME-9040')],
       warnings,
       []
     );
 
     expect(issues).toEqual([]);
-    expect(getStore().isValidLinearId('CV-9040')).toBe(false);
+    expect(getStore().isValidLinearId('ACME-9040')).toBe(false);
     expect(warnings).toEqual([]);
   });
 
   it('still records definitive answers from a successful verify', async () => {
     stubLinear(ids =>
-      okData(ids, id => (id === 'CV-9030' ? rawFor(id) : null))
+      okData(ids, id => (id === 'ACME-9030' ? rawFor(id) : null))
     );
 
     const warnings: LeaderboardWarning[] = [];
     await resolveLinearTickets(
       'key',
-      [sourceMr(1, 'CV-9030'), sourceMr(2, 'CV-9031')],
+      [sourceMr(1, 'ACME-9030'), sourceMr(2, 'ACME-9031')],
       warnings,
       []
     );
 
-    expect(getStore().isValidLinearId('CV-9030')).toBe(true);
-    expect(getStore().isValidLinearId('CV-9031')).toBe(false);
+    expect(getStore().isValidLinearId('ACME-9030')).toBe(true);
+    expect(getStore().isValidLinearId('ACME-9031')).toBe(false);
   });
 });
 
 describe('resolveLinearTickets credit rule', () => {
   const linkedMr = (
     m: Partial<NormMr> & Pick<NormMr, 'iid' | 'authorUsername'>
-  ) => mr({ title: 'CV-9100: do the thing', ...m });
+  ) => mr({ title: 'ACME-9100: do the thing', ...m });
 
   const resolveCredit = async (
     mrs: NormMr[],

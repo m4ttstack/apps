@@ -219,7 +219,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    '[import-legacy-settings] team-scope writes landed in the local claimview team repo working copy. ' +
+    '[import-legacy-settings] team-scope writes landed in the local acme-web team repo working copy. ' +
       'Commit and push there for the rest of the team to pick them up.'
   );
   console.log(
