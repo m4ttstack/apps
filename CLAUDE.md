@@ -48,9 +48,9 @@ produce its own lock.
 Two GitHub Actions jobs (`.github/workflows/ci.yml`): the `checks` job
 (ubuntu) runs kit/gate checks plus the chat, console, boxscore, and board
 suites (typecheck/lint/test/build), the served-client and served-binary
-gates, and the repo-purity gates; `deck-macos` (macos-latest, its own bun
-install) runs deck's suite because deck shells to `plutil`/`launchd`,
-both macOS-only.
+gates, and the whole-repo `scripts/repo-purity.sh` gate; `deck-macos`
+(macos-latest, its own bun install) runs deck's suite because deck shells
+to `plutil`/`launchd`, both macOS-only.
 
 `setup-bun` is pinned to `1.3.13` in both jobs. The pin exists because
 CI byte-compares generated/committed artifacts (deck's
