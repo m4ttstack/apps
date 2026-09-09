@@ -47,7 +47,7 @@
       "x": 0,
       "y": -170,
       "w": 520,
-      "text": "Boxscore on app-kit. Matched: Tokyo Day/Night tokens, JetBrains Mono 13.5px, console's 48px header + 40px page row, 68px rail, 6px radii, Mantine table spacing.\nEach artboard has a Dark tweak. Metric values are sample data; the roster is the live claimview one plus boxscore's two extras."
+      "text": "Boxscore on app-kit. Matched: Tokyo Day/Night tokens, JetBrains Mono 13.5px, console's 48px header + 40px page row, 68px rail, 6px radii, Mantine table spacing.\nEach artboard has a Dark tweak. Metric values are sample data; the roster is the live acme-web one plus boxscore's two extras."
     },
     {
       "id": "settings-note",

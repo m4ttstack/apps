@@ -134,7 +134,7 @@ A new `// --- mattstack (shared team truth) ---` row and a new
 
 | Need | Key | Note |
 |---|---|---|
-| GitLab host | field `forge.host` of the single object key `mattstack.integrations` (team, deep merge) | present in the claimview team store as of 2026-09-02 (written by the MAT-403 audit pass); the import verifies it and fills it only if missing. Suite precedent: team creation copies `forge.host` into `board.gitlabHost`, which the board fetches against, so boxscore fetching against it follows that precedent. |
+| GitLab host | field `forge.host` of the single object key `mattstack.integrations` (team, deep merge) | present in the acme-web team store as of 2026-09-02 (written by the MAT-403 audit pass); the import verifies it and fills it only if missing. Suite precedent: team creation copies `forge.host` into `board.gitlabHost`, which the board fetches against, so boxscore fetching against it follows that precedent. |
 | Linear team key | field `linear.teamKey` of the same object key | present as of 2026-09-02 (same audit pass); the import verifies rather than writes |
 | Tokens | secrets store, `rt` domain | `gitlabToken`, `linearApiKey`; read env-first, then `secrets:read` scope `extension` |
 
@@ -185,7 +185,7 @@ checks that the `rt` secrets domain already holds `gitlabToken` and
 `linearApiKey` (both names exist there today) and stops with instructions if
 either is missing. Only after a clean verify does the script print the
 `git rm` list. Team-scope
-writes land in the claimview team repo working copy and need a commit and
+writes land in the acme-web team repo working copy and need a commit and
 push; the script says so. The roster written to `mattstack.roster` is
 boxscore's 7-user list merged with the board's 5 (union, names from the
 board where present). Users boxscore scored but the board hides go into
