@@ -915,18 +915,18 @@ describe('storeOwnsRequiredFields: config.json-free boot', () => {
 
 describe('displayName: stored name beats the GitLab profile', () => {
   test('a stored name wins over the GitLab profile name', () => {
-    expect(
-      displayName({ username: 'dcf417', name: 'Darryl Faint' }, 'D. Faint')
-    ).toBe('Darryl Faint');
+    expect(displayName({ username: 'dee', name: 'Dee Fox' }, 'D. Fox')).toBe(
+      'Dee Fox'
+    );
   });
 
   test('the GitLab profile fills in when there is no stored name', () => {
-    expect(displayName({ username: 'edroch' }, 'Ed Rocha')).toBe('Ed Rocha');
+    expect(displayName({ username: 'bo' }, 'Bo Chen')).toBe('Bo Chen');
   });
 
   test('null when neither side has one', () => {
-    expect(displayName({ username: 'djclaims' }, null)).toBeNull();
-    expect(displayName({ username: 'djclaims' }, undefined)).toBeNull();
+    expect(displayName({ username: 'cy' }, null)).toBeNull();
+    expect(displayName({ username: 'cy' }, undefined)).toBeNull();
   });
 
   test('a blank stored name does not shadow the profile', () => {
