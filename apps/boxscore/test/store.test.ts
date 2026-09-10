@@ -171,6 +171,14 @@ describe('metrics rows', () => {
     expect([...keys]).toEqual([mrKey('g/p', 1)]);
   });
 
+  it('freshMergedMetricsKeys treats a metrics row with no timestamp as stale', () => {
+    const s = getStore();
+    s.upsertIndexRows([row({ iid: 1, state: 'merged' })]);
+    // updatedAt omitted -> persisted as NULL, which cannot prove the snapshot is current.
+    s.upsertMrMetrics([metrics('g/p', 1)]);
+    expect([...s.freshMergedMetricsKeys([mrKey('g/p', 1)])]).toEqual([]);
+  });
+
   it('round-trips notes, diffStats, fileStats, labels, and approvers', () => {
     const s = getStore();
     const m = metrics('g/p', 1);
