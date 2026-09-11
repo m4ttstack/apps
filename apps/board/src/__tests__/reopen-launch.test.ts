@@ -27,7 +27,9 @@ function baseCtx(overrides: Partial<ReopenCtx> = {}): ReopenCtx {
   };
 }
 
-function paneResult(overrides: Partial<AgentLaunchResult> = {}): AgentLaunchResult {
+function paneResult(
+  overrides: Partial<AgentLaunchResult> = {}
+): AgentLaunchResult {
   return {
     agentId: 'agent-2',
     sessionId: 'sess-2',
