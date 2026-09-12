@@ -80,8 +80,8 @@ const STATE_KEY = 'mrs-view-state';
 
 // A gate stuck on delivery or left execution-unassigned stays in the
 // decision queue despite being `answered` -- it still needs a human action
-// (focus-pane / retry), and GateRowChips/DecisionQueueModal only render
-// that action inside the queue.
+// (focus-pane / retry), and the row's status line only points at the queue,
+// which is the one place that action renders.
 const needsQueue = (gate: GateRow): boolean =>
   gate.status === 'open' ||
   gate.status === 'parked' ||
@@ -484,7 +484,7 @@ export function Board() {
     [addToast, load]
   );
 
-  // Orphan-strip resume: answers the row's own attention gate with the
+  // Orphan resume: answers the orphan's attention gate with the
   // literal action the daemon's answer-time guarantee relaunches from --
   // the question id comes off the gate itself (AttentionCard's own
   // fallback-to-"action" convention) rather than being hardcoded, since a
@@ -506,8 +506,8 @@ export function Board() {
     [addToast, load]
   );
 
-  // Orphan-strip clear: tombstones the dead run daemon-side regardless of
-  // whether an attention gate exists to resume from.
+  // The status line's clear verb: tombstones the dead run daemon-side
+  // regardless of whether an attention gate exists to resume from.
   const handleClearOrphan = useCallback(
     (agentId: string) => {
       postAction('/reconciler/clear', { agentId }).then(result => {

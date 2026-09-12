@@ -355,23 +355,6 @@ function hasReviewReactions(mr: BoardMR): boolean {
   return SLACK_MARKS.some(m => reactions.includes(m.emoji));
 }
 
-/** Does this MR have anything for the board-managed badge line? Rows and cards
-    share the test so a new axis can't land on one view and miss the other. */
-function hasBoardBadges(mr: BoardMR): boolean {
-  const mrx = mr as BoardMRWithReview;
-  return !!(
-    mrx.review ||
-    mrx.respond ||
-    mrx.doctor ||
-    mrx.drafts?.length ||
-    mrx.peerReviews?.length ||
-    mrx.sentNudge ||
-    mrx.nudges?.length ||
-    hasReviewReactions(mr) ||
-    mrx.slack?.posted
-  );
-}
-
 // ── slack summary ───────────────────────────────────────────────────────────
 
 function factsFor(mr: BoardMR): MrFacts {
@@ -588,7 +571,6 @@ export {
   getSlackMarks,
   setSlackMarks,
   hasReviewReactions,
-  hasBoardBadges,
   factsFor,
   mrLine,
   boardSummary,

@@ -222,9 +222,8 @@ export interface RowContext {
   onOpenGate: (gateId: string) => void;
   selected: ReadonlySet<string>;
   onToggleSelect: (webUrl: string) => void;
-  /** Human-owned, non-MR gates -- the orphan strip's own attention-gate
-      lookup falls back here when the row's own `gates` carries none (see
-      RowView's findAttentionGate). */
+  /** Human-owned, non-MR gates: where a pane-attention gate lands before
+      its `agent:<id>` subject resolves to an MR row. */
   queueExtras: GateRow[];
   /** Resume: answers the orphan's attention gate with `{ action: "resume"
       }` (the daemon's answer-time guarantee relaunches from there). */
