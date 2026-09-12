@@ -178,14 +178,17 @@ body {
   opacity: 0;
   transition: opacity 0.1s ease;
 }
-.tui-row:hover .tui-copy-inline {
+/* Hover-only, but kept in flow (opacity, not display) so line 1 never
+   shifts when the pointer arrives. focus-within covers keyboard users. */
+.tui-row:hover .tui-copy-inline,
+.tui-row:focus-within .tui-copy-inline {
   opacity: 0.9;
 }
-.tui-copy-inline:hover {
+.tui-row .tui-copy-inline:hover {
   opacity: 1;
   color: var(--fg);
 }
-.tui-copy-inline[data-copied] {
+.tui-row .tui-copy-inline[data-copied] {
   opacity: 1;
   color: var(--green);
 }
@@ -193,12 +196,6 @@ body {
   position: absolute;
   top: 0.45rem;
   right: 0.45rem;
-}
-/* Row copy button is always faintly present (not a hidden empty slot), so line
-   1 reaches the right edge like the facts line below it with no phantom gap.
-   It brightens on row hover. */
-.tui-row .tui-copy-inline {
-  opacity: 0.3;
 }
 
 /* ── selection ────────────────────────────────────────────────────── */
@@ -893,6 +890,19 @@ body {
   padding: 0.15rem;
 }
 .tui-ticket:hover {
+  opacity: 1;
+}
+/* On a row the link is hover-only like the copy button beside it; the
+   decision queue's strip keeps it visible at rest. */
+.tui-row .tui-ticket {
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.tui-row:hover .tui-ticket,
+.tui-row:focus-within .tui-ticket {
+  opacity: 0.75;
+}
+.tui-row .tui-ticket:hover {
   opacity: 1;
 }
 

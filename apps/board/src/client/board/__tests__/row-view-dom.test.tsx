@@ -205,6 +205,37 @@ test('thread newness: the first sighting records a baseline, growth lights the l
       '[data-part="sidedrawer"][aria-label="comment threads"]'
     )
   ).not.toBeNull();
+  // Settles on the click itself, before any board render carries the new
+  // baseline back into `fresh`.
+  const settled = container.querySelector<HTMLButtonElement>('.tui-threads')!;
+  expect(settled.getAttribute('data-new')).toBeNull();
+  expect(settled.getAttribute('title')).toBe('open the comments drawer');
+
+  await render([
+    mr({ threadSummary: { awaiting: 7, replied: 0, resolved: 0 } }),
+  ]);
+  expect(
+    container.querySelector('.tui-threads')!.getAttribute('data-new')
+  ).toBe('true');
+});
+
+test('a thread count that shrinks lowers the baseline instead of holding the old one', async () => {
+  await render([
+    mr({ threadSummary: { awaiting: 5, replied: 0, resolved: 0 } }),
+  ]);
+  await render([
+    mr({ threadSummary: { awaiting: 3, replied: 0, resolved: 0 } }),
+  ]);
+  expect(
+    container.querySelector('.tui-threads')!.getAttribute('data-new')
+  ).toBeNull();
+  expect(localStorage.getItem(`board.threads.seen:${URL}`)).toBe('3');
+  await render([
+    mr({ threadSummary: { awaiting: 4, replied: 0, resolved: 0 } }),
+  ]);
+  expect(
+    container.querySelector('.tui-threads')!.getAttribute('data-new')
+  ).toBe('true');
 });
 
 test('mechanical flags render inline on line 1, never as their own line', async () => {

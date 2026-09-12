@@ -12,7 +12,11 @@ test('growth past the baseline is new and records nothing', () => {
 
 test('no growth is not new', () => {
   expect(threadNewness(5, 5)).toEqual({ fresh: false, record: null });
-  expect(threadNewness(7, 5)).toEqual({ fresh: false, record: null });
+});
+
+test('a count below the record lowers the baseline, so growth back up lights again', () => {
+  expect(threadNewness(5, 3)).toEqual({ fresh: false, record: 3 });
+  expect(threadNewness(3, 4)).toEqual({ fresh: true, record: null });
 });
 
 test('zero threads on a first sighting records zero', () => {

@@ -61,12 +61,18 @@ export function StatusLine({
   const hot = line.tone === 'bad' || line.tone === 'warn';
   return (
     <div className="tui-status" data-tone={line.tone}>
-      <span className="tui-status-word">
-        {line.tone === 'clear' && <Sun />}
-        {line.word}
-      </span>
+      <span className="tui-status-word">{line.word}</span>
       {line.spin && <span className="tui-status-ring" aria-hidden />}
-      {line.detail && <span className="tui-status-detail">{line.detail}</span>}
+      {line.detail && (
+        <span className="tui-status-detail">
+          {line.tone === 'clear' && (
+            <>
+              <Sun />{' '}
+            </>
+          )}
+          {line.detail}
+        </span>
+      )}
       {more.length > 0 && (
         <span
           className="tui-status-more"

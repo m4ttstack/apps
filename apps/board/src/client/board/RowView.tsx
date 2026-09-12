@@ -130,9 +130,9 @@ function TicketLink({ ticket }: { ticket: string }) {
 
 /** The facts line's right rail: the thread count (the drawer's entry) and
     the age as the corner anchor. Newness is measured against the count the
-    board last recorded for this MR; a first sighting sets that baseline
-    during render, which is idempotent and only fires while no record
-    exists. */
+    board last recorded for this MR; a first sighting, or a count that fell
+    below the record, rewrites that baseline during render, which is
+    idempotent (the next render finds record === count and writes nothing). */
 function Facts({ mr, now }: { mr: BoardMR; now: number }) {
   const count = commentCount(mr);
   const seen = mr.webUrl ? seenCount(mr.webUrl) : null;
@@ -146,11 +146,7 @@ function Facts({ mr, now }: { mr: BoardMR; now: number }) {
           mr={mr}
           count={count}
           fresh={newness.fresh}
-          title={
-            newness.fresh
-              ? `${grew} new since you last looked`
-              : 'open the comments drawer'
-          }
+          grew={grew}
           onOpen={() => mr.webUrl && markSeen(mr.webUrl, count)}
         />
       )}

@@ -46,27 +46,36 @@ function CommentsTrigger({
 
 /** The thread count on the facts line: the row's one entry into the
     comments drawer. `fresh` lights it (style.css keys on `data-new`);
-    opening the drawer is what records the count as seen, via `onOpen`. */
+    opening the drawer is what records the count as seen, via `onOpen`.
+    The count the drawer was opened at settles the link locally until the
+    next board render catches up; a later count relights it. */
 function ThreadsLink({
   mr,
   count,
   fresh,
-  title,
+  grew,
   onOpen,
 }: {
   mr: BoardMR;
   count: number;
   fresh: boolean;
-  title: string;
+  grew: number;
   onOpen: () => void;
 }) {
+  const [openedAt, setOpenedAt] = useState<number | null>(null);
+  const lit = fresh && openedAt !== count;
   return (
     <CommentsTrigger
       mr={mr}
       className="tui-threads"
-      title={title}
-      fresh={fresh}
-      onOpen={onOpen}
+      title={
+        lit ? `${grew} new since you last looked` : 'open the comments drawer'
+      }
+      fresh={lit}
+      onOpen={() => {
+        setOpenedAt(count);
+        onOpen();
+      }}
     >
       {count} thread{count === 1 ? '' : 's'}
     </CommentsTrigger>
