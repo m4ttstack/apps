@@ -349,12 +349,6 @@ function setSlackMarks(emoji: {
   SLACK_MARKS = buildSlackMarks(emoji);
 }
 
-function hasReviewReactions(mr: BoardMR): boolean {
-  const reactions = (mr as BoardMRWithReview).slack?.reactions;
-  if (!reactions?.length) return false;
-  return SLACK_MARKS.some(m => reactions.includes(m.emoji));
-}
-
 // ── slack summary ───────────────────────────────────────────────────────────
 
 function factsFor(mr: BoardMR): MrFacts {
@@ -570,7 +564,6 @@ export {
   buildSlackMarks,
   getSlackMarks,
   setSlackMarks,
-  hasReviewReactions,
   factsFor,
   mrLine,
   boardSummary,

@@ -280,7 +280,6 @@ body {
 .tui-invite-btn:focus-visible,
 .tui-draft-act:focus-visible,
 .tui-modal-x:focus-visible,
-.tui-comments-btn:focus-visible,
 .tui-join-toggle:focus-visible,
 .tui-drawer-action:focus-visible {
   outline: 2px solid var(--accent);
@@ -622,33 +621,6 @@ body {
 }
 
 /* ── comments drawer ──────────────────────────────────────────────── */
-.tui-comments-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  /* font-family only, NOT `font: inherit`, which would reset the size to the
-     row's 13.5px instead of the .tui-phrase 0.62rem the other labels use. Leave
-     color to the t-warn class so the label stays amber. */
-  font-family: inherit;
-}
-.tui-comments-btn:hover {
-  background: color-mix(in srgb, currentColor 10%, transparent);
-}
-/* Hint beside "N comments": has the author acted on the threads yet. */
-.tui-comment-dot {
-  margin-left: 0.35rem;
-  font-size: 0.7rem;
-  line-height: 1;
-  vertical-align: middle;
-  cursor: default;
-  flex-shrink: 0;
-}
-.tui-comment-dot.ok {
-  color: var(--dot-ok);
-}
-.tui-comment-dot.warn {
-  color: var(--dot-warn);
-}
 /* General MR-comments section in the drawer (notes that aren't resolvable threads). */
 .tui-cd-comments-head {
   font-size: 0.72rem;

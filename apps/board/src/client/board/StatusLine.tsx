@@ -42,6 +42,10 @@ function runVerb(verb: Verb, mr: BoardMRWithReview, ctx: RowContext): void {
     case 'open-mr':
       if (mr.webUrl) window.open(mr.webUrl, '_blank', 'noopener');
       return;
+    default: {
+      const never: never = verb.kind;
+      return never;
+    }
   }
 }
 
@@ -85,7 +89,7 @@ export function StatusLine({
         <span className="tui-status-verbs">
           {line.verbs.map((verb, i) => (
             <button
-              key={verb.kind + i}
+              key={`${verb.kind}-${i}`}
               type="button"
               className="tui-status-verb"
               data-verb={verb.kind}

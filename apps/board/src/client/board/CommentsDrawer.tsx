@@ -129,7 +129,7 @@ function CommentNoteView({
 }
 
 /** Right-side drawer showing an MR's review threads (each with its status and
-    notes) plus a section for general MR comments — the Overview-tab notes that
+    notes) plus a section for general MR comments: the Overview-tab notes that
     aren't threads, so a later author comment isn't invisible. Lazily fetched. */
 function CommentsDrawer({ mr, onClose }: { mr: BoardMR; onClose: () => void }) {
   const [data, setData] = useState<{

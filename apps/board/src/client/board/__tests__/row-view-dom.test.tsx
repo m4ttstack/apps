@@ -165,7 +165,9 @@ test('the slack ladder: logo only once posted, stage mark for the furthest react
   await render([
     mr({ slack: { status: 'found', reactions: [], posted: false } }),
   ]);
-  expect(container.querySelector('.tui-row-marks svg')).toBeNull();
+  expect(
+    container.querySelector('.tui-row-marks [data-slack-logo]')
+  ).toBeNull();
   await render([
     mr({
       slack: {

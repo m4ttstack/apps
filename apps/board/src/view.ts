@@ -20,25 +20,6 @@ export const SLACK_FILTER_KEYS: readonly SlackFilter[] = ['all', 'posted'];
 /** Sentinel that sorts after any ISO date, so null timestamps land last. */
 const LATEST = '9999';
 
-/** Whether the author has acted on the row's unresolved comment threads, for the
-    dot beside "N comments": amber while any thread awaits the author, green once
-    they've replied to every one. Resolved threads have already left the count, so
-    they never force amber. Null when there's no per-thread breakdown (fetch
-    skipped/failed) or nothing unresolved to describe. */
-export function commentDot(
-  summary: BoardMR['threadSummary']
-): { cls: 'ok' | 'warn'; title: string } | null {
-  if (!summary) return null;
-  const { awaiting, replied } = summary;
-  if (awaiting + replied === 0) return null;
-  if (awaiting > 0) {
-    const parts = [`${awaiting} awaiting your reply`];
-    if (replied > 0) parts.push(`${replied} you replied to`);
-    return { cls: 'warn', title: parts.join(' · ') };
-  }
-  return { cls: 'ok', title: "you've replied to every comment" };
-}
-
 /** True when every reviewer thread has been resolved and none awaits action — the
     MR was reviewed and its comments are handled, distinct from an untouched "needs
     review". Relies on the `threadSummary` the server attaches; undefined summary
