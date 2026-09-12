@@ -387,25 +387,27 @@ body {
 .tui-row-marks {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 }
 .tui-mark {
   display: inline-flex;
   color: var(--muted-text);
-  opacity: 0.7;
+  opacity: 0.55;
 }
 .tui-mark[data-slack-logo] {
   opacity: 1;
 }
 
-/* Line 2: facts. Junctions step in weight or color; no glyphs. */
+/* Line 2: facts. Junctions step in weight or color; no glyphs. 0.76rem is
+   the design's facts and status size (docs/design/mr-row/build.mjs), one
+   step under --type-meta so line 1 keeps its lead. */
 .tui-row-2 {
   display: flex;
   align-items: center;
   gap: 10px;
   color: var(--muted-text);
-  font-size: var(--type-meta);
+  font-size: 0.76rem;
   line-height: 16px;
   margin-top: 4px;
   min-width: 0;
@@ -485,7 +487,7 @@ body {
   display: flex;
   align-items: baseline;
   margin-top: 8px;
-  font-size: var(--type-meta);
+  font-size: 0.76rem;
   line-height: 20px;
   color: var(--muted-text);
   min-width: 0;
@@ -517,16 +519,14 @@ body {
   font-weight: 500;
   color: color-mix(in srgb, var(--green) 40%, var(--muted-text));
 }
+/* Muted on every tone: the word carries the temperature, the detail never
+   competes with it. */
 .tui-status-detail {
   margin-left: 10px;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.tui-status[data-tone='warn'] .tui-status-detail,
-.tui-status[data-tone='bad'] .tui-status-detail {
-  color: color-mix(in srgb, var(--fg) 75%, var(--muted-text));
 }
 .tui-status-ring {
   display: inline-block;

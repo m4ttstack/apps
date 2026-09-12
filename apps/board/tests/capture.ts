@@ -90,7 +90,20 @@ async function newPage(width: number, theme: 'light' | 'dark'): Promise<Page> {
   return page;
 }
 
+/** The kit's JetBrains Mono is a lazily activated `@font-face` with
+    `font-display: swap`: the first mono text on the page (the comments
+    drawer's inline code) lays out in the fallback and swaps a frame later,
+    so a shot taken straight after a selector wait can catch either side of
+    that swap. Waiting on the font set before every shot settles it. */
 async function shoot(page: Page, name: string): Promise<void> {
+  await page.evaluate(
+    () =>
+      (
+        globalThis as unknown as {
+          document: { fonts: { ready: Promise<unknown> } };
+        }
+      ).document.fonts.ready
+  );
   await page.screenshot({ path: join(OUT, `${name}.png`), fullPage: true });
   console.log(`  ✓ ${name}`);
 }
