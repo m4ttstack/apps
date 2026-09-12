@@ -58,7 +58,12 @@ function StatusFlags({
   return (
     <>
       {statusFlags(mr, { nested }).map(f => (
-        <Chip key={f.text} intent={FLAG_INTENT[f.cls]} data-flag="">
+        <Chip
+          key={f.text}
+          intent={FLAG_INTENT[f.cls]}
+          data-flag=""
+          title={f.title}
+        >
           {f.text}
         </Chip>
       ))}
