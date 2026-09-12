@@ -46,6 +46,7 @@ export interface ReviewInfo {
   reportReady?: boolean;
   sessionId?: string;
   tabId?: string;
+  startedAt?: number;
 }
 export interface RespondInfo {
   status: RespondStatus;
@@ -55,6 +56,7 @@ export interface RespondInfo {
   posted?: number;
   threads?: number;
   tabId?: string;
+  startedAt?: number;
 }
 export type DoctorStatus =
   | 'queued'
@@ -69,6 +71,7 @@ export interface DoctorInfo {
   message?: string;
   origin?: 'auto' | 'manual';
   tabId?: string;
+  startedAt?: number;
 }
 export interface DraftInfo {
   kind: string;
