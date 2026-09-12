@@ -197,6 +197,80 @@ describe('rowStatus: interrupted executor', () => {
       domain: 'review',
     });
   });
+
+  test('a queued review (no session yet) is interrupted by a gone orphan', () => {
+    const s = rowStatus(
+      mr({ review: { status: 'queued' }, orphan }),
+      NOW,
+      NONE
+    );
+    expect(s.line).toMatchObject({ tone: 'warn', word: 'review interrupted' });
+    expect(s.line.verbs.map(v => v.kind)).toEqual(['relaunch', 'clear']);
+    expect(s.more).toEqual([]);
+    expect(s.bar).toBe('warn');
+  });
+
+  test('a done review keeps its ready line; the gone orphan is a quiet pane-gone line', () => {
+    const s = rowStatus(
+      mr({
+        review: {
+          status: 'done',
+          reportReady: true,
+          outcome: 'approve',
+          sessionId: 'sess-1',
+        },
+        orphan,
+      }),
+      NOW,
+      NONE
+    );
+    expect(s.line).toMatchObject({ tone: 'go', word: 'review ready' });
+    expect(s.line.verbs).toEqual([{ kind: 'read-review', label: 'read ↗' }]);
+    expect(s.more).toEqual([
+      {
+        tone: 'quiet',
+        word: 'pane gone',
+        detail: 'pane closed 12m ago',
+        verbs: [{ kind: 'clear', label: 'clear', agentId: 'ag-1' }],
+      },
+    ]);
+    expect(s.bar).toBeNull();
+  });
+
+  test('a doctor-only row with a gone orphan keeps the doctor line and counts the pane', () => {
+    const s = rowStatus(
+      mr({ doctor: { status: 'fixing', origin: 'manual' }, orphan }),
+      NOW,
+      NONE
+    );
+    expect(s.line).toMatchObject({ tone: 'work', word: 'fixing…' });
+    expect(s.more.map(l => l.word)).toEqual(['pane gone']);
+    expect(s.bar).toBeNull();
+  });
+
+  test('no lane at all with a gone orphan is the quiet pane-gone line with clear only', () => {
+    const s = rowStatus(mr({ orphan }), NOW, NONE);
+    expect(s.line).toMatchObject({
+      tone: 'quiet',
+      word: 'pane gone',
+      detail: 'pane closed 12m ago',
+    });
+    expect(s.line.verbs).toEqual([
+      { kind: 'clear', label: 'clear', agentId: 'ag-1' },
+    ]);
+    expect(s.more).toEqual([]);
+    expect(s.bar).toBeNull();
+  });
+
+  test('a lane relaunched on a fresh session is not interrupted by the old pane', () => {
+    const s = rowStatus(
+      mr({ review: { status: 'reviewing', sessionId: 'sess-2' }, orphan }),
+      NOW,
+      NONE
+    );
+    expect(s.line.word).toBe('review running…');
+    expect(s.more.map(l => l.word)).toEqual(['pane gone']);
+  });
 });
 
 describe('rowStatus: gates', () => {
@@ -452,6 +526,21 @@ describe('rowStatus: social lanes', () => {
     expect(line!.verbs[0]).toEqual({ kind: 're-review', label: 're-review' });
   });
 
+  test('the longest-waiting inbound nudge wins the line', () => {
+    const s = rowStatus(
+      mr({
+        nudges: [
+          { from: 'kim', receivedAt: NOW - 5 * 60_000 },
+          { from: 'jo', receivedAt: NOW - 30 * 60_000 },
+        ],
+      }),
+      NOW,
+      NONE
+    );
+    expect(s.line.word).toBe('jo asked for a re-review');
+    expect(s.more.map(l => l.word)).toEqual(['kim asked for a re-review']);
+  });
+
   test('a held draft is warn with the read verb carrying the draft; a resolved one is skipped', () => {
     const draft = { kind: 'verification note', body: 'x', createdAt: NOW };
     const url = 'https://gitlab.example.com/acme/webapp/-/merge_requests/1418';
@@ -518,7 +607,7 @@ describe('rowStatus: social lanes', () => {
     expect(line).toMatchObject({ tone: 'go', word: 'pat approved' });
   });
 
-  test('a sent nudge with no answer is quiet; a retryable one is warn', () => {
+  test('a sent nudge with no answer is quiet; a retryable one is quiet too, pointing at the menu', () => {
     const [quiet] = candidateLines(
       mr({
         sentNudge: {
@@ -535,16 +624,23 @@ describe('rowStatus: social lanes', () => {
       word: 'nudged jo',
       detail: 'no answer yet, 30m',
     });
-    const [warn] = candidateLines(
+    const [retry] = candidateLines(
       mr({
-        sentNudge: { display: 'expired', reviewer: 'jo', sentAt: NOW } as never,
+        sentNudge: {
+          display: 'rejected',
+          reviewer: 'jo',
+          reason: 'busy',
+          sentAt: NOW,
+        } as never,
       }),
       NOW,
       NONE
     );
-    expect(warn).toMatchObject({
-      tone: 'warn',
+    expect(retry).toMatchObject({
+      tone: 'quiet',
       word: 'nudge to jo went unanswered',
+      detail: 'right-click to ask again',
+      verbs: [],
     });
   });
 

@@ -1,5 +1,5 @@
-import { respondOutcome } from '../../respond-outcome.ts';
-import type { BoardMRWithReview, DraftInfo } from '../types.ts';
+import { respondOutcome, type RespondStatus } from '../../respond-outcome.ts';
+import type { BoardMRWithReview, DraftInfo, ReviewStatus } from '../types.ts';
 import {
   activeReviewers,
   ago,
@@ -64,11 +64,19 @@ const TONE_RANK: Record<Tone, number> = {
   clear: 5,
 };
 
-const RESPOND_WORKING: Record<string, string> = {
+const RESPOND_WORKING: Partial<Record<RespondStatus, string>> = {
   triaging: 'triaging…',
   implementing: 'implementing…',
   drafting: 'drafting replies…',
 };
+
+const REVIEW_IN_FLIGHT = new Set<ReviewStatus>(['queued', 'reviewing']);
+const RESPOND_IN_FLIGHT = new Set<RespondStatus>([
+  'queued',
+  'triaging',
+  'implementing',
+  'drafting',
+]);
 
 const DOCTOR_WORKING = new Set([
   'diagnosing',
@@ -131,54 +139,81 @@ function gateLines(mr: BoardMRWithReview): StatusLine[] {
   return out;
 }
 
-/** Which lane a gone orphan belongs to, resolved once and shared by the
-    orphan line and both lane lines: a lane checking `laneInterrupted`
-    against only its own info would also match on a lane that merely lacks
-    a sessionId, suppressing a lane the orphan never touched. */
-function orphanDomain(mr: BoardMRWithReview): 'review' | 'respond' {
-  const orphan = mr.orphan!;
-  if (laneInterrupted(orphan, mr.review)) return 'review';
-  if (laneInterrupted(orphan, mr.respond)) return 'respond';
-  if (mr.review?.status === 'queued' || mr.review?.status === 'reviewing')
+type Lane = 'review' | 'respond';
+
+/** The in-flight lane a gone orphan cut down, resolved once and shared by
+    the orphan line and both lane lines. Only work still under way can be
+    interrupted: a finished lane, a doctor-only row or a row with no lane
+    yields null, and the orphan then reads as a lane-neutral closed pane.
+    Review is checked first because a queued lane carries no sessionId and
+    `laneInterrupted` matches it on the gone state alone. */
+function interruptedLane(mr: BoardMRWithReview): Lane | null {
+  const orphan = mr.orphan;
+  if (orphan?.state !== 'gone') return null;
+  if (
+    mr.review &&
+    REVIEW_IN_FLIGHT.has(mr.review.status) &&
+    laneInterrupted(orphan, mr.review)
+  )
     return 'review';
   if (
     mr.respond &&
-    mr.respond.status !== 'done' &&
-    mr.respond.status !== 'error'
+    RESPOND_IN_FLIGHT.has(mr.respond.status) &&
+    laneInterrupted(orphan, mr.respond)
   )
     return 'respond';
+  return null;
+}
+
+function runningLane(mr: BoardMRWithReview): Lane {
+  if (mr.review && REVIEW_IN_FLIGHT.has(mr.review.status)) return 'review';
+  if (mr.respond && RESPOND_IN_FLIGHT.has(mr.respond.status)) return 'respond';
   return 'review';
 }
 
-function orphanLine(mr: BoardMRWithReview, now: number): StatusLine | null {
+function orphanLine(
+  mr: BoardMRWithReview,
+  now: number,
+  interrupted: Lane | null
+): StatusLine | null {
   const orphan = mr.orphan;
   if (!orphan) return null;
-  const domain = orphanDomain(mr);
   if (orphan.state === 'hidden') {
     return {
       tone: 'quiet',
       word: 'off-screen',
       detail: 'pane hidden, still running',
-      verbs: [{ kind: 'focus', label: 'focus', domain }],
+      verbs: [{ kind: 'focus', label: 'focus', domain: runningLane(mr) }],
     };
   }
   if (orphan.state !== 'gone') return null;
-  const lane = domain === 'respond' ? 'response' : 'review';
+  const closed = `pane closed ${agoMs(orphan.since, now) ?? 'just now'}`;
+  const clear: Verb = {
+    kind: 'clear',
+    label: 'clear',
+    agentId: orphan.agentId,
+  };
+  if (!interrupted) {
+    return { tone: 'quiet', word: 'pane gone', detail: closed, verbs: [clear] };
+  }
   return {
     tone: 'warn',
-    word: `${lane} interrupted`,
-    detail: `pane closed ${agoMs(orphan.since, now) ?? 'just now'}`,
+    word: `${interrupted === 'respond' ? 'response' : 'review'} interrupted`,
+    detail: closed,
     verbs: [
-      { kind: 'relaunch', label: 'relaunch', domain },
-      { kind: 'clear', label: 'clear', agentId: orphan.agentId },
+      { kind: 'relaunch', label: 'relaunch', domain: interrupted },
+      clear,
     ],
   };
 }
 
-function reviewLine(mr: BoardMRWithReview, now: number): StatusLine | null {
+function reviewLine(
+  mr: BoardMRWithReview,
+  now: number,
+  interrupted: Lane | null
+): StatusLine | null {
   const r = mr.review;
-  if (!r) return null;
-  if (mr.orphan?.state === 'gone' && orphanDomain(mr) === 'review') return null;
+  if (!r || interrupted === 'review') return null;
   switch (r.status) {
     case 'queued':
       return { tone: 'quiet', word: 'review queued', verbs: [] };
@@ -216,17 +251,19 @@ function reviewLine(mr: BoardMRWithReview, now: number): StatusLine | null {
   }
 }
 
-function respondLine(mr: BoardMRWithReview): StatusLine | null {
+function respondLine(
+  mr: BoardMRWithReview,
+  interrupted: Lane | null
+): StatusLine | null {
   const r = mr.respond;
-  if (!r) return null;
-  if (mr.orphan?.state === 'gone' && orphanDomain(mr) === 'respond')
-    return null;
+  if (!r || interrupted === 'respond') return null;
   if (r.status === 'queued')
     return { tone: 'quiet', word: 'response queued', verbs: [] };
-  if (r.status in RESPOND_WORKING) {
+  const working = RESPOND_WORKING[r.status];
+  if (working) {
     return {
       tone: 'work',
-      word: RESPOND_WORKING[r.status]!,
+      word: working,
       spin: true,
       detail: r.message || undefined,
       verbs: [{ kind: 'focus', label: 'focus', domain: 'respond' }],
@@ -310,7 +347,10 @@ function socialLines(
   resolved: Resolved
 ): StatusLine[] {
   const out: StatusLine[] = [];
-  for (const n of mr.nudges ?? []) {
+  const nudges = [...(mr.nudges ?? [])].sort(
+    (a, b) => a.receivedAt - b.receivedAt
+  );
+  for (const n of nudges) {
     out.push({
       tone: 'warn',
       word: `${n.from} asked for a re-review`,
@@ -331,9 +371,9 @@ function socialLines(
   if (sent) {
     if (NUDGE_RETRYABLE.has(sent.display)) {
       out.push({
-        tone: 'warn',
+        tone: 'quiet',
         word: `nudge to ${sent.reviewer} went unanswered`,
-        detail: sent.reason,
+        detail: 'right-click to ask again',
         verbs: [],
       });
     } else if (sent.display === 'requested') {
@@ -393,11 +433,12 @@ export function candidateLines(
   now: number,
   draftResolved: Resolved
 ): StatusLine[] {
+  const interrupted = interruptedLane(mr);
   const lines: StatusLine[] = [
     ...gateLines(mr),
-    orphanLine(mr, now),
-    reviewLine(mr, now),
-    respondLine(mr),
+    orphanLine(mr, now, interrupted),
+    reviewLine(mr, now, interrupted),
+    respondLine(mr, interrupted),
     doctorLine(mr),
     ...socialLines(mr, now, draftResolved),
   ].filter((l): l is StatusLine => l !== null);
