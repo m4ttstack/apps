@@ -193,7 +193,7 @@ function reviewLine(mr: BoardMRWithReview, now: number): StatusLine | null {
         verbs: [{ kind: 'focus', label: 'focus', domain: 'review' }],
       };
     case 'done': {
-      const outcome = (r as { outcome?: string }).outcome;
+      const outcome = r.outcome;
       return {
         tone: 'go',
         word: 'review ready',
@@ -278,7 +278,7 @@ function doctorLine(mr: BoardMRWithReview): StatusLine | null {
   const d = mr.doctor;
   if (!d) return null;
   if (d.status === 'queued')
-    return { tone: 'quiet', word: 'doctor queued', verbs: [] };
+    return { tone: 'quiet', word: DOCTOR_LABEL[d.status], verbs: [] };
   if (DOCTOR_WORKING.has(d.status)) {
     return {
       tone: 'work',
@@ -291,14 +291,14 @@ function doctorLine(mr: BoardMRWithReview): StatusLine | null {
   if (d.status === 'done') {
     return {
       tone: 'go',
-      word: 'diagnosed',
+      word: DOCTOR_LABEL[d.status],
       detail: d.message || undefined,
       verbs: [],
     };
   }
   return {
     tone: 'bad',
-    word: 'doctor stuck',
+    word: DOCTOR_LABEL[d.status],
     detail: d.message || undefined,
     verbs: [{ kind: 'call-doctor', label: 'call again' }],
   };
@@ -333,11 +333,11 @@ function socialLines(
       out.push({
         tone: 'warn',
         word: `nudge to ${sent.reviewer} went unanswered`,
-        detail: (sent as { reason?: string }).reason,
+        detail: sent.reason,
         verbs: [],
       });
     } else if (sent.display === 'requested') {
-      const at = (sent as { sentAt?: number }).sentAt;
+      const at = sent.sentAt;
       out.push({
         tone: 'quiet',
         word: `nudged ${sent.reviewer}`,
@@ -377,7 +377,7 @@ function socialLines(
       });
     }
   }
-  const humans = activeReviewers(mr).map(h => h.toLowerCase());
+  const humans = activeReviewers(mr);
   if (humans.length) {
     out.push({
       tone: 'quiet',

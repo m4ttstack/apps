@@ -93,7 +93,7 @@ describe('rowStatus: review lane', () => {
           status: 'done',
           reportReady: true,
           outcome: 'approve',
-        } as never,
+        },
       }),
       NOW,
       NONE
@@ -384,6 +384,15 @@ describe('rowStatus: respond lane', () => {
       label: 'restart',
     });
   });
+
+  test('done with no posted/threads counts is a quiet response-done line', () => {
+    const [line] = candidateLines(
+      mr({ respond: { status: 'done' } }),
+      NOW,
+      NONE
+    );
+    expect(line).toMatchObject({ tone: 'quiet', word: 'response done' });
+  });
 });
 
 describe('rowStatus: doctor lane', () => {
@@ -411,6 +420,19 @@ describe('rowStatus: doctor lane', () => {
     expect(line!.verbs[0]).toEqual({
       kind: 'call-doctor',
       label: 'call again',
+    });
+  });
+
+  test('done is a go line naming the diagnosis, with the message as detail', () => {
+    const [line] = candidateLines(
+      mr({ doctor: { status: 'done', message: 'rebased on target' } }),
+      NOW,
+      NONE
+    );
+    expect(line).toMatchObject({
+      tone: 'go',
+      word: 'diagnosed',
+      detail: 'rebased on target',
     });
   });
 });
@@ -543,7 +565,20 @@ describe('rowStatus: social lanes', () => {
     );
     expect(line).toMatchObject({
       tone: 'quiet',
-      word: 'kim is reviewing right now',
+      word: 'Kim is reviewing right now',
+    });
+  });
+
+  test('a sent nudge confirmed and re-launching is a working line', () => {
+    const [line] = candidateLines(
+      mr({ sentNudge: { display: 'confirmed', reviewer: 'jo' } as never }),
+      NOW,
+      NONE
+    );
+    expect(line).toMatchObject({
+      tone: 'work',
+      word: 'jo re-reviewing…',
+      spin: true,
     });
   });
 });

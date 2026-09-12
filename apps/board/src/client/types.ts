@@ -47,6 +47,7 @@ export interface ReviewInfo {
   sessionId?: string;
   tabId?: string;
   startedAt?: number;
+  outcome?: string;
 }
 export interface RespondInfo {
   status: RespondStatus;
@@ -107,6 +108,7 @@ export interface SentNudgeInfo {
     | 'no-response';
   reviewer: string;
   reason?: string;
+  sentAt?: number;
 }
 /** A peer waiting on us: an inbound re-review request we haven't handled yet. */
 export interface InboundNudgeInfo {
