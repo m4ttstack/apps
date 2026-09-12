@@ -352,10 +352,12 @@ body {
   transition: opacity 0.12s;
 }
 .tui-row:hover .tui-row-pick > [data-part='statusdot'],
+.tui-row-pick:focus-within > [data-part='statusdot'],
 .tui-rows[data-selecting] .tui-row-pick > [data-part='statusdot'] {
   opacity: 0;
 }
 .tui-row:hover .tui-row-pick > [data-part='selectbox'],
+.tui-row-pick:focus-within > [data-part='selectbox'],
 .tui-rows[data-selecting] .tui-row-pick > [data-part='selectbox'] {
   opacity: 1;
 }

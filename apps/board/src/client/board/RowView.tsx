@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Invadr } from 'invadrs/react';
 
 import { Chip, CopyButton, SelectBox } from '@mattstack/tui-kit';
@@ -138,13 +139,17 @@ function TicketLink({ ticket }: { ticket: string }) {
 /** The facts line's right rail: the thread count (the drawer's entry) and
     the age as the corner anchor. Newness is measured against the count the
     board last recorded for this MR; a first sighting, or a count that fell
-    below the record, rewrites that baseline during render, which is
-    idempotent (the next render finds record === count and writes nothing). */
+    below the record, rewrites that baseline after commit, so an abandoned
+    render never records a count the user did not see. */
 function Facts({ mr, now }: { mr: BoardMR; now: number }) {
   const count = commentCount(mr);
   const seen = mr.webUrl ? seenCount(mr.webUrl) : null;
   const newness = threadNewness(seen, count);
-  if (newness.record !== null && mr.webUrl) markSeen(mr.webUrl, newness.record);
+  const { record } = newness;
+  const webUrl = mr.webUrl;
+  useEffect(() => {
+    if (record !== null && webUrl) markSeen(webUrl, record);
+  }, [record, webUrl]);
   const grew = seen === null ? 0 : count - seen;
   return (
     <span className="tui-facts">
