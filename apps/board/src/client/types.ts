@@ -213,6 +213,10 @@ export interface RowContext {
       the same dedup-and-focus path launching that domain again already takes
       (see GateForm's "focus pane" button), not a distinct endpoint. */
   onFocusPane: (mr: BoardMRWithReview, domain: GateDomain) => void;
+  onLaunch: (mr: BoardMR, note?: string, intent?: 'launch' | 'focus') => void;
+  onReReview: (mr: BoardMR, note?: string) => void;
+  onRespond: (mr: BoardMR, note?: string, intent?: 'launch' | 'focus') => void;
+  onDoctor: (mr: BoardMR, note?: string, intent?: 'launch' | 'focus') => void;
   /** Opens the decision queue modal to the given gate -- a row's chip face
       never mounts a form itself. */
   onOpenGate: (gateId: string) => void;
