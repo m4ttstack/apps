@@ -577,7 +577,8 @@ body {
 .tui-status-verb[data-secondary] {
   display: none;
 }
-.tui-row:hover .tui-status-verb[data-secondary] {
+.tui-row:hover .tui-status-verb[data-secondary],
+.tui-row:focus-within .tui-status-verb[data-secondary] {
   display: inline;
 }
 /* The decision queue's strip separates its facts with this glyph; rows carry

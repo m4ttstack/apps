@@ -53,8 +53,6 @@ function ctx(over: Partial<RowContext> = {}): RowContext {
     onOpenGate: noop,
     selected: new Set(),
     onToggleSelect: noop,
-    queueExtras: [],
-    onResumeOrphan: noop,
     onClearOrphan: noop,
     onLaunch: noop,
     onReReview: noop,
@@ -120,6 +118,29 @@ test('a hot line renders its word, detail, and the primary verb; the secondary v
   await React.act(async () => verbs[0]!.click());
   await React.act(async () => verbs[1]!.click());
   expect(calls).toEqual(['focus:review', 'clear:ag-1']);
+});
+
+test('a focus verb carries its lane to onFocusPane', async () => {
+  const calls: string[] = [];
+  await render(
+    {
+      line: {
+        tone: 'work',
+        word: 'fixing…',
+        spin: true,
+        verbs: [{ kind: 'focus', label: 'focus', domain: 'doctor' }],
+      },
+      more: [],
+      bar: null,
+    },
+    ctx({ onFocusPane: (m, domain) => calls.push(`${m.iid}:${domain}`) })
+  );
+  await React.act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('button[data-verb="focus"]')!
+      .click()
+  );
+  expect(calls).toEqual(['1418:doctor']);
 });
 
 test('a working line renders the spinner ring, not a dot', async () => {

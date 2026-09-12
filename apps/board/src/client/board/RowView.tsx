@@ -19,6 +19,7 @@ import {
   getSlackMarks,
   mrLine,
   statusPhrase,
+  statusReasons,
 } from './format.ts';
 import { Bubble, DiscCheck, Eyes, SlackLogo } from './icons.tsx';
 import { rowStatus } from './row-status.ts';
@@ -64,9 +65,15 @@ function StatusFlags({
   );
 }
 
+/** The pill's tooltip carries the merge blockers: the gutter dot has the same
+    tip, but it yields to the checkbox under the pointer. */
 function StatusPhrase({ mr }: { mr: BoardMR }) {
   const { text, cls } = statusPhrase(mr);
-  return <span className={`tui-phrase ${cls}`}>{text}</span>;
+  return (
+    <span className={`tui-phrase ${cls}`} title={statusReasons(mr)}>
+      {text}
+    </span>
+  );
 }
 
 const STAGE_ICON: Record<SlackStage, () => React.JSX.Element> = {
@@ -179,16 +186,15 @@ function RowView({
   showAuthor,
   ctx,
 }: {
-  mrs: BoardMR[];
+  mrs: BoardMRWithReview[];
   now: number;
   showAuthor: boolean;
   ctx: RowContext;
 }) {
-  const renderRow = (mr: BoardMR, depth: number) => {
-    const mrx = mr as BoardMRWithReview;
+  const renderRow = (mr: BoardMRWithReview, depth: number) => {
     const ticket = extractTicketId(mr.sourceBranch, mr.title);
     const nested = depth > 0;
-    const status = rowStatus(mrx, now, ctx.draftResolved);
+    const status = rowStatus(mr, now, ctx.draftResolved);
     const behind = behindToken(mr);
     return (
       <div
@@ -233,7 +239,7 @@ function RowView({
               className="tui-copy-inline"
               title="copy this MR for Slack"
             />
-            <SlackMarks mr={mrx} />
+            <SlackMarks mr={mr} />
             <StatusPhrase mr={mr} />
             <StatusFlags mr={mr} nested={nested} />
           </div>
@@ -257,7 +263,7 @@ function RowView({
             )}
             <Facts mr={mr} now={now} />
           </div>
-          <StatusLine mr={mrx} status={status} ctx={ctx} />
+          <StatusLine mr={mr} status={status} ctx={ctx} />
         </div>
       </div>
     );

@@ -82,8 +82,6 @@ function ctx(over: Partial<RowContext> = {}): RowContext {
     onOpenGate: noop,
     selected: new Set(),
     onToggleSelect: noop,
-    queueExtras: [],
-    onResumeOrphan: noop,
     onClearOrphan: noop,
     onLaunch: noop,
     onReReview: noop,
@@ -249,6 +247,42 @@ test('mechanical flags render inline on line 1, never as their own line', async 
   const row = container.querySelector('.tui-row')!;
   expect(row.querySelector('.tui-row-review')).toBeNull();
   expect(row.querySelector('.tui-row-1 [data-flag]')).not.toBeNull();
+});
+
+test('the state pill carries the merge blockers in its tooltip', async () => {
+  await render([
+    mr({
+      blockers: { any: true, hasConflicts: true, awaitingApprovals: true },
+    } as never),
+  ]);
+  const pill = container.querySelector('.tui-phrase')!;
+  expect(pill.getAttribute('title')).toBe(
+    'blocked:\n· merge conflicts with target branch\n· awaiting approvals (0/1)'
+  );
+  await render([mr()]);
+  expect(container.querySelector('.tui-phrase')!.getAttribute('title')).toBe(
+    'ready to merge'
+  );
+});
+
+test('a row with no webUrl renders, records no seen count and lights no thread link', async () => {
+  await render([
+    mr({
+      webUrl: null,
+      threadSummary: { awaiting: 3, replied: 0, resolved: 0 },
+    } as never),
+  ]);
+  const row = container.querySelector('.tui-row')!;
+  expect(row.querySelector('.tui-title')!.textContent).toBe(
+    'ACME-2214 Port the v2 quiet-mode flows'
+  );
+  expect(row.querySelector('[data-part="selectbox"]')).toBeNull();
+  const link = row.querySelector('.tui-threads')!;
+  expect(link.textContent).toBe('3 threads');
+  expect(link.getAttribute('data-new')).toBeNull();
+  expect(localStorage.length).toBe(0);
+  await React.act(async () => (link as HTMLButtonElement).click());
+  expect(localStorage.length).toBe(0);
 });
 
 test('selection mode marks the list so the gutter checkboxes show at rest', async () => {

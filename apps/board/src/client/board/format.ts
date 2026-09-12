@@ -266,10 +266,10 @@ function statusPhrase(mr: BoardMR): { text: string; cls: string } {
 
 /** Depth-first flattening of one stack tree, for views that render a chain as
     consecutive indented items rather than nested markup. */
-function flattenStack(
-  node: StackNode,
+function flattenStack<M extends BoardMR>(
+  node: StackNode<M>,
   depth = 0
-): Array<{ mr: BoardMR; depth: number }> {
+): Array<{ mr: M; depth: number }> {
   return [
     { mr: node.mr, depth },
     ...node.children.flatMap(c => flattenStack(c, depth + 1)),

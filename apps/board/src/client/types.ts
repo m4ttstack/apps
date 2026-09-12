@@ -222,14 +222,8 @@ export interface RowContext {
   onOpenGate: (gateId: string) => void;
   selected: ReadonlySet<string>;
   onToggleSelect: (webUrl: string) => void;
-  /** Human-owned, non-MR gates: where a pane-attention gate lands before
-      its `agent:<id>` subject resolves to an MR row. */
-  queueExtras: GateRow[];
-  /** Resume: answers the orphan's attention gate with `{ action: "resume"
-      }` (the daemon's answer-time guarantee relaunches from there). */
-  onResumeOrphan: (gate: GateRow) => void;
-  /** Clear: POSTs /reconciler/clear for the orphan's agentId -- available
-      whether or not an attention gate exists to resume from. */
+  /** The status line's clear verb: POSTs /reconciler/clear for the gone
+      orphan's agentId, whether or not an attention gate still exists. */
   onClearOrphan: (agentId: string) => void;
 }
 
