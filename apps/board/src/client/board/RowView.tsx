@@ -238,12 +238,6 @@ function RowView({
               </Chip>
             )}
             <span className="tui-title">{cleanTitle(mr.title)}</span>
-            {ticket && <TicketLink ticket={ticket} />}
-            <CopyButton
-              text={mrLine(mr, ctx.slackTemplates)}
-              className="tui-copy-inline"
-              title="copy this MR for Slack"
-            />
             <SlackMarks mr={mr} />
             <StatusPhrase mr={mr} />
             <StatusFlags mr={mr} nested={nested} />
@@ -268,7 +262,21 @@ function RowView({
             )}
             <Facts mr={mr} now={now} />
           </div>
-          <StatusLine mr={mr} status={status} ctx={ctx} />
+          <StatusLine
+            mr={mr}
+            status={status}
+            ctx={ctx}
+            tools={
+              <>
+                {ticket && <TicketLink ticket={ticket} />}
+                <CopyButton
+                  text={mrLine(mr, ctx.slackTemplates)}
+                  className="tui-copy-inline"
+                  title="copy this MR for Slack"
+                />
+              </>
+            }
+          />
         </div>
       </div>
     );
