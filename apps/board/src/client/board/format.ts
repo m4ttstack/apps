@@ -57,7 +57,8 @@ function activeReviewers(mr: BoardMR): string[] {
     already strips the marker off GitLab titles, so the draft pass is only a
     guard for titles that arrive with it still attached. */
 function cleanTitle(title: string): string {
-  return stripDraftPrefix(title).replace(/^[A-Za-z]+-\d+:\s*/, '');
+  const undrafted = stripDraftPrefix(title);
+  return undrafted.replace(/^[A-Za-z]+-\d+:\s*/, '') || undrafted;
 }
 
 /** The row's title: `cleanTitle` plus the ticket the facts line now carries
@@ -67,7 +68,7 @@ function rowTitle(title: string, ticket: string | null): string {
   const clean = cleanTitle(title);
   if (!ticket) return clean;
   const escaped = ticket.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return clean.replace(new RegExp(`^${escaped}\\b[:\\s-]*`, 'i'), '');
+  return clean.replace(new RegExp(`^${escaped}\\b[:\\s-]*`, 'i'), '') || clean;
 }
 
 const RESPOND_ACTIVE = new Set<RespondStatus>([

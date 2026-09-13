@@ -224,3 +224,11 @@ test('rowTitle also drops the ticket the facts line carries, with or without a c
     'ACME-2214 Port the flows'
   );
 });
+
+test('a title that is only the ticket keeps the ticket rather than going blank', () => {
+  expect(rowTitle('ACME-2214', 'ACME-2214')).toBe('ACME-2214');
+  expect(rowTitle('ACME-2214 -', 'ACME-2214')).toBe('ACME-2214 -');
+  expect(rowTitle('ACME-2214:', 'ACME-2214')).toBe('ACME-2214:');
+  expect(cleanTitle('ACME-2214:')).toBe('ACME-2214:');
+  expect(cleanTitle('Draft: ACME-2214:')).toBe('ACME-2214:');
+});
