@@ -126,6 +126,25 @@ export function MessageGlyph() {
   );
 }
 
+const MENU_PATHS = {
+  file: 'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8',
+  people:
+    'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
+  copy: 'M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2ZM4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2',
+  branch:
+    'M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM15 6a9 9 0 0 0-9 9',
+} as const;
+
+/** The row menu's non-agent icons: what a click lands on, in place of the
+    old trailing "gitlab" / "herdr" hints. */
+export function MenuGlyph({ kind }: { kind: keyof typeof MENU_PATHS }) {
+  return (
+    <svg {...GLYPH} width={13} height={13}>
+      <path d={MENU_PATHS[kind]} />
+    </svg>
+  );
+}
+
 /** The agent mark on a verb that launches or jumps into an agent pane. */
 export function AgentGlyph() {
   return (

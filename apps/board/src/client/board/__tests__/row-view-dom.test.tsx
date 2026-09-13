@@ -425,7 +425,7 @@ test('on my own MR the token says only how many threads wait on me; the total mo
   );
 });
 
-test("on someone else's MR the token says the author replied to my threads", async () => {
+test("on someone else's MR the token says only that the author replied to my threads; the total moves to the tooltip", async () => {
   await render(
     [
       mr({
@@ -435,8 +435,14 @@ test("on someone else's MR the token says the author replied to my threads", asy
     ],
     ctx({ self: 'me' })
   );
-  expect(container.querySelector('.tui-threads-replied')!.textContent).toBe(
+  const link = container.querySelector('.tui-threads')!;
+  expect(link.querySelector('.tui-threads-replied')!.textContent).toBe(
     'author replied'
+  );
+  expect(link.querySelector('.tui-threads-count')).toBeNull();
+  expect(link.textContent).toBe('author replied');
+  expect(link.getAttribute('title')).toBe(
+    '2 threads, the author answered yours'
   );
   await render(
     [

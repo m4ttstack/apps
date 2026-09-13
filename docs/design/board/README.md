@@ -42,6 +42,8 @@ required up to 12), with invented names throughout:
   ticket for branch, threads waiting, no pill repeats, subtle lane-colored
   verbs, secondaries left of the primary); `B5b` the verb identity options
   it chose from
+- `B6 · Row menu`: the right-click menu synced with B5, today's beside two
+  states of the new one
 
 ## The rulings
 
@@ -81,8 +83,9 @@ Everything below is drawn in B and its scenario boards; the laws in
   with `N threads waiting` in amber, 600 (the total moves to the tooltip:
   the waiting count is the fact the author needs, the total is noise).
   The author having replied to the seat's thread on someone else's MR
-  adds `author replied` in accent, 600, as its own span with no glyph
-  between (the no-separator law). Hover underlines the words.
+  likewise replaces the count with `author replied` in accent, 600: a
+  status outranks the count and takes its place. Hover underlines the
+  words.
 - **All clear is the words and the sun.** `all clear ☀`, no tagline.
 - **Hover replaces the dot with main's bespoke square checkbox**: 13px,
   1.5px muted stroke at 55% opacity, near-square corners, centered on the
@@ -116,6 +119,21 @@ Everything below is drawn in B and its scenario boards; the laws in
 - **Author-grouped view.** With the author tag gone the header line holds
   only the flags and the behind count; the ticket lives on the facts line
   in every view.
+- **The row menu speaks the row's grammar.** Three sections: agent
+  actions, gitlab, slack (no misc). Agent actions carry the bot mark in
+  their lane's color and use the row's verbs (review, re-review, respond,
+  call doctor, rebase locally, relaunch, resume, focus); the agent's
+  report opens from there (view agent review), and asking a teammate's
+  agent to look again sits last with a people icon. Every other item leads
+  with one icon that says where the click lands, in place of the old
+  trailing "herdr" / "gitlab" hints; the Slack items carry the row's Slack
+  logo and the marks the reaction emoji (`mark as looking`, `unmark
+  approved` with a check trailing). Only actions possible right now
+  render: a blocked GitLab action is absent, not greyed; the marks appear
+  once the MR is posted; an empty section has no label. Re-review appears
+  only once a review is logged: the board's own finished review, or a
+  person's on GitLab (an approval, a reviewer thread, or a reviewer who
+  commented, approved or requested changes).
 
 ## Implementation touch points
 

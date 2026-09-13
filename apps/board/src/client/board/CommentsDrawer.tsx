@@ -45,11 +45,11 @@ function CommentsTrigger({
   );
 }
 
-/** The facts line's threads token, the drawer's entry. `awaitYou` counts
-    the seat's own MR threads waiting on them, and when it is set the token
-    says only that (the total moves to the tooltip: the waiting count is the
-    fact the author needs); `replied` says the author answered the seat's
-    threads on someone else's MR. */
+/** The facts line's threads token, the drawer's entry. A status outranks
+    the count and takes its place, with the total in the tooltip: `awaitYou`
+    (the seat's own MR threads waiting on them) reads "N threads waiting",
+    `replied` (the author answered the seat's threads on someone else's MR)
+    reads "author replied". */
 function ThreadsLink({
   mr,
   count,
@@ -74,7 +74,9 @@ function ThreadsLink({
     ? `${grew} new since you last looked`
     : awaitYou > 0
       ? `${total}, ${awaitYou} waiting on you`
-      : 'open the comments drawer';
+      : replied
+        ? `${total}, the author answered yours`
+        : 'open the comments drawer';
   return (
     <CommentsTrigger
       mr={mr}
@@ -91,10 +93,11 @@ function ThreadsLink({
         <span className="tui-threads-await">
           {awaitYou} thread{awaitYou === 1 ? '' : 's'} waiting
         </span>
+      ) : replied ? (
+        <span className="tui-threads-replied">author replied</span>
       ) : (
         <span className="tui-threads-count">{total}</span>
       )}
-      {replied && <span className="tui-threads-replied">author replied</span>}
     </CommentsTrigger>
   );
 }

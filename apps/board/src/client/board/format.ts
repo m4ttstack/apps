@@ -135,7 +135,8 @@ interface SlackMark {
   stage: SlackStage;
   emoji: string;
   glyph: string;
-  label: string;
+  /** The stage as a word, for the menu's "mark as looking" wording. */
+  word: string;
   title: string;
 }
 
@@ -149,21 +150,21 @@ function buildSlackMarks(e: {
       stage: 'looking',
       emoji: e.looking,
       glyph: '👀',
-      label: 'mark 👀 on slack',
+      word: 'looking',
       title: "someone's looking (in slack)",
     },
     {
       stage: 'commented',
       emoji: e.commented,
       glyph: '💬',
-      label: 'mark 💬 on slack',
+      word: 'commented',
       title: 'commented in slack',
     },
     {
       stage: 'approved',
       emoji: e.approved,
       glyph: '✅',
-      label: 'mark ✅ on slack',
+      word: 'approved',
       title: 'approved in slack',
     },
   ];
@@ -242,38 +243,57 @@ const THREAD_LABEL: Record<ThreadStatus, string> = {
     outside the board. A live review collapses to a single "focus review tab" —
     or "relaunch review pane" once the sweep says the pane is gone, since the
     same focus route re-opens a dead pane and "focus" would undersell it. */
+/** The review items for the menu, worded like the row's verbs. Re-review
+    is offered only once a review is logged: the board's own finished one,
+    or a person's on GitLab (`reviewLogged`); cold, it would be a second
+    launch button. */
 function reviewMenuItems(
   status?: ReviewStatus,
-  interrupted?: boolean
+  interrupted?: boolean,
+  logged = false
 ): Array<{ kind: 'launch' | 're-review'; label: string }> {
   if (status === 'queued' || status === 'reviewing')
     return [
       {
         kind: 'launch',
-        label: interrupted ? 'relaunch review pane' : 'focus review tab',
+        label: interrupted ? 'relaunch review' : 'focus review',
       },
     ];
   if (status === 'done') return [{ kind: 're-review', label: 're-review' }];
-  // none | error: offer a cold first review and the re-review path side by side.
-  return [
-    { kind: 'launch', label: 'launch review' },
-    { kind: 're-review', label: 're-review' },
+  const items: Array<{ kind: 'launch' | 're-review'; label: string }> = [
+    { kind: 'launch', label: 'review' },
   ];
+  if (logged) items.push({ kind: 're-review', label: 're-review' });
+  return items;
+}
+
+/** Whether anyone has reviewed the MR on GitLab: a reviewer who commented,
+    approved or requested changes, an approval on the tally, or reviewer
+    threads. The thing a re-review would re-check. */
+function reviewLogged(mr: BoardMR): boolean {
+  const states = new Set(['REVIEWED', 'APPROVED', 'REQUESTED_CHANGES']);
+  return (
+    mr.reviews.given > 0 ||
+    mr.reviewerComments > 0 ||
+    (mr.reviews.reviewers ?? []).some(
+      r => !!r.reviewState && states.has(r.reviewState)
+    )
+  );
 }
 
 function respondItemLabel(
   status?: RespondStatus,
   interrupted?: boolean
 ): string {
-  if (!status || status === 'error') return 'respond to review';
+  if (!status || status === 'error') return 'respond';
   if (status === 'done') return 'restart response';
-  return interrupted ? 'relaunch response pane' : 'focus response tab';
+  return interrupted ? 'relaunch response' : 'focus response';
 }
 
 function doctorItemLabel(status?: DoctorStatus): string {
-  if (!status || status === 'error') return 'call the doctor';
-  if (status === 'done') return 'call the doctor again';
-  return 'focus doctor tab';
+  if (!status || status === 'error') return 'call doctor';
+  if (status === 'done') return 'call doctor again';
+  return 'focus doctor';
 }
 
 /** Whether a lane (review/respond) was cut down by its executor pane dying:
@@ -351,6 +371,7 @@ export {
   THREAD_ICON,
   THREAD_LABEL,
   reviewMenuItems,
+  reviewLogged,
   respondItemLabel,
   doctorItemLabel,
 };

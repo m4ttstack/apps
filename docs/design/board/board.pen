@@ -6752,20 +6752,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "m41nKF",
-                                      "name": "2 threads",
-                                      "fill": "$fg",
-                                      "content": "2 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "RKjT2",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -8771,20 +8761,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "PCFqh",
-                                      "name": "2 threads",
-                                      "fill": "$fg",
-                                      "content": "2 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "HkeSG",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -30284,7 +30264,7 @@
           "fill": "$muted",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "The pill stops saying \"commented\": it owns the approval axis only (needs review, N/M approved, approved, changes requested). The conversation lives in one token on the facts line, the drawer's entry, and it reads at full weight instead of dim. Four states: quiet (count only), new activity since you last opened the drawer (accent, bold, dot), threads awaiting you on your own MR (amber count), and the author replied to your thread on theirs (accent). Hover underlines it like a link.",
+          "content": "author replied",
           "fontFamily": "$font-sans",
           "fontSize": 13,
           "fontWeight": "normal"
@@ -31653,20 +31633,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "lPUjm",
-                                      "name": "2 threads",
-                                      "fill": "$fg",
-                                      "content": "2 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "ESs8g",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -33137,20 +33107,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "g1Z9r3",
-                                      "name": "2 threads",
-                                      "fill": "$fg",
-                                      "content": "2 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "w5Rf7",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -50627,20 +50587,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "fY7vP",
-                                      "name": "3 threads",
-                                      "fill": "$fg",
-                                      "content": "3 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "fXwUO",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -57788,20 +57738,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "G7eCDh",
-                                      "name": "2 threads",
-                                      "fill": "$fg",
-                                      "content": "2 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "xqadk",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -59807,20 +59747,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "uZpem",
-                                      "name": "2 threads",
-                                      "fill": "$fg",
-                                      "content": "2 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "T3n6L",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -60284,7 +60214,7 @@
           "fill": "$muted",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "The pill stops saying \"commented\": it owns the approval axis only (needs review, N/M approved, approved, changes requested). The conversation lives in one token on the facts line, the drawer's entry, and it reads at full weight instead of dim. Four states: quiet (count only), new activity since you last opened the drawer (accent, bold, dot), threads awaiting you on your own MR (amber count), and the author replied to your thread on theirs (accent). Hover underlines it like a link.",
+          "content": "author replied",
           "fontFamily": "$font-sans",
           "fontSize": 13,
           "fontWeight": "normal"
@@ -61653,20 +61583,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "i4PD6",
-                                      "name": "2 threads",
-                                      "fill": "$fg",
-                                      "content": "2 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "bSlwO",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -63137,20 +63057,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "OaRGu",
-                                      "name": "2 threads",
-                                      "fill": "$fg",
-                                      "content": "2 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "wEzaX",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -80627,20 +80537,10 @@
                                     },
                                     {
                                       "type": "text",
-                                      "id": "jzkeM",
-                                      "name": "3 threads",
-                                      "fill": "$fg",
-                                      "content": "3 threads",
-                                      "fontFamily": "$font-sans",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "text",
                                       "id": "i7giSY",
                                       "name": "· author replied",
                                       "fill": "$accent-text",
-                                      "content": "· author replied",
+                                      "content": "author replied",
                                       "fontFamily": "$font-sans",
                                       "fontSize": 12,
                                       "fontWeight": "600"
@@ -86833,9 +86733,9 @@
                                 {
                                   "type": "text",
                                   "id": "UDUM0",
-                                  "name": "document CVI's claim data structures and how they relate",
+                                  "name": "document the widget data model and how it maps to the legacy grid",
                                   "fill": "$fg",
-                                  "content": "document CVI's claim data structures and how they relate",
+                                  "content": "document the widget data model and how it maps to the legacy grid",
                                   "fontFamily": "$font-sans",
                                   "fontSize": 13.5,
                                   "fontWeight": "500"
@@ -89228,9 +89128,9 @@
                                 {
                                   "type": "text",
                                   "id": "ZtbOW",
-                                  "name": "document CVI's claim data structures and how they relate",
+                                  "name": "document the widget data model and how it maps to the legacy grid",
                                   "fill": "$fg",
-                                  "content": "document CVI's claim data structures and how they relate",
+                                  "content": "document the widget data model and how it maps to the legacy grid",
                                   "fontFamily": "$font-sans",
                                   "fontSize": 13.5,
                                   "fontWeight": "500"
@@ -92031,9 +91931,9 @@
                                 {
                                   "type": "text",
                                   "id": "AVLcJ",
-                                  "name": "document CVI's claim data structures and how they relate",
+                                  "name": "document the widget data model and how it maps to the legacy grid",
                                   "fill": "$fg",
-                                  "content": "document CVI's claim data structures and how they relate",
+                                  "content": "document the widget data model and how it maps to the legacy grid",
                                   "fontFamily": "$font-sans",
                                   "fontSize": 13.5,
                                   "fontWeight": "500"
@@ -94426,9 +94326,9 @@
                                 {
                                   "type": "text",
                                   "id": "e1K5R",
-                                  "name": "document CVI's claim data structures and how they relate",
+                                  "name": "document the widget data model and how it maps to the legacy grid",
                                   "fill": "$fg",
-                                  "content": "document CVI's claim data structures and how they relate",
+                                  "content": "document the widget data model and how it maps to the legacy grid",
                                   "fontFamily": "$font-sans",
                                   "fontSize": 13.5,
                                   "fontWeight": "500"
@@ -102001,6 +101901,3768 @@
                           "fontFamily": "$font-sans",
                           "fontSize": 12,
                           "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "fm2Gv",
+      "x": 3040,
+      "y": 7900,
+      "name": "B6 · Row menu",
+      "theme": {
+        "mode": "dark"
+      },
+      "width": 1440,
+      "fill": "$bg",
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 40,
+      "children": [
+        {
+          "type": "text",
+          "id": "mOHgd",
+          "name": "B6 · Row menu",
+          "fill": "$fg",
+          "content": "B6 · Row menu",
+          "fontFamily": "$font-sans",
+          "fontSize": 20,
+          "fontWeight": "600"
+        },
+        {
+          "type": "text",
+          "id": "clcjr",
+          "name": "The right-click menu synced with B5. Agent actions carry the bot mark in their lane's color and use the row's own verbs (review, re-review, respond, call doctor, relaunch, resume, focus); the trailing \"herdr\" and \"gitlab\" hints go, since the leading icon says where the click lands. GitLab and misc items get one lucide icon each; the Slack marks are the reaction emoji, a green check trails the one already on the message. Today's menu on the left for comparison.",
+          "fill": "$muted",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "The right-click menu synced with B5, in three sections: agent actions, gitlab, slack (no misc). Agent actions carry the bot mark in their lane's color and use the row's own verbs (review, re-review, respond, call doctor, relaunch, resume, focus); the agent's report opens from here (view agent review), and asking a teammate's agent to look again sits last with a people icon. Open in gitlab lives with the other GitLab actions; copy for slack with the Slack ones. The trailing herdr and gitlab hints go, since the leading icon says where the click lands. Slack items carry the same Slack logo the row shows; the marks are the reaction emoji, a green check trails the one already on the message. Only actions that are possible right now render: nothing is greyed out, a blocked merge is simply absent, the marks appear once the MR is posted, and a section with nothing in it has no label. Re-review appears only once a review is logged: the board's own finished review, or a person's on GitLab; until then only review is offered. Today's menu on the left for comparison.",
+          "fontFamily": "$font-sans",
+          "fontSize": 13
+        },
+        {
+          "type": "frame",
+          "id": "oLT5M",
+          "name": "columns",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "wwkFw",
+              "name": "today",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "XJzjK",
+                  "name": "TODAY",
+                  "fill": "$dim",
+                  "content": "TODAY",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 0.6
+                },
+                {
+                  "type": "frame",
+                  "id": "mXFmF",
+                  "name": "menu",
+                  "width": 300,
+                  "fill": "$card",
+                  "cornerRadius": 8,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    6,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "k5LNu4",
+                      "name": "item !1271",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rr1jh",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "tgFf1",
+                          "name": "!1271",
+                          "fill": "$fg",
+                          "content": "!1271",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "Nb2VT",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KNI7c",
+                      "name": "label agent actions",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "W4Bzi",
+                          "name": "agent actions",
+                          "fill": "$dim",
+                          "content": "agent actions",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "a9NSw",
+                      "name": "item launch review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "DCaMG",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "aCHc6",
+                          "name": "launch review",
+                          "fill": "$fg",
+                          "content": "launch review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "gTyZs",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "zbQEN",
+                          "name": "herdr",
+                          "fill": "$dim",
+                          "content": "herdr",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "H5mOUz",
+                      "name": "item re-review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Z2Mmju",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "wROSS",
+                          "name": "re-review",
+                          "fill": "$fg",
+                          "content": "re-review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Fipg0",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "YWrHc",
+                          "name": "herdr",
+                          "fill": "$dim",
+                          "content": "herdr",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LukS3",
+                      "name": "item call the doctor",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "TBLLk",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "VtZh3",
+                          "name": "call the doctor",
+                          "fill": "$fg",
+                          "content": "call the doctor",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "xYlyJ",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "b9nON",
+                          "name": "herdr",
+                          "fill": "$dim",
+                          "content": "herdr",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZLaWC",
+                      "name": "item rebase locally",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rB5SP",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "YOeVE",
+                          "name": "rebase locally",
+                          "fill": "$fg",
+                          "content": "rebase locally",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "L32ICC",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "G5EOcd",
+                          "name": "herdr",
+                          "fill": "$dim",
+                          "content": "herdr",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "hO88d",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WArg4",
+                      "name": "label gitlab",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "M6ImyC",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Lm7NM",
+                      "name": "item merge",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "a4drT",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "Sugf1",
+                          "name": "merge",
+                          "fill": "$dim",
+                          "content": "merge",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "UNhhr",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "j2o7He",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Q86wwB",
+                      "name": "item set auto-merge",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "pxhuV",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "yTPNu",
+                          "name": "set auto-merge",
+                          "fill": "$fg",
+                          "content": "set auto-merge",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "V8CPsb",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "e3NaaX",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "cF7Q2",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ADuLH",
+                      "name": "label misc",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "zXHJx",
+                          "name": "misc",
+                          "fill": "$dim",
+                          "content": "misc",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "O8r81w",
+                      "name": "item open in gitlab",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "l0Nsme",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "h0aX1",
+                          "name": "open in gitlab",
+                          "fill": "$fg",
+                          "content": "open in gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "au8cC",
+                      "name": "item copy for slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "u7sWy8",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "FPiSw",
+                          "name": "copy for slack",
+                          "fill": "$fg",
+                          "content": "copy for slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "ZXkAL",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EJiZe",
+                      "name": "item no thread — retry find",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "eAu9T",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "gFH22",
+                          "name": "no thread — retry find",
+                          "fill": "$fg",
+                          "content": "no thread — retry find",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Bbon0",
+                      "name": "item post to slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "l9qTi",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "xmHdR",
+                          "name": "post to slack",
+                          "fill": "$fg",
+                          "content": "post to slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WcYPg",
+                      "name": "item mark 👀 on slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "YZpf1",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "d5Aknl",
+                          "name": "mark 👀 on slack",
+                          "fill": "$dim",
+                          "content": "mark 👀 on slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Zd7jP",
+                      "name": "item mark 💬 on slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "v1ICRk",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "Y20hle",
+                          "name": "mark 💬 on slack",
+                          "fill": "$dim",
+                          "content": "mark 💬 on slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "I9eEm",
+                      "name": "item mark ✅ on slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "b8MBx",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "LxomA",
+                          "name": "mark ✅ on slack",
+                          "fill": "$dim",
+                          "content": "mark ✅ on slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "BiUmC",
+              "name": "synced · posted MR, ✅ already marked",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "xsw2f",
+                  "name": "SYNCED · POSTED MR, ✅ ALREADY MARKED",
+                  "fill": "$dim",
+                  "content": "SYNCED · POSTED MR, ✅ ALREADY MARKED",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 0.6
+                },
+                {
+                  "type": "frame",
+                  "id": "T66osJ",
+                  "name": "menu",
+                  "width": 300,
+                  "fill": "$card",
+                  "cornerRadius": 8,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    6,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "vq1Vw",
+                      "name": "item !1271",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "VVFCF",
+                          "name": "git-pull-request-arrow",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "git-pull-request-arrow",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "tVTS1",
+                          "name": "!1271",
+                          "fill": "$fg",
+                          "content": "!1271",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "f6cpU",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NkXWS",
+                      "name": "label agent actions",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ur33g",
+                          "name": "agent actions",
+                          "fill": "$dim",
+                          "content": "agent actions",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tkhv0",
+                      "name": "item review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "q4Afpv",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$accent-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "gQiGg",
+                          "name": "review",
+                          "fill": "$accent-text",
+                          "content": "review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IyIHL",
+                      "name": "item re-review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "b7Hsm",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$accent-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "bl7sA",
+                          "name": "re-review",
+                          "fill": "$accent-text",
+                          "content": "re-review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "l8J6q",
+                      "name": "item respond",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "MU1ks",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$green-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Z03tL",
+                          "name": "respond",
+                          "fill": "$green-text",
+                          "content": "respond",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hZNhZ",
+                      "name": "item call doctor",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "HvV6V",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$orange-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "cUBaa",
+                          "name": "call doctor",
+                          "fill": "$orange-text",
+                          "content": "call doctor",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QMtrk",
+                      "name": "item rebase locally",
+                      "width": "fill_container",
+                      "height": 30,
+                      "fill": "$hover",
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "mAqKo",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$orange-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "tOKfJ",
+                          "name": "rebase locally",
+                          "fill": "$orange-text",
+                          "content": "rebase locally",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "y3veC",
+                      "name": "item view agent review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "b9fyGl",
+                          "name": "file-text",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "file-text",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Ku5c3",
+                          "name": "view agent review",
+                          "fill": "$fg",
+                          "content": "view agent review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "b2MsFr",
+                      "name": "item ask Tom's agent to re-review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "xS32J",
+                          "name": "users",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "users",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "DTykf",
+                          "name": "ask Tom's agent to re-review",
+                          "fill": "$fg",
+                          "content": "ask Tom's agent to re-review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "X3ZBez",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "g9gd6",
+                      "name": "label gitlab",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "voWme",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "iwi1C",
+                      "name": "item set auto-merge",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "udr3e",
+                          "name": "zap",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "zap",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Y32RO",
+                          "name": "set auto-merge",
+                          "fill": "$fg",
+                          "content": "set auto-merge",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "OggXC",
+                      "name": "item mark as draft",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "uGZsr",
+                          "name": "pencil-line",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "pencil-line",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "xHAo9",
+                          "name": "mark as draft",
+                          "fill": "$fg",
+                          "content": "mark as draft",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xH26k",
+                      "name": "item open in gitlab",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "j991Fc",
+                          "name": "arrow-up-right",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "arrow-up-right",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "W2pHDl",
+                          "name": "open in gitlab",
+                          "fill": "$fg",
+                          "content": "open in gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "U40Vd",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "o6M7cD",
+                      "name": "label slack",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LT0nJ",
+                          "name": "slack",
+                          "fill": "$dim",
+                          "content": "slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "H9Qwcy",
+                      "name": "item post to slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "r5T1sE",
+                          "name": "slack",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "slack",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Z44Z66",
+                          "name": "post to slack",
+                          "fill": "$fg",
+                          "content": "post to slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "DPSx6",
+                      "name": "item mark as looking",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ay3iX",
+                          "name": "emoji",
+                          "fill": "$fg",
+                          "content": "👀",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "y5NWx4",
+                          "name": "mark as looking",
+                          "fill": "$fg",
+                          "content": "mark as looking",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "C8pT4",
+                      "name": "item mark as commented",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "s9QAc",
+                          "name": "emoji",
+                          "fill": "$fg",
+                          "content": "💬",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "tbfNz",
+                          "name": "mark as commented",
+                          "fill": "$fg",
+                          "content": "mark as commented",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UOIxy",
+                      "name": "item unmark approved",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "C95Wt",
+                          "name": "emoji",
+                          "fill": "$fg",
+                          "content": "✅",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "psfgQ",
+                          "name": "unmark approved",
+                          "fill": "$fg",
+                          "content": "unmark approved",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "zlWHI",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "icon",
+                          "id": "i6YiP",
+                          "name": "check",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "check",
+                          "library": "lucide",
+                          "fill": "$green-text"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ydwIK",
+                      "name": "item open MR post in slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "MaD4u",
+                          "name": "slack",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "slack",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        },
+                        {
+                          "type": "text",
+                          "id": "fp0SL",
+                          "name": "open MR post in slack",
+                          "fill": "$fg",
+                          "content": "open MR post in slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QFGTy",
+                      "name": "item copy for slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "iXqys",
+                          "name": "copy",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "copy",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "YeRfy",
+                          "name": "copy for slack",
+                          "fill": "$fg",
+                          "content": "copy for slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "wWVPW",
+              "name": "synced · interrupted review, no slack thread",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "yO8Zf",
+                  "name": "SYNCED · INTERRUPTED REVIEW, NO SLACK THREAD",
+                  "fill": "$dim",
+                  "content": "SYNCED · INTERRUPTED REVIEW, NO SLACK THREAD",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 0.6
+                },
+                {
+                  "type": "frame",
+                  "id": "oHHVq",
+                  "name": "menu",
+                  "width": 300,
+                  "fill": "$card",
+                  "cornerRadius": 8,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    6,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "OyvDd",
+                      "name": "item !1204",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "ssZSm",
+                          "name": "git-pull-request-arrow",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "git-pull-request-arrow",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "o7zGu",
+                          "name": "!1204",
+                          "fill": "$fg",
+                          "content": "!1204",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "Km2FN",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BTHo1",
+                      "name": "label agent actions",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "qS3b0",
+                          "name": "agent actions",
+                          "fill": "$dim",
+                          "content": "agent actions",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Hr1Ie",
+                      "name": "item relaunch review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "SRc2j",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$accent-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "f00MB0",
+                          "name": "relaunch review",
+                          "fill": "$accent-text",
+                          "content": "relaunch review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "S7Fy1h",
+                      "name": "item resume review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "iCWcX",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$accent-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "g4ju4n",
+                          "name": "resume review",
+                          "fill": "$accent-text",
+                          "content": "resume review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "q2RTw",
+                      "name": "item focus doctor",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "baKXY",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$orange-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "F2xoa1",
+                          "name": "focus doctor",
+                          "fill": "$orange-text",
+                          "content": "focus doctor",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "kxUXH",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GvIJe",
+                      "name": "label gitlab",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "gmaBo",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dagLO",
+                      "name": "item mark ready",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "i9kFlW",
+                          "name": "pencil-line",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "pencil-line",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "RwRGY",
+                          "name": "mark ready",
+                          "fill": "$fg",
+                          "content": "mark ready",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dJ5Es",
+                      "name": "item open in gitlab",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "gPgnw",
+                          "name": "arrow-up-right",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "arrow-up-right",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "J6tol",
+                          "name": "open in gitlab",
+                          "fill": "$fg",
+                          "content": "open in gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "Z8HJ2m",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "XE4ie",
+                      "name": "label slack",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "MogFC",
+                          "name": "slack",
+                          "fill": "$dim",
+                          "content": "slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "D3RVc",
+                      "name": "item no thread, find it again",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "d6tF4Y",
+                          "name": "slack",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "slack",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        },
+                        {
+                          "type": "text",
+                          "id": "u6IDOl",
+                          "name": "no thread, find it again",
+                          "fill": "$fg",
+                          "content": "no thread, find it again",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QdeiY",
+                      "name": "item post to slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "mhaxW",
+                          "name": "slack",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "slack",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        },
+                        {
+                          "type": "text",
+                          "id": "KwA05",
+                          "name": "post to slack",
+                          "fill": "$fg",
+                          "content": "post to slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "I4aSAO",
+                      "name": "item copy for slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "y4kMZ",
+                          "name": "copy",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "copy",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Wq0k3",
+                          "name": "copy for slack",
+                          "fill": "$fg",
+                          "content": "copy for slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "aOm7S",
+      "x": 4560,
+      "y": 7900,
+      "name": "B6 · Row menu · light",
+      "theme": {
+        "mode": "light"
+      },
+      "width": 1440,
+      "fill": "$bg",
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 40,
+      "children": [
+        {
+          "type": "text",
+          "id": "xrLiU",
+          "name": "B6 · Row menu",
+          "fill": "$fg",
+          "content": "B6 · Row menu",
+          "fontFamily": "$font-sans",
+          "fontSize": 20,
+          "fontWeight": "600"
+        },
+        {
+          "type": "text",
+          "id": "RjNzI",
+          "name": "The right-click menu synced with B5. Agent actions carry the bot mark in their lane's color and use the row's own verbs (review, re-review, respond, call doctor, relaunch, resume, focus); the trailing \"herdr\" and \"gitlab\" hints go, since the leading icon says where the click lands. GitLab and misc items get one lucide icon each; the Slack marks are the reaction emoji, a green check trails the one already on the message. Today's menu on the left for comparison.",
+          "fill": "$muted",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "The right-click menu synced with B5, in three sections: agent actions, gitlab, slack (no misc). Agent actions carry the bot mark in their lane's color and use the row's own verbs (review, re-review, respond, call doctor, relaunch, resume, focus); the agent's report opens from here (view agent review), and asking a teammate's agent to look again sits last with a people icon. Open in gitlab lives with the other GitLab actions; copy for slack with the Slack ones. The trailing herdr and gitlab hints go, since the leading icon says where the click lands. Slack items carry the same Slack logo the row shows; the marks are the reaction emoji, a green check trails the one already on the message. Only actions that are possible right now render: nothing is greyed out, a blocked merge is simply absent, the marks appear once the MR is posted, and a section with nothing in it has no label. Re-review appears only once a review is logged: the board's own finished review, or a person's on GitLab; until then only review is offered. Today's menu on the left for comparison.",
+          "fontFamily": "$font-sans",
+          "fontSize": 13
+        },
+        {
+          "type": "frame",
+          "id": "z2hZy",
+          "name": "columns",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "H67IiC",
+              "name": "today",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "EsCEx",
+                  "name": "TODAY",
+                  "fill": "$dim",
+                  "content": "TODAY",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 0.6
+                },
+                {
+                  "type": "frame",
+                  "id": "tEA12",
+                  "name": "menu",
+                  "width": 300,
+                  "fill": "$card",
+                  "cornerRadius": 8,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    6,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "yoHaw",
+                      "name": "item !1271",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "dg3km",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "CnUzU",
+                          "name": "!1271",
+                          "fill": "$fg",
+                          "content": "!1271",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "QTS8f",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "m971ZG",
+                      "name": "label agent actions",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ggED7",
+                          "name": "agent actions",
+                          "fill": "$dim",
+                          "content": "agent actions",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JkXnz",
+                      "name": "item launch review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ZHIhE",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "HqIXP",
+                          "name": "launch review",
+                          "fill": "$fg",
+                          "content": "launch review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "vf292",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "elCpl",
+                          "name": "herdr",
+                          "fill": "$dim",
+                          "content": "herdr",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IhstY",
+                      "name": "item re-review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "HY7V0",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "q72iaP",
+                          "name": "re-review",
+                          "fill": "$fg",
+                          "content": "re-review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "DVwuu",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "tk3Ae",
+                          "name": "herdr",
+                          "fill": "$dim",
+                          "content": "herdr",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EWW6E",
+                      "name": "item call the doctor",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "r1uav",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "Cx3WT",
+                          "name": "call the doctor",
+                          "fill": "$fg",
+                          "content": "call the doctor",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "KVjEM",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "DNmkQ",
+                          "name": "herdr",
+                          "fill": "$dim",
+                          "content": "herdr",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "DWmLc",
+                      "name": "item rebase locally",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "iHlXc",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "k4N4rd",
+                          "name": "rebase locally",
+                          "fill": "$fg",
+                          "content": "rebase locally",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Wb6b9",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "Nr6Wu",
+                          "name": "herdr",
+                          "fill": "$dim",
+                          "content": "herdr",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "xI27N",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mb4J6",
+                      "name": "label gitlab",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Z6EklG",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "H9gvT",
+                      "name": "item merge",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "HcFBa",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "g0BUpe",
+                          "name": "merge",
+                          "fill": "$dim",
+                          "content": "merge",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "PVKQg",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "s8krc",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "VIRlN",
+                      "name": "item set auto-merge",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "EWBU2",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "gFT1n",
+                          "name": "set auto-merge",
+                          "fill": "$fg",
+                          "content": "set auto-merge",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Sn4Gj",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "hNuzR",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "a6ZcJl",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "E1fvD",
+                      "name": "label misc",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Ca3eQ",
+                          "name": "misc",
+                          "fill": "$dim",
+                          "content": "misc",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "FgNhJ",
+                      "name": "item open in gitlab",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "YZdOy",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "AyPyc",
+                          "name": "open in gitlab",
+                          "fill": "$fg",
+                          "content": "open in gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JhpFB",
+                      "name": "item copy for slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "NgYF9",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "k7lwaP",
+                          "name": "copy for slack",
+                          "fill": "$fg",
+                          "content": "copy for slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "Bbxb4",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Yj1xQ",
+                      "name": "item no thread — retry find",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "tC0tP",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "jppP7",
+                          "name": "no thread — retry find",
+                          "fill": "$fg",
+                          "content": "no thread — retry find",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PIUQL",
+                      "name": "item post to slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "H33lZY",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "hDfCi",
+                          "name": "post to slack",
+                          "fill": "$fg",
+                          "content": "post to slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "i2E66Y",
+                      "name": "item mark 👀 on slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "u1IBv2",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "dM5vB",
+                          "name": "mark 👀 on slack",
+                          "fill": "$dim",
+                          "content": "mark 👀 on slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ARnsB",
+                      "name": "item mark 💬 on slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "JOpvZ",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "RdMPa",
+                          "name": "mark 💬 on slack",
+                          "fill": "$dim",
+                          "content": "mark 💬 on slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rPsX5",
+                      "name": "item mark ✅ on slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Q2KeEZ",
+                          "name": "no icon",
+                          "width": 13,
+                          "height": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "TBNIF",
+                          "name": "mark ✅ on slack",
+                          "fill": "$dim",
+                          "content": "mark ✅ on slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "zU6WX",
+              "name": "synced · posted MR, ✅ already marked",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "yzck4",
+                  "name": "SYNCED · POSTED MR, ✅ ALREADY MARKED",
+                  "fill": "$dim",
+                  "content": "SYNCED · POSTED MR, ✅ ALREADY MARKED",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 0.6
+                },
+                {
+                  "type": "frame",
+                  "id": "JkCCc",
+                  "name": "menu",
+                  "width": 300,
+                  "fill": "$card",
+                  "cornerRadius": 8,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    6,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "N8AV4c",
+                      "name": "item !1271",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "pE7d4",
+                          "name": "git-pull-request-arrow",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "git-pull-request-arrow",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "iOhmx",
+                          "name": "!1271",
+                          "fill": "$fg",
+                          "content": "!1271",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "YRoL6",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wo0XO",
+                      "name": "label agent actions",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Z9vu9v",
+                          "name": "agent actions",
+                          "fill": "$dim",
+                          "content": "agent actions",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xkFD0",
+                      "name": "item review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "COIs0",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$accent-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "leb8W",
+                          "name": "review",
+                          "fill": "$accent-text",
+                          "content": "review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "etr6v",
+                      "name": "item re-review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "HtvSs",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$accent-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "eSE8R",
+                          "name": "re-review",
+                          "fill": "$accent-text",
+                          "content": "re-review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CrWBJ",
+                      "name": "item respond",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "A9LCkh",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$green-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "iYDoL",
+                          "name": "respond",
+                          "fill": "$green-text",
+                          "content": "respond",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "b2q9u",
+                      "name": "item call doctor",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "ghDYR",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$orange-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "y2cXdd",
+                          "name": "call doctor",
+                          "fill": "$orange-text",
+                          "content": "call doctor",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kYCVp",
+                      "name": "item rebase locally",
+                      "width": "fill_container",
+                      "height": 30,
+                      "fill": "$hover",
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "X1U4Xu",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$orange-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "WDgOo",
+                          "name": "rebase locally",
+                          "fill": "$orange-text",
+                          "content": "rebase locally",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LZ3RP",
+                      "name": "item view agent review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "kpRn1",
+                          "name": "file-text",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "file-text",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "D4dse",
+                          "name": "view agent review",
+                          "fill": "$fg",
+                          "content": "view agent review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "r3xPV",
+                      "name": "item ask Tom's agent to re-review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "QmDBv",
+                          "name": "users",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "users",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "TiDB3",
+                          "name": "ask Tom's agent to re-review",
+                          "fill": "$fg",
+                          "content": "ask Tom's agent to re-review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "H9v7c",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "y9oIW",
+                      "name": "label gitlab",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "fx33A",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YAJ9I",
+                      "name": "item set auto-merge",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "KXsrj",
+                          "name": "zap",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "zap",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "oDSZb",
+                          "name": "set auto-merge",
+                          "fill": "$fg",
+                          "content": "set auto-merge",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YmcHl",
+                      "name": "item mark as draft",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "qs5HG",
+                          "name": "pencil-line",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "pencil-line",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "VGSAX",
+                          "name": "mark as draft",
+                          "fill": "$fg",
+                          "content": "mark as draft",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "p9P6BW",
+                      "name": "item open in gitlab",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "G5lF3",
+                          "name": "arrow-up-right",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "arrow-up-right",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "vJZ5i",
+                          "name": "open in gitlab",
+                          "fill": "$fg",
+                          "content": "open in gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "M8NhG6",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CEi4A",
+                      "name": "label slack",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "vaBaG",
+                          "name": "slack",
+                          "fill": "$dim",
+                          "content": "slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CbGV1",
+                      "name": "item post to slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "MR0jn",
+                          "name": "slack",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "slack",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        },
+                        {
+                          "type": "text",
+                          "id": "y7vix",
+                          "name": "post to slack",
+                          "fill": "$fg",
+                          "content": "post to slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lMLXS",
+                      "name": "item mark as looking",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "AKlRk",
+                          "name": "emoji",
+                          "fill": "$fg",
+                          "content": "👀",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "w8sN5L",
+                          "name": "mark as looking",
+                          "fill": "$fg",
+                          "content": "mark as looking",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YMHpr",
+                      "name": "item mark as commented",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Af2ff",
+                          "name": "emoji",
+                          "fill": "$fg",
+                          "content": "💬",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "CtM3O",
+                          "name": "mark as commented",
+                          "fill": "$fg",
+                          "content": "mark as commented",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZVRct",
+                      "name": "item unmark approved",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "m8FBp0",
+                          "name": "emoji",
+                          "fill": "$fg",
+                          "content": "✅",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "text",
+                          "id": "qgqH0",
+                          "name": "unmark approved",
+                          "fill": "$fg",
+                          "content": "unmark approved",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        },
+                        {
+                          "type": "frame",
+                          "id": "iEUFi",
+                          "name": "spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "icon",
+                          "id": "wpy3i",
+                          "name": "check",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "check",
+                          "library": "lucide",
+                          "fill": "$green-text"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "fPkd7",
+                      "name": "item open MR post in slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "a724Z2",
+                          "name": "slack",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "slack",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        },
+                        {
+                          "type": "text",
+                          "id": "E1Ky6",
+                          "name": "open MR post in slack",
+                          "fill": "$fg",
+                          "content": "open MR post in slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "t3aKbk",
+                      "name": "item copy for slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Hq79H",
+                          "name": "copy",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "copy",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "X8Rddt",
+                          "name": "copy for slack",
+                          "fill": "$fg",
+                          "content": "copy for slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "uJM6d",
+              "name": "synced · interrupted review, no slack thread",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "rER29",
+                  "name": "SYNCED · INTERRUPTED REVIEW, NO SLACK THREAD",
+                  "fill": "$dim",
+                  "content": "SYNCED · INTERRUPTED REVIEW, NO SLACK THREAD",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 0.6
+                },
+                {
+                  "type": "frame",
+                  "id": "rvNsn",
+                  "name": "menu",
+                  "width": 300,
+                  "fill": "$card",
+                  "cornerRadius": 8,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    6,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Y6qZy6",
+                      "name": "item !1204",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Nsih6",
+                          "name": "git-pull-request-arrow",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "git-pull-request-arrow",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "wi2cw",
+                          "name": "!1204",
+                          "fill": "$fg",
+                          "content": "!1204",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "bScmi",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "t0Quca",
+                      "name": "label agent actions",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LNwOv",
+                          "name": "agent actions",
+                          "fill": "$dim",
+                          "content": "agent actions",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "OeUBE",
+                      "name": "item relaunch review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "P1m6rZ",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$accent-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Z2ptI",
+                          "name": "relaunch review",
+                          "fill": "$accent-text",
+                          "content": "relaunch review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ph8WG",
+                      "name": "item resume review",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "RgS1j",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$accent-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "oODOo",
+                          "name": "resume review",
+                          "fill": "$accent-text",
+                          "content": "resume review",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "v7Zuhp",
+                      "name": "item focus doctor",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "YBchG",
+                          "name": "bot",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "bot",
+                          "library": "lucide",
+                          "fill": "$orange-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "IhLec",
+                          "name": "focus doctor",
+                          "fill": "$orange-text",
+                          "content": "focus doctor",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "IrY6s",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "bzu3M",
+                      "name": "label gitlab",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "MCd0i",
+                          "name": "gitlab",
+                          "fill": "$dim",
+                          "content": "gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "a4lkK",
+                      "name": "item mark ready",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "ItK9p",
+                          "name": "pencil-line",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "pencil-line",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "QjHXe",
+                          "name": "mark ready",
+                          "fill": "$fg",
+                          "content": "mark ready",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "A811CN",
+                      "name": "item open in gitlab",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "q8WxxI",
+                          "name": "arrow-up-right",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "arrow-up-right",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "WgGz9",
+                          "name": "open in gitlab",
+                          "fill": "$fg",
+                          "content": "open in gitlab",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "xB0ZK",
+                      "name": "separator",
+                      "fill": "$border-soft",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "u0lTc",
+                      "name": "label slack",
+                      "padding": [
+                        7,
+                        14,
+                        4,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ymXKb",
+                          "name": "slack",
+                          "fill": "$dim",
+                          "content": "slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "letterSpacing": 0.3
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "FfcOy",
+                      "name": "item no thread, find it again",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "VTgrK",
+                          "name": "slack",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "slack",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        },
+                        {
+                          "type": "text",
+                          "id": "qQjCA",
+                          "name": "no thread, find it again",
+                          "fill": "$fg",
+                          "content": "no thread, find it again",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "usX65",
+                      "name": "item post to slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "j2mmi",
+                          "name": "slack",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "slack",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        },
+                        {
+                          "type": "text",
+                          "id": "lSmOh",
+                          "name": "post to slack",
+                          "fill": "$fg",
+                          "content": "post to slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wSY0K",
+                      "name": "item copy for slack",
+                      "width": "fill_container",
+                      "height": 30,
+                      "gap": 9,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "w1AZL",
+                          "name": "copy",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "copy",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "o8zB0l",
+                          "name": "copy for slack",
+                          "fill": "$fg",
+                          "content": "copy for slack",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 13
                         }
                       ]
                     }

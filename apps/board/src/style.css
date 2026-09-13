@@ -25,6 +25,10 @@
    here in rem (13.5/16) so body text rides the same knob. */
 html {
   font-size: 17px;
+  /* Tokyo Night's orange, absent from the kit palette: the conflicts flag
+     and the doctor lane, on the row and in its menu (which portals outside
+     the row list). */
+  --orange: light-dark(#b15c00, #ff9e64);
 }
 body {
   font-size: 0.84375rem;
@@ -268,7 +272,6 @@ body {
      + pad 12. The row clips overflow, so a changed margin below silently
      cuts line 3 instead of growing the row: keep this sum current. */
   --row-h: 114px;
-  --orange: light-dark(#b15c00, #ff9e64);
   /* The gutter markers are drawn shapes, not the kit's glyphs, so the stack
      rail can meet them at their true center and edge; the rail math below
      reads both sizes. */
@@ -598,7 +601,8 @@ body {
   color: var(--accent-text);
 }
 .tui-threads[data-new] .tui-threads-count::after,
-.tui-threads[data-new] .tui-threads-await::after {
+.tui-threads[data-new] .tui-threads-await::after,
+.tui-threads[data-new] .tui-threads-replied::after {
   content: '';
   display: inline-block;
   width: 6px;
@@ -617,7 +621,8 @@ body {
   font-weight: 600;
 }
 .tui-threads:hover .tui-threads-count,
-.tui-threads:hover .tui-threads-await {
+.tui-threads:hover .tui-threads-await,
+.tui-threads:hover .tui-threads-replied {
   text-decoration: underline;
 }
 .tui-age {
@@ -2549,6 +2554,38 @@ body {
   font-size: 0.625rem;
   color: var(--muted-text);
   padding: 6px 3px 2px;
+}
+/* Item labels: every item leads with one icon that says where the click
+   lands; an agent action wears the bot mark in its lane's color, the same
+   grammar as the status line's verbs. */
+.tui-menu-icon-label,
+.tui-menu-agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.tui-menu-icon-label svg {
+  color: var(--muted-text);
+  flex-shrink: 0;
+}
+.tui-menu-emoji {
+  font-size: 13px;
+  line-height: 1;
+  width: 13px;
+  text-align: center;
+}
+.tui-menu-agent {
+  font-weight: 600;
+  color: var(--lane);
+}
+.tui-menu-agent[data-lane='review'] {
+  --lane: var(--accent-text);
+}
+.tui-menu-agent[data-lane='respond'] {
+  --lane: var(--green);
+}
+.tui-menu-agent[data-lane='doctor'] {
+  --lane: var(--orange);
 }
 /* Trailing nodes a slack-mark item hands the shell: the set mark, and the
    in-flight spinner that replaces it while the reaction is being written. */
