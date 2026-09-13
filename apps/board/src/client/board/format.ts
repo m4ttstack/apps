@@ -2,6 +2,7 @@ import { getReviewDisplayState } from '@mattstack/glance';
 import type { BoardMR } from '../../data.ts';
 import { stripDraftPrefix } from '../../data.ts';
 import type { RespondStatus } from '../../respond-outcome.ts';
+import { DEFAULT_SLACK_EMOJI } from '../../slack-emoji.ts';
 import {
   renderMr,
   renderMulti,
@@ -57,6 +58,16 @@ function activeReviewers(mr: BoardMR): string[] {
     guard for titles that arrive with it still attached. */
 function cleanTitle(title: string): string {
   return stripDraftPrefix(title).replace(/^[A-Za-z]+-\d+:\s*/, '');
+}
+
+/** The row's title: `cleanTitle` plus the ticket the facts line now carries
+    as a link, so the id never appears twice one line apart. Row-only: the
+    Slack templates' `{title}` keeps the id, which the team reads in Slack. */
+function rowTitle(title: string, ticket: string | null): string {
+  const clean = cleanTitle(title);
+  if (!ticket) return clean;
+  const escaped = ticket.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return clean.replace(new RegExp(`^${escaped}\\b[:\\s-]*`, 'i'), '');
 }
 
 const RESPOND_ACTIVE = new Set<RespondStatus>([
@@ -160,11 +171,7 @@ function buildSlackMarks(e: {
 
 /** Module-level so every component reads the same list; rebuilt when /data.json
     arrives (which always precedes a re-render of anything that shows marks). */
-let SLACK_MARKS = buildSlackMarks({
-  looking: 'eyes',
-  commented: 'speech_balloon',
-  approved: 'white_check_mark',
-});
+let SLACK_MARKS = buildSlackMarks(DEFAULT_SLACK_EMOJI);
 
 /** Read the current review-signal marks. Accessor rather than a bare export so
     a later reassignment (see `setSlackMarks`) is visible to every caller —
@@ -327,6 +334,7 @@ export {
   ago,
   activeReviewers,
   cleanTitle,
+  rowTitle,
   RESPOND_ACTIVE,
   DOCTOR_LABEL,
   DOCTOR_ACTIVE,

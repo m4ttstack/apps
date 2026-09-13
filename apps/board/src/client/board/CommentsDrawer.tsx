@@ -46,8 +46,10 @@ function CommentsTrigger({
 }
 
 /** The facts line's threads token, the drawer's entry. `awaitYou` counts
-    the seat's own MR threads waiting on them; `replied` says the author
-    answered the seat's threads on someone else's MR. */
+    the seat's own MR threads waiting on them, and when it is set the token
+    says only that (the total moves to the tooltip: the waiting count is the
+    fact the author needs); `replied` says the author answered the seat's
+    threads on someone else's MR. */
 function ThreadsLink({
   mr,
   count,
@@ -67,13 +69,17 @@ function ThreadsLink({
 }) {
   const [openedAt, setOpenedAt] = useState<number | null>(null);
   const lit = fresh && openedAt !== count;
+  const total = `${count} thread${count === 1 ? '' : 's'}`;
+  const title = lit
+    ? `${grew} new since you last looked`
+    : awaitYou > 0
+      ? `${total}, ${awaitYou} waiting on you`
+      : 'open the comments drawer';
   return (
     <CommentsTrigger
       mr={mr}
       className="tui-threads"
-      title={
-        lit ? `${grew} new since you last looked` : 'open the comments drawer'
-      }
+      title={title}
       fresh={lit}
       onOpen={() => {
         setOpenedAt(count);
@@ -81,13 +87,12 @@ function ThreadsLink({
       }}
     >
       <MessageGlyph />
-      <span className="tui-threads-count">
-        {count} thread{count === 1 ? '' : 's'}
-      </span>
-      {awaitYou > 0 && (
+      {awaitYou > 0 ? (
         <span className="tui-threads-await">
-          {awaitYou} await{awaitYou === 1 ? 's' : ''} you
+          {awaitYou} thread{awaitYou === 1 ? '' : 's'} waiting
         </span>
+      ) : (
+        <span className="tui-threads-count">{total}</span>
       )}
       {replied && <span className="tui-threads-replied">author replied</span>}
     </CommentsTrigger>

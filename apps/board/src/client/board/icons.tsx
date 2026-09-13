@@ -53,43 +53,6 @@ export function LinearLogo() {
   );
 }
 
-export function Eyes() {
-  return (
-    <svg {...ICON} fill="currentColor">
-      <ellipse cx="4.6" cy="8" rx="3.1" ry="5.2" />
-      <ellipse cx="11.4" cy="8" rx="3.1" ry="5.2" />
-      <circle cx="4" cy="9" r="1.4" fill="var(--bg)" />
-      <circle cx="10.8" cy="9" r="1.4" fill="var(--bg)" />
-    </svg>
-  );
-}
-
-export function Bubble() {
-  return (
-    <svg {...ICON} fill="currentColor">
-      <path d="M2.5 2.5h11a1.2 1.2 0 0 1 1.2 1.2v6.6a1.2 1.2 0 0 1-1.2 1.2H8.4L5 14.5v-3H2.5a1.2 1.2 0 0 1-1.2-1.2V3.7a1.2 1.2 0 0 1 1.2-1.2z" />
-      <circle cx="5.6" cy="7" r="1.05" fill="var(--bg)" />
-      <circle cx="10.4" cy="7" r="1.05" fill="var(--bg)" />
-    </svg>
-  );
-}
-
-export function DiscCheck() {
-  return (
-    <svg {...ICON} fill="currentColor">
-      <circle cx="8" cy="8" r="6.6" />
-      <path
-        d="M5.1 8.3l1.9 1.9 3.9-4.5"
-        fill="none"
-        stroke="var(--bg)"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export function Sun() {
   return (
     <svg
@@ -159,6 +122,17 @@ export function MessageGlyph() {
   return (
     <svg {...GLYPH}>
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+    </svg>
+  );
+}
+
+/** The agent mark on a verb that launches or jumps into an agent pane. */
+export function AgentGlyph() {
+  return (
+    <svg {...GLYPH}>
+      <path d="M12 8V4H8" />
+      <rect width="16" height="12" x="4" y="8" rx="2" />
+      <path d="M2 14h2M20 14h2M15 13v2M9 13v2" />
     </svg>
   );
 }

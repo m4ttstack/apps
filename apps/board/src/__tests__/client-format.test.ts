@@ -7,6 +7,7 @@ import {
   laneInterrupted,
   respondItemLabel,
   reviewMenuItems,
+  rowTitle,
 } from '../client/board/format.ts';
 import { statusReasons } from '../client/board/row-status.ts';
 
@@ -145,4 +146,23 @@ test('respondItemLabel: an interrupted in-flight response offers relaunch', () =
   expect(respondItemLabel('implementing', true)).toBe('relaunch response pane');
   expect(respondItemLabel('implementing')).toBe('focus response tab');
   expect(respondItemLabel('done', true)).toBe('restart response');
+});
+
+test('rowTitle also drops the ticket the facts line carries, with or without a colon; Slack titles keep it', () => {
+  expect(rowTitle('ACME-2214 Port the flows', 'ACME-2214')).toBe(
+    'Port the flows'
+  );
+  expect(rowTitle('ACME-2214: Port the flows', 'ACME-2214')).toBe(
+    'Port the flows'
+  );
+  expect(rowTitle('acme-2214 - Port the flows', 'ACME-2214')).toBe(
+    'Port the flows'
+  );
+  expect(rowTitle('ACME-22140 is not the ticket', 'ACME-2214')).toBe(
+    'ACME-22140 is not the ticket'
+  );
+  expect(rowTitle('Port the flows', null)).toBe('Port the flows');
+  expect(cleanTitle('ACME-2214 Port the flows')).toBe(
+    'ACME-2214 Port the flows'
+  );
 });
