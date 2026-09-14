@@ -18,6 +18,8 @@ export interface ContextSection {
   recommendation?: string;
   quote?: ContextQuote;
   adjudication?: string;
+  /** What follows the quote when no `Adjudication:` marker names it. */
+  remainder?: string;
   /** The section's whole body, paragraphs joined by blank lines. */
   body: string;
 }
@@ -59,55 +61,60 @@ function parseHeaderRest(rest: string | undefined): {
   };
 }
 
+function paragraphs(lines: string[]): string {
+  const out: string[] = [];
+  let run: string[] = [];
+  for (const line of lines) {
+    if (line.trim()) run.push(line);
+    else if (run.length) {
+      out.push(unwrap(run));
+      run = [];
+    }
+  }
+  if (run.length) out.push(unwrap(run));
+  return out.join('\n\n');
+}
+
 function parseBody(
   lines: string[]
-): Pick<ContextSection, 'quote' | 'adjudication' | 'body'> {
-  const paragraphs: string[][] = [];
-  for (const line of lines) {
-    if (!line.trim()) {
-      if (paragraphs.length && paragraphs[paragraphs.length - 1]!.length)
-        paragraphs.push([]);
-      continue;
-    }
-    if (!paragraphs.length) paragraphs.push([]);
-    paragraphs[paragraphs.length - 1]!.push(line);
-  }
-  const blocks = paragraphs.filter(p => p.length);
-  const body = blocks.map(unwrap).join('\n\n');
+): Pick<ContextSection, 'quote' | 'adjudication' | 'remainder' | 'body'> {
+  const body = paragraphs(lines);
+  const content = lines.map(l => l.trim());
+  let at = content.findIndex(Boolean);
+  if (at < 0) return { body };
 
+  // A leading `Name: "..."` is the reviewer's words; it runs to its closing
+  // mark. `Adjudication:` may sit on the next line or a paragraph later and
+  // runs to the end of the section.
   let quote: ContextQuote | undefined;
-  let adjudication: string | undefined;
-  // The quote and the adjudication are line-led inside the first block
-  // (the asker writes them one after the other); a quote runs until its
-  // closing mark, an adjudication to the end of its block.
-  const first = blocks[0] ?? [];
-  let i = 0;
-  const open = QUOTE_OPEN.exec(first[0] ?? '');
+  const open = QUOTE_OPEN.exec(content[at]!);
   if (open) {
-    const who = open[1]!.trim();
     const collected = [open[2]!];
-    i = 1;
+    at++;
     while (
-      !collected[collected.length - 1]!.trimEnd().endsWith('"') &&
-      i < first.length
+      !collected[collected.length - 1]!.endsWith('"') &&
+      at < content.length
     ) {
-      collected.push(first[i]!);
-      i++;
+      collected.push(content[at]!);
+      at++;
     }
-    quote = { who, text: unwrap(collected).replace(/"$/, '') };
+    quote = { who: open[1]!.trim(), text: unwrap(collected).replace(/"$/, '') };
   }
-  const rest = first.slice(i);
-  const adjAt = rest.findIndex(l => ADJUDICATION.test(l));
-  if (adjAt >= 0) {
-    const adj = [
-      rest[adjAt]!.replace(ADJUDICATION, ''),
-      ...rest.slice(adjAt + 1),
-    ];
-    adjudication = unwrap(adj);
-  }
+  const after = lines.slice(at);
+  const adjAt = after.findIndex(l => ADJUDICATION.test(l.trim()));
+  const adjudication =
+    adjAt >= 0
+      ? paragraphs([
+          after[adjAt]!.trim().replace(ADJUDICATION, ''),
+          ...after.slice(adjAt + 1),
+        ])
+      : undefined;
+  const remainder =
+    adjudication === undefined && quote ? paragraphs(after) : undefined;
   return {
     ...(quote ? { quote } : {}),
     ...(adjudication ? { adjudication } : {}),
+    ...(remainder ? { remainder } : {}),
     body,
   };
 }

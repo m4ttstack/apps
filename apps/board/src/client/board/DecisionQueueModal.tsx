@@ -105,8 +105,9 @@ function OverviewStrip({
     <div className="tui-triage-overview">
       <span className="tui-triage-overview-title">Decision context</span>
       <span className="tui-triage-overview-text">
-        {parsed.preamble}
-        {recommends && ` · recommends ${recommends}`}
+        {[parsed.preamble, recommends && `recommends ${recommends}`]
+          .filter(Boolean)
+          .join(' · ')}
       </span>
       <button
         type="button"

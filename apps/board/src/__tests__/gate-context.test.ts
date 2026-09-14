@@ -95,6 +95,27 @@ test('the parenthetical header form parses too: label, verdict and recommendatio
   });
 });
 
+test('an adjudication a paragraph after the quote is still found; without the marker the rest is the remainder', () => {
+  const spaced = sectionFor(
+    parseGateContext(
+      '=== thread-1 a.ts:1 ===\nNils: "why?"\n\nAdjudication: because.\n\nAlso this.'
+    ),
+    { id: 'thread-1' }
+  )!;
+  expect(spaced.quote?.text).toBe('why?');
+  expect(spaced.adjudication).toBe('because.\n\nAlso this.');
+  expect(spaced.remainder).toBeUndefined();
+
+  const bare = sectionFor(
+    parseGateContext(
+      '=== thread-1 a.ts:1 ===\nNils: "why?"\nIt holds.\n\nMore.'
+    ),
+    { id: 'thread-1' }
+  )!;
+  expect(bare.adjudication).toBeUndefined();
+  expect(bare.remainder).toBe('It holds.\n\nMore.');
+});
+
 test('a context with no markers parses to null, so the form renders as before', () => {
   expect(parseGateContext('just a paragraph of context')).toBeNull();
   expect(parseGateContext('')).toBeNull();

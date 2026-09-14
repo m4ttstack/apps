@@ -227,8 +227,9 @@ export type GateFormState = ReturnType<typeof useGateForm>;
     quote, the verdict with its recommendation, and the adjudication; a
     section with none of those shows its body as one paragraph. */
 function QuestionContext({ section }: { section: ContextSection }) {
-  const { quote, verdict, recommendation, adjudication, body } = section;
-  const detail = adjudication ?? (quote ? undefined : body);
+  const { quote, verdict, recommendation, adjudication, remainder, body } =
+    section;
+  const detail = adjudication ?? remainder ?? (quote ? undefined : body);
   return (
     <div className="tui-gate-context">
       {quote && (
