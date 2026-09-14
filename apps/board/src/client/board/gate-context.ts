@@ -164,3 +164,75 @@ export function sectionFor(
     if (s.label?.toLowerCase() === label) return s;
   return undefined;
 }
+
+/** A context whose findings are bracketed lines: a preamble, then a run of
+    `[Label] text` lines the asker grouped by hand. The pane renders the
+    groups instead of the prefixes (B9). */
+export interface LabelledGroup {
+  label: string;
+  items: string[];
+}
+
+export interface ParsedLabelledLines {
+  preamble: string;
+  groups: LabelledGroup[];
+  total: number;
+}
+
+const LABELLED = /^\s*\[([^\]]{1,40})\]\s*(.*)$/;
+
+/** Group a bracket-led context by its labels, in first-seen order, dropping
+    the prefix from each line. A line that carries no bracket continues the
+    finding above it. Null unless the context really is that shape: a
+    preamble of at most one paragraph and then nothing but bracketed lines
+    and their continuations, at least two of them. */
+export function parseLabelledLines(
+  context: string | undefined | null
+): ParsedLabelledLines | null {
+  if (!context) return null;
+  const lines = context.split(/\r?\n/);
+  const preamble: string[] = [];
+  const groups: LabelledGroup[] = [];
+  const byLabel = new Map<string, LabelledGroup>();
+  let current: LabelledGroup | null = null;
+  let total = 0;
+  for (const line of lines) {
+    const hit = LABELLED.exec(line);
+    if (hit) {
+      const label = hit[1]!.trim();
+      current = byLabel.get(label) ?? { label, items: [] };
+      if (!byLabel.has(label)) {
+        byLabel.set(label, current);
+        groups.push(current);
+      }
+      current.items.push(hit[2]!.trim());
+      total++;
+      continue;
+    }
+    if (!line.trim()) continue;
+    // Prose after the findings have started means this is not the shape;
+    // only a continuation of the line above is allowed there.
+    if (current) {
+      if (!/^\s/.test(line)) return null;
+      const items = current.items;
+      items[items.length - 1] = `${items[items.length - 1]} ${line.trim()}`;
+      continue;
+    }
+    if (groups.length) return null;
+    preamble.push(line.trim());
+  }
+  if (total < 2) return null;
+  return { preamble: tallyOnly(preamble.join(' '), groups), groups, total };
+}
+
+/** A preamble that only counts the groups ("Findings: Important (2),
+    Minor (4)") is dropped: the pane's head carries the total and every
+    group states its own count, so keeping it says the same thing a third
+    time. Anything with words of its own stays. */
+function tallyOnly(preamble: string, groups: LabelledGroup[]): string {
+  if (!preamble) return '';
+  let rest = preamble;
+  for (const g of groups) rest = rest.replace(new RegExp(g.label, 'gi'), ' ');
+  rest = rest.replace(/findings?/gi, ' ').replace(/[\d\s,;:.()-]/g, '');
+  return rest ? preamble : '';
+}
