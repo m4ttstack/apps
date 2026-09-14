@@ -91,7 +91,11 @@ function GroupedContext({ parsed }: { parsed: ParsedLabelledLines }) {
   return (
     <div className="tui-gate-groups">
       {parsed.preamble && (
-        <p className="tui-gate-groups-preamble">{parsed.preamble}</p>
+        <div className="tui-gate-groups-preamble">
+          <Markdown unstyled linkTargetBlank>
+            {parsed.preamble}
+          </Markdown>
+        </div>
       )}
       {parsed.groups.map(group => (
         <section key={group.label} className="tui-gate-group">
@@ -209,7 +213,14 @@ function DecisionQueueModal({
       : null;
   }, [gate.context, gate.questions]);
   const [fullContext, setFullContext] = useState(false);
-  useEffect(() => setFullContext(false), [gate.gateId]);
+  // The grouped pane is a parse of the text, not the text: the toggle in
+  // its head brings the asker's own words back, so nothing the parse
+  // dropped is ever out of reach.
+  const [rawContext, setRawContext] = useState(false);
+  useEffect(() => {
+    setFullContext(false);
+    setRawContext(false);
+  }, [gate.gateId]);
   // B9: a context that is nothing but `[Label] text` lines is a list the
   // asker grouped by hand; the pane renders the groups instead of making
   // every line carry its own prefix. Only when no question already owns
@@ -442,6 +453,14 @@ function DecisionQueueModal({
                       <span className="tui-gate-groups-total">
                         {grouped.total} findings
                       </span>
+                      <button
+                        type="button"
+                        className="tui-gate-groups-raw"
+                        aria-pressed={rawContext}
+                        onClick={() => setRawContext(v => !v)}
+                      >
+                        {rawContext ? 'grouped' : 'as written'}
+                      </button>
                     </>
                   ) : (
                     'Decision context'
@@ -449,7 +468,7 @@ function DecisionQueueModal({
                 }
                 maxHeight="46vh"
               >
-                {grouped ? (
+                {grouped && !rawContext ? (
                   <GroupedContext parsed={grouped} />
                 ) : (
                   <Markdown unstyled linkTargetBlank>

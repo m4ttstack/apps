@@ -1974,6 +1974,27 @@ body {
   font-size: var(--gate-font-meta);
   color: var(--gate-muted);
 }
+.tui-gate-groups-preamble [data-part='markdown'] > * {
+  margin: 0;
+}
+/* The head's way back to the asker's own words. Quiet text, the pane's
+   own accent, no box: it is a view switch, not an action. */
+.tui-gate-groups-raw {
+  margin-left: auto;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: 500 var(--gate-font-meta) / 1.4 var(--font-sans);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+.tui-gate-groups-raw:hover {
+  text-decoration: underline;
+}
+.tui-triage-modal [data-part='scrollpane-head'] {
+  display: flex;
+  align-items: baseline;
+}
 .tui-gate-group + .tui-gate-group {
   padding-top: var(--gate-gap-inner);
   border-top: 1px solid var(--gate-soft-edge);
@@ -2094,12 +2115,28 @@ body {
   font: 600 var(--gate-font-meta) / 1.4 var(--font-sans);
   color: var(--fg);
 }
+.tui-gate-lead,
 .tui-gate-adjudication {
   margin: 0;
   font-size: var(--gate-font-meta);
   line-height: 1.45;
   color: var(--fg);
   overflow-wrap: anywhere;
+}
+.tui-gate-lead {
+  color: var(--gate-muted);
+}
+.tui-gate-lead [data-part='markdown'] > *,
+.tui-gate-adjudication [data-part='markdown'] > * {
+  margin: 0;
+}
+.tui-gate-lead [data-part='markdown'] > * + *,
+.tui-gate-adjudication [data-part='markdown'] > * + * {
+  margin-top: 6px;
+}
+.tui-gate-adjudication [data-part='markdown'] ul,
+.tui-gate-adjudication [data-part='markdown'] ol {
+  padding-left: 18px;
 }
 .tui-gate-choice[data-recommended]:not([data-checked]) {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--gate-edge));

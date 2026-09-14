@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { parseLabelledLines } from '../client/board/gate-context.ts';
 
-const FINDINGS = `Findings: Important (2), Minor (5)
+const FINDINGS = `Findings: Important (2), Minor (3)
 [Important] Dropped injury gate exposes a state-changing mutation CV2 blocks (confirm safe)
 [Important] Access-link URL renders into a DOM anchor href; session-replay not in the threat model (confirm)
 [Minor] key={link.name} collides on duplicate contact names
@@ -82,4 +82,32 @@ test('a context that is not a run of bracketed lines parses to null', () => {
   expect(
     parseLabelledLines('A paragraph.\n\n[Minor] a finding\n\nAnother.')
   ).toBeNull();
+});
+
+test('a tally that disagrees with the lines stays: it is the one cross-check the reader has', () => {
+  const parsed = parseLabelledLines(
+    'Findings: Important (2), Minor (4)\n[Important] a\n[Important] b\n[Minor] c\n[Minor] d\n[Minor] e'
+  )!;
+  expect(parsed.preamble).toBe('Findings: Important (2), Minor (4)');
+  const agrees = parseLabelledLines(
+    'Findings: Important (2), Minor (1)\n[Important] a\n[Important] b\n[Minor] c'
+  )!;
+  expect(agrees.preamble).toBe('');
+});
+
+test('task lists and markdown links are not labelled findings', () => {
+  expect(parseLabelledLines('[ ] one\n[ ] two')).toBeNull();
+  expect(parseLabelledLines('[x] done\n[ ] todo')).toBeNull();
+  expect(
+    parseLabelledLines(
+      '[!1288](https://x/1) needs rebase\n[!1289](https://x/2) too'
+    )
+  ).toBeNull();
+});
+
+test('labels fold case-insensitively onto the first spelling, and a colon after the bracket is not part of the finding', () => {
+  const parsed = parseLabelledLines('[Minor]: one\n[minor] two')!;
+  expect(parsed.groups.map(g => [g.label, g.items] as const)).toEqual([
+    ['Minor', ['one', 'two']],
+  ]);
 });
