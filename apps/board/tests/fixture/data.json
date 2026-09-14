@@ -879,7 +879,7 @@
           "status": "open",
           "openedAt": 1755604200000,
           "domain": "review",
-          "context": "Findings: Important (2), Minor (4)\n[Important] Dropped guard exposes a state-changing mutation the host blocks (confirm safe)\n[Important] Share-link URL renders into a DOM anchor href; session replay is not in the threat model (confirm)\n[Minor] key={link.name} collides on duplicate contact names\n[Minor] Non-menuitem interactive controls inside a menu (keyboard reachability)\n[Minor] Doc overstates the split rationale between the two controls\n[Minor] Unused renderer mock entry in the test setup",
+          "context": "Findings: Important (2), Minor (4)\n[Important] Dropped guard exposes a state-changing mutation the host blocks (confirm safe)\n[Important] Share-link URL renders into a DOM anchor href; session replay is not in the threat model (confirm)\n[Minor] `key={link.name}` collides on duplicate contact names; see [the keying note](https://example.com/keys)\n[Minor] Non-menuitem interactive controls inside a menu (keyboard reachability)\n[Minor] Doc overstates the split rationale between the two controls\n[Minor] Unused renderer mock entry in the test setup",
           "origin": {
             "paneId": "pane-1235",
             "tabId": "w18:t1",

@@ -54,6 +54,26 @@ test('one lone finding is not a grouped context: two is the floor', () => {
   expect(parseLabelledLines('[Minor] just the one')).toBeNull();
 });
 
+test('a label carrying regex metacharacters neither throws nor eats the preamble', () => {
+  const parsed = parseLabelledLines(
+    'Two of these block the build.\n[C++] one\n[a.b] two'
+  )!;
+  expect(parsed.groups.map(g => g.label)).toEqual(['C++', 'a.b']);
+  expect(parsed.preamble).toBe('Two of these block the build.');
+  // `[` alone is a legal label and used to throw when it became a RegExp.
+  expect(parseLabelledLines('[[] one\n[nit] two')!.groups[0]!.label).toBe('[');
+});
+
+test('prose on both sides of a blank line is a document, not a lead-in', () => {
+  expect(
+    parseLabelledLines('First paragraph.\n\nSecond.\n[Minor] one\n[Minor] two')
+  ).toBeNull();
+  // One paragraph, blank line, then the findings is still the shape.
+  expect(
+    parseLabelledLines('Lead-in.\n\n[Minor] one\n[Minor] two')!.preamble
+  ).toBe('Lead-in.');
+});
+
 test('a context that is not a run of bracketed lines parses to null', () => {
   expect(parseLabelledLines('just a paragraph')).toBeNull();
   expect(parseLabelledLines('')).toBeNull();

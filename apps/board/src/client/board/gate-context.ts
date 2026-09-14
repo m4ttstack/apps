@@ -196,6 +196,10 @@ export function parseLabelledLines(
   const byLabel = new Map<string, LabelledGroup>();
   let current: LabelledGroup | null = null;
   let total = 0;
+  // The preamble is at most one paragraph: prose on both sides of a blank
+  // line is a document, not a list with a lead-in, and flattening it into
+  // one line would lose the shape the asker wrote.
+  let preambleClosed = false;
   for (const line of lines) {
     const hit = LABELLED.exec(line);
     if (hit) {
@@ -209,7 +213,10 @@ export function parseLabelledLines(
       total++;
       continue;
     }
-    if (!line.trim()) continue;
+    if (!line.trim()) {
+      if (preamble.length) preambleClosed = true;
+      continue;
+    }
     // Prose after the findings have started means this is not the shape;
     // only a continuation of the line above is allowed there.
     if (current) {
@@ -218,7 +225,7 @@ export function parseLabelledLines(
       items[items.length - 1] = `${items[items.length - 1]} ${line.trim()}`;
       continue;
     }
-    if (groups.length) return null;
+    if (groups.length || preambleClosed) return null;
     preamble.push(line.trim());
   }
   if (total < 2) return null;
@@ -232,7 +239,14 @@ export function parseLabelledLines(
 function tallyOnly(preamble: string, groups: LabelledGroup[]): string {
   if (!preamble) return '';
   let rest = preamble;
-  for (const g of groups) rest = rest.replace(new RegExp(g.label, 'gi'), ' ');
+  // A label is whatever the asker bracketed, so it can carry regex
+  // metacharacters: `[` alone throws, and a `.` would eat a letter of real
+  // prose and take the whole preamble with it.
+  for (const g of groups)
+    rest = rest.replace(
+      new RegExp(g.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'),
+      ' '
+    );
   rest = rest.replace(/findings?/gi, ' ').replace(/[\d\s,;:.()-]/g, '');
   return rest ? preamble : '';
 }

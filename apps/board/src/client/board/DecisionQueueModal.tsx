@@ -101,7 +101,14 @@ function GroupedContext({ parsed }: { parsed: ParsedLabelledLines }) {
           </h4>
           <ul className="tui-gate-group-items">
             {group.items.map((item, i) => (
-              <li key={i}>{item}</li>
+              <li key={i}>
+                {/* A finding is prose the agent wrote: it can carry a link
+                    or a backticked symbol, which the pane rendered before
+                    the grouping existed and still has to. */}
+                <Markdown unstyled linkTargetBlank>
+                  {item}
+                </Markdown>
+              </li>
             ))}
           </ul>
         </section>

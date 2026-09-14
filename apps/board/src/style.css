@@ -1998,6 +1998,15 @@ body {
 .tui-gate-group + .tui-gate-group .tui-gate-group-label {
   color: var(--gate-muted);
 }
+/* The preamble is a <p> before the groups, so the first group is not the
+   pane's first child; keyed on type instead, the tone lands with or
+   without one. */
+.tui-gate-groups
+  .tui-gate-group:first-of-type
+  .tui-gate-group-items
+  li::marker {
+  color: var(--orange);
+}
 .tui-gate-group-count {
   font-weight: 500;
   letter-spacing: 0;
@@ -2019,13 +2028,20 @@ body {
   padding-left: 3px;
   overflow-wrap: anywhere;
 }
+/* A finding renders through the markdown recipe so links and code stay
+   live; it is one line inside a list item, so its block margins go. */
+.tui-gate-group-items li [data-part='markdown'] > * {
+  margin: 0;
+}
+.tui-gate-group-items li [data-part='markdown'] code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
 .tui-gate-group-items li::marker {
   color: var(--gate-muted);
   font-size: 0.85em;
 }
-.tui-gate-group:first-child .tui-gate-group-items li::marker {
-  color: var(--orange);
-}
+
 /* B7: a question that owns a slice of the gate context. The head leads with
    its ordinal among the threads and sets the file:line in mono; the slice
    sits between the head and the choices: the reviewer's words as a quote
