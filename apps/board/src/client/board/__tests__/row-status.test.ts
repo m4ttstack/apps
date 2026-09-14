@@ -774,9 +774,53 @@ describe('rowStatus: doctor lane', () => {
       ME
     );
     expect(line).toMatchObject({ tone: 'bad', word: 'doctor stuck' });
-    expect(line!.verbs[0]).toEqual({
-      kind: 'call-doctor',
-      label: 'call again',
+    expect(line!.verbs).toEqual([
+      { kind: 'call-doctor', label: 'call again' },
+      { kind: 'dismiss', label: 'dismiss', domain: 'doctor' },
+    ]);
+  });
+
+  test('a dismissed lane says nothing: the row falls through to its next line', () => {
+    const failed = { status: 'error', updatedAt: 100 } as const;
+    const [line] = candidateLines(
+      mr({ doctor: { ...failed, dismissedAt: 100 } }),
+      NOW,
+      NONE,
+      ME
+    );
+    expect(line!.word).not.toBe('doctor stuck');
+    // A later write outranks the stamp, so the lane speaks again by itself.
+    const [back] = candidateLines(
+      mr({ doctor: { status: 'error', updatedAt: 200, dismissedAt: 100 } }),
+      NOW,
+      NONE,
+      ME
+    );
+    expect(back!.word).toBe('doctor stuck');
+  });
+
+  test('review and response failures carry the same dismiss secondary', () => {
+    const [review] = candidateLines(
+      mr({ review: { status: 'error' } }),
+      NOW,
+      NONE,
+      ME
+    );
+    expect(review!.verbs[1]).toEqual({
+      kind: 'dismiss',
+      label: 'dismiss',
+      domain: 'review',
+    });
+    const [respond] = candidateLines(
+      mr({ respond: { status: 'error' } }),
+      NOW,
+      NONE,
+      ME
+    );
+    expect(respond!.verbs[1]).toEqual({
+      kind: 'dismiss',
+      label: 'dismiss',
+      domain: 'respond',
     });
   });
 

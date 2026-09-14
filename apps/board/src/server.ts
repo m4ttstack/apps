@@ -2126,6 +2126,77 @@ const httpServer = Bun.serve({
           headers: { 'content-type': 'application/json' },
         });
       }
+      case '/dismiss': {
+        // The status line's "dismiss" on a failed lane: stamp the lane
+        // dismissed so the row stops showing it. Nothing is deleted and no
+        // status changes -- the stamp only outranks the state it was written
+        // against (see laneDismissed), so a later launch or a status write
+        // from the pane brings the lane back on its own.
+        if (req.method !== 'POST')
+          return new Response('method not allowed', { status: 405 });
+        if (!isLocalRequest(req))
+          return new Response('forbidden', { status: 403 });
+        {
+          const notJson = requireJsonBody(req);
+          if (notJson) return notJson;
+        }
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch {
+          return new Response('invalid json', { status: 400 });
+        }
+        const { mrUrl, lane } = (body ?? {}) as {
+          mrUrl?: unknown;
+          lane?: unknown;
+        };
+        if (typeof mrUrl !== 'string' || !mrUrl)
+          return new Response('expected { mrUrl: string, lane: string }', {
+            status: 400,
+          });
+        if (lane !== 'review' && lane !== 'respond' && lane !== 'doctor')
+          return new Response('lane must be review, respond or doctor', {
+            status: 400,
+          });
+        const now = Date.now();
+        const existing =
+          lane === 'review'
+            ? readReviewStates().get(mrUrl)
+            : lane === 'respond'
+              ? readRespondStates().get(mrUrl)
+              : readDoctorStates().get(mrUrl);
+        if (!existing)
+          return new Response(`no ${lane} state for "${mrUrl}"`, {
+            status: 404,
+          });
+        // The write's own updatedAt is `now` too, so the stamp lands equal to
+        // it and reads as dismissed until something writes the lane again.
+        // Each arm re-states its own lane's status so the write is a stamp
+        // and nothing else; the three status unions are disjoint, which is
+        // why this is three calls rather than one.
+        const stamp = { mrUrl, iid: existing.iid, dismissedAt: now };
+        if (lane === 'review')
+          writeReviewState(
+            reviewFilePath(mrUrl),
+            { ...stamp, status: (existing as ReviewState).status },
+            now
+          );
+        else if (lane === 'respond')
+          writeRespondState(
+            respondFilePath(mrUrl),
+            { ...stamp, status: (existing as RespondState).status },
+            now
+          );
+        else
+          writeDoctorState(
+            doctorFilePath(mrUrl),
+            { ...stamp, status: (existing as DoctorState).status },
+            now
+          );
+        return new Response(JSON.stringify({ ok: true, dismissedAt: now }), {
+          headers: { 'content-type': 'application/json' },
+        });
+      }
       case '/reconciler/clear': {
         // Proxies the daemon's `reconciler:clear` command: tombstones a
         // dead/hidden executor's kv entry and closes its other gates. The
