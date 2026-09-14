@@ -234,6 +234,7 @@ import {
 } from './slack.ts';
 import {
   boardStateRoot,
+  dismissByHandle,
   getKvValue,
   getStateDb,
   persistOrWarn,
@@ -2159,40 +2160,17 @@ const httpServer = Bun.serve({
             status: 400,
           });
         const now = Date.now();
-        const existing =
+        // The stamp is the whole write: re-stating the status read a moment
+        // ago could clobber one the pane wrote in between, and a dismissal
+        // is not a lifecycle event.
+        const handle =
           lane === 'review'
-            ? readReviewStates().get(mrUrl)
+            ? reviewFilePath(mrUrl)
             : lane === 'respond'
-              ? readRespondStates().get(mrUrl)
-              : readDoctorStates().get(mrUrl);
-        if (!existing)
-          return new Response(`no ${lane} state for "${mrUrl}"`, {
-            status: 404,
-          });
-        // The write's own updatedAt is `now` too, so the stamp lands equal to
-        // it and reads as dismissed until something writes the lane again.
-        // Each arm re-states its own lane's status so the write is a stamp
-        // and nothing else; the three status unions are disjoint, which is
-        // why this is three calls rather than one.
-        const stamp = { mrUrl, iid: existing.iid, dismissedAt: now };
-        if (lane === 'review')
-          writeReviewState(
-            reviewFilePath(mrUrl),
-            { ...stamp, status: (existing as ReviewState).status },
-            now
-          );
-        else if (lane === 'respond')
-          writeRespondState(
-            respondFilePath(mrUrl),
-            { ...stamp, status: (existing as RespondState).status },
-            now
-          );
-        else
-          writeDoctorState(
-            doctorFilePath(mrUrl),
-            { ...stamp, status: (existing as DoctorState).status },
-            now
-          );
+              ? respondFilePath(mrUrl)
+              : doctorFilePath(mrUrl);
+        if (!dismissByHandle(handle, now))
+          return new Response(`no ${lane} row at "${handle}"`, { status: 404 });
         return new Response(JSON.stringify({ ok: true, dismissedAt: now }), {
           headers: { 'content-type': 'application/json' },
         });

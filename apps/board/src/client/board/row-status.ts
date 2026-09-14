@@ -375,14 +375,14 @@ function respondLine(
   }
 }
 
-/** A lane the operator dismissed: the stamp outranks the state it was
-    written against, so the row skips the lane until something writes it
-    again. Exported for the tests and the row menu's own gating. */
+/** A lane the operator dismissed: the row skips it while the stamp is
+    there. Presence, never a clock comparison -- the stamping write and a
+    later one can share a millisecond; the state layer drops the stamp on
+    any write that is not the dismissal itself (updateByHandle). */
 export function laneDismissed(
-  lane: { updatedAt?: number; dismissedAt?: number } | undefined
+  lane: { dismissedAt?: number } | undefined
 ): boolean {
-  if (!lane?.dismissedAt) return false;
-  return lane.dismissedAt >= (lane.updatedAt ?? 0);
+  return lane?.dismissedAt !== undefined;
 }
 
 function doctorLine(mr: BoardMRWithReview): Candidate | null {

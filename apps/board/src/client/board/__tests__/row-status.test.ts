@@ -781,17 +781,17 @@ describe('rowStatus: doctor lane', () => {
   });
 
   test('a dismissed lane says nothing: the row falls through to its next line', () => {
-    const failed = { status: 'error', updatedAt: 100 } as const;
     const [line] = candidateLines(
-      mr({ doctor: { ...failed, dismissedAt: 100 } }),
+      mr({ doctor: { status: 'error', dismissedAt: 100 } }),
       NOW,
       NONE,
       ME
     );
     expect(line!.word).not.toBe('doctor stuck');
-    // A later write outranks the stamp, so the lane speaks again by itself.
+    // The state layer drops the stamp on any other write, so a relaunched
+    // lane arrives here without one and speaks again.
     const [back] = candidateLines(
-      mr({ doctor: { status: 'error', updatedAt: 200, dismissedAt: 100 } }),
+      mr({ doctor: { status: 'error' } }),
       NOW,
       NONE,
       ME
