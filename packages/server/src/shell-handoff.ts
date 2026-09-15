@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 
-/** Appended to webview UAs by the mattstack window — compatibility contract. */
+/** Appended to webview UAs by the mattstack window (compatibility contract). */
 export const SHELL_UA_MARKER = ' mattstack-shell/';
 
 export interface ShellHandoffDeps {
@@ -59,7 +59,6 @@ export async function shellHandoff(
   if (!forwarded) return null;
   const host = forwarded.split(',')[0]!.trim().replace(/:\d+$/, '');
   if (!host.endsWith('.mattstack')) return null;
-  // host is validated above; recompute at the end if needed
   const dest = req.headers.get('sec-fetch-dest');
   if (dest ? dest !== 'document' : !(req.headers.get('accept') ?? '').includes('text/html')) return null;
   if ((req.headers.get('user-agent') ?? '').includes(SHELL_UA_MARKER)) return null;
@@ -73,6 +72,6 @@ export async function shellHandoff(
   if (!handled) return null;
   return new Response(stubPage(), {
     status: 200,
-    headers: { 'content-type': 'text/html; charset=utf-8' },
+    headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
   });
 }
