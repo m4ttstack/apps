@@ -14,7 +14,11 @@ export function traySockPath(): string {
   return process.env.RT_APP_SOCKET ?? `${homedir()}/.mattstack/rt/tray.sock`;
 }
 
-async function postToTray(sockPath: string, url: string, timeoutMs: number): Promise<boolean> {
+async function postToTray(
+  sockPath: string,
+  url: string,
+  timeoutMs: number
+): Promise<boolean> {
   try {
     const res = await fetch('http://tray/window/open', {
       // Bun extension: send the request over the tray's unix socket.
@@ -55,23 +59,38 @@ export async function shellHandoff(
 ): Promise<Response | null> {
   if (req.method !== 'GET') return null;
   if (req.headers.get('upgrade')) return null;
-  const forwarded = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
+  const forwarded =
+    req.headers.get('x-forwarded-host') ?? req.headers.get('host');
   if (!forwarded) return null;
   const host = forwarded.split(',')[0]!.trim().replace(/:\d+$/, '');
   if (!host.endsWith('.mattstack')) return null;
   const dest = req.headers.get('sec-fetch-dest');
-  if (dest ? dest !== 'document' : !(req.headers.get('accept') ?? '').includes('text/html')) return null;
-  if ((req.headers.get('user-agent') ?? '').includes(SHELL_UA_MARKER)) return null;
+  if (
+    dest
+      ? dest !== 'document'
+      : !(req.headers.get('accept') ?? '').includes('text/html')
+  )
+    return null;
+  if ((req.headers.get('user-agent') ?? '').includes(SHELL_UA_MARKER))
+    return null;
   const url = new URL(req.url);
   if (url.searchParams.get('browser') === '1') return null;
-  if ((req.headers.get('cookie') ?? '').includes('mattstack_browser=1')) return null;
+  if ((req.headers.get('cookie') ?? '').includes('mattstack_browser=1'))
+    return null;
   const sockPath = deps.sockPath ?? traySockPath();
   if (!existsSync(sockPath)) return null;
   const target = `https://${host}${url.pathname}${url.search}`;
-  const handled = await (deps.post ?? postToTray)(sockPath, target, deps.timeoutMs ?? 300);
+  const handled = await (deps.post ?? postToTray)(
+    sockPath,
+    target,
+    deps.timeoutMs ?? 300
+  );
   if (!handled) return null;
   return new Response(stubPage(), {
     status: 200,
-    headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store',
+    },
   });
 }

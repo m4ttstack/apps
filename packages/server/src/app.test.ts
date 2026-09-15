@@ -93,7 +93,8 @@ test('the canonical host itself, and any host with no canonical configured, is s
 
 it('hands off top-level .mattstack document requests to the shell', async () => {
   const app = createApp({
-    name: 'x', version: '0',
+    name: 'x',
+    version: '0',
     routes: new Hono().get('/', c => c.text('app page')),
     shellHandoff: async () =>
       new Response('stub', { headers: { 'content-type': 'text/html' } }),
@@ -104,7 +105,8 @@ it('hands off top-level .mattstack document requests to the shell', async () => 
 
 it('serves normally when the shell declines', async () => {
   const app = createApp({
-    name: 'x', version: '0',
+    name: 'x',
+    version: '0',
     routes: new Hono().get('/', c => c.text('app page')),
     shellHandoff: async () => null,
   });

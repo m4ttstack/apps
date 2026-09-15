@@ -9,7 +9,8 @@ afterEach(() => {
 describe('isInsideMattstackShell', () => {
   it('is true when the UA carries the shell marker', () => {
     vi.stubGlobal('navigator', {
-      userAgent: 'Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 mattstack-shell/1.0',
+      userAgent:
+        'Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 mattstack-shell/1.0',
     });
     expect(isInsideMattstackShell()).toBe(true);
   });
