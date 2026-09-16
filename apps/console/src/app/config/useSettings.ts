@@ -21,6 +21,35 @@ export function useSettingsDefs() {
   });
 }
 
+export function useSettingsPrefix(prefix: string) {
+  return useQuery({
+    queryKey: ['settings', 'defs', prefix],
+    queryFn: async () => {
+      const res = await client.api.settings.defs.$get({ query: { prefix } });
+      if (!res.ok) throw new Error(`settings defs failed: ${res.status}`);
+      return res.json();
+    },
+  });
+}
+
+export interface AgentModelOption {
+  value: string;
+  label: string;
+}
+
+export function useAgentModels(provider: 'claude' | 'codex') {
+  return useQuery({
+    queryKey: ['agent', 'models', provider],
+    queryFn: async () => {
+      const res = await client.api.agent.models.$get({ query: { provider } });
+      if (!res.ok) throw new Error(`agent models failed: ${res.status}`);
+      return (await res.json()) as { models: AgentModelOption[] };
+    },
+    // The catalog changes rarely; avoid a live codex spawn on every focus.
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useExplainKey(key: string) {
   return useSuspenseQuery({
     queryKey: ['settings', 'explain', key],
