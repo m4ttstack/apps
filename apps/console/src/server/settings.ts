@@ -98,7 +98,7 @@ export const settings = new Hono()
       unexpandable ${...} in some other pref field) degrades to null, the
       same "no preference" the client falls back from. */
   .get('/api/settings/default-editor', c => {
-    let editor: string | null = null;
+    let editor: string | null;
     try {
       const { value } = getSetting<{ defaultEditor?: string } | undefined>(
         'rt.workspacePrefs'
