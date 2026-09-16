@@ -15,6 +15,7 @@ import {
   Text,
   TextInput,
   Title,
+  Tooltip,
 } from '@mattstack/app-kit/core';
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -121,13 +122,18 @@ function SettingRow({
         <Text size="sm" fw={500}>
           {label}
         </Text>
-        <SegmentedControl
-          aria-label={`${label} scope`}
-          size="xs"
-          data={SCOPE_OPTIONS}
-          value={scope}
-          onChange={v => onScopeChange(v as Scope)}
-        />
+        <Tooltip
+          label="User settings are stored in your home repo, machine settings live only on this machine"
+          openDelay={500}
+        >
+          <SegmentedControl
+            aria-label={`${label} scope`}
+            size="xs"
+            data={SCOPE_OPTIONS}
+            value={scope}
+            onChange={v => onScopeChange(v as Scope)}
+          />
+        </Tooltip>
       </Group>
       {children}
     </Box>
@@ -316,13 +322,18 @@ function AgentDefaultsPageContent() {
               })
             }
           />
-          <SegmentedControl
-            aria-label="Bypass permission prompts scope"
-            size="xs"
-            data={SCOPE_OPTIONS}
-            value={yoloScope}
-            onChange={v => setYoloScope(v as Scope)}
-          />
+          <Tooltip
+            label="User settings are stored in your home repo, machine settings live only on this machine"
+            openDelay={500}
+          >
+            <SegmentedControl
+              aria-label="Bypass permission prompts scope"
+              size="xs"
+              data={SCOPE_OPTIONS}
+              value={yoloScope}
+              onChange={v => setYoloScope(v as Scope)}
+            />
+          </Tooltip>
         </Group>
       </Stack>
     </Paper>
