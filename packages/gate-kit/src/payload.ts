@@ -61,7 +61,12 @@ export interface UnwrappedGateAnswer {
  */
 export function unwrapGateAnswer(raw: GateAnswerValue): UnwrappedGateAnswer {
   const value = unwrapGateAnswerValue(raw) as string | string[];
-  if (raw !== null && typeof raw === 'object' && !Array.isArray(raw) && 'value' in raw) {
+  if (
+    raw !== null &&
+    typeof raw === 'object' &&
+    !Array.isArray(raw) &&
+    'value' in raw
+  ) {
     return { value, note: raw.note };
   }
   return { value };

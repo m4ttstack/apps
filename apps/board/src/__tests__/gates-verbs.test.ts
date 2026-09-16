@@ -744,7 +744,7 @@ describe('gateOpen W4 (origin, nudge, presentation, context)', () => {
     return statePath;
   }
 
-  test('form presentation: origin, paneId, sessionId, and context reach the payload; result.presentation is the facility\'s', async () => {
+  test("form presentation: origin, paneId, sessionId, and context reach the payload; result.presentation is the facility's", async () => {
     const dir = mkdtempSync(join(tmpdir(), 'gate-verbs-w4-'));
     const db = openStateDb(dbPathForRoot(dir), 'cli');
     const { io, calls } = fakeIo({
