@@ -100,9 +100,7 @@ test('an option with no description renders exactly as today: no subtitle elemen
       ],
     })
   );
-  expect(
-    container.querySelector('.tui-gate-choice-subtitle')
-  ).toBeNull();
+  expect(container.querySelector('.tui-gate-choice-subtitle')).toBeNull();
 });
 
 test("a question's own context renders with its card, above its options", async () => {
@@ -173,10 +171,10 @@ test('a mixed gate: one question with context and described options, one plain, 
   expect(container.textContent).toContain('Ship as-is, no changes requested.');
   // The second question carries neither field: no stray subtitle/context
   // nodes attributed to it.
-  expect(
-    container.querySelectorAll('.tui-gate-choice-subtitle').length
-  ).toBe(1);
-  expect(
-    container.querySelectorAll('.tui-gate-question-context').length
-  ).toBe(1);
+  expect(container.querySelectorAll('.tui-gate-choice-subtitle').length).toBe(
+    1
+  );
+  expect(container.querySelectorAll('.tui-gate-question-context').length).toBe(
+    1
+  );
 });

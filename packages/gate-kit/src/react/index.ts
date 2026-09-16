@@ -1,6 +1,5 @@
 import type { QuestionnaireItemDefinition } from '@shadcn/react/questionnaire';
 
-import type { GateQuestion } from '../types';
 import {
   CODE_CHANGES_QUESTION_ID,
   codeChangesHidden,
@@ -12,6 +11,7 @@ import {
   type GateAnswers,
   type GateSelections,
 } from '../payload';
+import type { GateQuestion } from '../types';
 
 export { Questionnaire } from '@shadcn/react/questionnaire';
 export type { QuestionnaireItemDefinition } from '@shadcn/react/questionnaire';

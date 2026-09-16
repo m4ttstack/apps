@@ -1,4 +1,3 @@
-import type { GateQuestion } from './types';
 // GATE_BY_PANE is not yet on /gate (RT-180); migrate this line once it
 // lands.
 // eslint-disable-next-line no-restricted-imports
@@ -6,6 +5,7 @@ import type { GATE_BY_PANE } from '@mattstack/rt-client';
 import { domainForKind } from './kinds';
 import { displayForValue, type GateOptionDisplay } from './options';
 import { unwrapGateAnswer, type GateAnswers } from './payload';
+import type { GateQuestion } from './types';
 
 /** Structural subset of rt-client's GateRow: console passes its rows
     directly; the board passes its client projection. `status`/`closedReason`
