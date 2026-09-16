@@ -158,6 +158,7 @@ export class GateCache {
       supersededBy: null,
       owner: null,
       escalatedAt: null,
+      consumedAt: null,
       context: typeof payload.context === 'string' ? payload.context : null,
       origin: isRecord(payload.origin)
         ? (payload.origin as FacilityGateRow['origin'])
