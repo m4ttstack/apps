@@ -93,6 +93,22 @@ export const settings = new Hono()
     const { value } = getSetting<number>('rt.runsPruneDays');
     return c.json({ days: value }, 200);
   })
+  /** The suite-wide editor id (rt.workspacePrefs.defaultEditor, shared with
+      `rt code`), for building open-in-editor hrefs. A resolver throw (an
+      unexpandable ${...} in some other pref field) degrades to null, the
+      same "no preference" the client falls back from. */
+  .get('/api/settings/default-editor', c => {
+    let editor: string | null = null;
+    try {
+      const { value } = getSetting<{ defaultEditor?: string } | undefined>(
+        'rt.workspacePrefs'
+      );
+      editor = value?.defaultEditor ?? null;
+    } catch {
+      editor = null;
+    }
+    return c.json({ editor }, 200);
+  })
   /** The Linear workspace slug, so the client can build an issue url for a
       ticket the branch cache never enriched. Team-scoped and nested, so it
       is read off the integrations object rather than given its own key. */
