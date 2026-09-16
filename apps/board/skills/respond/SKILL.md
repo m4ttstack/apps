@@ -215,7 +215,12 @@ conversation.
      conflict answer, or a doorbell message while a form still sits
      open, means another surface won: proceed on the winning answer,
      never the one you were about to submit; the doorbell is
-     verify-only). Gate 1's own wrinkle, not covered there: the form
+     verify-only). Three things stay local, not covered there
+     (gate-protocol never mentions framing placement or folding one
+     question's answer into another option, at all): your framing and
+     reasoning go in the pane prose or option descriptions, never into
+     rewritten question or option text; never as an option that folds
+     another question's answer in; and Gate 1's own wrinkle -- the form
      tool takes at most four questions per call, so chunk: the thread
      questions in order, up to four per call, until every thread is
      asked; then, if any thread's answer is a `fix:` value, ask
@@ -282,10 +287,15 @@ conversation.
      on the response" (form branch) and "CAS and the doorbell" sections
      (stable source checkout, machine-local by design: `cat
      ~/Documents/GitHub/mattstack-skills/attachments/gate-protocol/SKILL.md`)
-     for the mechanical rendering rule and the conflict rule. "Post no
-     replies" is the `replies` question answered as an explicit empty
-     array, which the daemon records -- Gate 2's own reminder, not
-     covered there.
+     for the mechanical rendering rule and the conflict rule. Three
+     things stay local, not covered there (gate-protocol never
+     mentions framing placement or folding one question's answer into
+     another option, at all): your framing and reasoning go in the
+     pane prose or option descriptions, never into rewritten question
+     or option text; never as an option that folds another question's
+     answer in; and "post no replies" is the `replies` question
+     answered as an explicit empty array, which the daemon records --
+     Gate 2's own reminder.
    - **presentation "wait":** do NOT present a form. Launch ONE background
      shell command (the shell tool's run-in-background mode) that loops
      `<status-bin> gate wait <state> --max-ms 90000`, re-running while it
