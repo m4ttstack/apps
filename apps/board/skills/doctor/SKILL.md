@@ -152,16 +152,10 @@ executable choices, open a facility gate instead of emitting `error`. Stay at
   answer). Its `rt gate
   answer <id> --answers ... --by pane` is this CLI's `<status-bin> gate
   answer <state> --answers <json> --by pane`, unchanged.
-- **presentation "wait":** do NOT present a form. Launch ONE background
-  shell command (the shell tool's run-in-background mode) that loops
-  `<status-bin> gate wait <state> --max-ms 90000`, re-running while it
-  prints `{"status":"pending"}`, and exits printing the answered JSON as
-  its last stdout. Then END YOUR TURN in one line: `holding at gate
-  <gateId>`. The pane is idle but armed: typed input lands instantly, and
-  the loop's completion re-invokes this pane with the answer as the tool
-  result. On re-invoke, proceed on the answer exactly as the form branch
-  does. A wait that fails with a closed or not-found message is terminal:
-  follow this wrapper's existing closed-gate rules.
+- **presentation "wait":** follow `board:gate-cli-recipes`'s "Wait recipe"
+  section (`cat ${CLAUDE_SKILL_DIR}/../gate-cli-recipes/SKILL.md`) for the
+  background-wait mechanics, unchanged; the gate to name in `holding at
+  gate <gateId>` is this one.
 - **Act on `answers.action`:**
   - **One of the executable options.** Perform exactly that action, then
     resume the normal flow (`rebasing`/`fixing`/`watching` as appropriate)
@@ -231,16 +225,10 @@ denial is the gate protocol speaking: open the gate as this section
 describes. When the daemon is down the hook allows the native form
 (degraded mode is unchanged).
 
-- **Closed or missing gate.** If `gate wait` fails with `gate <id> closed (<reason>)`,
-  the decision site itself was abandoned — superseded, abandoned, or pruned
-  when the MR left the board. A `not-found` error or `no gate open for <url>`
-  mean the same thing from a different angle: the gate this pane was
-  tracking no longer exists to wait on. All three are terminal, not
-  transient — do not re-run any of them. End cleanly: say so in the pane and
-  stop. Do not invent an answer, do not mark `done`, and do not write `error`
-  either — when the reason is a fresh pane superseding this one, that fresh
-  pane already owns this MR's board state, and a late write here would stomp
-  it.
+- **Closed or missing gate.** Follow `board:gate-cli-recipes`'s "Closed or
+  missing gate" section (`cat
+  ${CLAUDE_SKILL_DIR}/../gate-cli-recipes/SKILL.md`) for the terminal
+  handling, unchanged.
 - **In-pane escape hatch.** If a human interrupts the wait and answers you
   conversationally in the pane instead of through the board, record it so
   any parked resume stays in sync:
@@ -260,11 +248,9 @@ describes. When the daemon is down the hook allows the native form
   instead: `<status-bin> doctor-status <state> error "<the actionable
   escalation message this gate would have asked>"` and stop. The board (and,
   for auto dispatches, the escalation notifier) already surface that error
-  to a human, exactly as before escalation gates existed. A failing
-  `gate wait` is not itself degradation — per the presentation branches above,
-  re-run it; if it keeps failing, and never with the closed message or the
-  terminal errors above (those end cleanly per "Closed or missing gate"
-  instead), take the same error path and say why in the message.
+  to a human, exactly as before escalation gates existed. Follow
+  `board:gate-cli-recipes`'s "A failing wait is not degradation" section for
+  when to retry `gate wait` versus take this same error path.
 
 ### API tier (`--tier api`)
 
