@@ -15,5 +15,5 @@ test('the forbidden-socket list is armed for the rtCommand guard', () => {
   const raw = process.env.RT_TEST_FORBID_SOCKS;
   expect(raw).toBeDefined();
   const forbidden = JSON.parse(raw!) as string[];
-  expect(forbidden.some((p) => p.endsWith('/.mattstack/rt/rt.sock'))).toBe(true);
+  expect(forbidden.some(p => p.endsWith('/.mattstack/rt/rt.sock'))).toBe(true);
 });
