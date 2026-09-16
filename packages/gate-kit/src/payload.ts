@@ -1,5 +1,4 @@
 import type { GateAnswer, GateQuestion } from '@mattstack/rt-client';
-import { unwrapGateAnswerValue } from '@mattstack/rt-client';
 
 export type GateAnswers = GateAnswer['answers'];
 
@@ -60,14 +59,13 @@ export interface UnwrappedGateAnswer {
  * crashing React on an object child.
  */
 export function unwrapGateAnswer(raw: GateAnswerValue): UnwrappedGateAnswer {
-  const value = unwrapGateAnswerValue(raw) as string | string[];
   if (
     raw !== null &&
     typeof raw === 'object' &&
     !Array.isArray(raw) &&
     'value' in raw
   ) {
-    return { value, note: raw.note };
+    return { value: raw.value, note: raw.note };
   }
-  return { value };
+  return { value: raw };
 }
