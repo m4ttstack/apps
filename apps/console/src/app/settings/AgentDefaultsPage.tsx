@@ -174,7 +174,7 @@ function AgentDefaultsPageContent() {
 
   return (
     <Paper
-      bg={bg.level2}
+      bg={bg.level4}
       radius="md"
       p="xl"
       maw={620}
