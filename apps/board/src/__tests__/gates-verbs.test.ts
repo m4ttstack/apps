@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import type { Database } from 'bun:sqlite';
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 
 import type { Commands, GateRow, RtResponse } from '@mattstack/rt-client';
 import type { DoctorState } from '../doctor-state.ts';
@@ -873,5 +873,153 @@ describe('bin/gate.ts missing --kind', () => {
     const stderr = await new Response(proc.stderr).text();
     expect(stderr).toContain('usage: gate open');
     expect(stderr).toContain('--kind');
+  });
+});
+
+describe('presentation parity (BOARD-31)', () => {
+  // bin/gate.ts:44 prints exactly `console.log(JSON.stringify(result))` where
+  // `result` is gateOpen's return value; the two spawn suites above only cover
+  // failure paths, and a success-path spawn would hit the real live rt daemon
+  // on this machine, so these assert JSON.stringify(result) directly instead.
+
+  test('unchanged: a question set with every option count at or under 4 yields form', async () => {
+    const { io } = fakeIo({
+      openResult: {
+        ok: true,
+        data: {
+          id: 'gate-1',
+          presentation: 'form',
+          subject: `mr:${MR_URL}`,
+          supersededId: null,
+        },
+      },
+    });
+
+    const result = await gateOpen(
+      statePath,
+      'review-post',
+      JSON.stringify(QUESTIONS),
+      io,
+      { sessionId: 'session-1' }
+    );
+
+    expect(JSON.stringify(result)).toBe(
+      '{"gateId":"gate-1","presentation":"form"}'
+    );
+  });
+
+  test('unchanged: a question with 5 options yields wait', async () => {
+    const fiveOptionQuestions = JSON.stringify([
+      {
+        id: 'threads',
+        label: 'Threads',
+        multi: true,
+        options: ['a', 'b', 'c', 'd', 'e'],
+      },
+    ]);
+    const { io } = fakeIo({
+      openResult: {
+        ok: true,
+        data: {
+          id: 'gate-2',
+          presentation: 'wait',
+          subject: `mr:${MR_URL}`,
+          supersededId: null,
+        },
+      },
+    });
+
+    const result = await gateOpen(
+      statePath,
+      'review-post',
+      fiveOptionQuestions,
+      io,
+      { sessionId: 'session-1' }
+    );
+
+    expect(JSON.stringify(result)).toBe(
+      '{"gateId":"gate-2","presentation":"wait"}'
+    );
+  });
+
+  test('delta 1 (BOARD-31): missing paneId and sessionId now opens as wait instead of the old form-guard refusal', async () => {
+    const noPaneDir = mkdtempSync(join(tmpdir(), 'gate-verbs-parity-'));
+    const noPaneDb = openStateDb(dbPathForRoot(noPaneDir), 'cli');
+    const noPaneState = mintHandle('review', MR_URL, noPaneDir);
+    insertAgentState(
+      'review',
+      MR_URL,
+      IID,
+      {
+        mrUrl: MR_URL,
+        iid: IID,
+        status: 'reviewing',
+        startedAt: 1,
+        updatedAt: 1,
+      },
+      noPaneState,
+      noPaneDb
+    );
+    const { io, calls } = fakeIo({
+      openResult: {
+        ok: true,
+        data: {
+          id: 'gate-wait-only',
+          presentation: 'wait',
+          subject: `mr:${MR_URL}`,
+          supersededId: null,
+        },
+      },
+    });
+
+    const result = await gateOpen(
+      noPaneState,
+      'review-post',
+      JSON.stringify(QUESTIONS),
+      io
+    );
+
+    expect(calls.gateAsk[0]!.paneId).toBeUndefined();
+    expect(calls.gateAsk[0]!.sessionId).toBeUndefined();
+    expect(JSON.stringify(result)).toBe(
+      '{"gateId":"gate-wait-only","presentation":"wait"}'
+    );
+
+    rmSync(noPaneDir, { recursive: true, force: true });
+  });
+
+  test('delta 2 (BOARD-31): oversized context is sent verbatim, the gate still opens, and the byte-cap warning still fires', async () => {
+    const oversized = 'x'.repeat(8193);
+    const { io, calls } = fakeIo({
+      openResult: {
+        ok: true,
+        data: {
+          id: 'gate-oversized',
+          presentation: 'form',
+          subject: `mr:${MR_URL}`,
+          supersededId: null,
+        },
+      },
+    });
+    const errorSpy = spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const result = await gateOpen(
+        statePath,
+        'review-post',
+        JSON.stringify(QUESTIONS),
+        io,
+        { sessionId: 'session-1', context: oversized }
+      );
+
+      expect(calls.gateAsk[0]!.context).toBe(oversized);
+      expect(JSON.stringify(result)).toBe(
+        '{"gateId":"gate-oversized","presentation":"form"}'
+      );
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.calls[0]![0]).toContain('8192');
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });
