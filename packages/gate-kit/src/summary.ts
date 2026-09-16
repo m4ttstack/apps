@@ -1,4 +1,4 @@
-import type { GateQuestion } from '@mattstack/rt-client/gate';
+import type { GateQuestion } from './types';
 // GATE_BY_PANE is not yet on /gate (RT-180); migrate this line once it
 // lands.
 // eslint-disable-next-line no-restricted-imports
