@@ -24,4 +24,9 @@ describe('editorScheme', () => {
     expect(editorScheme('emacsclient')).toBe('vscode');
     expect(editorScheme('open -a "Sublime Text"')).toBe('vscode');
   });
+
+  it('falls back to vscode for a non-string value instead of throwing', () => {
+    expect(editorScheme(5 as unknown as string)).toBe('vscode');
+    expect(editorScheme({} as unknown as string)).toBe('vscode');
+  });
 });

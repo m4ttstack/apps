@@ -26,7 +26,7 @@ const SCHEME_BY_APP_LABEL: Record<string, string> = {
  * accepts.
  */
 export function editorScheme(editor: string | null | undefined): string {
-  if (!editor) return 'vscode';
+  if (!editor || typeof editor !== 'string') return 'vscode';
   const direct = SCHEME_BY_ID[editor.trim().toLowerCase()];
   if (direct) return direct;
   const appLabel = editor.match(/^open\s+-a\s+"(.+)"\s*$/)?.[1];

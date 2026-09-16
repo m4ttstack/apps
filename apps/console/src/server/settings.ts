@@ -100,10 +100,13 @@ export const settings = new Hono()
   .get('/api/settings/default-editor', c => {
     let editor: string | null;
     try {
-      const { value } = getSetting<{ defaultEditor?: string } | undefined>(
+      const { value } = getSetting<{ defaultEditor?: unknown } | undefined>(
         'rt.workspacePrefs'
       );
-      editor = value?.defaultEditor ?? null;
+      // The registry validates rt.workspacePrefs only as a top-level object,
+      // so a non-string defaultEditor can be stored; forward only strings.
+      editor =
+        typeof value?.defaultEditor === 'string' ? value.defaultEditor : null;
     } catch {
       editor = null;
     }

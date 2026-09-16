@@ -134,6 +134,18 @@ describe('settings api', () => {
     expect(rt.getSetting).toHaveBeenCalledWith('rt.workspacePrefs');
   });
 
+  it('answers null for a truthy non-string defaultEditor instead of forwarding it', async () => {
+    vi.mocked(rt.getSetting).mockReturnValueOnce({
+      value: { defaultEditor: 5 },
+      provenance: [],
+    } as never);
+    const res = await settings.fetch(
+      new Request('http://localhost/api/settings/default-editor')
+    );
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ editor: null });
+  });
+
   it('answers null, not a 500, when the prefs value is unset or the resolver throws', async () => {
     vi.mocked(rt.getSetting).mockReturnValueOnce({
       value: undefined,
