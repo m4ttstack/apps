@@ -4,7 +4,12 @@ import { dirname, join } from 'path';
 import type { Database } from 'bun:sqlite';
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 
-import type { Commands, GateRow, RtResponse } from '@mattstack/rt-client';
+import {
+  gatePresentation,
+  type Commands,
+  type GateRow,
+  type RtResponse,
+} from '@mattstack/rt-client';
 import type { DoctorState } from '../doctor-state.ts';
 import {
   gateAnswer,
@@ -882,18 +887,45 @@ describe('presentation parity (BOARD-31)', () => {
   // failure paths, and a success-path spawn would hit the real live rt daemon
   // on this machine, so these assert JSON.stringify(result) directly instead.
 
-  test('unchanged: a question set with every option count at or under 4 yields form', async () => {
-    const { io } = fakeIo({
-      openResult: {
-        ok: true,
-        data: {
-          id: 'gate-1',
-          presentation: 'form',
-          subject: `mr:${MR_URL}`,
-          supersededId: null,
-        },
+  // Computes the returned presentation from the SAME rt-client rule the real
+  // daemon runs, over the paneId/sessionId/questions the payload actually
+  // carries -- a hard-coded 'form'/'wait' literal here would make the option
+  // counts inert, since gateOpen only relays whatever `io.gateAsk` returns.
+  function fakeIoWithRealPresentation(id: string): {
+    io: GateVerbIo;
+    calls: FakeIoCalls;
+  } {
+    const calls: FakeIoCalls = { gateAsk: [], gateWait: [], gateAnswer: [] };
+    const io: GateVerbIo = {
+      now: () => 0,
+      gateAsk: async payload => {
+        calls.gateAsk.push(payload);
+        return {
+          ok: true,
+          data: {
+            id,
+            presentation: gatePresentation({
+              paneId: payload.paneId,
+              sessionId: payload.sessionId,
+              questions: payload.questions,
+            }),
+            subject: `mr:${MR_URL}`,
+            supersededId: null,
+          },
+        };
       },
-    });
+      gateWait: async () => {
+        throw new Error('not used in presentation parity tests');
+      },
+      gateAnswer: async () => {
+        throw new Error('not used in presentation parity tests');
+      },
+    };
+    return { io, calls };
+  }
+
+  test('unchanged: a question set with every option count at or under 4 yields form', async () => {
+    const { io } = fakeIoWithRealPresentation('gate-1');
 
     const result = await gateOpen(
       statePath,
@@ -917,17 +949,7 @@ describe('presentation parity (BOARD-31)', () => {
         options: ['a', 'b', 'c', 'd', 'e'],
       },
     ]);
-    const { io } = fakeIo({
-      openResult: {
-        ok: true,
-        data: {
-          id: 'gate-2',
-          presentation: 'wait',
-          subject: `mr:${MR_URL}`,
-          supersededId: null,
-        },
-      },
-    });
+    const { io } = fakeIoWithRealPresentation('gate-2');
 
     const result = await gateOpen(
       statePath,
@@ -960,17 +982,7 @@ describe('presentation parity (BOARD-31)', () => {
       noPaneState,
       noPaneDb
     );
-    const { io, calls } = fakeIo({
-      openResult: {
-        ok: true,
-        data: {
-          id: 'gate-wait-only',
-          presentation: 'wait',
-          subject: `mr:${MR_URL}`,
-          supersededId: null,
-        },
-      },
-    });
+    const { io, calls } = fakeIoWithRealPresentation('gate-wait-only');
 
     const result = await gateOpen(
       noPaneState,
