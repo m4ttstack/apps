@@ -1,6 +1,6 @@
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -211,7 +211,7 @@ describe('AgentDefaultsPage', () => {
     });
   });
 
-  it('writes to the machine scope once "Write to" is switched', async () => {
+  it('writes to whatever scope that field\'s own control is set to', async () => {
     defsGet.mockResolvedValue(ok({ defs: AGENT_DEFS }));
     modelsGet.mockResolvedValue(ok({ models: CLAUDE_MODELS }));
     stubExplain({ 'agent.provider': explainRow('agent.provider', 'claude') });
@@ -220,9 +220,12 @@ describe('AgentDefaultsPage', () => {
     renderPage();
     await screen.findByTestId('agent-defaults');
 
-    const scopeSelect = screen.getByRole('combobox', { name: 'Write to' });
-    await userEvent.click(scopeSelect);
-    await userEvent.click(await screen.findByText('this machine only'));
+    // Switching Effort's own scope control must not affect any other
+    // field's write target -- there is no shared/global scope anymore.
+    const effortScope = screen.getByRole('radiogroup', {
+      name: 'Effort scope',
+    });
+    await userEvent.click(within(effortScope).getByRole('radio', { name: 'machine' }));
 
     const effort = screen.getByLabelText('Effort');
     await userEvent.type(effort, 'high');
@@ -239,5 +242,12 @@ describe('AgentDefaultsPage', () => {
         })
       );
     });
+
+    const extraArgsScope = screen.getByRole('radiogroup', {
+      name: 'Extra args scope',
+    });
+    expect(
+      within(extraArgsScope).getByRole('radio', { name: 'user' })
+    ).toBeChecked();
   });
 });

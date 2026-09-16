@@ -2,13 +2,13 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Alert,
-  Badge,
   Box,
   Group,
   LazyLoader,
   PageShell,
   Paper,
   Select,
+  SegmentedControl,
   SimpleGrid,
   Stack,
   Switch,
@@ -74,31 +74,45 @@ function boolValue(explain: ExplainPayload): boolean {
   return winnerValue(explain) === true;
 }
 
-/** Which layer currently wins for this field, for the badge beside its
-    label -- "default" / "unset" when nothing overrides the registry,
-    "pending" while the registry doesn't know the key yet (see the
-    page-level schema-pending banner). */
-function fieldScope(explain: ExplainPayload): string {
-  if (!explain) return 'pending';
+/** Which layer currently wins for this field -- 'user' or 'machine' when a
+    real scope wins, null when nothing does (default/unset/pending). Used
+    only to seed each field's own write-scope control on first render; the
+    control itself is what a viewer reads to know where their next edit for
+    THIS field goes, replacing a page-wide "Write to" that gave no per-field
+    reminder of where it was pointed. */
+function winningScope(explain: ExplainPayload): Scope | null {
+  if (!explain) return null;
   const verdict = analyzeChain(explain.def, explain.rows);
-  if (verdict.kind !== 'scalar') return '—';
-  if (!verdict.winner) return explain.def.hasDefault ? 'default' : 'unset';
-  return verdict.winner.scope;
+  if (verdict.kind !== 'scalar' || !verdict.winner) return null;
+  return verdict.winner.scope === 'machine' ? 'machine' : 'user';
 }
 
-function scopeBadgeColor(scope: string): string {
-  return scope === 'user' || scope === 'machine' ? 'blue' : 'gray';
+/** Each field's write-scope control starts wherever its value currently
+    resolves from (so opening the page shows where each setting already
+    lives), and 'user' otherwise -- never a shared, page-wide default that
+    can be left pointed at 'machine' from a previous visit and forgotten. */
+function useFieldScope(explain: ExplainPayload) {
+  return useState<Scope>(() => winningScope(explain) ?? 'user');
 }
 
-/** One label+scope-badge header over a control, capping the control's width
-    so it reads as a settings row instead of a full-bleed input. */
+const SCOPE_OPTIONS = [
+  { label: 'user', value: 'user' },
+  { label: 'machine', value: 'machine' },
+];
+
+/** One label + per-field write-scope control over an input, capping the
+    control's width so it reads as a settings row instead of a full-bleed
+    input. The scope control both shows and sets where THIS field's next
+    write goes -- there is no page-wide scope selector to lose track of. */
 function SettingRow({
   label,
   scope,
+  onScopeChange,
   children,
 }: {
   label: string;
-  scope: string;
+  scope: Scope;
+  onScopeChange: (scope: Scope) => void;
   children: ReactNode;
 }) {
   return (
@@ -107,32 +121,31 @@ function SettingRow({
         <Text size="sm" fw={500}>
           {label}
         </Text>
-        <Badge size="sm" variant="light" color={scopeBadgeColor(scope)}>
-          {scope}
-        </Badge>
+        <SegmentedControl
+          aria-label={`${label} scope`}
+          size="xs"
+          data={SCOPE_OPTIONS}
+          value={scope}
+          onChange={v => onScopeChange(v as Scope)}
+        />
       </Group>
       {children}
     </Box>
   );
 }
 
-function ProviderModelField({
-  provider,
-  scope,
-}: {
-  provider: Provider;
-  scope: Scope;
-}) {
+function ProviderModelField({ provider }: { provider: Provider }) {
   const key = `agent.${provider}.model`;
   const { data } = useAgentModels(provider);
   const current = useCurrentValue(key);
+  const [scope, setScope] = useFieldScope(current.data);
   const mutation = useSetSetting(key);
   const options = (data?.models ?? []).map(m => ({
     value: m.value,
     label: m.label,
   }));
   return (
-    <SettingRow label="Model" scope={fieldScope(current.data)}>
+    <SettingRow label="Model" scope={scope} onScopeChange={setScope}>
       <Select
         key={key}
         aria-label="Model"
@@ -149,12 +162,14 @@ function ProviderModelField({
 
 function AgentDefaultsPageContent() {
   const { bg, border } = useSchemeColors();
-  const [scope, setScope] = useState<Scope>('user');
   const { data: defsData, error: defsError } = useSettingsPrefix('agent.');
   const defs = defsData?.defs;
   const schemaReady = defs?.some(d => d.key === 'agent.provider') ?? true;
 
   const providerExplain = useCurrentValue('agent.provider');
+  const [providerScope, setProviderScope] = useFieldScope(
+    providerExplain.data
+  );
   const providerMutation = useSetSetting('agent.provider');
   const provider = (stringValue(providerExplain.data) || 'claude') as Provider;
 
@@ -166,6 +181,13 @@ function AgentDefaultsPageContent() {
   const accountExplain = useCurrentValue('agent.claude.account');
   const extraArgsExplain = useCurrentValue(extraArgsKey);
   const yoloExplain = useCurrentValue(yoloKey);
+
+  const [effortScope, setEffortScope] = useFieldScope(effortExplain.data);
+  const [accountScope, setAccountScope] = useFieldScope(accountExplain.data);
+  const [extraArgsScope, setExtraArgsScope] = useFieldScope(
+    extraArgsExplain.data
+  );
+  const [yoloScope, setYoloScope] = useFieldScope(yoloExplain.data);
 
   const effortMutation = useSetSetting(effortKey);
   const accountMutation = useSetSetting('agent.claude.account');
@@ -186,7 +208,9 @@ function AgentDefaultsPageContent() {
         <Title order={3}>Agent defaults</Title>
         <Text size="sm">
           These apply to every future <code>rt agent start</code> that does not
-          pass its own flag.
+          pass its own flag. Each field&apos;s <code>user</code>/
+          <code>machine</code> control picks where THAT field&apos;s next
+          change is written.
         </Text>
         {defsError && <Alert color="red">{(defsError as Error).message}</Alert>}
         {!schemaReady && (
@@ -197,21 +221,11 @@ function AgentDefaultsPageContent() {
             persist until it lands.
           </Alert>
         )}
-        <Select
-          label="Write to"
-          maw={200}
-          data={[
-            { value: 'user', label: 'this developer (user)' },
-            { value: 'machine', label: 'this machine only' },
-          ]}
-          value={scope}
-          allowDeselect={false}
-          onChange={v => setScope((v as Scope) ?? 'user')}
-        />
         <SimpleGrid cols={2} spacing="md">
           <SettingRow
             label="Default agent"
-            scope={fieldScope(providerExplain.data)}
+            scope={providerScope}
+            onScopeChange={setProviderScope}
           >
             <Select
               aria-label="Default agent"
@@ -222,12 +236,19 @@ function AgentDefaultsPageContent() {
               value={provider}
               allowDeselect={false}
               onChange={v =>
-                providerMutation.mutate({ value: v ?? 'claude', scope })
+                providerMutation.mutate({
+                  value: v ?? 'claude',
+                  scope: providerScope,
+                })
               }
             />
           </SettingRow>
-          <ProviderModelField provider={provider} scope={scope} />
-          <SettingRow label="Effort" scope={fieldScope(effortExplain.data)}>
+          <ProviderModelField provider={provider} />
+          <SettingRow
+            label="Effort"
+            scope={effortScope}
+            onScopeChange={setEffortScope}
+          >
             <TextInput
               key={effortKey}
               aria-label="Effort"
@@ -240,13 +261,17 @@ function AgentDefaultsPageContent() {
               onBlur={e =>
                 effortMutation.mutate({
                   value: e.currentTarget.value || undefined,
-                  scope,
+                  scope: effortScope,
                 })
               }
             />
           </SettingRow>
           {provider === 'claude' && (
-            <SettingRow label="Account" scope={fieldScope(accountExplain.data)}>
+            <SettingRow
+              label="Account"
+              scope={accountScope}
+              onScopeChange={setAccountScope}
+            >
               <TextInput
                 aria-label="Account"
                 placeholder="cswap account email; unset uses default"
@@ -254,7 +279,7 @@ function AgentDefaultsPageContent() {
                 onBlur={e =>
                   accountMutation.mutate({
                     value: e.currentTarget.value || undefined,
-                    scope,
+                    scope: accountScope,
                   })
                 }
               />
@@ -262,7 +287,8 @@ function AgentDefaultsPageContent() {
           )}
           <SettingRow
             label="Extra args"
-            scope={fieldScope(extraArgsExplain.data)}
+            scope={extraArgsScope}
+            onScopeChange={setExtraArgsScope}
           >
             <TextInput
               key={extraArgsKey}
@@ -272,28 +298,31 @@ function AgentDefaultsPageContent() {
               onBlur={e =>
                 extraArgsMutation.mutate({
                   value: e.currentTarget.value || undefined,
-                  scope,
+                  scope: extraArgsScope,
                 })
               }
             />
           </SettingRow>
         </SimpleGrid>
-        <Group gap="sm">
+        <Group justify="space-between" maw={360}>
           <Switch
             key={yoloKey}
             label="Bypass permission prompts (--yolo)"
             defaultChecked={boolValue(yoloExplain.data)}
             onChange={e =>
-              yoloMutation.mutate({ value: e.currentTarget.checked, scope })
+              yoloMutation.mutate({
+                value: e.currentTarget.checked,
+                scope: yoloScope,
+              })
             }
           />
-          <Badge
-            size="sm"
-            variant="light"
-            color={scopeBadgeColor(fieldScope(yoloExplain.data))}
-          >
-            {fieldScope(yoloExplain.data)}
-          </Badge>
+          <SegmentedControl
+            aria-label="Bypass permission prompts scope"
+            size="xs"
+            data={SCOPE_OPTIONS}
+            value={yoloScope}
+            onChange={v => setYoloScope(v as Scope)}
+          />
         </Group>
       </Stack>
     </Paper>
