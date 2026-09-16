@@ -185,22 +185,24 @@ remembered in the conversation.
      (stable source checkout, machine-local by design: `cat
      ~/Documents/GitHub/mattstack-skills/attachments/gate-protocol/SKILL.md`)
      for the mechanical rendering rule (one form question per gate
-     question in gate order, labels and values verbatim, a
-     "(recommended)" suffix becoming the form's own affordance, your
-     framing and reasoning in the pane prose or option descriptions
-     never in rewritten question/option text) and the conflict rule (a
-     printed conflict answer, or a doorbell message while a form still
-     sits open, means another surface won: proceed on the winning
-     answer, never the one you were about to submit; the doorbell is
-     verify-only, run `<status-bin> gate wait <state> --max-ms 1000` to
-     read the recorded answer). Its `rt gate answer <id> --answers ...
-     --by pane` is this CLI's `<status-bin> gate answer <state>
-     --answers <json> --by pane`, unchanged. Two things stay specific
-     to THIS gate, not covered there: the question order is fixed
-     (tiers before outcome: the human weighs the findings before
-     choosing a verdict), and there is never a "skip and approve clean"
-     combo option -- "post nothing" is the `tiers` question answered as
-     an explicit empty array, which the daemon records.
+     question in gate order, labels and values verbatim) and the
+     conflict rule (a printed conflict answer, or a doorbell message
+     while a form still sits open, means another surface won: proceed
+     on the winning answer, never the one you were about to submit;
+     the doorbell is verify-only, run `<status-bin> gate wait <state>
+     --max-ms 1000` to read the recorded answer). Its `rt gate answer
+     <id> --answers ... --by pane` is this CLI's `<status-bin> gate
+     answer <state> --answers <json> --by pane`, unchanged. Four
+     things stay specific to THIS gate, not covered there (gate-protocol
+     never mentions a "(recommended)" suffix or framing placement at
+     all): a label's " (recommended)" suffix becomes the form's own
+     (Recommended) affordance; your framing and reasoning go in the
+     pane prose or option descriptions, never into rewritten question
+     or option text; the question order is fixed (tiers before
+     outcome: the human weighs the findings before choosing a
+     verdict); and there is never a "skip and approve clean" combo
+     option -- "post nothing" is the `tiers` question answered as an
+     explicit empty array, which the daemon records.
    - **presentation "wait":** do NOT present a form. Launch ONE background
      shell command (the shell tool's run-in-background mode) that loops
      `<status-bin> gate wait <state> --max-ms 90000`, re-running while it
