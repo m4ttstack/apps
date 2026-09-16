@@ -367,21 +367,16 @@ describes. When the daemon is down the hook allows the native form
   conversationally in the pane instead of through the board, record it so
   any parked resume stays in sync:
   `<status-bin> gate answer <state> --answers <json> --by pane`.
-  - **Strict membership.** Each recorded answer value must be one of that
-    question's option strings, verbatim (e.g. `"approve"`,
-    `"fix:t1"`) — the daemon rejects anything else. Carry the
-    human's phrasing, hedges, or nuance in the note form instead:
-    `{"code-changes": {"value": "approve", "note": "approve but hold off on thread 3"}}`.
-    A multi question's explicit empty array (`{"replies": []}`) is also
-    valid: it records the decision to post none of the drafted replies.
-  - **CAS loss.** `gate answer` prints nothing and exits 0 when the pane's
-    answer was recorded and stands. If it instead prints one JSON line,
-    someone answered first through another surface — that printed answer is
-    the recorded one. Proceed on it, not on the conversational answer given
-    in the pane, and tell the human which answer won.
-  - **Reading answers back.** Whether from `gate wait` or a CAS-loss line, a
-    question's answer may be the bare option string/array or the
-    `{value, note}` object — read `value` in the object case.
+  - **Strict membership, CAS loss, reading answers back.** Follow
+    `mattstack:gate-protocol`'s "Answers are option values" and "CAS and
+    the doorbell" sections (stable source checkout, machine-local by
+    design: `cat
+    ~/Documents/GitHub/mattstack-skills/attachments/gate-protocol/SKILL.md`)
+    for the shared mechanics, unchanged. Specific to these gates: the note
+    form example is `{"code-changes": {"value": "approve", "note": "approve
+    but hold off on thread 3"}}`, and a multi question's explicit empty
+    array (`{"replies": []}`) is also valid, recording the decision to post
+    none of the drafted replies.
 - **Degraded mode.** If `gate open` exits nonzero (the daemon was down at
   open time), fall back to the native form alone, chunked exactly as that
   gate's form branch describes (Gate 1: thread questions four per call,

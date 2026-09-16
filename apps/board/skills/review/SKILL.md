@@ -227,21 +227,16 @@ remembered in the conversation.
      conversationally in the pane instead of through the board, record it so
      any parked resume stays in sync:
      `<status-bin> gate answer <state> --answers <json> --by pane`.
-     - **Strict membership.** Each recorded answer value must be one of that
-       question's option strings, verbatim (e.g. `"comment"`,
-       `["critical","nit"]`) — the daemon rejects anything else. Carry the
-       human's phrasing, hedges, or nuance in the note form instead:
-       `{"outcome": {"value": "comment", "note": "approve once CI is green"}}`.
-       A multi question's explicit empty array (`{"tiers": []}`) is also
-       valid: it records the decision to post none of these findings.
-     - **CAS loss.** `gate answer` prints nothing and exits 0 when the
-       pane's answer was recorded and stands. If it instead prints one JSON
-       line, someone answered first through another surface — that printed
-       answer is the recorded one. Proceed on it, not on the conversational
-       answer given in the pane, and tell the human which answer won.
-     - **Reading answers back.** Whether from `gate wait` or a CAS-loss
-       line, a question's answer may be the bare option string/array or the
-       `{value, note}` object — read `value` in the object case.
+     - **Strict membership, CAS loss, reading answers back.** Follow
+       `mattstack:gate-protocol`'s "Answers are option values" and "CAS and
+       the doorbell" sections (stable source checkout, machine-local by
+       design: `cat
+       ~/Documents/GitHub/mattstack-skills/attachments/gate-protocol/SKILL.md`)
+       for the shared mechanics, unchanged. Specific to this gate: the note
+       form example is `{"outcome": {"value": "comment", "note": "approve
+       once CI is green"}}`, and a multi question's explicit empty array
+       (`{"tiers": []}`) is also valid, recording the decision to post none
+       of these findings.
    - **Degraded mode.** If `gate open` exits nonzero (the daemon was down at
      open time), fall back to ONE combined `AskUserQuestion` carrying the
      same questions the gate would have — both `tiers` and `outcome` when

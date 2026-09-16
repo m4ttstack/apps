@@ -245,19 +245,14 @@ describes. When the daemon is down the hook allows the native form
   conversationally in the pane instead of through the board, record it so
   any parked resume stays in sync:
   `<status-bin> gate answer <state> --answers <json> --by pane`.
-  - **Strict membership.** The recorded answer value must be one of the
-    `action` question's option strings, verbatim (e.g.
-    `"leave it to me in the pane"`) — the daemon rejects anything else. Carry
-    the human's phrasing, hedges, or nuance in the note form instead:
-    `{"action": {"value": "proceed as code-fix after override", "note": "but hold off on the migration file"}}`.
-  - **CAS loss.** `gate answer` prints nothing and exits 0 when the pane's
-    answer was recorded and stands. If it instead prints one JSON line,
-    someone answered first through another surface — that printed answer is
-    the recorded one. Proceed on it, not on the conversational answer given
-    in the pane, and tell the human which answer won.
-  - **Reading answers back.** Whether from `gate wait` or a CAS-loss line,
-    the `action` answer may be the bare option string or the `{value, note}`
-    object — read `value` in the object case.
+  - **Strict membership, CAS loss, reading answers back.** Follow
+    `mattstack:gate-protocol`'s "Answers are option values" and "CAS and
+    the doorbell" sections (stable source checkout, machine-local by
+    design: `cat
+    ~/Documents/GitHub/mattstack-skills/attachments/gate-protocol/SKILL.md`)
+    for the shared mechanics, unchanged. Specific to this gate: the note
+    form example is `{"action": {"value": "proceed as code-fix after
+    override", "note": "but hold off on the migration file"}}`.
 - **Degraded mode.** If `gate open` exits nonzero (the daemon was down at
   open time), do NOT present a form — doctor panes are routinely
   auto-dispatched with no human watching, and a form in such a pane waits
