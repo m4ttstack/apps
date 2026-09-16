@@ -1,4 +1,8 @@
-export type { GateAnswer, GateOption, GateQuestion } from '@mattstack/rt-client/gate';
+export type {
+  GateAnswer,
+  GateOption,
+  GateQuestion,
+} from '@mattstack/rt-client/gate';
 // GateOrigin/GateRow are not yet on /gate (RT-180); migrate this line once
 // they land.
 // eslint-disable-next-line no-restricted-imports
