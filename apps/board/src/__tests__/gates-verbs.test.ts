@@ -882,10 +882,10 @@ describe('bin/gate.ts missing --kind', () => {
 });
 
 describe('presentation parity (BOARD-31)', () => {
-  // bin/gate.ts:44 prints exactly `console.log(JSON.stringify(result))` where
-  // `result` is gateOpen's return value; the two spawn suites above only cover
-  // failure paths, and a success-path spawn would hit the real live rt daemon
-  // on this machine, so these assert JSON.stringify(result) directly instead.
+  // The CLI's gate open command prints exactly `JSON.stringify` of gateOpen's
+  // return value; the two spawn suites above only cover failure paths, and a
+  // success-path spawn would hit the real live rt daemon on this machine, so
+  // these assert JSON.stringify(result) directly instead.
 
   // Computes the returned presentation from the SAME rt-client rule the real
   // daemon runs, over the paneId/sessionId/questions the payload actually
@@ -964,7 +964,7 @@ describe('presentation parity (BOARD-31)', () => {
     );
   });
 
-  test('delta 1 (BOARD-31): missing paneId and sessionId now opens as wait instead of the old form-guard refusal', async () => {
+  test('delta 1: missing paneId and sessionId now opens as wait instead of the old form-guard refusal', async () => {
     const noPaneDir = mkdtempSync(join(tmpdir(), 'gate-verbs-parity-'));
     const noPaneDb = openStateDb(dbPathForRoot(noPaneDir), 'cli');
     const noPaneState = mintHandle('review', MR_URL, noPaneDir);
@@ -1000,7 +1000,44 @@ describe('presentation parity (BOARD-31)', () => {
     rmSync(noPaneDir, { recursive: true, force: true });
   });
 
-  test('delta 2 (BOARD-31): oversized context is sent verbatim, the gate still opens, and the byte-cap warning still fires', async () => {
+  test('delta 3: paneId set but no sessionId still opens as wait, the realistic case where CLAUDE_CODE_SESSION_ID is unset', async () => {
+    const panedDir = mkdtempSync(join(tmpdir(), 'gate-verbs-parity-'));
+    const panedDb = openStateDb(dbPathForRoot(panedDir), 'cli');
+    const panedState = mintHandle('review', MR_URL, panedDir);
+    insertAgentState(
+      'review',
+      MR_URL,
+      IID,
+      {
+        mrUrl: MR_URL,
+        iid: IID,
+        status: 'reviewing',
+        startedAt: 1,
+        updatedAt: 1,
+        paneId: 'pane-1',
+      },
+      panedState,
+      panedDb
+    );
+    const { io, calls } = fakeIoWithRealPresentation('gate-paned-no-session');
+
+    const result = await gateOpen(
+      panedState,
+      'review-post',
+      JSON.stringify(QUESTIONS),
+      io
+    );
+
+    expect(calls.gateAsk[0]!.paneId).toBe('pane-1');
+    expect(calls.gateAsk[0]!.sessionId).toBeUndefined();
+    expect(JSON.stringify(result)).toBe(
+      '{"gateId":"gate-paned-no-session","presentation":"wait"}'
+    );
+
+    rmSync(panedDir, { recursive: true, force: true });
+  });
+
+  test('delta 2: oversized context is sent verbatim, the gate still opens, and the byte-cap warning still fires', async () => {
     const oversized = 'x'.repeat(8193);
     const { io, calls } = fakeIo({
       openResult: {
