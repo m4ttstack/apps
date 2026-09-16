@@ -238,7 +238,10 @@ describes. When the daemon is down the hook allows the native form
     the doorbell" sections (stable source checkout, machine-local by
     design: `cat
     ~/Documents/GitHub/mattstack-skills/attachments/gate-protocol/SKILL.md`)
-    for the shared mechanics, unchanged. Specific to this gate: the note
+    for the shared mechanics, unchanged, and `board:gate-cli-recipes`'s
+    "CAS loss and reading answers back" section (`cat
+    ${CLAUDE_SKILL_DIR}/../gate-cli-recipes/SKILL.md`) for this CLI's own
+    silent-success-versus-JSON-line contract. Specific to this gate: the note
     form example is `{"action": {"value": "proceed as code-fix after
     override", "note": "but hold off on the migration file"}}`.
 - **Degraded mode.** If `gate open` exits nonzero (the daemon was down at

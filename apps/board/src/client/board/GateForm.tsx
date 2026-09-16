@@ -336,7 +336,9 @@ function GateForm({
   const sectioned = useMemo(
     () =>
       context !== null &&
-      gate.questions.some(q => sectionFor(context, { id: q.id, label: q.label })),
+      gate.questions.some(q =>
+        sectionFor(context, { id: q.id, label: q.label })
+      ),
     [context, gate.questions]
   );
   return (
