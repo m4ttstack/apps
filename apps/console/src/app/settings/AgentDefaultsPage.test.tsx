@@ -297,4 +297,23 @@ describe('AgentDefaultsPage', () => {
       ).toBeChecked();
     });
   });
+
+  it('does not write on blur when a text field was not actually edited', async () => {
+    defsGet.mockResolvedValue(ok({ defs: AGENT_DEFS }));
+    modelsGet.mockResolvedValue(ok({ models: CLAUDE_MODELS }));
+    stubExplain({
+      'agent.provider': explainRow('agent.provider', 'claude'),
+      'agent.claude.effort': explainRow('agent.claude.effort', 'high'),
+    });
+    setPost.mockResolvedValue(ok({ rows: [] }));
+
+    renderPage();
+    await screen.findByTestId('agent-defaults');
+
+    const effort = screen.getByLabelText('Effort');
+    await userEvent.click(effort);
+    await userEvent.tab();
+
+    expect(setPost).not.toHaveBeenCalled();
+  });
 });

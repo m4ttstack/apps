@@ -159,13 +159,15 @@ function TextSettingField({
   const current = useCurrentValue(settingKey);
   const [scope, setScope] = useFieldScope(current.data);
   const mutation = useSetSetting(settingKey);
+  const initialValue = stringValue(current.data);
   return (
     <SettingRow label={label} scope={scope} onScopeChange={setScope}>
       <TextInput
         aria-label={label}
         placeholder={placeholder}
-        defaultValue={stringValue(current.data)}
+        defaultValue={initialValue}
         onBlur={e => {
+          if (e.currentTarget.value === initialValue) return;
           mutation.mutate(
             { value: e.currentTarget.value || undefined, scope },
             { onError: err => notifySetError(err, settingKey) }
@@ -217,15 +219,17 @@ function ProviderModelField({ provider }: { provider: Provider }) {
     value: m.value,
     label: m.label,
   }));
+  const initialValue = stringValue(current.data);
   return (
     <SettingRow label="Model" scope={scope} onScopeChange={setScope}>
       <Autocomplete
         aria-label="Model"
         placeholder="provider default"
         data={options}
-        defaultValue={stringValue(current.data)}
+        defaultValue={initialValue}
         clearable
         onBlur={e => {
+          if (e.currentTarget.value === initialValue) return;
           mutation.mutate(
             { value: e.currentTarget.value || undefined, scope },
             { onError: err => notifySetError(err, key) }
