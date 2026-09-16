@@ -354,7 +354,10 @@ describes. When the daemon is down the hook allows the native form
     the doorbell" sections (stable source checkout, machine-local by
     design: `cat
     ~/Documents/GitHub/mattstack-skills/attachments/gate-protocol/SKILL.md`)
-    for the shared mechanics, unchanged. Specific to these gates: the note
+    for the shared mechanics, unchanged, and `board:gate-cli-recipes`'s
+    "CAS loss and reading answers back" section (`cat
+    ${CLAUDE_SKILL_DIR}/../gate-cli-recipes/SKILL.md`) for this CLI's own
+    silent-success-versus-JSON-line contract. Specific to these gates: the note
     form example is `{"code-changes": {"value": "approve", "note": "approve
     but hold off on thread 3"}}`, and a multi question's explicit empty
     array (`{"replies": []}`) is also valid, recording the decision to post

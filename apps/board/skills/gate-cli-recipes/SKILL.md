@@ -45,3 +45,16 @@ branches above, re-run it. Only if it keeps failing, and never on the
 closed message or the terminal errors above (those end cleanly per
 "Closed or missing gate" instead), fall through to this gate's own
 degraded-mode fallback, and say why in the message.
+
+## CAS loss and reading answers back
+
+`<status-bin> gate answer` prints nothing and exits 0 when the pane's own
+answer was recorded and stands. If it instead prints one JSON line
+(`{answers, by, answeredAt}`), still exit 0, someone answered first through
+another surface: that printed answer is the recorded one. Proceed on it,
+not on the conversational answer given in the pane, and tell the human
+which answer won.
+
+Whether the answer came from `gate wait` or a CAS-loss line, the `action`
+answer may be the bare option string (or array) or a `{value, note}`
+object; read `value` in the object case.

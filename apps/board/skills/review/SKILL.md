@@ -221,7 +221,10 @@ remembered in the conversation.
        the doorbell" sections (stable source checkout, machine-local by
        design: `cat
        ~/Documents/GitHub/mattstack-skills/attachments/gate-protocol/SKILL.md`)
-       for the shared mechanics, unchanged. Specific to this gate: the note
+       for the shared mechanics, unchanged, and `board:gate-cli-recipes`'s
+       "CAS loss and reading answers back" section (`cat
+       ${CLAUDE_SKILL_DIR}/../gate-cli-recipes/SKILL.md`) for this CLI's own
+       silent-success-versus-JSON-line contract. Specific to this gate: the note
        form example is `{"outcome": {"value": "comment", "note": "approve
        once CI is green"}}`, and a multi question's explicit empty array
        (`{"tiers": []}`) is also valid, recording the decision to post none

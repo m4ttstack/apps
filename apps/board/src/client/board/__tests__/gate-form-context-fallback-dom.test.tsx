@@ -1,8 +1,8 @@
 /** BOARD-33: a plain-prose gate context (no `=== key ===` markers, no
-    `[Label]` lines) nulls out of both gate-context.ts parsers, so no
-    question ever gets a section. GateForm must fall back to the raw
-    context, the same fallback DecisionQueueModal already has, instead of
-    showing nothing. */
+    `[Label]` lines) parses to an empty section list from both
+    gate-context.ts parsers, so no question ever gets a section. GateForm
+    must fall back to the raw context, the same fallback DecisionQueueModal
+    already has, instead of showing nothing. */
 
 import React from 'react';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
