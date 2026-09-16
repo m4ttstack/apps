@@ -2,13 +2,14 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Alert,
+  Autocomplete,
   Box,
   Group,
   LazyLoader,
   PageShell,
   Paper,
-  Select,
   SegmentedControl,
+  Select,
   SimpleGrid,
   Stack,
   Switch,
@@ -18,6 +19,7 @@ import {
   Tooltip,
 } from '@mattstack/app-kit/core';
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
+import { notifications } from '@mattstack/app-kit/notifications';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { ExplainRowWire, SettingDefWire } from '../../server/settings';
@@ -75,12 +77,11 @@ function boolValue(explain: ExplainPayload): boolean {
   return winnerValue(explain) === true;
 }
 
-/** Which layer currently wins for this field -- 'user' or 'machine' when a
-    real scope wins, null when nothing does (default/unset/pending). Used
-    only to seed each field's own write-scope control on first render; the
-    control itself is what a viewer reads to know where their next edit for
-    THIS field goes, replacing a page-wide "Write to" that gave no per-field
-    reminder of where it was pointed. */
+/** Which layer currently wins for this field, 'user' or 'machine' when a
+    real scope wins, null when nothing does (default/unset/pending). Seeds
+    a field's own write-scope control on mount. A `machine.repo`/`user.repo`
+    winner also reads as its non-repo scope here -- sound today because
+    every agent.* def declares `repoScoped: false`. */
 function winningScope(explain: ExplainPayload): Scope | null {
   if (!explain) return null;
   const verdict = analyzeChain(explain.def, explain.rows);
@@ -88,12 +89,13 @@ function winningScope(explain: ExplainPayload): Scope | null {
   return verdict.winner.scope === 'machine' ? 'machine' : 'user';
 }
 
-/** Each field's write-scope control starts wherever its value currently
-    resolves from (so opening the page shows where each setting already
-    lives), and 'user' otherwise -- never a shared, page-wide default that
-    can be left pointed at 'machine' from a previous visit and forgotten. */
 function useFieldScope(explain: ExplainPayload) {
   return useState<Scope>(() => winningScope(explain) ?? 'user');
+}
+
+function notifySetError(err: unknown, key: string) {
+  const message = err instanceof Error ? err.message : `failed to save ${key}`;
+  notifications.error(message);
 }
 
 const SCOPE_OPTIONS = [
@@ -101,10 +103,13 @@ const SCOPE_OPTIONS = [
   { label: 'machine', value: 'machine' },
 ];
 
+const SCOPE_HINT =
+  'User settings are stored in your home repo, machine settings live only on this machine';
+
 /** One label + per-field write-scope control over an input, capping the
     control's width so it reads as a settings row instead of a full-bleed
     input. The scope control both shows and sets where THIS field's next
-    write goes -- there is no page-wide scope selector to lose track of. */
+    write goes. */
 function SettingRow({
   label,
   scope,
@@ -122,10 +127,7 @@ function SettingRow({
         <Text size="sm" fw={500}>
           {label}
         </Text>
-        <Tooltip
-          label="User settings are stored in your home repo, machine settings live only on this machine"
-          openDelay={500}
-        >
+        <Tooltip label={SCOPE_HINT} openDelay={500}>
           <SegmentedControl
             aria-label={`${label} scope`}
             size="xs"
@@ -137,6 +139,71 @@ function SettingRow({
       </Group>
       {children}
     </Box>
+  );
+}
+
+/** A text-valued setting field: owns its own current-value read, write
+    scope, and mutation, so mounting it under `key={settingKey}` (done by
+    every caller whose key changes with the selected provider) resets scope
+    and value together instead of leaving a stale scope pointed at a store
+    the new key was never read from. */
+function TextSettingField({
+  settingKey,
+  label,
+  placeholder,
+}: {
+  settingKey: string;
+  label: string;
+  placeholder?: string;
+}) {
+  const current = useCurrentValue(settingKey);
+  const [scope, setScope] = useFieldScope(current.data);
+  const mutation = useSetSetting(settingKey);
+  return (
+    <SettingRow label={label} scope={scope} onScopeChange={setScope}>
+      <TextInput
+        aria-label={label}
+        placeholder={placeholder}
+        defaultValue={stringValue(current.data)}
+        onBlur={e => {
+          mutation.mutate(
+            { value: e.currentTarget.value || undefined, scope },
+            { onError: err => notifySetError(err, settingKey) }
+          );
+        }}
+      />
+    </SettingRow>
+  );
+}
+
+/** Same self-contained-field shape as `TextSettingField`, for the one
+    boolean setting on this page. */
+function YoloSettingField({ settingKey }: { settingKey: string }) {
+  const current = useCurrentValue(settingKey);
+  const [scope, setScope] = useFieldScope(current.data);
+  const mutation = useSetSetting(settingKey);
+  return (
+    <Group justify="space-between" maw={360}>
+      <Switch
+        label="Bypass permission prompts (--yolo)"
+        defaultChecked={boolValue(current.data)}
+        onChange={e => {
+          mutation.mutate(
+            { value: e.currentTarget.checked, scope },
+            { onError: err => notifySetError(err, settingKey) }
+          );
+        }}
+      />
+      <Tooltip label={SCOPE_HINT} openDelay={500}>
+        <SegmentedControl
+          aria-label="Bypass permission prompts scope"
+          size="xs"
+          data={SCOPE_OPTIONS}
+          value={scope}
+          onChange={v => setScope(v as Scope)}
+        />
+      </Tooltip>
+    </Group>
   );
 }
 
@@ -152,15 +219,18 @@ function ProviderModelField({ provider }: { provider: Provider }) {
   }));
   return (
     <SettingRow label="Model" scope={scope} onScopeChange={setScope}>
-      <Select
-        key={key}
+      <Autocomplete
         aria-label="Model"
         placeholder="provider default"
         data={options}
-        defaultValue={stringValue(current.data) || null}
-        searchable
+        defaultValue={stringValue(current.data)}
         clearable
-        onChange={next => mutation.mutate({ value: next ?? undefined, scope })}
+        onBlur={e => {
+          mutation.mutate(
+            { value: e.currentTarget.value || undefined, scope },
+            { onError: err => notifySetError(err, key) }
+          );
+        }}
       />
     </SettingRow>
   );
@@ -173,32 +243,13 @@ function AgentDefaultsPageContent() {
   const schemaReady = defs?.some(d => d.key === 'agent.provider') ?? true;
 
   const providerExplain = useCurrentValue('agent.provider');
-  const [providerScope, setProviderScope] = useFieldScope(
-    providerExplain.data
-  );
+  const [providerScope, setProviderScope] = useFieldScope(providerExplain.data);
   const providerMutation = useSetSetting('agent.provider');
   const provider = (stringValue(providerExplain.data) || 'claude') as Provider;
 
   const effortKey = `agent.${provider}.effort`;
   const extraArgsKey = `agent.${provider}.extraArgs`;
   const yoloKey = `agent.${provider}.yolo`;
-
-  const effortExplain = useCurrentValue(effortKey);
-  const accountExplain = useCurrentValue('agent.claude.account');
-  const extraArgsExplain = useCurrentValue(extraArgsKey);
-  const yoloExplain = useCurrentValue(yoloKey);
-
-  const [effortScope, setEffortScope] = useFieldScope(effortExplain.data);
-  const [accountScope, setAccountScope] = useFieldScope(accountExplain.data);
-  const [extraArgsScope, setExtraArgsScope] = useFieldScope(
-    extraArgsExplain.data
-  );
-  const [yoloScope, setYoloScope] = useFieldScope(yoloExplain.data);
-
-  const effortMutation = useSetSetting(effortKey);
-  const accountMutation = useSetSetting('agent.claude.account');
-  const extraArgsMutation = useSetSetting(extraArgsKey);
-  const yoloMutation = useSetSetting(yoloKey);
 
   return (
     <Paper
@@ -215,8 +266,8 @@ function AgentDefaultsPageContent() {
         <Text size="sm">
           These apply to every future <code>rt agent start</code> that does not
           pass its own flag. Each field&apos;s <code>user</code>/
-          <code>machine</code> control picks where THAT field&apos;s next
-          change is written.
+          <code>machine</code> control picks where THAT field&apos;s next change
+          is written.
         </Text>
         {defsError && <Alert color="red">{(defsError as Error).message}</Alert>}
         {!schemaReady && (
@@ -227,7 +278,7 @@ function AgentDefaultsPageContent() {
             persist until it lands.
           </Alert>
         )}
-        <SimpleGrid cols={2} spacing="md">
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
           <SettingRow
             label="Default agent"
             scope={providerScope}
@@ -242,99 +293,39 @@ function AgentDefaultsPageContent() {
               value={provider}
               allowDeselect={false}
               onChange={v =>
-                providerMutation.mutate({
-                  value: v ?? 'claude',
-                  scope: providerScope,
-                })
+                providerMutation.mutate(
+                  { value: v ?? 'claude', scope: providerScope },
+                  { onError: err => notifySetError(err, 'agent.provider') }
+                )
               }
             />
           </SettingRow>
-          <ProviderModelField provider={provider} />
-          <SettingRow
+          <ProviderModelField key={`${provider}-model`} provider={provider} />
+          <TextSettingField
+            key={effortKey}
+            settingKey={effortKey}
             label="Effort"
-            scope={effortScope}
-            onScopeChange={setEffortScope}
-          >
-            <TextInput
-              key={effortKey}
-              aria-label="Effort"
-              placeholder={
-                provider === 'codex'
-                  ? 'e.g. medium, high'
-                  : 'e.g. low, medium, high'
-              }
-              defaultValue={stringValue(effortExplain.data)}
-              onBlur={e =>
-                effortMutation.mutate({
-                  value: e.currentTarget.value || undefined,
-                  scope: effortScope,
-                })
-              }
-            />
-          </SettingRow>
-          {provider === 'claude' && (
-            <SettingRow
-              label="Account"
-              scope={accountScope}
-              onScopeChange={setAccountScope}
-            >
-              <TextInput
-                aria-label="Account"
-                placeholder="cswap account email; unset uses default"
-                defaultValue={stringValue(accountExplain.data)}
-                onBlur={e =>
-                  accountMutation.mutate({
-                    value: e.currentTarget.value || undefined,
-                    scope: accountScope,
-                  })
-                }
-              />
-            </SettingRow>
-          )}
-          <SettingRow
-            label="Extra args"
-            scope={extraArgsScope}
-            onScopeChange={setExtraArgsScope}
-          >
-            <TextInput
-              key={extraArgsKey}
-              aria-label="Extra args"
-              placeholder="raw flags appended to every launch"
-              defaultValue={stringValue(extraArgsExplain.data)}
-              onBlur={e =>
-                extraArgsMutation.mutate({
-                  value: e.currentTarget.value || undefined,
-                  scope: extraArgsScope,
-                })
-              }
-            />
-          </SettingRow>
-        </SimpleGrid>
-        <Group justify="space-between" maw={360}>
-          <Switch
-            key={yoloKey}
-            label="Bypass permission prompts (--yolo)"
-            defaultChecked={boolValue(yoloExplain.data)}
-            onChange={e =>
-              yoloMutation.mutate({
-                value: e.currentTarget.checked,
-                scope: yoloScope,
-              })
+            placeholder={
+              provider === 'codex'
+                ? 'e.g. medium, high'
+                : 'e.g. low, medium, high'
             }
           />
-          <Tooltip
-            label="User settings are stored in your home repo, machine settings live only on this machine"
-            openDelay={500}
-          >
-            <SegmentedControl
-              aria-label="Bypass permission prompts scope"
-              size="xs"
-              data={SCOPE_OPTIONS}
-              value={yoloScope}
-              onChange={v => setYoloScope(v as Scope)}
+          {provider === 'claude' && (
+            <TextSettingField
+              settingKey="agent.claude.account"
+              label="Account"
+              placeholder="cswap account email; unset uses default"
             />
-          </Tooltip>
-        </Group>
+          )}
+          <TextSettingField
+            key={extraArgsKey}
+            settingKey={extraArgsKey}
+            label="Extra args"
+            placeholder="raw flags appended to every launch"
+          />
+        </SimpleGrid>
+        <YoloSettingField key={yoloKey} settingKey={yoloKey} />
       </Stack>
     </Paper>
   );

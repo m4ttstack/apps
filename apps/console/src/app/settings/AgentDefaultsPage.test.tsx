@@ -103,7 +103,8 @@ function explainRow(key: string, value: unknown) {
     (404) unless a test overrides a specific key. */
 function stubExplain(overrides: Record<string, unknown> = {}) {
   explainGet.mockImplementation(({ param }: { param: { key: string } }) => {
-    if (param.key in overrides) return Promise.resolve(ok(overrides[param.key]));
+    if (param.key in overrides)
+      return Promise.resolve(ok(overrides[param.key]));
     return Promise.resolve(notFound(param.key));
   });
 }
@@ -176,7 +177,10 @@ describe('AgentDefaultsPage', () => {
 
     expect(setPost).toHaveBeenCalledWith(
       expect.objectContaining({
-        json: expect.objectContaining({ key: 'agent.provider', value: 'codex' }),
+        json: expect.objectContaining({
+          key: 'agent.provider',
+          value: 'codex',
+        }),
       })
     );
 
@@ -211,7 +215,7 @@ describe('AgentDefaultsPage', () => {
     });
   });
 
-  it('writes to whatever scope that field\'s own control is set to', async () => {
+  it("writes to whatever scope that field's own control is set to", async () => {
     defsGet.mockResolvedValue(ok({ defs: AGENT_DEFS }));
     modelsGet.mockResolvedValue(ok({ models: CLAUDE_MODELS }));
     stubExplain({ 'agent.provider': explainRow('agent.provider', 'claude') });
@@ -225,7 +229,9 @@ describe('AgentDefaultsPage', () => {
     const effortScope = screen.getByRole('radiogroup', {
       name: 'Effort scope',
     });
-    await userEvent.click(within(effortScope).getByRole('radio', { name: 'machine' }));
+    await userEvent.click(
+      within(effortScope).getByRole('radio', { name: 'machine' })
+    );
 
     const effort = screen.getByLabelText('Effort');
     await userEvent.type(effort, 'high');
@@ -249,5 +255,46 @@ describe('AgentDefaultsPage', () => {
     expect(
       within(extraArgsScope).getByRole('radio', { name: 'user' })
     ).toBeChecked();
+  });
+
+  it("resets a field's scope control when the provider switch changes which key it edits", async () => {
+    defsGet.mockResolvedValue(ok({ defs: AGENT_DEFS }));
+    modelsGet.mockResolvedValue(ok({ models: CLAUDE_MODELS }));
+    stubExplain({
+      'agent.provider': explainRow('agent.provider', 'claude'),
+      'agent.claude.effort': explainRow('agent.claude.effort', 'high'),
+    });
+    setPost.mockResolvedValue(ok({ rows: [] }));
+
+    renderPage();
+    await screen.findByTestId('agent-defaults');
+
+    const claudeEffortScope = screen.getByRole('radiogroup', {
+      name: 'Effort scope',
+    });
+    await userEvent.click(
+      within(claudeEffortScope).getByRole('radio', { name: 'machine' })
+    );
+    expect(
+      within(claudeEffortScope).getByRole('radio', { name: 'machine' })
+    ).toBeChecked();
+
+    // agent.codex.effort is unset in this stub, so its own scope control
+    // should start at 'user' -- not inherit claude's 'machine' selection.
+    stubExplain({ 'agent.provider': explainRow('agent.provider', 'codex') });
+    const providerSelect = screen.getByRole('combobox', {
+      name: 'Default agent',
+    });
+    await userEvent.click(providerSelect);
+    await userEvent.click(await screen.findByText('Codex'));
+
+    await waitFor(() => {
+      const codexEffortScope = screen.getByRole('radiogroup', {
+        name: 'Effort scope',
+      });
+      expect(
+        within(codexEffortScope).getByRole('radio', { name: 'user' })
+      ).toBeChecked();
+    });
   });
 });

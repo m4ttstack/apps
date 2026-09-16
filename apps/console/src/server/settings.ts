@@ -124,7 +124,11 @@ export const settings = new Hono()
   .get('/api/settings/defs', c => {
     const prefix = c.req.query('prefix') ?? '';
     return c.json(
-      { defs: allDefs().filter(d => d.key.startsWith(prefix)).map(defToWire) },
+      {
+        defs: allDefs()
+          .filter(d => d.key.startsWith(prefix))
+          .map(defToWire),
+      },
       200
     );
   })

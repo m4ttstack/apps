@@ -5,6 +5,7 @@ import {
   useSuspenseQuery,
 } from '@tanstack/react-query';
 
+import type { AgentModelOption } from '../../server/agent-models';
 import { client } from '../api';
 
 export function useSettingsDefs() {
@@ -29,12 +30,10 @@ export function useSettingsPrefix(prefix: string) {
       if (!res.ok) throw new Error(`settings defs failed: ${res.status}`);
       return res.json();
     },
+    // The registry is static per server process; refetching it on focus
+    // would only churn the page.
+    staleTime: Infinity,
   });
-}
-
-export interface AgentModelOption {
-  value: string;
-  label: string;
 }
 
 export function useAgentModels(provider: 'claude' | 'codex') {

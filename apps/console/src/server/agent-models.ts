@@ -25,14 +25,29 @@ interface CodexCatalogModel {
 /** `codex debug models` returns the real, live catalog -- confirmed against
     the installed codex-cli 0.153.4. Filtered to visibility: "list" (the
     user-facing set; "hide" entries are internal/experimental). */
+// A hung `codex` binary must not hold the HTTP request (or the child
+// process) open forever; Bun kills the process once `timeout` elapses.
+const CODEX_MODELS_TIMEOUT_MS = 5000;
+
 async function codexModels(): Promise<AgentModelOption[]> {
-  const proc = Bun.spawn(['codex', 'debug', 'models'], { stdout: 'pipe', stderr: 'ignore' });
-  const [text, exitCode] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
-  if (exitCode !== 0) return [];
-  const parsed = JSON.parse(text) as { models: CodexCatalogModel[] };
-  return parsed.models
-    .filter(m => m.visibility === 'list')
-    .map(m => ({ value: m.slug, label: m.display_name }));
+  const proc = Bun.spawn(['codex', 'debug', 'models'], {
+    stdout: 'pipe',
+    stderr: 'ignore',
+    timeout: CODEX_MODELS_TIMEOUT_MS,
+  });
+  try {
+    const [text, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      proc.exited,
+    ]);
+    if (exitCode !== 0) return [];
+    const parsed = JSON.parse(text) as { models: CodexCatalogModel[] };
+    return parsed.models
+      .filter(m => m.visibility === 'list')
+      .map(m => ({ value: m.slug, label: m.display_name }));
+  } finally {
+    proc.kill();
+  }
 }
 
 export const agentModels = new Hono().get('/api/agent/models', async c => {
