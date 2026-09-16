@@ -147,7 +147,9 @@ executable choices, open a facility gate instead of emitting `error`. Stay at
   an index or a paraphrase) and the conflict rule (a printed conflict
   answer, or a doorbell message while a form still sits open, means
   another surface won: proceed on the winning answer, never the one
-  you were about to submit; the doorbell is verify-only). Its `rt gate
+  you were about to submit; the doorbell is verify-only, run
+  `<status-bin> gate wait <state> --max-ms 1000` to read the recorded
+  answer). Its `rt gate
   answer <id> --answers ... --by pane` is this CLI's `<status-bin> gate
   answer <state> --answers <json> --by pane`, unchanged.
 - **presentation "wait":** do NOT present a form. Launch ONE background

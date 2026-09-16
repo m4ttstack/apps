@@ -215,7 +215,8 @@ conversation.
      conflict answer, or a doorbell message while a form still sits
      open, means another surface won: proceed on the winning answer,
      never the one you were about to submit; the doorbell is
-     verify-only). Three things stay local, not covered there
+     verify-only, run `<status-bin> gate wait <state> --max-ms 1000` to
+     read the recorded answer). Three things stay local, not covered there
      (gate-protocol never mentions framing placement or folding one
      question's answer into another option, at all): your framing and
      reasoning go in the pane prose or option descriptions, never into
@@ -287,15 +288,21 @@ conversation.
      on the response" (form branch) and "CAS and the doorbell" sections
      (stable source checkout, machine-local by design: `cat
      ~/Documents/GitHub/mattstack-skills/attachments/gate-protocol/SKILL.md`)
-     for the mechanical rendering rule and the conflict rule. Three
-     things stay local, not covered there (gate-protocol never
-     mentions framing placement or folding one question's answer into
-     another option, at all): your framing and reasoning go in the
-     pane prose or option descriptions, never into rewritten question
-     or option text; never as an option that folds another question's
-     answer in; and "post no replies" is the `replies` question
-     answered as an explicit empty array, which the daemon records --
-     Gate 2's own reminder.
+     for the mechanical rendering rule and the conflict rule (a printed
+     conflict answer, or a doorbell message while a form still sits
+     open, means another surface won: proceed on the winning answer,
+     never the one you were about to submit; the doorbell is
+     verify-only, run `<status-bin> gate wait <state> --max-ms 1000` to
+     read the recorded answer). Its `rt gate answer <id> --answers ...
+     --by pane` is this CLI's `<status-bin> gate answer <state>
+     --answers <json> --by pane`, unchanged. Three things stay local,
+     not covered there (gate-protocol never mentions framing placement
+     or folding one question's answer into another option, at all):
+     your framing and reasoning go in the pane prose or option
+     descriptions, never into rewritten question or option text; never
+     as an option that folds another question's answer in; and "post
+     no replies" is the `replies` question answered as an explicit
+     empty array, which the daemon records -- Gate 2's own reminder.
    - **presentation "wait":** do NOT present a form. Launch ONE background
      shell command (the shell tool's run-in-background mode) that loops
      `<status-bin> gate wait <state> --max-ms 90000`, re-running while it
