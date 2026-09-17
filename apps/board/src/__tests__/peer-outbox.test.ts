@@ -171,9 +171,13 @@ describe('makeSwitchboardClient.peers', () => {
     expect(
       await clientWith(() => new Response(JSON.stringify({}))).peers()
     ).toBeNull();
-    const dead = makeSwitchboardClient('https://relay.example', 'tok-1', (async () => {
-      throw new Error('down');
-    }) as unknown as typeof fetch);
+    const dead = makeSwitchboardClient(
+      'https://relay.example',
+      'tok-1',
+      (async () => {
+        throw new Error('down');
+      }) as unknown as typeof fetch
+    );
     expect(await dead.peers()).toBeNull();
   });
 });
