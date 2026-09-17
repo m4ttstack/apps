@@ -24,13 +24,14 @@ import { makeSwitchboardClient } from '../src/peer/client.ts';
 import { makeEnvelope } from '../src/peer/envelope.ts';
 import { markNudgeHandled, readNudges } from '../src/peer/nudges.ts';
 import { drainOutbox, enqueueOutbox } from '../src/peer/outbox.ts';
-import { launchReReview } from '../src/review-launch.ts';
+import { launchReReview, launchRespondAsk } from '../src/review-launch.ts';
 import {
   dropPrunedReviewState,
   readPrunedReviewStates,
   readReviewStates,
   resurrectReviewState,
 } from '../src/review-state.ts';
+import { readRespondStates } from '../src/respond-state.ts';
 import {
   claimLease,
   DEFAULT_ATTENDANT_TTL_SECONDS,
@@ -235,18 +236,27 @@ try {
       readNudges,
       markNudgeHandled: (id, r, reason) => markNudgeHandled(id, r, reason),
       readReviewStates,
+      readRespondStates,
       launchAsk: (mrUrl, iid, kind) =>
-        launchReReview(mrUrl, iid, {
-          reReview: kind !== 'review',
-          cwd: boardConfig.reviewCwd,
-          repo: repoForMrUrl(mrUrl),
-          workspaceLabel: boardConfig.reviewsWorkspace,
-          // BOARD-14: manifest binding when present, else "" (the generic wrapper) --
-          // same resolution the board's own HTTP re-review launches use.
-          skill: resolveLaunchSkill('review', mrUrl, boardConfig),
-          ...loadAgentSettings(),
-          claudeCommand: boardConfig.claudeCommand,
-        }),
+        kind === 'respond'
+          ? launchRespondAsk(mrUrl, iid, {
+              cwd: boardConfig.respondCwd || boardConfig.reviewCwd,
+              repo: repoForMrUrl(mrUrl),
+              workspaceLabel: boardConfig.respondsWorkspace,
+              skill: resolveLaunchSkill('respond', mrUrl, boardConfig),
+              ...loadAgentSettings(),
+            })
+          : launchReReview(mrUrl, iid, {
+              reReview: kind !== 'review',
+              cwd: boardConfig.reviewCwd,
+              repo: repoForMrUrl(mrUrl),
+              workspaceLabel: boardConfig.reviewsWorkspace,
+              // BOARD-14: manifest binding when present, else "" (the generic wrapper) --
+              // same resolution the board's own HTTP re-review launches use.
+              skill: resolveLaunchSkill('review', mrUrl, boardConfig),
+              ...loadAgentSettings(),
+              claudeCommand: boardConfig.claudeCommand,
+            }),
       publishOutcome: (to, payload) =>
         enqueueOutbox(makeEnvelope(to, 'nudge-outcome', payload)),
       memory,

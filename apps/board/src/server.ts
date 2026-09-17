@@ -2328,19 +2328,32 @@ const httpServer = Bun.serve({
           !reviewer.trim() ||
           (rawKind !== undefined &&
             rawKind !== 'review' &&
-            rawKind !== 're-review')
+            rawKind !== 're-review' &&
+            rawKind !== 'respond')
         ) {
           return new Response(
-            'expected { mrUrl: string, iid: number, reviewer: string, kind?: "review" | "re-review" }',
+            'expected { mrUrl: string, iid: number, reviewer: string, kind?: "review" | "re-review" | "respond" }',
             { status: 400 }
           );
         }
-        const kind: AskKind = rawKind === 'review' ? 'review' : 're-review';
+        const kind: AskKind = rawKind === undefined ? 're-review' : rawKind;
         const snapshot = await cache.get();
         const mr = snapshot.mrs.find(m => m.webUrl === parsed.mrUrl);
         if (!mr)
           return new Response(`unknown MR "${parsed.mrUrl}"`, { status: 400 });
-        if (mr.author.username !== config.defaultMember)
+        // Review asks travel author -> reviewer about your own MR; a respond
+        // ask is the reverse, reviewer -> author about theirs, and only ever
+        // to the author.
+        if (kind === 'respond') {
+          if (mr.author.username === config.defaultMember)
+            return new Response('cannot ask yourself to respond', {
+              status: 403,
+            });
+          if (canonicalUsername(reviewer) !== canonicalUsername(mr.author.username))
+            return new Response('a respond ask goes to the MR author', {
+              status: 400,
+            });
+        } else if (mr.author.username !== config.defaultMember)
           return new Response('not your MR', { status: 403 });
         const draft = buildAskDraft(reviewer, kind, {
           mrUrl: parsed.mrUrl,
@@ -3191,6 +3204,28 @@ async function handleAgentSignal(
   // own-MR guard below can never match and the board would relay a
   // review-state for every MR on it, including publishing to itself.
   const pc = peering.current()?.client;
+  // Respond sync: tell whoever asked for this respond how it is going, so
+  // their chip confirms and retires. Addressed per asker from the nudge rows,
+  // not broadcast; unknown types are dropped by older boards.
+  if (pc && signal.kind === 'respond') {
+    const askers = new Set(
+      readNudges()
+        .filter(n => n.kind === 'respond' && n.mrUrl === signal.mrUrl)
+        .map(n => canonicalUsername(n.from))
+    );
+    for (const asker of askers) {
+      enqueueOutbox(
+        makeEnvelope(asker, 'respond-state', {
+          mrUrl: signal.mrUrl,
+          iid: signal.iid,
+          status: signal.status,
+          outcome: signal.outcome,
+          updatedAt: emittedAt,
+        } satisfies ReviewStatePayload)
+      );
+    }
+    if (askers.size) kickOutbox(pc);
+  }
   if (pc && signal.kind === 'review' && config.defaultMember !== 'all') {
     const snapshotForPeer = await cache.get();
     const authorUsername = snapshotForPeer.mrs.find(
