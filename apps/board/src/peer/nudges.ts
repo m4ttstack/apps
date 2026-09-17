@@ -102,6 +102,8 @@ export interface SentNudge {
   iid: number;
   reviewer: string;
   sentAt: number;
+  /** Absent means re-review (also on rows from before first-look asks). */
+  kind?: AskKind;
   resolution?: {
     result: NudgeResult | 'confirmed';
     reason?: string;

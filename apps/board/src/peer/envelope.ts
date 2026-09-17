@@ -67,6 +67,18 @@ export function makeEnvelope(
   };
 }
 
+/** Draft the ask envelope for one of this board's own MRs. The wire type is
+    the only thing kind changes; both asks share ReReviewRequestPayload. */
+export function buildAskDraft(
+  reviewer: string,
+  kind: AskKind,
+  payload: ReReviewRequestPayload,
+  now: number = Date.now()
+): DraftEnvelope {
+  const type = kind === 'review' ? 'review-request' : 're-review-request';
+  return makeEnvelope(reviewer, type, payload, now);
+}
+
 export function parseDraftEnvelope(body: unknown): DraftEnvelope | null {
   if (!body || typeof body !== 'object') return null;
   const { id, to, type, sentAt, payload } = body as Record<string, unknown>;
