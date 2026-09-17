@@ -278,6 +278,16 @@ conversation.
    ]
    ```
 
+   A question holds at most 4 options: that is the native form's hard
+   per-question limit, and the daemon presents a gate as an in-pane form
+   only when EVERY question fits it — one 5-option question sends the whole
+   gate to the wait queue instead. With more than 4 finalized replies,
+   split the `replies` question into `replies-1`, `replies-2`, ... in
+   thread order, each `multi: true` with up to 4 options and the `context`
+   block for its own threads; `disposition` stays one question. Everything
+   below that reads "the `replies` answer" then means the union of every
+   `replies-*` answer.
+
    - **Open the gate:**
      `<status-bin> gate open <state> --kind respond-post --questions <json> --context <context text>`
      The output is one JSON line: `{"gateId": "...", "presentation": "form"}` or `"wait"`.
@@ -304,7 +314,7 @@ conversation.
      your framing and reasoning go in the pane prose or option
      descriptions, never into rewritten question or option text; never
      as an option that folds another question's answer in; and "post
-     no replies" is the `replies` question answered as an explicit
+     no replies" is every `replies-*` question answered as an explicit
      empty array, which the daemon records -- Gate 2's own reminder.
    - **presentation "wait":** follow `board:gate-cli-recipes`'s "Wait
      recipe" section (`cat ${CLAUDE_SKILL_DIR}/../gate-cli-recipes/SKILL.md`)
@@ -321,7 +331,7 @@ conversation.
    - `--threads` is the number of unresolved human threads the run set out to
      answer, i.e. the rows in the verdict table.
    - `--posted` is how many of those actually received a posted reply, per
-     Gate 2's `replies` answer.
+     Gate 2's replies selection (the union of every `replies-*` answer).
 
    The board derives the badge from this pair, so a wrong count is a wrong
    badge: `3/3` reads "replies posted", `2/3` reads "2 of 3 posted", `0/3`
@@ -338,9 +348,10 @@ closed-gate/escape-hatch/degraded-mode mechanics, self-contained here since
 each gate follows it independently. (The open/presentation/wait mechanics are
 inline at each gate above, since the questions and context differ per gate.)
 `gate wait`'s answered form is `{"answers": {...}, "by": "...", "answeredAt": ...}`,
-keyed by that gate's own question ids: `replies`/`disposition` for Gate 2,
-read as `answers.<id>`; for Gate 1, one `thread-<n>` id per unresolved
-thread plus `code-changes`. Read Gate 1's thread answers by iterating every
+keyed by that gate's own question ids: the `replies-*` chunks (or the single
+`replies`) plus `disposition` for Gate 2, read as `answers.<id>` with the
+replies selection being the union of every `replies-*` answer; for Gate 1,
+one `thread-<n>` id per unresolved thread plus `code-changes`. Read Gate 1's thread answers by iterating every
 key other than `code-changes`, unwrapping a `{value, note}` object to its
 `value`, and splitting at the first `:` into the verb and the thread id:
 the thread id is in the value, and the `thread-<n>` key is never a join key.
