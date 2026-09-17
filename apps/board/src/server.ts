@@ -2349,7 +2349,10 @@ const httpServer = Bun.serve({
             return new Response('cannot ask yourself to respond', {
               status: 403,
             });
-          if (canonicalUsername(reviewer) !== canonicalUsername(mr.author.username))
+          if (
+            canonicalUsername(reviewer) !==
+            canonicalUsername(mr.author.username)
+          )
             return new Response('a respond ask goes to the MR author', {
               status: 400,
             });

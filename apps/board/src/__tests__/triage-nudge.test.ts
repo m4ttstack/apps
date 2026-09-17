@@ -214,9 +214,10 @@ describe('decideNudge kind: respond', () => {
   const respondAsk: NudgeState = { ...nudge, kind: 'respond' };
 
   test('dispatches with no respond lane on file, whatever the review lane says', () => {
-    expect(
-      decideNudge(respondAsk, undefined, m, cfg, NOW, undefined)
-    ).toEqual({ action: 'dispatch', reason: 'nudge' });
+    expect(decideNudge(respondAsk, undefined, m, cfg, NOW, undefined)).toEqual({
+      action: 'dispatch',
+      reason: 'nudge',
+    });
     expect(
       decideNudge(respondAsk, commentedReview, m, cfg, NOW, undefined)
     ).toEqual({ action: 'dispatch', reason: 'nudge' });
@@ -230,8 +231,7 @@ describe('decideNudge kind: respond', () => {
 
   test('a done or errored respond lane does not block a fresh ask', () => {
     expect(
-      decideNudge(respondAsk, undefined, m, cfg, NOW, { status: 'done' })
-        .action
+      decideNudge(respondAsk, undefined, m, cfg, NOW, { status: 'done' }).action
     ).toBe('dispatch');
     expect(
       decideNudge(respondAsk, undefined, m, cfg, NOW, { status: 'error' })

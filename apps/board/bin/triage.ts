@@ -24,6 +24,7 @@ import { makeSwitchboardClient } from '../src/peer/client.ts';
 import { makeEnvelope } from '../src/peer/envelope.ts';
 import { markNudgeHandled, readNudges } from '../src/peer/nudges.ts';
 import { drainOutbox, enqueueOutbox } from '../src/peer/outbox.ts';
+import { readRespondStates } from '../src/respond-state.ts';
 import { launchReReview, launchRespondAsk } from '../src/review-launch.ts';
 import {
   dropPrunedReviewState,
@@ -31,7 +32,6 @@ import {
   readReviewStates,
   resurrectReviewState,
 } from '../src/review-state.ts';
-import { readRespondStates } from '../src/respond-state.ts';
 import {
   claimLease,
   DEFAULT_ATTENDANT_TTL_SECONDS,

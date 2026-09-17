@@ -4,6 +4,7 @@ import { join } from 'path';
 import type { Database } from 'bun:sqlite';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
+import { respondFilePath, writeRespondState } from '../respond-state.ts';
 import {
   launchReReview,
   launchRespondAsk,
@@ -11,7 +12,6 @@ import {
   type ReReviewIo,
   type RespondAskIo,
 } from '../review-launch.ts';
-import { respondFilePath, writeRespondState } from '../respond-state.ts';
 import {
   readReviewStates,
   reviewFilePath,
@@ -454,7 +454,13 @@ describe('launchRespondAsk (fresh respond for a peer ask)', () => {
   }
 
   test('launches a fresh respond, settles state queued with the pane ids', async () => {
-    const res = await launchRespondAsk(URL_A, IID, CTX, makeRespondIo(), noSkillPath);
+    const res = await launchRespondAsk(
+      URL_A,
+      IID,
+      CTX,
+      makeRespondIo(),
+      noSkillPath
+    );
     expect(res).toEqual({ kind: 'launched' });
     expect(respondCalls).toHaveLength(1);
     expect(respondCalls[0]).toMatchObject({
