@@ -66,7 +66,10 @@ describe('parseEnvelope', () => {
 
 describe('buildAskDraft', () => {
   test("kind 're-review' drafts a re-review-request to the reviewer", () => {
-    const d = buildAskDraft('Grace', 're-review', { mrUrl: 'https://x/1', iid: 1 });
+    const d = buildAskDraft('Grace', 're-review', {
+      mrUrl: 'https://x/1',
+      iid: 1,
+    });
     expect(d.type).toBe('re-review-request');
     expect(d.to).toBe('grace');
     expect(d.payload).toEqual({ mrUrl: 'https://x/1', iid: 1 });

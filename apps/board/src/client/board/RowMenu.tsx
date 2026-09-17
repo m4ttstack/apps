@@ -7,9 +7,9 @@ import type { MrAction } from '../../mr-action.ts';
 import type { BoardMRWithReview, RowContext, RowMenuState } from '../types.ts';
 import {
   doctorItemLabel,
+  firstReviewTargets,
   getSlackMarks,
   gitlabMenuItems,
-  firstReviewTargets,
   laneInterrupted,
   nudgeTargets,
   respondItemLabel,

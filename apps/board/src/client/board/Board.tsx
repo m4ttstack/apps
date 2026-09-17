@@ -506,25 +506,21 @@ export function Board() {
         iid: mr.iid,
         reviewer,
         kind,
-      }).then(
-        result => {
-          if (!result.ok) {
-            // A permanent refusal (409) answers in plain text with the reason
-            // the relay gave -- e.g. the reviewer has no board on the
-            // switchboard. That's the whole point of the failure, so show it.
-            const why = result.text.trim();
-            addToast(
-              why || `couldn't request ${kind} for !${mr.iid} (${result.status})`
-            );
-            return;
-          }
-          if (result.body?.queued)
-            addToast(
-              `switchboard unreachable... queued the ask to ${reviewer}`
-            );
-          load();
+      }).then(result => {
+        if (!result.ok) {
+          // A permanent refusal (409) answers in plain text with the reason
+          // the relay gave -- e.g. the reviewer has no board on the
+          // switchboard. That's the whole point of the failure, so show it.
+          const why = result.text.trim();
+          addToast(
+            why || `couldn't request ${kind} for !${mr.iid} (${result.status})`
+          );
+          return;
         }
-      );
+        if (result.body?.queued)
+          addToast(`switchboard unreachable... queued the ask to ${reviewer}`);
+        load();
+      });
     },
     [addToast, load]
   );
@@ -1331,7 +1327,9 @@ export function Board() {
           canNudge={rowMenu.mr.author.username === data.defaultMember}
           onResumeReview={handleResumeReview}
           roster={data.members.map(m => m.username)}
-          onRequestReview={(mr2, reviewer) => handleAsk(mr2, reviewer, 'review')}
+          onRequestReview={(mr2, reviewer) =>
+            handleAsk(mr2, reviewer, 'review')
+          }
         />
       )}
 

@@ -926,9 +926,7 @@ describe('rowStatus: social lanes', () => {
   test('an inbound first-look ask words a review and verbs a plain launch', () => {
     const [line] = candidateLines(
       mr({
-        nudges: [
-          { from: 'jo', receivedAt: NOW - 30 * 60_000, kind: 'review' },
-        ],
+        nudges: [{ from: 'jo', receivedAt: NOW - 30 * 60_000, kind: 'review' }],
       }),
       NOW,
       NONE,

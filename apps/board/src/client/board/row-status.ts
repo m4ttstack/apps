@@ -347,10 +347,7 @@ function respondDoneLine(mr: BoardMRWithReview): Candidate {
           tone: 'warn',
           word: 'replies posted',
           detail: 'reviewer came back',
-          verbs: [
-            { kind: 'restart-respond', label: 'respond again' },
-            ...read,
-          ],
+          verbs: [{ kind: 'restart-respond', label: 'respond again' }, ...read],
         };
       }
       return {

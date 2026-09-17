@@ -1,5 +1,12 @@
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'bun:test';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  expect,
+  test,
+} from 'bun:test';
 
 GlobalRegistrator.register({ url: 'http://localhost/' });
 (
@@ -133,8 +140,21 @@ test('engaged peers and an outstanding ask hide the item', async () => {
   await render(
     mrx({
       peerReviews: [
-        { mrUrl: URL, iid: 1418, reviewer: 'kim', status: 'reviewing', updatedAt: 1 },
-        { mrUrl: URL, iid: 1418, reviewer: 'jo', status: 'done', outcome: 'comment', updatedAt: 1 },
+        {
+          mrUrl: URL,
+          iid: 1418,
+          reviewer: 'kim',
+          status: 'reviewing',
+          updatedAt: 1,
+        },
+        {
+          mrUrl: URL,
+          iid: 1418,
+          reviewer: 'jo',
+          status: 'done',
+          outcome: 'comment',
+          updatedAt: 1,
+        },
       ],
     }),
     ['pat', 'kim', 'jo']
