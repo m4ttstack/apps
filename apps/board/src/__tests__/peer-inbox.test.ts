@@ -249,6 +249,72 @@ describe('materializeEnvelope', () => {
     });
   });
 
+  describe('respond-request', () => {
+    test('writes a kind:"respond" nudge', () => {
+      const deps = fakeDeps();
+      const e = envelope({
+        id: 'env-88',
+        type: 'respond-request',
+        from: 'jo',
+        receivedAt: 900,
+        payload: { mrUrl: URL_A, iid: 4821 },
+      });
+      materializeEnvelope(e, deps, 1000);
+      expect(deps.nudges).toEqual([
+        {
+          id: 'env-88',
+          mrUrl: URL_A,
+          iid: 4821,
+          from: 'jo',
+          note: undefined,
+          receivedAt: 900,
+          kind: 'respond',
+        },
+      ]);
+    });
+  });
+
+  describe('respond-state', () => {
+    test('a non-terminal respond state confirms the sent ask', () => {
+      const deps = fakeDeps();
+      const e = envelope({
+        type: 'respond-state',
+        from: 'pat',
+        payload: { mrUrl: URL_A, iid: 4821, status: 'triaging', updatedAt: 5 },
+      });
+      materializeEnvelope(e, deps, 1000);
+      expect(deps.resolutions).toEqual([
+        { mrUrl: URL_A, resolution: { result: 'confirmed', at: 1000 } },
+      ]);
+      expect(deps.retirements).toEqual([]);
+      expect(deps.peerReviews).toEqual([]);
+    });
+
+    test('a done respond state retires the sent ask', () => {
+      const deps = fakeDeps();
+      const e = envelope({
+        type: 'respond-state',
+        from: 'pat',
+        payload: { mrUrl: URL_A, iid: 4821, status: 'done', updatedAt: 7 },
+      });
+      materializeEnvelope(e, deps, 1000);
+      expect(deps.retirements).toEqual([{ mrUrl: URL_A, ifSentBefore: 7 }]);
+      expect(deps.peerReviews).toEqual([]);
+    });
+
+    test('malformed respond-state only logs', () => {
+      const deps = fakeDeps();
+      const e = envelope({
+        type: 'respond-state',
+        from: 'pat',
+        payload: { mrUrl: URL_A },
+      });
+      materializeEnvelope(e, deps, 1000);
+      expect(deps.resolutions).toEqual([]);
+      expect(deps.logs.length).toBe(1);
+    });
+  });
+
   describe('nudge-outcome', () => {
     test('resolves the sent nudge with result/reason/at', () => {
       const deps = fakeDeps();
