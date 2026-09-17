@@ -29,6 +29,7 @@ function fakeClient(
     publish: async () => 201,
     inbox: async () => inboxResult(),
     ack: async () => true,
+    peers: async () => null,
   };
 }
 const noDeps = {
@@ -63,6 +64,7 @@ describe('makePeering', () => {
     const client: SwitchboardClient = {
       publish: async () => 201,
       ack: async () => true,
+      peers: async () => null,
       inbox: async () => {
         inFlight++;
         peak = Math.max(peak, inFlight);
