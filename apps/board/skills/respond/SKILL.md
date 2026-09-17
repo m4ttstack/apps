@@ -170,9 +170,11 @@ conversation.
    ```json
    [
      {"id": "thread-1", "label": "<file>:<line>", "multi": false,
+      "context": "<this thread's reviewer comment quoted verbatim, then the drafted reply or fix summary for it>",
       "options": [{"value": "reply:<threadId>", "label": "reply"}, {"value": "fix:<threadId>", "label": "fix"}, {"value": "skip:<threadId>", "label": "skip"}]},
      {"id": "thread-2", "label": "<file>:<line>", "multi": false,
-      "options": ["... the next thread's reply/fix/skip triple, its own id verbatim; one such question per thread"]},
+      "context": "<thread 2's own quote + draft>",
+      "options": ["... the next thread's reply/fix/skip triple, its own id and context verbatim; one such question per thread"]},
      {"id": "code-changes", "label": "Approve the proposed code changes?", "multi": false,
       "options": ["approve", "revise", "skip"]}
    ]
@@ -203,10 +205,13 @@ conversation.
    - **Open the gate:**
      `<status-bin> gate open <state> --kind respond-plan --questions <json> --context <context text>`
      The output is one JSON line: `{"gateId": "...", "presentation": "form"}` or `"wait"`.
-     The context text is the reviewer thread quoted verbatim plus the drafted
-     reply or fix summary for each thread, within the 8192 UTF-8 byte cap; if
-     it would exceed the cap, omit `--context` entirely rather than trimming
-     it.
+     Each thread's material rides its own question's `context` field (the
+     shape above), so every surface shows the quote and draft WITH the
+     question it belongs to. `--context` itself carries only what is shared
+     across threads (the MR and round, one or two lines); `--context` plus
+     every question `context` share one 8192 UTF-8 byte budget, and when the
+     total would exceed it, drop question `context` fields first, then
+     `--context`, never trimming any of them mid-text.
    - **presentation "form":** follow `mattstack:gate-protocol`'s "Acting
      on the response" (form branch) and "CAS and the doorbell" sections
      (stable source checkout, machine-local by design: `cat
@@ -266,7 +271,9 @@ conversation.
 
    ```json
    [
-     {"id": "replies", "label": "Post which replies?", "multi": true, "options": ["<threadId> per drafted reply"]},
+     {"id": "replies", "label": "Post which replies?", "multi": true,
+      "context": "<the finalized replies, one short block per thread: its file:line, then the reply text that will post>",
+      "options": [{"value": "<threadId>", "label": "<file>:<line>", "description": "<first line of that thread's finalized reply>"}]},
      {"id": "disposition", "label": "Disposition", "multi": false, "options": ["resolve-addressed", "leave-open"]}
    ]
    ```
@@ -274,10 +281,12 @@ conversation.
    - **Open the gate:**
      `<status-bin> gate open <state> --kind respond-post --questions <json> --context <context text>`
      The output is one JSON line: `{"gateId": "...", "presentation": "form"}` or `"wait"`.
-     The context text is the reviewer thread quoted verbatim plus the drafted
-     reply or fix summary for each thread, within the 8192 UTF-8 byte cap; if
-     it would exceed the cap, omit `--context` entirely rather than trimming
-     it.
+     The finalized replies ride the `replies` question's `context` (and each
+     option's `description` carries its reply's first line), so the decision
+     material sits with the question. `--context` carries only the shared
+     frame (the MR and round); `--context` plus question `context` fields
+     share one 8192 UTF-8 byte budget, dropped question-contexts-first when
+     the total would exceed it, never trimmed mid-text.
    - **presentation "form":** follow `mattstack:gate-protocol`'s "Acting
      on the response" (form branch) and "CAS and the doorbell" sections
      (stable source checkout, machine-local by design: `cat
