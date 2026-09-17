@@ -18,7 +18,7 @@
         "@mantine/spotlight": "catalog:",
         "@mattstack/app-kit": "workspace:*",
         "@mattstack/glance": "catalog:",
-        "@mattstack/rt-client": "^0.27.0",
+        "@mattstack/rt-client": "catalog:",
         "@storybook/addon-a11y": "^10.5.2",
         "@storybook/addon-docs": "^10.5.2",
         "@storybook/react-vite": "^10.5.2",
