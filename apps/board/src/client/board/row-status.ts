@@ -515,14 +515,27 @@ function peerLines(mr: BoardMRWithReview, now: number): Candidate[] {
   if (sent) {
     const first = sent.kind === 'review';
     if (NUDGE_RETRYABLE.has(sent.display)) {
-      out.push({
-        tone: 'quiet',
-        word: first
-          ? `review ask to ${sent.reviewer} went unanswered`
-          : `nudge to ${sent.reviewer} went unanswered`,
-        detail: 'right-click to ask again',
-        verbs: [],
-      });
+      // The ask word: "the nudge" for a re-review, "the <kind> ask" otherwise.
+      const askWord = first ? 'review ask' : 'nudge';
+      // A rejection carries the peer's own reason; surface it instead of
+      // pretending nobody answered. Expiry and silence stay "unanswered".
+      out.push(
+        sent.display === 'rejected'
+          ? {
+              tone: 'quiet',
+              word: `${sent.reviewer} declined the ${askWord}`,
+              detail: sent.reason || 'right-click to ask again',
+              verbs: [],
+            }
+          : {
+              tone: 'quiet',
+              word: first
+                ? `review ask to ${sent.reviewer} went unanswered`
+                : `nudge to ${sent.reviewer} went unanswered`,
+              detail: 'right-click to ask again',
+              verbs: [],
+            }
+      );
     } else if (sent.display === 'requested') {
       const since = agoMs(sent.sentAt, now);
       out.push({

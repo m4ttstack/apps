@@ -1113,9 +1113,47 @@ describe('rowStatus: social lanes', () => {
     );
     expect(retry).toMatchObject({
       tone: 'quiet',
-      word: 'nudge to jo went unanswered',
-      detail: 'right-click to ask again',
+      word: 'jo declined the nudge',
+      detail: 'busy',
       verbs: [],
+    });
+  });
+
+  test('a declined ask names the reviewer and shows their reason; without one it points at the menu', () => {
+    const [reasoned] = candidateLines(
+      mr({
+        sentNudge: {
+          display: 'rejected',
+          reviewer: 'jo',
+          reason: 'review-in-flight',
+          sentAt: NOW,
+          kind: 'review',
+        } as never,
+      }),
+      NOW,
+      NONE,
+      ME
+    );
+    expect(reasoned).toMatchObject({
+      tone: 'quiet',
+      word: 'jo declined the review ask',
+      detail: 'review-in-flight',
+    });
+    const [bare] = candidateLines(
+      mr({
+        sentNudge: {
+          display: 'rejected',
+          reviewer: 'jo',
+          sentAt: NOW,
+        } as never,
+      }),
+      NOW,
+      NONE,
+      ME
+    );
+    expect(bare).toMatchObject({
+      word: 'jo declined the nudge',
+      detail: 'right-click to ask again',
     });
   });
 
