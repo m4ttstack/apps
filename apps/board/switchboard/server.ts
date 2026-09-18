@@ -56,7 +56,12 @@ export function makeFetchHandler(
     if (pathname.startsWith('/boards/') && req.method === 'DELETE') {
       if (bearer(req) !== adminToken)
         return new Response('unauthorized', { status: 401 });
-      const username = decodeURIComponent(pathname.slice('/boards/'.length));
+      let username: string;
+      try {
+        username = decodeURIComponent(pathname.slice('/boards/'.length));
+      } catch {
+        return new Response('expected /boards/<username>', { status: 400 });
+      }
       if (!username.trim())
         return new Response('expected /boards/<username>', { status: 400 });
       if (!store.deleteBoard(username))

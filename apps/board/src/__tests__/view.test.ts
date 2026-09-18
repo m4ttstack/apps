@@ -6,6 +6,7 @@ import {
   behindToken,
   dataAgeLabel,
   DEFAULT_VIEW,
+  dropPeer,
   filterByMember,
   filterBySlack,
   filterByTab,
@@ -998,6 +999,14 @@ describe('joinRowState', () => {
     const s = joinRowState(true, 'unauthorized');
     expect(s.collapsed).toBe(false);
     expect(s.warning).toContain('re-join');
+  });
+});
+
+describe('dropPeer', () => {
+  test('drops by canonical comparison, so relay case never strands a row', () => {
+    expect(dropPeer(['Grace', 'ada'], 'grace')).toEqual(['ada']);
+    expect(dropPeer(['grace'], ' GRACE ')).toEqual([]);
+    expect(dropPeer(null, 'grace')).toBeNull();
   });
 });
 

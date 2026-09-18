@@ -3,7 +3,12 @@ import { Invadr } from 'invadrs/react';
 
 import { CopyButton, Modal } from '@mattstack/tui-kit';
 import { useRevealOnChange } from '@mattstack/tui-kit/hooks';
-import { joinRowState, memberPeerState, offRosterPeers } from '../../view.ts';
+import {
+  dropPeer,
+  joinRowState,
+  memberPeerState,
+  offRosterPeers,
+} from '../../view.ts';
 import type { BoardData, ConfigMember } from '../types.ts';
 
 /** Check members in/out, and (on a board that can hand out invites) put each
@@ -132,7 +137,7 @@ function SettingsModal({
           }
           // The relay said gone: drop it from the local peered list so the
           // row flips to invitable (or vanishes, off-roster) immediately.
-          setPeered(p => (p ? p.filter(x => x !== name) : p));
+          setPeered(p => dropPeer(p, name));
         })
         .catch(() => setInviteError('could not reach the board'))
         .finally(() => setPending(null));

@@ -127,6 +127,15 @@ describe('switchboard http', () => {
     expect(inbox.envelopes).toEqual([]);
   });
 
+  test('board delete with malformed percent-encoding answers 400, not a crash', async () => {
+    const { call } = setup();
+    const res = await call('/boards/%E0%A4', {
+      method: 'DELETE',
+      token: ADMIN,
+    });
+    expect(res.status).toBe(400);
+  });
+
   test('publish → inbox → ack round trip', async () => {
     const { call } = setup();
     const ada = (
