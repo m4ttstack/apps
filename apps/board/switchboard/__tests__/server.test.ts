@@ -95,7 +95,9 @@ describe('switchboard http', () => {
     ).token;
     await call('/envelopes', { token: ada, body: draft('e1', 'grace') });
 
-    expect((await call('/boards/grace', { method: 'DELETE' })).status).toBe(401);
+    expect((await call('/boards/grace', { method: 'DELETE' })).status).toBe(
+      401
+    );
     expect(
       (await call('/boards/grace', { method: 'DELETE', token: 'nope' })).status
     ).toBe(401);

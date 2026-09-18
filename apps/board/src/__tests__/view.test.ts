@@ -14,6 +14,7 @@ import {
   memberPeerState,
   NEEDS_ME_TAB,
   nestStacks,
+  offRosterPeers,
   parseViewState,
   rosterUsernamesFor,
   serializeViewState,
@@ -997,5 +998,15 @@ describe('joinRowState', () => {
     const s = joinRowState(true, 'unauthorized');
     expect(s.collapsed).toBe(false);
     expect(s.warning).toContain('re-join');
+  });
+});
+
+describe('offRosterPeers', () => {
+  test('peered handles not on the roster and not the operator, in listing order', () => {
+    const members = [{ username: 'grace' }, { username: 'ada' }] as never;
+    expect(
+      offRosterPeers(['ada', 'smoketest', 'me', 'grace'], members, 'me')
+    ).toEqual(['smoketest']);
+    expect(offRosterPeers(null, members, 'me')).toEqual([]);
   });
 });
