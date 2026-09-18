@@ -50,7 +50,7 @@
     },
     "apps/board": {
       "name": "board",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "dependencies": {
         "@mattstack/app-server": "workspace:*",
         "@mattstack/gate-kit": "workspace:*",
@@ -116,7 +116,7 @@
     },
     "apps/chat": {
       "name": "chat",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@mantine/code-highlight": "catalog:",
         "@mantine/core": "catalog:",
@@ -173,7 +173,7 @@
     },
     "apps/console": {
       "name": "mattstack-console",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@mantine/code-highlight": "catalog:",
         "@mantine/core": "catalog:",
@@ -222,7 +222,7 @@
     },
     "apps/deck": {
       "name": "deck",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "dependencies": {
         "@mattstack/glance": "catalog:",
         "@mattstack/rt-client": "catalog:",
