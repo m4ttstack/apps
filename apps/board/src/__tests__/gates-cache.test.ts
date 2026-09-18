@@ -192,6 +192,46 @@ describe('GateCache.applyEvent', () => {
     expect(errors.length).toBe(4);
   });
 
+  test("opened frame keeps a question's context and an option's description", () => {
+    const cache = new GateCache();
+    cache.applyEvent({
+      topic: 'gate/opened/gate-9',
+      payload: {
+        id: 'gate-9',
+        subject: SUBJECT_A,
+        kind: 'review-post',
+        questions: [
+          {
+            id: 'tiers',
+            label: 'Post which findings?',
+            multi: true,
+            options: [
+              {
+                value: 'Minor',
+                label: 'Minor (2)',
+                description: 'polish only',
+              },
+            ],
+            context: 'Minor:\n- nitpick: em dash\n- thought: untested state',
+          },
+        ],
+        meta: null,
+      },
+    });
+    const cached = cache.get(SUBJECT_A, 'review-post');
+    expect(cached?.questions).toEqual([
+      {
+        id: 'tiers',
+        label: 'Post which findings?',
+        multi: true,
+        options: [
+          { value: 'Minor', label: 'Minor (2)', description: 'polish only' },
+        ],
+        context: 'Minor:\n- nitpick: em dash\n- thought: untested state',
+      },
+    ]);
+  });
+
   test('opened frame for an already-cached subject+kind replaces it wholesale (re-review)', () => {
     const cache = new GateCache();
     cache.applyRow(
