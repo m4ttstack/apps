@@ -399,7 +399,9 @@ const peerDeps: Omit<MaterializeDeps, 'reportAuth'> = {
   writePeerReview,
   writeNudge,
   resolveSentNudge,
-  retireSentNudge,
+  // Adapter: the store takes its db before the nudge id.
+  retireSentNudge: (mrUrl, ifSentBefore, nudgeId) =>
+    retireSentNudge(mrUrl, ifSentBefore, undefined, nudgeId),
   log: line => console.error(line),
 };
 const peering = makePeering({
@@ -3211,12 +3213,17 @@ async function handleAgentSignal(
   // their chip confirms and retires. Addressed per asker from the nudge rows,
   // not broadcast; unknown types are dropped by older boards.
   if (pc && signal.kind === 'respond') {
-    const askers = new Set(
-      readNudges()
-        .filter(n => n.kind === 'respond' && n.mrUrl === signal.mrUrl)
-        .map(n => canonicalUsername(n.from))
-    );
-    for (const asker of askers) {
+    // Latest respond ask per asker, echoed back as nudgeId so their board
+    // retires the exact ask instead of comparing two clocks.
+    const latestByAsker = new Map<string, { id: string; receivedAt: number }>();
+    for (const n of readNudges()) {
+      if (n.kind !== 'respond' || n.mrUrl !== signal.mrUrl) continue;
+      const asker = canonicalUsername(n.from);
+      const prev = latestByAsker.get(asker);
+      if (!prev || n.receivedAt > prev.receivedAt)
+        latestByAsker.set(asker, { id: n.id, receivedAt: n.receivedAt });
+    }
+    for (const [asker, latest] of latestByAsker) {
       enqueueOutbox(
         makeEnvelope(asker, 'respond-state', {
           mrUrl: signal.mrUrl,
@@ -3224,10 +3231,11 @@ async function handleAgentSignal(
           status: signal.status,
           outcome: signal.outcome,
           updatedAt: emittedAt,
+          nudgeId: latest.id,
         } satisfies ReviewStatePayload)
       );
     }
-    if (askers.size) kickOutbox(pc);
+    if (latestByAsker.size) kickOutbox(pc);
   }
   if (pc && signal.kind === 'review' && config.defaultMember !== 'all') {
     const snapshotForPeer = await cache.get();

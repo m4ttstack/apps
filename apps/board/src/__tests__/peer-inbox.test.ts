@@ -20,7 +20,7 @@ function fakeDeps(): MaterializeDeps & {
       at: number;
     };
   }>;
-  retirements: Array<{ mrUrl: string; ifSentBefore: number }>;
+  retirements: Array<{ mrUrl: string; ifSentBefore: number; nudgeId?: string }>;
   logs: string[];
 } {
   const peerReviews: PeerReviewState[] = [];
@@ -33,7 +33,11 @@ function fakeDeps(): MaterializeDeps & {
       at: number;
     };
   }> = [];
-  const retirements: Array<{ mrUrl: string; ifSentBefore: number }> = [];
+  const retirements: Array<{
+    mrUrl: string;
+    ifSentBefore: number;
+    nudgeId?: string;
+  }> = [];
   const logs: string[] = [];
   return {
     peerReviews,
@@ -51,8 +55,12 @@ function fakeDeps(): MaterializeDeps & {
     resolveSentNudge(mrUrl, resolution) {
       resolutions.push({ mrUrl, resolution });
     },
-    retireSentNudge(mrUrl, ifSentBefore) {
-      retirements.push({ mrUrl, ifSentBefore });
+    retireSentNudge(mrUrl, ifSentBefore, nudgeId) {
+      retirements.push({
+        mrUrl,
+        ifSentBefore,
+        ...(nudgeId !== undefined ? { nudgeId } : {}),
+      });
     },
     log(line) {
       logs.push(line);
@@ -300,6 +308,25 @@ describe('materializeEnvelope', () => {
       materializeEnvelope(e, deps, 1000);
       expect(deps.retirements).toEqual([{ mrUrl: URL_A, ifSentBefore: 7 }]);
       expect(deps.peerReviews).toEqual([]);
+    });
+
+    test('a done respond state carrying the nudge id retires by id, not clocks', () => {
+      const deps = fakeDeps();
+      const e = envelope({
+        type: 'respond-state',
+        from: 'pat',
+        payload: {
+          mrUrl: URL_A,
+          iid: 4821,
+          status: 'done',
+          updatedAt: 7,
+          nudgeId: 'ask-9',
+        },
+      });
+      materializeEnvelope(e, deps, 1000);
+      expect(deps.retirements).toEqual([
+        { mrUrl: URL_A, ifSentBefore: 7, nudgeId: 'ask-9' },
+      ]);
     });
 
     test('malformed respond-state only logs', () => {

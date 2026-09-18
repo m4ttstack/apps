@@ -23,7 +23,7 @@ export interface MaterializeDeps {
       at: number;
     }
   ): void;
-  retireSentNudge(mrUrl: string, ifSentBefore: number): void;
+  retireSentNudge(mrUrl: string, ifSentBefore: number, nudgeId?: string): void;
   log(line: string): void;
   /** Called once per tick that reached the relay: "unauthorized" on a 401
       inbox, "ok" on a fetch that came back. Lets the runtime track token
@@ -69,7 +69,7 @@ export function materializeEnvelope(
       deps.resolveSentNudge(p.mrUrl, { result: 'confirmed', at: now });
     }
     if (p.status === 'done') {
-      deps.retireSentNudge(p.mrUrl, p.updatedAt);
+      deps.retireSentNudge(p.mrUrl, p.updatedAt, p.nudgeId);
     }
     return;
   }
