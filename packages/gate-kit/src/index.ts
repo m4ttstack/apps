@@ -9,6 +9,7 @@ export type { GateOption, GateQuestion } from './types';
 export {
   displayForValue,
   formatGateOption,
+  optionDescription,
   optionDisplayFor,
   optionLabel,
   optionValue,
