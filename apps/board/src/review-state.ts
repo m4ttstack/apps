@@ -93,6 +93,11 @@ export function readReviewReportJson(
   root: string = boardStateRoot()
 ): string | null {
   const reportPath = reviewReportPath(mintHandle('review', mrUrl, root));
+  // This derived path coincides with mintHandle's own <slug>.json handle
+  // path. Handles are db rows, not files, so that coincidence is safe:
+  // pruneStates unlinking <slug>.json is this report's intended cleanup,
+  // not a collision with live handle state. If handles ever become files
+  // again, this derivation has to change with them.
   const jsonPath = /\.md$/.test(reportPath)
     ? reportPath.replace(/\.md$/, '.json')
     : `${reportPath}.json`;

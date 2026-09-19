@@ -416,6 +416,78 @@ test('submit splits the checked union back into the original findings-1/findings
   expect(body.answers.findings).toBeUndefined();
 });
 
+const MALFORMED_OPTION_GATE: GateRow = {
+  ...GATE,
+  gateId: 'g-malformed-option',
+  questions: [
+    {
+      id: 'findings-1',
+      label: 'Post which findings to !31?',
+      multi: true,
+      options: [
+        {
+          value: 'f1',
+          label: '[Critical] SQL built from unsanitized input',
+          description: 'lib/db/query.ts:42 · parameterize the query',
+        },
+        // Does not match the `[Tier] title` shape parseFindingOption
+        // requires: this is the one malformed row the filter at ~203
+        // already drops from `findings`, but findingsQuestion binding used
+        // to require every option to parse, hiding the two good ones too.
+        { value: 'bad', label: 'not a finding at all' },
+        {
+          value: 'f2',
+          label: '[Important] Missing null check on response',
+          description: 'lib/api/client.ts:88 · guard before dereferencing',
+        },
+      ],
+    },
+    GATE.questions[2]!,
+  ],
+};
+
+test('one malformed option in a findings question does not hide the rest: the question still binds and the tally stays honest', async () => {
+  await render(MALFORMED_OPTION_GATE);
+
+  const rows = container.querySelectorAll('.tui-review-finding-row');
+  expect(rows.length).toBe(2);
+
+  const tally = container.querySelector('.tui-review-find-tally');
+  expect(tally?.textContent).toContain('2 of 2 selected');
+});
+
+test('a malformed report.json renders the sheet without throwing and skips the record cluster\'s bad parts', async () => {
+  (globalThis as { fetch: unknown }).fetch = async (input: RequestInfo | URL) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    if (url.startsWith('/review/report.json')) {
+      return new Response(
+        JSON.stringify({
+          depth: 'clean run, one flake unrelated to this change',
+          strengths: 'not an array',
+          checks: [{ tag: 'PASS' }, { tag: 'FAIL', text: 'real check' }],
+          notes: 'also not an array',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
+    }
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  };
+
+  await render();
+  await React.act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  const labels = [
+    ...container.querySelectorAll('.tui-review-record-label'),
+  ].map(l => l.textContent);
+  // strengths and notes are dropped whole (not arrays); the one malformed
+  // check entry (missing `text`) is dropped, the well-typed one stays.
+  expect(labels).toEqual(['depth', 'evidence']);
+  expect(container.textContent).toContain('real check');
+  expect(container.textContent).not.toContain('not an array');
+});
+
 test('a verdict recommendation carried in gate.context drives the badge, the default pick, and the decision-card fallback prose', async () => {
   await render(CONTEXT_GATE);
 

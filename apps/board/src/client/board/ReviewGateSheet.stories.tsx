@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { gateDraftKey } from '@mattstack/gate-kit/react';
@@ -157,6 +157,36 @@ const reportJson = JSON.stringify({
   notes: ['Consider a follow-up MR to backfill retry tests for the old path.'],
 });
 
+// Captured once at module scope, before any story stubs it: the restore
+// target every fetchStub decorator falls back to and resets to on cleanup.
+const REAL_FETCH = globalThis.fetch;
+
+/** Installs a fetch stub for the story's mount only and restores the real
+    fetch on unmount, rather than clobbering globalThis.fetch permanently.
+    `handler` answers `/review/*` urls; anything it returns undefined for
+    falls through to the real fetch. */
+function fetchStub(
+  handler: (url: string) => Response | Promise<Response> | undefined
+) {
+  return function FetchStubDecorator(Story: () => ReactNode) {
+    useEffect(() => {
+      globalThis.fetch = (async (
+        input: RequestInfo | URL,
+        init?: RequestInit
+      ) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        const stubbed = await handler(url);
+        if (stubbed !== undefined) return stubbed;
+        return REAL_FETCH(input as RequestInfo, init);
+      }) as typeof fetch;
+      return () => {
+        globalThis.fetch = REAL_FETCH;
+      };
+    }, []);
+    return <Story />;
+  };
+}
+
 const noop = () => {};
 
 function seedDraft(
@@ -197,19 +227,17 @@ function Host({ gate, mr }: { gate: GateRow; mr: BoardMRWithReview }) {
     populated, so `/review/report.json` is mocked in rather than left to hit
     the network from Storybook's iframe. */
 export const SixFindings: Story = {
-  render: () => {
-    const realFetch = globalThis.fetch;
-    globalThis.fetch = (async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
-      if (url.startsWith('/review/report.json'))
-        return new Response(reportJson, {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        });
-      return realFetch(input as RequestInfo);
-    }) as typeof fetch;
-    return <Host gate={sixFindingGate} mr={boardMr} />;
-  },
+  decorators: [
+    fetchStub(url =>
+      url.startsWith('/review/report.json')
+        ? new Response(reportJson, {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        : undefined
+    ),
+  ],
+  render: () => <Host gate={sixFindingGate} mr={boardMr} />,
 };
 
 // --- UnselectedSome ------------------------------------------------------
@@ -220,16 +248,19 @@ export const SixFindings: Story = {
 const partialGate: GateRow = { ...sixFindingGate, gateId: 'sheet-partial' };
 
 export const UnselectedSome: Story = {
+  decorators: [
+    fetchStub(url =>
+      url.includes('/review/')
+        ? new Response('no structured review yet', { status: 404 })
+        : undefined
+    ),
+  ],
   render: () => {
     seedDraft(partialGate.gateId, {
       selections: { findings: ['f1', 'f3', 'f5'], outcome: 'comment' },
       notes: {},
       item: null,
     });
-    globalThis.fetch = (async () =>
-      new Response('no structured review yet', {
-        status: 404,
-      })) as typeof fetch;
     return <Host gate={partialGate} mr={boardMr} />;
   },
 };
@@ -258,11 +289,12 @@ const cleanGate: GateRow = {
 const cleanMr = { ...boardMr, iid: 46 } as BoardMRWithReview;
 
 export const CleanReview: Story = {
-  render: () => {
-    globalThis.fetch = (async () =>
-      new Response('no structured review yet', {
-        status: 404,
-      })) as typeof fetch;
-    return <Host gate={cleanGate} mr={cleanMr} />;
-  },
+  decorators: [
+    fetchStub(url =>
+      url.includes('/review/')
+        ? new Response('no structured review yet', { status: 404 })
+        : undefined
+    ),
+  ],
+  render: () => <Host gate={cleanGate} mr={cleanMr} />,
 };

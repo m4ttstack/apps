@@ -65,13 +65,48 @@ export function isReviewSheetGate(gate: GateRow): boolean {
   return !gate.questions.some(q => q.multi);
 }
 
+/** The engine's own emission and hand-edits of report.json both land here
+    unvalidated, so every optional field is guarded at its actual shape
+    (not just presence) before it reaches JSX: an entry a React child can't
+    render (an object, a wrong-typed leaf) is dropped rather than thrown. */
+function safeStrengths(
+  report: ReviewReportJson | null
+): Array<{ lead: string; detail?: string }> {
+  if (!report || !Array.isArray(report.strengths)) return [];
+  return report.strengths.filter(
+    (s): s is { lead: string; detail?: string } =>
+      Boolean(s) && typeof s.lead === 'string'
+  );
+}
+
+function safeChecks(
+  report: ReviewReportJson | null
+): Array<{ tag: string; text: string }> {
+  if (!report || !Array.isArray(report.checks)) return [];
+  return report.checks.filter(
+    (c): c is { tag: string; text: string } =>
+      Boolean(c) && typeof c.tag === 'string' && typeof c.text === 'string'
+  );
+}
+
+function safeNotes(report: ReviewReportJson | null): string[] {
+  if (!report || !Array.isArray(report.notes)) return [];
+  return report.notes.filter((n): n is string => typeof n === 'string');
+}
+
+function safeDepth(report: ReviewReportJson | null): string | undefined {
+  return report && typeof report.depth === 'string' && report.depth
+    ? report.depth
+    : undefined;
+}
+
 function hasRecord(report: ReviewReportJson | null): boolean {
   if (!report) return false;
   return Boolean(
-    report.depth ||
-    (report.strengths && report.strengths.length > 0) ||
-    (report.checks && report.checks.length > 0) ||
-    (report.notes && report.notes.length > 0)
+    safeDepth(report) ||
+    safeStrengths(report).length > 0 ||
+    safeChecks(report).length > 0 ||
+    safeNotes(report).length > 0
   );
 }
 
@@ -185,7 +220,7 @@ function ReviewGateSheet({
         q =>
           q.multi &&
           q.options.length > 0 &&
-          q.options.every(o => parseFindingOption(o) !== null)
+          q.options.some(o => parseFindingOption(o) !== null)
       ),
     [questions]
   );
@@ -295,6 +330,10 @@ function ReviewGateSheet({
     };
   }, [mr?.webUrl]);
   const record = hasRecord(report);
+  const strengths = useMemo(() => safeStrengths(report), [report]);
+  const checks = useMemo(() => safeChecks(report), [report]);
+  const notes = useMemo(() => safeNotes(report), [report]);
+  const depth = safeDepth(report);
 
   const mainRef = useRef<HTMLElement | null>(null);
   const [atEnd, setAtEnd] = useState(true);
@@ -552,25 +591,27 @@ function ReviewGateSheet({
 
           {record ? (
             <dl className="tui-review-record">
-              {report?.strengths && report.strengths.length > 0 && (
+              {strengths.length > 0 && (
                 <div className="tui-review-record-row">
                   <dt className="tui-review-record-label">strengths</dt>
                   <dd className="tui-review-record-content">
-                    {report.strengths.map((s, i) => (
+                    {strengths.map((s, i) => (
                       <div className="tui-review-record-item" key={i}>
                         <span className="tui-review-record-icon tui-review-record-icon-ok">
                           {ICONS['circle-check']}
                         </span>
                         <span>
                           <strong>{s.lead}</strong>
-                          {s.detail ? ` · ${s.detail}` : ''}
+                          {typeof s.detail === 'string' && s.detail
+                            ? ` · ${s.detail}`
+                            : ''}
                         </span>
                       </div>
                     ))}
                   </dd>
                 </div>
               )}
-              {report?.depth && (
+              {depth && (
                 <div className="tui-review-record-row">
                   <dt className="tui-review-record-label">depth</dt>
                   <dd className="tui-review-record-content">
@@ -578,16 +619,16 @@ function ReviewGateSheet({
                       <span className="tui-review-record-icon">
                         <SearchCheckIcon />
                       </span>
-                      <span>{report.depth}</span>
+                      <span>{depth}</span>
                     </div>
                   </dd>
                 </div>
               )}
-              {report?.checks && report.checks.length > 0 && (
+              {checks.length > 0 && (
                 <div className="tui-review-record-row">
                   <dt className="tui-review-record-label">evidence</dt>
                   <dd className="tui-review-record-content">
-                    {report.checks.map((c, i) => (
+                    {checks.map((c, i) => (
                       <div className="tui-review-record-item" key={i}>
                         <span className="tui-review-record-icon">
                           <CameraIcon />
@@ -598,11 +639,11 @@ function ReviewGateSheet({
                   </dd>
                 </div>
               )}
-              {report?.notes && report.notes.length > 0 && (
+              {notes.length > 0 && (
                 <div className="tui-review-record-row">
                   <dt className="tui-review-record-label">notes</dt>
                   <dd className="tui-review-record-content">
-                    {report.notes.map((n, i) => (
+                    {notes.map((n, i) => (
                       <div className="tui-review-record-item" key={i}>
                         <span className="tui-review-record-icon">
                           <PencilLineIcon />
@@ -683,9 +724,9 @@ function ReviewGateSheet({
                 )}
               </div>
 
-              {report?.checks && report.checks.length > 0 && (
+              {checks.length > 0 && (
                 <div className="tui-review-checks-card">
-                  {report.checks.map((c, i) => (
+                  {checks.map((c, i) => (
                     <Chip
                       key={i}
                       intent={
