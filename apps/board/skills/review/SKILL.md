@@ -216,15 +216,23 @@ remembered in the conversation.
        See "Mark the recommended outcome" below the fallback branch for
        the recommended-suffix rule -- it's unconditional, not specific to
        this branch.
-     - **Clean review** (empty or missing `findings`): omit every
-       `findings-N` question and open the gate with `outcome` alone, so a
-       clean review is approvable in one click -- unchanged from before.
+     - **Clean review** (`findings` is present and a valid empty array):
+       omit every `findings-N` question and open the gate with `outcome`
+       alone, so a clean review is approvable in one click -- unchanged
+       from before. Only the empty array means clean: a report whose
+       `findings` field is missing, not an array, or full of entries that
+       don't fit the schema is a malformed report, not a clean one --
+       treating it as clean would let an approve go out with the omitted
+       findings unseen. Take the fallback branch below for it.
 
-     **When the json is absent** (an older report with no sibling
-     `.json`), fall back to tier-level options exactly as before, and
-     print one line in the pane noting the fallback (e.g. "report.json not
-     found; falling back to tier-level options") so a human watching knows
-     posting will be tier-grained instead of per-finding. Posting still
+     **When the json is absent or malformed** (an older report with no
+     sibling `.json`, unparseable json, or a parsed report whose
+     `findings` is missing or not an array), fall back to tier-level
+     options exactly as before, and print one line in the pane naming
+     which case it was (e.g. "report.json not found; falling back to
+     tier-level options", or "report.json has no findings array; falling
+     back to tier-level options") so a human watching knows posting will
+     be tier-grained instead of per-finding. Posting still
      accepts this legacy `{tiers, outcome}` shape. Add a `tiers` question
      (multi-select over the severity levels the domain skill reported
      present, or your own findings' levels on the generic no-domain-skill
