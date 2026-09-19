@@ -11,6 +11,7 @@ import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { createRoot, type Root } from 'react-dom/client';
 
+import { gateDraftKey } from '@mattstack/gate-kit/react';
 import type { GateRow } from '../../../gates/store.ts';
 import type { BoardMRWithReview } from '../../types.ts';
 import { useGateForm } from '../GateForm.tsx';
@@ -104,6 +105,30 @@ const TIER_GATE: GateRow = {
   ],
 };
 
+/** Neither option carries a "(recommended)" suffix; the recommendation
+    lives only in gate.context (design doc §3's "gate-level --context
+    carries the readiness line"), the way a real wrapper-built outcome
+    question sections it (GateForm.tsx's own sectionFor path). */
+const CONTEXT_GATE: GateRow = {
+  ...GATE,
+  gateId: 'g-context',
+  context:
+    '=== outcome verdict: with-fixes -> recommend comment ===\n' +
+    'Holding for the flaky suite fix before approving.',
+  questions: [
+    ...GATE.questions.slice(0, 2),
+    {
+      id: 'outcome',
+      label: 'Verdict on !31',
+      multi: false,
+      options: [
+        { value: 'approve', label: 'approve' },
+        { value: 'comment', label: 'comment' },
+      ],
+    },
+  ],
+};
+
 const MR = {
   iid: 31,
   title: 'themed gate controls',
@@ -140,11 +165,21 @@ function Host({ gate = GATE }: { gate?: GateRow }) {
 
 let root: Root;
 let container: HTMLElement;
+let posts: Array<{ url: string; body: unknown }>;
 
 beforeEach(() => {
   localStorage.clear();
-  (globalThis as { fetch: unknown }).fetch = async () =>
-    new Response('no structured review yet', { status: 404 });
+  posts = [];
+  (globalThis as { fetch: unknown }).fetch = async (
+    input: RequestInfo | URL,
+    init?: { body?: string }
+  ) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    if (url.startsWith('/review/report.json'))
+      return new Response('no structured review yet', { status: 404 });
+    posts.push({ url, body: init?.body ? JSON.parse(init.body) : null });
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  };
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -166,6 +201,36 @@ async function click(el: Element) {
     (el as HTMLElement).click();
     await new Promise(resolve => setTimeout(resolve, 0));
   });
+}
+
+function buttonByText(text: string): HTMLButtonElement {
+  const found = [...container.querySelectorAll('button')].find(
+    b => b.textContent?.trim() === text
+  );
+  if (!found) throw new Error(`no button with text "${text}"`);
+  return found as HTMLButtonElement;
+}
+
+/** Seeds `useGateForm`'s draft the way DecisionQueueModal.stories.tsx's own
+    `seedDraft` does, so a note reaches `form.notes` without simulating a
+    keystroke -- happy-dom's `<input>` does not install React's value
+    tracker the way it does for a `<textarea>` (row-view-dom.test.tsx's own
+    technique), so a synthetic `input` event on this field never reaches
+    React's onChange here. The draft is the same path a resumed gate's note
+    takes in production, so this exercises the same submit code the note
+    field's onChange would otherwise feed. */
+function seedDraft(
+  gateId: string,
+  draft: {
+    selections?: Record<string, string | string[]>;
+    notes?: Record<string, string>;
+    item?: string | null;
+  }
+) {
+  localStorage.setItem(
+    gateDraftKey(gateId),
+    JSON.stringify({ selections: {}, notes: {}, item: null, ...draft })
+  );
 }
 
 test('collapses findings-1/findings-2 into one six-row list with a full tally', async () => {
@@ -230,4 +295,84 @@ test('the verdict renders as gate choices with the recommended badge', async () 
 test('isReviewSheetGate is true for a finding-shaped gate and false for a tier-option gate', () => {
   expect(isReviewSheetGate(GATE)).toBe(true);
   expect(isReviewSheetGate(TIER_GATE)).toBe(false);
+});
+
+test('a note on the outcome question posts as {value, note}, not silently dropped', async () => {
+  seedDraft(GATE.gateId, { notes: { outcome: 'Merge once CI settles.' } });
+  await render();
+
+  const note = container.querySelector(
+    '.tui-review-verdict .tui-gate-note'
+  ) as HTMLInputElement;
+  expect(note.value).toBe('Merge once CI settles.');
+
+  await click(buttonByText('post 6 · approve'));
+
+  const answerPost = posts.find(p => p.url === '/gate/answer');
+  expect(answerPost).toBeDefined();
+  const body = answerPost!.body as { answers: Record<string, unknown> };
+  expect(body.answers.outcome).toEqual({
+    value: 'approve',
+    note: 'Merge once CI settles.',
+  });
+  // The findings union is untouched by the note wrap -- still a bare array.
+  expect(Array.isArray(body.answers.findings)).toBe(true);
+});
+
+test('a blank or whitespace-only note posts the bare selection, not an empty note', async () => {
+  seedDraft(GATE.gateId, { notes: { outcome: '   ' } });
+  await render();
+
+  await click(buttonByText('post 6 · approve'));
+
+  const answerPost = posts.find(p => p.url === '/gate/answer');
+  const body = answerPost!.body as { answers: Record<string, unknown> };
+  expect(body.answers.outcome).toBe('approve');
+});
+
+test('reset re-seeds every finding checked and the recommended outcome, never a bare "post N ·" label', async () => {
+  await render();
+
+  const first = container.querySelector(
+    '.tui-review-finding-row input[type="checkbox"]'
+  ) as HTMLInputElement;
+  await click(first);
+  const comment = [...container.querySelectorAll('input[type=radio]')].find(
+    i => (i as HTMLInputElement).value === 'comment'
+  ) as HTMLInputElement;
+  await click(comment);
+
+  expect(container.querySelector('.tui-review-submit')?.textContent).toBe(
+    'post 5 · comment'
+  );
+
+  await click(buttonByText('reset'));
+
+  expect(
+    container.querySelector('.tui-review-find-tally')?.textContent
+  ).toContain('6 of 6 selected');
+  expect(container.querySelector('.tui-review-submit')?.textContent).toBe(
+    'post 6 · approve'
+  );
+  expect(container.querySelector('.tui-review-submit')?.textContent).not.toBe(
+    'post 6 · '
+  );
+});
+
+test('a verdict recommendation carried in gate.context drives the badge, the default pick, and the decision-card fallback prose', async () => {
+  await render(CONTEXT_GATE);
+
+  const recommended = container.querySelector('[data-gate="recommended"]');
+  expect(recommended).not.toBeNull();
+
+  const commentRadio = [
+    ...container.querySelectorAll('input[type=radio]'),
+  ].find(i => (i as HTMLInputElement).value === 'comment') as HTMLInputElement;
+  expect(commentRadio.checked).toBe(true);
+  expect(container.querySelector('.tui-review-submit')?.textContent).toBe(
+    'post 6 · comment'
+  );
+
+  const reasoning = container.querySelector('.tui-review-decision-reasoning');
+  expect(reasoning?.textContent).toContain('Holding for the flaky suite fix');
 });

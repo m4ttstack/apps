@@ -3977,3 +3977,10 @@ body {
   font-size: 13px;
   font-weight: 600;
 }
+/* CAS-loss face: the rail swaps entirely to this instead of appearing to
+   accept a selection that can no longer be posted. */
+.tui-review-lost {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
