@@ -39,3 +39,4 @@ export type {
   GateSummaryDetailRow,
   GateSummaryInput,
 } from './summary';
+export { chunkGroupKey, collapseChunks, splitChunkSelections } from './chunks';
