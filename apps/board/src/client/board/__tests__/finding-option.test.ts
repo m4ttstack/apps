@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { parseFindingOption } from '../finding-option.ts';
 
 describe('parseFindingOption', () => {
