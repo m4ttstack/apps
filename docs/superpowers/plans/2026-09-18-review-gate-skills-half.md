@@ -75,7 +75,7 @@ Keep the section's existing red-flags table untouched.
 
 - [ ] **Step 3: Verify**
 
-Re-run the Step 1 dry-run against the edited text. Expected: the reader writes both files, json fields match the schema, ids in report order. Iterate the wording until compliant; record the passing transcript summary.
+Re-run the Step 1 dry-run against the edited text, with at least one rep whose draft says "Ready to merge: with fixes". Expected: the reader writes both files, json fields match the schema, ids in report order, and the with-fixes rep emits hyphenated readiness `with-fixes`. Iterate the wording until compliant; record the passing transcript summary.
 
 - [ ] **Step 4: Certify and commit**
 
@@ -104,7 +104,7 @@ Three surgical changes, keeping everything else byte-identical:
 
 - [ ] **Step 3: Verify**
 
-Re-run the dry-run. Expected: selection payload carries finding ids; terminal path still asks one tiers question and maps to ids. Iterate until compliant.
+Re-run the dry-run. Expected: selection payload carries finding ids; terminal path still asks one tiers question and maps to ids. Include one rep handing a tier-shaped selection and one rep with no report json: both must pass posting the legacy `{levels, disposition}` form. Iterate until compliant.
 
 - [ ] **Step 4: Certify and commit**
 
