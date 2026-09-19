@@ -840,7 +840,7 @@ function ReviewGateSheet({
                   <Button
                     type="button"
                     variant="filled"
-                    intent="warn"
+                    intent="accent"
                     size="lg"
                     className="tui-review-submit"
                     disabled={form.busy || typeof selectedOutcome !== 'string'}

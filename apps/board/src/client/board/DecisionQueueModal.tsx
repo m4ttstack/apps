@@ -433,7 +433,7 @@ function DecisionQueueModal({
               <Button
                 type="button"
                 variant="filled"
-                intent="warn"
+                intent="accent"
                 size="lg"
                 onClick={onContinue}
               >
@@ -558,7 +558,7 @@ function DecisionQueueComplete({
           type="button"
           className="tui-triage-done-action"
           variant="filled"
-          intent="warn"
+          intent="accent"
           size="lg"
           onClick={onClose}
         >

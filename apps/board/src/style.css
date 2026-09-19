@@ -1363,7 +1363,7 @@ body {
   margin-bottom: 6px;
   font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 1px 6px color-mix(in srgb, var(--amber) 45%, transparent);
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 /* Roster header: the All row plus a manage-roster gear beside it. */

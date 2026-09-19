@@ -574,7 +574,7 @@ function GateForm({
             disabled={busy}
             render={(props, state) =>
               state.visible && state.status !== 'answered' ? (
-                <Button {...props} variant="filled" intent="warn" size="lg" />
+                <Button {...props} variant="filled" intent="accent" size="lg" />
               ) : null
             }
           >
@@ -586,7 +586,7 @@ function GateForm({
                 <Button
                   {...props}
                   variant="filled"
-                  intent="warn"
+                  intent="accent"
                   size="lg"
                   disabled={busy || state.status !== 'answered'}
                 />
@@ -601,7 +601,7 @@ function GateForm({
                 <Button
                   {...props}
                   variant="filled"
-                  intent="warn"
+                  intent="accent"
                   size="lg"
                   disabled={busy || state.status !== 'answered'}
                 />
