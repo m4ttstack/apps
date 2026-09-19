@@ -43,7 +43,7 @@
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: CSS vars `--green-text` is NOT introduced kit-side by this task; it produces token leaves `text.okText` and `text.warnText` surfaced as `--color-gray-okText` / `--color-gray-warnText` (tui-kit) and `--tk-green-text` / `--tk-amber-text` (tokyo). Task 2 and Task 6 consume the tui-kit vars.
+- Produces: CSS vars `--green-text` is NOT introduced kit-side by this task; it produces token leaves `text.okText`, `text.warnText`, and `text.badgeText` surfaced as `--color-gray-okText` / `--color-gray-warnText` (tui-kit) and `--tk-green-text` / `--tk-amber-text` (tokyo). Task 2 and Task 6 consume the tui-kit vars.
 
 - [ ] **Step 1: Edit the light hue block in `values.ts`**
 
@@ -583,7 +583,7 @@ Expected: PASS. Then add `ReviewGateSheet.stories.tsx` mirroring `DecisionQueueM
 - [ ] **Step 6: Commit**
 
 ```bash
-git add apps/board/src/client/board/ReviewGateSheet.tsx apps/board/src/client/board/__tests__/review-gate-sheet-dom.test.tsx apps/board/src/client/board/ReviewGateSheet.stories.tsx apps/board/src/style.css
+git add apps/board/src/client/board/ReviewGateSheet.tsx apps/board/src/client/board/__tests__/review-gate-sheet-dom.test.tsx apps/board/src/client/board/ReviewGateSheet.stories.tsx apps/board/src/client/board/icons.tsx apps/board/src/style.css
 git commit -m "board: full-screen review gate sheet"
 ```
 
