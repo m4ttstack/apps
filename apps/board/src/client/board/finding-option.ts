@@ -15,7 +15,7 @@ export interface ParsedFinding {
 }
 
 const LABEL_RE = /^\[([A-Za-z]+)\]\s+(.+)$/;
-const ANCHORISH_RE = /\/|\.[a-z]+:\d+$|^[A-Z_]{3,}$/;
+const ANCHORISH_RE = /\/|\.[a-z]+:\d+$|^[A-Z_]{3,}$|^[\w.-]+\.[a-z0-9]{1,8}$/;
 const KIND_RE = /\s·\skind:([a-z-]+)$/;
 
 export function parseFindingOption(option: GateOption): ParsedFinding | null {

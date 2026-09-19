@@ -503,6 +503,36 @@ test("a malformed report.json renders the sheet without throwing and skips the r
   expect(container.textContent).not.toContain('not an array');
 });
 
+test('a report whose summary fields are not strings renders without throwing and shows no context lead', async () => {
+  (globalThis as { fetch: unknown }).fetch = async (
+    input: RequestInfo | URL
+  ) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    if (url.startsWith('/review/report.json')) {
+      return new Response(
+        JSON.stringify({
+          // an object readiness would throw as a React child unsanitized
+          summary: { readiness: { value: 'yes' }, reasoning: 42 },
+          depth: 'verify. suite green',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
+    }
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  };
+
+  await render();
+  await React.act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(
+    container.querySelector('.tui-review-decision-lead')?.textContent ?? ''
+  ).not.toContain('object');
+  expect(container.textContent).not.toContain('Ready to merge: [object');
+  expect(container.textContent).toContain('verify. suite green');
+});
+
 test('a verdict recommendation carried in gate.context drives the badge, the default pick, and the decision-card fallback prose', async () => {
   await render(CONTEXT_GATE);
 

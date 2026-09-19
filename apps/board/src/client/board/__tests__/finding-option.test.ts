@@ -31,6 +31,32 @@ describe('parseFindingOption', () => {
     expect(parsed?.fix).toBeUndefined();
   });
 
+  test('a root-level filename with no separator is an anchor, not a fix', () => {
+    const parsed = parseFindingOption({
+      value: 'f10',
+      label: '[Minor] Stale install instructions',
+      description: 'README.md',
+    });
+    expect(parsed?.anchor).toBe('README.md');
+    expect(parsed?.fix).toBeUndefined();
+    const dotfileish = parseFindingOption({
+      value: 'f11',
+      label: '[Minor] Redundant config key',
+      description: 'package.json',
+    });
+    expect(dotfileish?.anchor).toBe('package.json');
+  });
+
+  test('prose with spaces stays a fix even when it ends like a filename', () => {
+    const parsed = parseFindingOption({
+      value: 'f12',
+      label: '[Minor] Unused import',
+      description: 'drop the import in utils.ts',
+    });
+    expect(parsed?.fix).toBe('drop the import in utils.ts');
+    expect(parsed?.anchor).toBeUndefined();
+  });
+
   test('non-finding options give null', () => {
     expect(parseFindingOption('approve')).toBeNull();
     expect(

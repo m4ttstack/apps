@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 import { Invadr } from 'invadrs/react';
 
 import {
@@ -36,9 +42,14 @@ import {
 
 /** Readiness values (`with-fixes`, `blocked`, ...) come as hyphenated
     tokens whether they arrive from `report.summary.readiness` or from a
-    parsed `gate.context` verdict; both feed this one sentence. */
+    parsed `gate.context` verdict; both feed this one sentence. The
+    question-and-answer prefix only fits the schema's own vocabulary --
+    a foreign verdict like `blocked` renders bare so the sentence never
+    contradicts itself. */
+const READINESS_VALUES = new Set(['yes', 'no', 'with-fixes']);
 function readinessProse(value: string): string {
-  return `Ready to merge: ${value.replace(/-/g, ' ')}`;
+  const prose = value.replace(/-/g, ' ');
+  return READINESS_VALUES.has(value) ? `Ready to merge: ${prose}` : prose;
 }
 
 /** The engine's optional record fields (`docs/superpowers/specs/
@@ -51,6 +62,28 @@ interface ReviewReportJson {
   strengths?: Array<{ lead: string; detail?: string }>;
   checks?: Array<{ tag: string; text: string }>;
   notes?: string[];
+}
+
+/** report.json arrives from disk unvalidated; the record arrays each have
+    their own safe* guard at render, but `summary` fields land in JSX
+    directly, where a non-string (an object readiness, say) would throw as
+    a React child. Keep only the string-shaped summary fields. */
+function sanitizeReport(j: unknown): ReviewReportJson | null {
+  if (typeof j !== 'object' || j === null || Array.isArray(j)) return null;
+  const raw = j as Record<string, unknown>;
+  const out: ReviewReportJson = { ...(raw as ReviewReportJson) };
+  const s = raw['summary'];
+  if (typeof s === 'object' && s !== null && !Array.isArray(s)) {
+    const summary: { readiness?: string; reasoning?: string } = {};
+    const { readiness, reasoning } = s as Record<string, unknown>;
+    if (typeof readiness === 'string') summary.readiness = readiness;
+    if (typeof reasoning === 'string') summary.reasoning = reasoning;
+    out.summary = summary;
+  } else {
+    delete out.summary;
+  }
+  if (typeof raw['depth'] !== 'string') delete out.depth;
+  return out;
 }
 
 export interface ReviewGateSheetQueue {
@@ -223,6 +256,39 @@ function ReviewGateSheet({
   useEscapeClose(onClose);
   useBodyScrollLock();
 
+  // Dialog focus contract: take focus on mount, keep Tab cycling inside
+  // (aria-modal alone does not fence keyboard focus), and hand focus back
+  // to whatever opened the sheet when it unmounts.
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const opener =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    sheetRef.current?.focus();
+    return () => opener?.focus();
+  }, []);
+  const trapTab = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return;
+    const root = sheetRef.current;
+    if (!root) return;
+    const focusable = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(el => !el.hasAttribute('disabled'));
+    if (focusable.length === 0) return;
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   const { questions, groups } = useMemo(
     () => collapseChunks(gate.questions),
     [gate.questions]
@@ -336,7 +402,7 @@ function ReviewGateSheet({
       .then(r =>
         r.ok ? r.json() : Promise.reject(new Error(String(r.status)))
       )
-      .then(j => live && setReport(j as ReviewReportJson))
+      .then(j => live && setReport(sanitizeReport(j)))
       .catch(() => {});
     return () => {
       live = false;
@@ -402,9 +468,19 @@ function ReviewGateSheet({
   const parked = gate.status === 'parked';
 
   return (
-    <div className="tui-review-sheet" role="dialog" aria-modal="true">
+    <div
+      className="tui-review-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tui-review-sheet-title"
+      tabIndex={-1}
+      ref={sheetRef}
+      onKeyDown={trapTab}
+    >
       <header className="tui-review-sheet-head">
-        <span className="tui-review-sheet-title">decision queue</span>
+        <span className="tui-review-sheet-title" id="tui-review-sheet-title">
+          decision queue
+        </span>
         <span className="tui-review-sheet-head-actions">
           <Button
             type="button"
