@@ -2,7 +2,6 @@ import { readFileSync } from 'fs';
 import { Database } from 'bun:sqlite';
 
 import {
-  boardStateRoot,
   dropPrunedState,
   getStateDb,
   insertAgentState,
@@ -90,9 +89,20 @@ export function reviewReportPath(handle: string): string {
     board state root; tests pass their own tmp dir, matching mintHandle. */
 export function readReviewReportJson(
   mrUrl: string,
-  root: string = boardStateRoot()
+  db: Database = getStateDb()
 ): string | null {
-  const reportPath = reviewReportPath(mintHandle('review', mrUrl, root));
+  // Resolve the exact row first: slugging alone is lossy (`a/b` and `a-b`
+  // mint the same handle), so a path derived straight from the request's
+  // URL could serve a different MR's report. Only a row keyed by this
+  // exact mr_url names a report this URL may read, and the path comes
+  // from that row's stored handle, never from the request.
+  const row = db
+    .query(
+      "SELECT handle FROM agent_states WHERE lane = 'review' AND mr_url = ?"
+    )
+    .get(mrUrl) as { handle: string } | null;
+  if (!row) return null;
+  const reportPath = reviewReportPath(row.handle);
   // This derived path coincides with mintHandle's own <slug>.json handle
   // path. Handles are db rows, not files, so that coincidence is safe:
   // pruneStates unlinking <slug>.json is this report's intended cleanup,

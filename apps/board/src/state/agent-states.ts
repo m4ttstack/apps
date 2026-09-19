@@ -342,6 +342,16 @@ export function pruneStates(
   });
   if (!committed) return;
   for (const row of stale) {
+    // Re-check the tombstone right before touching the filesystem: every
+    // revival path (insert, updateByHandle, resurrect) clears pruned_at,
+    // and a relaunch between the commit above and this loop writes fresh
+    // reports at this same deterministic handle path. Deleting those
+    // would hand the new cycle a silent data loss, so a revived row keeps
+    // its files and the next prune cycle owns their cleanup.
+    const live = db
+      .query('SELECT pruned_at FROM agent_states WHERE lane = ? AND mr_url = ?')
+      .get(lane, row.mr_url) as { pruned_at: number | null } | null;
+    if (!live || live.pruned_at === null) continue;
     const mdPath = reportPathForHandle(row.handle);
     try {
       unlinkSync(mdPath);
