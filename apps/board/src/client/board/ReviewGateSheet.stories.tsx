@@ -169,20 +169,24 @@ function fetchStub(
   handler: (url: string) => Response | Promise<Response> | undefined
 ) {
   return function FetchStubDecorator(Story: () => ReactNode) {
-    useEffect(() => {
-      globalThis.fetch = (async (
-        input: RequestInfo | URL,
-        init?: RequestInit
-      ) => {
-        const url = typeof input === 'string' ? input : input.toString();
-        const stubbed = await handler(url);
-        if (stubbed !== undefined) return stubbed;
-        return REAL_FETCH(input as RequestInfo, init);
-      }) as typeof fetch;
-      return () => {
+    // Installed during render, not in an effect: the sheet's own mount
+    // effect fetches report.json, and child effects run before this
+    // decorator's would, so an effect-installed stub arrives too late.
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit
+    ) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      const stubbed = await handler(url);
+      if (stubbed !== undefined) return stubbed;
+      return REAL_FETCH(input as RequestInfo, init);
+    }) as typeof fetch;
+    useEffect(
+      () => () => {
         globalThis.fetch = REAL_FETCH;
-      };
-    }, []);
+      },
+      []
+    );
     return <Story />;
   };
 }
