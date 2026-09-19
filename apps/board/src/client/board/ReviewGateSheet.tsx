@@ -4,6 +4,7 @@ import { Invadr } from 'invadrs/react';
 import {
   collapseChunks,
   displayForValue,
+  optionDescription,
   optionDisplayFor,
   optionValue,
   splitChunkSelections,
@@ -28,7 +29,14 @@ import { parseFindingOption, type ParsedFinding } from './finding-option.ts';
 import { ago, cleanTitle } from './format.ts';
 import { parseGateContext, sectionFor } from './gate-context.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
-import { CameraIcon, PencilLineIcon, SearchCheckIcon } from './icons.tsx';
+import { PencilLineIcon, SearchCheckIcon } from './icons.tsx';
+
+/** Readiness values (`with-fixes`, `blocked`, ...) come as hyphenated
+    tokens whether they arrive from `report.summary.readiness` or from a
+    parsed `gate.context` verdict; both feed this one sentence. */
+function readinessProse(value: string): string {
+  return `Ready to merge: ${value.replace(/-/g, ' ')}`;
+}
 
 /** The engine's optional record fields (`docs/superpowers/specs/
     2026-09-18-review-gate-redesign-design.md` §1): all absent on a report
@@ -100,12 +108,14 @@ function safeDepth(report: ReviewReportJson | null): string | undefined {
     : undefined;
 }
 
+/** Checks are rail material only (the CHECKS card), never part of the main
+    column's record cluster, so they don't count toward whether that cluster
+    has anything to show. */
 function hasRecord(report: ReviewReportJson | null): boolean {
   if (!report) return false;
   return Boolean(
     safeDepth(report) ||
     safeStrengths(report).length > 0 ||
-    safeChecks(report).length > 0 ||
     safeNotes(report).length > 0
   );
 }
@@ -391,12 +401,12 @@ function ReviewGateSheet({
   return (
     <div className="tui-review-sheet" role="dialog" aria-modal="true">
       <header className="tui-review-sheet-head">
-        <span className="tui-review-sheet-title">review</span>
+        <span className="tui-review-sheet-title">decision queue</span>
         <span className="tui-review-sheet-head-actions">
           <Button
             type="button"
-            variant="subtle"
-            intent="muted"
+            variant="light"
+            intent="accent"
             size="lg"
             disabled={
               parked
@@ -413,7 +423,7 @@ function ReviewGateSheet({
           </Button>
           <Button
             type="button"
-            variant="subtle"
+            variant="outline"
             intent="muted"
             size="lg"
             onClick={onSkip}
@@ -454,7 +464,10 @@ function ReviewGateSheet({
             ›
           </button>
         </nav>
-        <span className="tui-review-gate-tag">{gate.label}</span>
+        <span className="tui-review-head-sep" aria-hidden="true" />
+        <span className="tui-review-gate-tag">
+          review gate{mr ? ` !${mr.iid}` : ''}
+        </span>
         <button
           type="button"
           className="tui-review-close"
@@ -468,33 +481,35 @@ function ReviewGateSheet({
         <section className="tui-review-sheet-main" ref={mainRef}>
           {mr && (
             <div className="tui-review-mr-card">
-              <div className="tui-review-mr-head">
-                <Invadr
-                  id={mr.author.username}
-                  palette="css-vars"
-                  className="tui-avatar"
-                />
-                <span className="tui-review-author">
-                  {mr.author.name || mr.author.username}
-                </span>
-                <span className="tui-review-mr-open">
-                  opened !{mr.iid} into {mr.targetBranch} ·{' '}
-                  {ago(mr.createdAt, Date.now())}
-                </span>
-              </div>
-              <h2 className="tui-review-mr-title">{cleanTitle(mr.title)}</h2>
-              <div className="tui-review-mr-meta">
-                <span className="tui-branch">{mr.sourceBranch}</span>
-                {mr.diff && (
-                  <span className="tui-review-diff">
-                    <span className="tui-review-diff-add">
-                      +{mr.diff.additions}
-                    </span>
-                    <span className="tui-review-diff-del">
-                      -{mr.diff.deletions}
-                    </span>
+              <Invadr
+                id={mr.author.username}
+                palette="css-vars"
+                className="tui-review-mr-avatar"
+              />
+              <div className="tui-review-mr-body">
+                <div className="tui-review-mr-head">
+                  <span className="tui-review-author">
+                    {mr.author.name || mr.author.username}
                   </span>
-                )}
+                  <span className="tui-review-mr-open">
+                    opened !{mr.iid} into {mr.targetBranch} ·{' '}
+                    {ago(mr.createdAt, Date.now())}
+                  </span>
+                </div>
+                <h2 className="tui-review-mr-title">{cleanTitle(mr.title)}</h2>
+                <div className="tui-review-mr-meta">
+                  <span className="tui-branch">{mr.sourceBranch}</span>
+                  {mr.diff && (
+                    <span className="tui-review-diff">
+                      <span className="tui-review-diff-add">
+                        +{mr.diff.additions}
+                      </span>
+                      <span className="tui-review-diff-del">
+                        -{mr.diff.deletions}
+                      </span>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -532,6 +547,12 @@ function ReviewGateSheet({
                           >
                             all
                           </button>
+                          <span
+                            className="tui-review-allnone-sep"
+                            aria-hidden="true"
+                          >
+                            ·
+                          </span>
                           <button
                             type="button"
                             className="tui-review-allnone"
@@ -561,24 +582,28 @@ function ReviewGateSheet({
                                 )
                               }
                             />
-                            <span className="tui-review-finding-title">
-                              {f.title}
+                            <span className="tui-review-finding-body">
+                              <span className="tui-review-finding-line1">
+                                <span className="tui-review-finding-title">
+                                  {f.title}
+                                </span>
+                                {f.anchor && (
+                                  <span className="tui-review-finding-anchor">
+                                    {f.anchor}
+                                  </span>
+                                )}
+                                {f.kind && (
+                                  <span className="tui-review-finding-kind">
+                                    {f.kind}
+                                  </span>
+                                )}
+                              </span>
+                              {f.fix && (
+                                <span className="tui-review-finding-fix">
+                                  {f.fix}
+                                </span>
+                              )}
                             </span>
-                            {f.kind && (
-                              <span className="tui-review-finding-kind">
-                                {f.kind}
-                              </span>
-                            )}
-                            {f.anchor && (
-                              <span className="tui-review-finding-anchor">
-                                {f.anchor}
-                              </span>
-                            )}
-                            {f.fix && (
-                              <span className="tui-review-finding-fix">
-                                {f.fix}
-                              </span>
-                            )}
                           </label>
                         );
                       })}
@@ -589,6 +614,7 @@ function ReviewGateSheet({
             </>
           )}
 
+          <hr className="tui-review-divider" />
           {record ? (
             <dl className="tui-review-record">
               {strengths.length > 0 && (
@@ -600,11 +626,15 @@ function ReviewGateSheet({
                         <span className="tui-review-record-icon tui-review-record-icon-ok">
                           {ICONS['circle-check']}
                         </span>
-                        <span>
-                          <strong>{s.lead}</strong>
-                          {typeof s.detail === 'string' && s.detail
-                            ? ` · ${s.detail}`
-                            : ''}
+                        <span className="tui-review-record-stack">
+                          <span className="tui-review-record-lead">
+                            {s.lead}
+                          </span>
+                          {typeof s.detail === 'string' && s.detail && (
+                            <span className="tui-review-record-detail">
+                              {s.detail}
+                            </span>
+                          )}
                         </span>
                       </div>
                     ))}
@@ -621,21 +651,6 @@ function ReviewGateSheet({
                       </span>
                       <span>{depth}</span>
                     </div>
-                  </dd>
-                </div>
-              )}
-              {checks.length > 0 && (
-                <div className="tui-review-record-row">
-                  <dt className="tui-review-record-label">evidence</dt>
-                  <dd className="tui-review-record-content">
-                    {checks.map((c, i) => (
-                      <div className="tui-review-record-item" key={i}>
-                        <span className="tui-review-record-icon">
-                          <CameraIcon />
-                        </span>
-                        <span>{c.text}</span>
-                      </div>
-                    ))}
                   </dd>
                 </div>
               )}
@@ -682,12 +697,12 @@ function ReviewGateSheet({
                 </span>
                 {report?.summary?.readiness ? (
                   <p className="tui-review-decision-lead">
-                    {report.summary.readiness}
+                    {readinessProse(report.summary.readiness)}
                   </p>
                 ) : (
                   outcomeSection?.verdict && (
                     <p className="tui-review-decision-lead">
-                      {outcomeSection.verdict}
+                      {readinessProse(outcomeSection.verdict)}
                     </p>
                   )
                 )}
@@ -726,24 +741,28 @@ function ReviewGateSheet({
 
               {checks.length > 0 && (
                 <div className="tui-review-checks-card">
-                  {checks.map((c, i) => (
-                    <Chip
-                      key={i}
-                      intent={
-                        c.tag === 'FAIL'
-                          ? 'bad'
-                          : c.tag === 'PASS'
-                            ? 'ok'
-                            : 'muted'
-                      }
-                      variant="outline"
-                      uppercase
-                      className="tui-review-check-chip"
-                      title={c.text}
-                    >
-                      {c.tag}
-                    </Chip>
-                  ))}
+                  <span className="tui-review-checks-title">checks</span>
+                  <div className="tui-review-checks-list">
+                    {checks.map((c, i) => (
+                      <div className="tui-review-check-row" key={i}>
+                        <Chip
+                          intent={
+                            c.tag === 'FAIL'
+                              ? 'bad'
+                              : c.tag === 'PASS'
+                                ? 'ok'
+                                : 'muted'
+                          }
+                          variant="outline"
+                          uppercase
+                          className="tui-review-check-chip"
+                        >
+                          {c.tag}
+                        </Chip>
+                        <span className="tui-review-check-text">{c.text}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -794,6 +813,11 @@ function ReviewGateSheet({
                                 </Chip>
                               )}
                             </span>
+                            {optionDescription(o) && (
+                              <span className="tui-gate-choice-subtitle">
+                                {optionDescription(o)}
+                              </span>
+                            )}
                           </span>
                         </label>
                       );
@@ -832,6 +856,7 @@ function ReviewGateSheet({
                     variant="subtle"
                     intent="muted"
                     size="lg"
+                    className="tui-review-reset"
                     onClick={handleReset}
                   >
                     reset

@@ -494,9 +494,11 @@ test("a malformed report.json renders the sheet without throwing and skips the r
   const labels = [
     ...container.querySelectorAll('.tui-review-record-label'),
   ].map(l => l.textContent);
-  // strengths and notes are dropped whole (not arrays); the one malformed
-  // check entry (missing `text`) is dropped, the well-typed one stays.
-  expect(labels).toEqual(['depth', 'evidence']);
+  // strengths and notes are dropped whole (not arrays); checks render in the
+  // rail's CHECKS card, not the main column, so they never add a label here.
+  expect(labels).toEqual(['depth']);
+  // The one malformed check entry (missing `text`) is dropped, the
+  // well-typed one stays and shows up in the rail card.
   expect(container.textContent).toContain('real check');
   expect(container.textContent).not.toContain('not an array');
 });

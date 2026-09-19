@@ -118,8 +118,18 @@ const findingsQuestions = [
     },
   ]),
   question('outcome', 'Verdict on !31', false, [
-    { value: 'approve', label: 'approve (recommended)' },
-    { value: 'comment', label: 'comment' },
+    {
+      value: 'approve',
+      label: 'approve (recommended)',
+      description:
+        'Approve !31 and post the selected findings as inline threads.',
+    },
+    {
+      value: 'comment',
+      label: 'comment',
+      description:
+        'Post the selected findings without a verdict; the important ones stay open.',
+    },
   ]),
 ];
 
@@ -283,8 +293,16 @@ const cleanGate: GateRow = {
   openedAt: 1788964320000,
   questions: [
     question('outcome', 'Verdict on !46', false, [
-      { value: 'approve', label: 'approve (recommended)' },
-      { value: 'comment', label: 'comment' },
+      {
+        value: 'approve',
+        label: 'approve (recommended)',
+        description: 'Approve !46; nothing was flagged worth a thread.',
+      },
+      {
+        value: 'comment',
+        label: 'comment',
+        description: 'Leave a comment without approving.',
+      },
     ]),
   ],
   origin: { paneId: 'pane-1', worktree: 'widgets' },

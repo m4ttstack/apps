@@ -3595,10 +3595,8 @@ body {
 }
 .tui-review-sheet-title {
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 20px;
+  color: var(--fg);
 }
 .tui-review-sheet-head-actions {
   display: flex;
@@ -3663,14 +3661,16 @@ body {
   color: var(--muted);
   white-space: nowrap;
 }
+.tui-review-head-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+}
 .tui-review-gate-tag {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
 }
 .tui-review-close {
   display: inline-flex;
@@ -3703,7 +3703,7 @@ body {
   width: 470px;
   flex-shrink: 0;
   border-left: 1px solid var(--border);
-  background: var(--panel);
+  background: var(--card);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -3713,7 +3713,25 @@ body {
 
 /* MR card */
 .tui-review-mr-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.tui-review-mr-avatar {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.tui-review-mr-body {
+  min-width: 0;
+  flex: 1;
 }
 .tui-review-mr-head {
   display: flex;
@@ -3793,12 +3811,13 @@ body {
 .tui-review-tier-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 .tui-review-tier-head {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 2px;
 }
 .tui-review-tier-pill {
   display: inline-flex;
@@ -3823,8 +3842,12 @@ body {
 .tui-review-allnone-group {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   margin-left: auto;
+}
+.tui-review-allnone-sep {
+  color: var(--muted);
+  font-size: 11px;
 }
 /* rest faint; hover = accent + underline; mousedown deepens; a no-op end
    (already all / already none) drops to gray and stops taking clicks. */
@@ -3852,14 +3875,28 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 8px 0;
+  padding: 10px 0;
   cursor: pointer;
 }
 .tui-review-finding-row .tui-gate-choice-input {
-  margin-top: 2px;
+  margin-top: 3px;
+}
+.tui-review-finding-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.tui-review-finding-line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 .tui-review-finding-title {
   font-weight: 500;
+  flex: 1;
+  min-width: 0;
 }
 .tui-review-finding-kind {
   font-size: 10px;
@@ -3876,16 +3913,24 @@ body {
   font-size: var(--gate-font-meta);
   color: var(--muted);
   flex-shrink: 0;
+  text-align: right;
 }
 .tui-review-finding-fix {
   color: var(--muted);
   font-size: var(--gate-font-meta);
 }
 
-/* review record cluster: STRENGTHS / DEPTH / EVIDENCE / NOTES sharing one
-   right-aligned label column and one text edge. */
-.tui-review-record {
+/* Hairline above the record cluster, spanning the left column. */
+.tui-review-divider {
   margin: 22px 0 0;
+  border: none;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* review record cluster: STRENGTHS / DEPTH / NOTES sharing one right-aligned
+   label column and one text edge. */
+.tui-review-record {
+  margin: 16px 0 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -3926,6 +3971,22 @@ body {
 .tui-review-record-icon-ok {
   color: var(--color-gray-okText);
 }
+/* Strengths' two-line entries: a dark lead, a dim detail underneath --
+   never inline with a separator dot. */
+.tui-review-record-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tui-review-record-lead {
+  color: var(--fg);
+  font-weight: 500;
+}
+.tui-review-record-detail {
+  color: var(--muted);
+  font-size: var(--gate-font-meta);
+}
 .tui-review-full-report {
   margin-top: 22px;
 }
@@ -3935,8 +3996,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border-soft);
+  padding: 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--card);
 }
 .tui-review-decision-label {
   font-size: 10px;
@@ -3947,7 +4010,7 @@ body {
 .tui-review-decision-lead {
   margin: 0;
   font-weight: 600;
-  color: var(--color-gray-okText);
+  color: var(--fg);
 }
 .tui-review-decision-reasoning {
   margin: 0;
@@ -3962,10 +4025,39 @@ body {
 }
 .tui-review-checks-card {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border-soft);
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--card);
+}
+.tui-review-checks-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.tui-review-checks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tui-review-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.tui-review-check-chip {
+  flex-shrink: 0;
+  width: 46px;
+  justify-content: center;
+  text-align: center;
+}
+.tui-review-check-text {
+  color: var(--fg);
+  font-size: var(--gate-font-meta);
+  line-height: 1.4;
 }
 .tui-review-verdict {
   display: flex;
@@ -3976,6 +4068,16 @@ body {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
+}
+.tui-review-submit {
+  min-height: 44px;
+  border-radius: 8px;
+}
+.tui-review-reset {
+  align-self: flex-start;
+  --button-bg: transparent;
+  --button-border: transparent;
+  --button-hover: color-mix(in srgb, var(--fg) 6%, transparent);
 }
 /* CAS-loss face: the rail swaps entirely to this instead of appearing to
    accept a selection that can no longer be posted. */
