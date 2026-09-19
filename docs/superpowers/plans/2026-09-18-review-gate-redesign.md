@@ -407,7 +407,7 @@ git commit -m "board: serve the structured review report, prune its file with th
 
 **Interfaces:**
 - Consumes: `GateOption`, `optionValue`, `optionDisplayFor`, `optionDescription` from `@mattstack/gate-kit`.
-- Produces: `parseFindingOption(option: GateOption): ParsedFinding | null` where `ParsedFinding = { id: string; tier: string; title: string; anchor?: string; fix?: string }`. Returns `null` unless the label matches `[Tier] title`. Description splits on the first ` · ` into anchor and fix; a description with no separator is all fix when it has no `/` or `:`-digit shape, else all anchor.
+- Produces: `parseFindingOption(option: GateOption): ParsedFinding | null` where `ParsedFinding = { id: string; tier: string; title: string; anchor?: string; fix?: string; kind?: string }`. Returns `null` unless the label matches `[Tier] title`. A trailing ` · kind:<word>` segment pops off into `kind` first. The remaining description splits on the first ` · ` into anchor and fix; a description with no separator is all fix when it has no `/` or `:`-digit shape, else all anchor.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -421,7 +421,8 @@ describe('parseFindingOption', () => {
       parseFindingOption({
         value: 'f3',
         label: '[Minor] Em dash in the new describe title',
-        description: 'workflow.integration.test.ts:12 · use a hyphen; change both siblings',
+        description:
+          'workflow.integration.test.ts:12 · use a hyphen; change both siblings · kind:nitpick',
       })
     ).toEqual({
       id: 'f3',
@@ -429,6 +430,7 @@ describe('parseFindingOption', () => {
       title: 'Em dash in the new describe title',
       anchor: 'workflow.integration.test.ts:12',
       fix: 'use a hyphen; change both siblings',
+      kind: 'nitpick',
     });
   });
 
@@ -476,6 +478,7 @@ export interface ParsedFinding {
 
 const LABEL_RE = /^\[([A-Za-z]+)\]\s+(.+)$/;
 const ANCHORISH_RE = /\/|\.[a-z]+:\d+$|^[A-Z_]{3,}$/;
+const KIND_RE = /\s·\skind:([a-z-]+)$/;
 
 export function parseFindingOption(option: GateOption): ParsedFinding | null {
   const label = optionDisplayFor(option).text;
@@ -486,7 +489,14 @@ export function parseFindingOption(option: GateOption): ParsedFinding | null {
     tier: m[1]!,
     title: m[2]!,
   };
-  const description = optionDescription(option);
+  let description = optionDescription(option);
+  if (description !== undefined) {
+    const k = KIND_RE.exec(description);
+    if (k) {
+      parsed.kind = k[1]!;
+      description = description.slice(0, -k[0].length);
+    }
+  }
   if (description !== undefined) {
     const at = description.indexOf(' · ');
     if (at >= 0) {
@@ -569,7 +579,7 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implement the component**
 
-First add `SearchCheckIcon`, `CameraIcon`, and `PencilLineIcon` to `icons.tsx` as inline SVG components following that file's existing pattern (24-unit viewBox, `currentColor` strokes; copy the path data from the lucide SVG set, which is ISC licensed, and note the origin in the icons.tsx header if it does not already credit it). lucide is NOT added as a dependency; the catalog and lockfile do not change. Then build exactly the structure above, the record cluster using those three components at 14px. Checkbox rows reuse `.tui-gate-choice-input[data-type='checkbox']` styling; all/none are `<button type="button" className="tui-review-allnone">` mutating the same selection state; kind tag renders only when the description carries one (Task 8 appends ` · kind` when present; parser change not needed since kind rides the fix tail). Keep every color a var: accent for selection and primary, `--color-gray-okText` for PASS/RECOMMENDED text, `--color-gray-warnText` for Important pill text with `color-mix(in srgb, var(--amber) 15%, transparent)` washes, `--color-gray-badgeText` for kind-tag text, purple for the author, no literal hexes.
+First add `SearchCheckIcon`, `CameraIcon`, and `PencilLineIcon` to `icons.tsx` as inline SVG components following that file's existing pattern (24-unit viewBox, `currentColor` strokes; copy the path data from the lucide SVG set, which is ISC licensed, and note the origin in the icons.tsx header if it does not already credit it). lucide is NOT added as a dependency; the catalog and lockfile do not change. Then build exactly the structure above, the record cluster using those three components at 14px. Checkbox rows reuse `.tui-gate-choice-input[data-type='checkbox']` styling; all/none are `<button type="button" className="tui-review-allnone">` mutating the same selection state; kind tag renders from `parsed.kind` when present. Keep every color a var: accent for selection and primary, `--color-gray-okText` for PASS/RECOMMENDED text, `--color-gray-warnText` for Important pill text with `color-mix(in srgb, var(--amber) 15%, transparent)` washes, `--color-gray-badgeText` for kind-tag text, purple for the author, no literal hexes.
 
 - [ ] **Step 4: Append the CSS section**
 
@@ -638,7 +648,7 @@ Extract the current step 4 into the scratchpad and dry-run a fresh subagent with
 
 - [ ] **Step 2: Rewrite step 4**
 
-Replace the "Build the questions" block: read the json (fall back to tier options with a one-line note when it is absent); one option per finding, chunked at four per question (`findings-1..N`, Critical first, report order within tier); the JSON example in the skill uses invented content; verdict question label `Verdict on !<iid>: <readiness clause>`; keep the recommended-suffix, context-budget, resume, and degraded-mode paragraphs, updating the degraded combined-form and resume text to the same finding-id shape; answer handling passes `{findings: [ids], outcome}` to the domain skill (ids = union of the `findings-N` answers).
+Replace the "Build the questions" block: read the json (fall back to tier options with a one-line note when it is absent); one option per finding, chunked at four per question (`findings-1..N`, Critical first, report order within tier); option description is `anchor · fix` plus a ` · kind:<word>` suffix when the finding carries a kind; the JSON example in the skill uses invented content; verdict question label `Verdict on !<iid>: <readiness clause>`; keep the recommended-suffix, context-budget, resume, and degraded-mode paragraphs, updating the degraded combined-form and resume text to the same finding-id shape; answer handling passes `{findings: [ids], outcome}` to the domain skill (ids = union of the `findings-N` answers).
 
 - [ ] **Step 3: Verify with the same scenario**
 
