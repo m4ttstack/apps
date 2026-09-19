@@ -159,10 +159,10 @@ tui-kit and mantine-tokyo, recoloring every app in this repo.
 | --- | --- | --- |
 | accent | #4658FF | #3A3FE8 |
 | green (ok) | #00C287 | #008559 |
-| purple (identity) | #9B45FF | – |
-| cyan | #00B8D9 | – |
-| amber (warn/signal) | #FF8A00 | #BD6500 (wash #FFEDD8) |
-| red (bad) | #FF3D81 | – |
+| purple (identity) | #9B45FF | none |
+| cyan | #00B8D9 | none |
+| amber (warn/signal) | #FF8A00 | #B36000 (wash #FFEDD8) |
+| red (bad) | #FF3D81 | none |
 
 Text companions for green and amber are new token concepts (only accent had
 one); generation and consumers gain them together. Badges keep the

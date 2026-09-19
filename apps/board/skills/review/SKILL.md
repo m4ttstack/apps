@@ -125,7 +125,7 @@ remembered in the conversation.
    The outcome is NOT yours to decide, and do not mark `done` autonomously.
    This wrapper presents exactly **one** event gate — carrying `outcome` and,
    when the report has findings, one option per finding chunked into
-   `findings-1..N` — never a "disposition gate" and a "severity gate" as
+   `findings-1..N` -- never a "disposition gate" and a "severity gate" as
    two separate gates.
    Never map a "clean review" to Approve on your own — a clean review just
    means Approve is the sensible pick to *offer*. This is the gate contract
@@ -191,7 +191,11 @@ remembered in the conversation.
        all posts to the review's summary comment downstream, not an
        inline thread). When the finding carries a `kind`, append
        " · kind:<word>" to the very end of the description, `<word>` being
-       the report's `kind` value verbatim. Descriptions cap at 1024 UTF-8
+       the report's `kind` value verbatim. `<word>` must be lowercase and
+       hyphens only -- `finding-option.ts`'s `KIND_RE` is the parser's whole
+       vocabulary for it, so normalize anything else (case, spaces,
+       underscores) to that shape before it rides the description.
+       Descriptions cap at 1024 UTF-8
        bytes; if one would run over, shorten the fix gist, never the
        anchor and never the trailing kind suffix -- `finding-option.ts`'s
        parser reads the kind suffix off the literal end of the string.
@@ -327,10 +331,10 @@ remembered in the conversation.
        path this is `{"tiers": []}` instead, unchanged from before.
    - **Degraded mode.** If `gate open` exits nonzero (the daemon was down at
      open time), fall back to ONE combined `AskUserQuestion` carrying the
-     same questions the gate would have — every `findings-N` chunk plus
+     same questions the gate would have -- every `findings-N` chunk plus
      `outcome` when the json has findings (or the tier fallback's `tiers`
      plus `outcome` on the json-absent path), `outcome` alone on a clean
-     review — never the old two-gate pair, rendered by the same mechanical
+     review -- never the old two-gate pair, rendered by the same mechanical
      rules as presentation "form" above, and proceed on its answers.
      Follow `board:gate-cli-recipes`'s "A failing wait is not degradation"
      section for when to retry `gate wait` versus fall through to this
