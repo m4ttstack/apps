@@ -508,7 +508,7 @@ body {
   background: color-mix(in srgb, var(--pill) 17%, transparent);
 }
 .tui-phrase[data-hue='amber'] {
-  --pill: var(--amber);
+  --pill: var(--color-gray-warnText);
 }
 .tui-phrase[data-hue='cyan'] {
   --pill: var(--cyan);
