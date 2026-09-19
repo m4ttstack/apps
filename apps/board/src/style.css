@@ -3845,7 +3845,7 @@ body {
 }
 .tui-review-allnone-sep {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 /* rest faint; hover = accent + underline; mousedown deepens; a no-op end
    (already all / already none) drops to gray and stops taking clicks. */
@@ -3853,7 +3853,7 @@ body {
   border: none;
   background: none;
   padding: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   cursor: pointer;
 }
