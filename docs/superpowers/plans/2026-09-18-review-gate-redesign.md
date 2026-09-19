@@ -640,7 +640,7 @@ git commit -m "board: review gates open the sheet, submit splits chunk unions"
 
 **Interfaces:**
 - Consumes: `report.json` (contract in the spec section 1; the sibling of `--report`).
-- Produces: gate questions in the shape Tasks 5-7 parse: `findings-N` multis (option value = finding id, label = `[Tier] title` middle-truncated to 200 bytes, description = `anchor · fix` with ` · kind` appended when kind is present, 1024-byte cap), `outcome` single with descriptions and the `(recommended)` suffix; gate `--context` = readiness line + tier counts.
+- Produces: gate questions in the shape Tasks 5-7 parse: `findings-N` multis (option value = finding id, label = `[Tier] title` middle-truncated to 200 bytes, description = `anchor · fix` with ` · kind:<word>` appended when the finding carries a kind, 1024-byte cap), `outcome` single with descriptions and the `(recommended)` suffix; gate `--context` = readiness line + tier counts.
 
 - [ ] **Step 1: Capture the baseline**
 

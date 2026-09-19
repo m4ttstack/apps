@@ -53,7 +53,9 @@ Whenever the draft is written to a report file, write a sibling
 the draft exactly (never re-judged):
 
 - Required: `summary` ({`readiness`: `yes` | `no` | `with-fixes`,
-  `reasoning`: the assessment's qualifier in one or two sentences) and
+  `reasoning`: the assessment's qualifier in one or two sentences; the
+  draft's spaced "Ready to merge: with fixes" maps to readiness
+  `with-fixes`, hyphenated, never the spaced form) and
   `findings`: one entry per finding, in report order, `id` stable
   (`f1, f2, ...`), with `tier`, `kind` (nitpick / suggestion / thought /
   confirmation / question, or the closest word), `title`, `file` and
@@ -97,7 +99,7 @@ Dry-run a fresh subagent on the current Deliver text with an invented draft + a 
 
 Three surgical changes, keeping everything else byte-identical:
 1. The severity example line becomes: `"Findings: Critical (2), Important (1); 3 findings."`
-2. Decision intake: callers hand `{findings, outcome}` (finding ids); the terminal-run structured question keeps `tiers` as its own question (a terminal run has no per-finding UI) and maps the answer to ids by tier before executing posting; hand posting `{findings: <ids>, disposition: <outcome>}` and note the legacy tier form stays accepted by posting for older callers.
+2. Decision intake: callers hand `{findings, outcome}` (finding ids); the terminal-run structured question keeps `tiers` as its own question (a terminal run has no per-finding UI) and maps the answer to ids by tier through the report json before executing posting; hand posting `{findings: <ids>, disposition: <outcome>}`. Explicit fallback in the same breath: a caller that hands a tier-shaped selection (an unmigrated wrapper), or a tiers answer with no report json to map through, passes to posting as legacy `{levels: <tiers>, disposition: <outcome>}`, which posting accepts unchanged.
 3. The record line becomes: `rt runs decision record --contract gate@1 --scope post --selection '{"findings":["f1","f3"],"disposition":"comment"}' --decided-by <decider>` with the same decider rules.
 
 - [ ] **Step 3: Verify**
@@ -142,7 +144,7 @@ Expected: pass. Bump `.claude-plugin/plugin.json` to `0.17.19` in the same commi
 
 - [ ] **Step 1: Repo checks**
 
-Run from the repo root: `sh tests/repo-purity.sh` (if present per that repo's conventions; else skip with a note) and `rt skills check --pack mattstack` from the canonical checkout to see the expected drift listing (informational on a branch; sync happens post-merge).
+Run from the repo root: `sh tests/repo-purity.sh` and `rt skills check --pack mattstack --pack-dir <this branch worktree>` so check reads the branch's sources rather than canonical main (informational on a branch; sync happens post-merge).
 Expected: purity clean; check names exactly the three edited sources as pending.
 
 - [ ] **Step 2: Stop**
