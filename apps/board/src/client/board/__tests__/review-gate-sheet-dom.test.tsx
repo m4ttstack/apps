@@ -307,6 +307,15 @@ const RESPOND_GATE: GateRow = {
   kind: 'respond-plan',
 };
 
+test('the previous-gate chevron is disabled even when queue.index > 0, since backward queue traversal does not exist', async () => {
+  await render(); // QUEUE.index is 1
+
+  const prev = container.querySelector(
+    '[aria-label="previous gate"]'
+  ) as HTMLButtonElement;
+  expect(prev.disabled).toBe(true);
+});
+
 test('isReviewSheetGate is true for a finding-shaped gate and an outcome-only gate, false for a tier-option gate or a respond-plan gate', () => {
   expect(isReviewSheetGate(GATE)).toBe(true);
   expect(isReviewSheetGate(CLEAN_GATE)).toBe(true);

@@ -384,11 +384,15 @@ function ReviewGateSheet({
         </span>
         <span className="tui-review-sheet-spacer" />
         <nav className="tui-review-queue-nav" aria-label="gate queue">
+          {/* No backward queue traversal exists yet (the queue only ever
+              advances); unconditionally disabled rather than a live control
+              with nothing behind it. */}
           <button
             type="button"
             className="tui-review-queue-chevron"
             onClick={queue.onPrev}
-            disabled={queue.index <= 0}
+            disabled
+            aria-disabled="true"
             aria-label="previous gate"
           >
             ‹
