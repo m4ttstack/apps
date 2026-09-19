@@ -1865,11 +1865,15 @@ body {
 /* review gate card: the questions a review pane opened on this row, answered
    inline in the triage modal. */
 .tui-gate-card,
-.tui-triage-modal {
+.tui-triage-modal,
+.tui-review-sheet {
   /* Gate-scoped contrast lift: the kit's --border and --muted-text sit too
      close to --card in dark, so the gate chrome takes its own edge/text
      values -- now aliases onto the kit's own on-card tokens rather than a
-     hand-kept copy of them. */
+     hand-kept copy of them. The review sheet joins this scope (its own
+     section below resets the box-model rules this selector also carries)
+     so its reused `.tui-gate-choice`/`.tui-gate-choice-input`/`.tui-gate-note`
+     rows resolve the same custom properties the triage modal's do. */
   --gate-edge: var(--border-on-card);
   --gate-control-edge: var(--border-control-on-card);
   --gate-muted: var(--text-muted-on-card);
@@ -3563,4 +3567,413 @@ body {
 }
 .tui-tabs-drop .tui-modal-input {
   flex: 1 1 200px;
+}
+
+/* review gate sheet */
+.tui-review-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  gap: 0;
+  background: var(--card);
+  color: var(--fg);
+  font-size: var(--gate-font-body);
+  display: flex;
+  flex-direction: column;
+}
+.tui-review-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.tui-review-sheet-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tui-review-sheet-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tui-review-sheet-spacer {
+  flex: 1;
+}
+.tui-review-queue-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tui-review-queue-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+.tui-review-queue-chevron:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.tui-review-queue-chevron:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.5;
+}
+.tui-review-queue-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tui-review-queue-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.tui-review-queue-pip[data-state='done'] {
+  background: color-mix(in srgb, var(--fg) 55%, transparent);
+}
+.tui-review-queue-pip[data-state='active'] {
+  background: var(--accent);
+}
+.tui-review-queue-pip[data-state='skipped'] {
+  background: var(--amber);
+}
+.tui-review-queue-pip[data-state='todo'] {
+  background: transparent;
+  border: 1px solid var(--border);
+}
+.tui-review-queue-pos {
+  font-size: var(--gate-font-meta);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tui-review-gate-tag {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.tui-review-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.tui-review-close:hover {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+.tui-review-sheet-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.tui-review-sheet-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 28px;
+}
+.tui-review-sheet-rail {
+  width: 470px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 26px;
+  overflow-y: auto;
+}
+
+/* MR card */
+.tui-review-mr-card {
+  margin-bottom: 20px;
+}
+.tui-review-mr-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tui-review-author {
+  color: var(--purple);
+  font-weight: 600;
+}
+.tui-review-mr-open {
+  color: var(--muted);
+  font-size: var(--gate-font-meta);
+}
+.tui-review-mr-title {
+  margin: 6px 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.tui-review-mr-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: var(--gate-font-meta);
+  font-family: var(--font-mono);
+}
+.tui-review-diff {
+  display: inline-flex;
+  gap: 6px;
+}
+.tui-review-diff-add {
+  color: var(--color-gray-okText);
+}
+.tui-review-diff-del {
+  color: var(--red-text);
+}
+
+/* findings list */
+.tui-review-find-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 18px 0 10px;
+}
+.tui-review-find-title {
+  font-weight: 600;
+}
+.tui-review-find-tally {
+  color: var(--muted);
+  font-size: var(--gate-font-meta);
+  white-space: nowrap;
+}
+.tui-review-find-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* Bottom fade cues more findings below the fold -- sticky so it tracks the
+   scrolling main region's visible edge rather than the list's own end. */
+.tui-review-find-list::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  display: block;
+  height: 46px;
+  margin-top: -46px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--card));
+}
+.tui-review-find-list[data-at-end]::after {
+  display: none;
+}
+.tui-review-tier-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tui-review-tier-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tui-review-tier-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-gray-mutedText);
+  background: color-mix(in srgb, var(--fg) 7%, transparent);
+}
+.tui-review-tier-pill[data-tier='Critical'] {
+  color: var(--red-text);
+  background: color-mix(in srgb, var(--red) 15%, transparent);
+}
+.tui-review-tier-pill[data-tier='Important'] {
+  color: var(--color-gray-warnText);
+  background: color-mix(in srgb, var(--amber) 15%, transparent);
+}
+.tui-review-allnone-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+/* rest faint; hover = accent + underline; mousedown deepens; a no-op end
+   (already all / already none) drops to gray and stops taking clicks. */
+.tui-review-allnone {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tui-review-allnone:hover {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+.tui-review-allnone:active {
+  color: color-mix(in srgb, var(--accent) 80%, var(--fg));
+}
+.tui-review-allnone[data-noop] {
+  color: var(--muted);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.tui-review-finding-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.tui-review-finding-row .tui-gate-choice-input {
+  margin-top: 2px;
+}
+.tui-review-finding-title {
+  font-weight: 500;
+}
+.tui-review-finding-kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-gray-badgeText);
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+.tui-review-finding-anchor {
+  font-family: var(--font-mono);
+  font-size: var(--gate-font-meta);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.tui-review-finding-fix {
+  color: var(--muted);
+  font-size: var(--gate-font-meta);
+}
+
+/* review record cluster: STRENGTHS / DEPTH / EVIDENCE / NOTES sharing one
+   right-aligned label column and one text edge. */
+.tui-review-record {
+  margin: 22px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tui-review-record-row {
+  display: flex;
+  gap: 14px;
+  margin: 0;
+}
+.tui-review-record-label {
+  width: 78px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: 2px;
+}
+.tui-review-record-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+}
+.tui-review-record-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.tui-review-record-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--muted);
+  display: inline-flex;
+}
+.tui-review-record-icon-ok {
+  color: var(--color-gray-okText);
+}
+.tui-review-full-report {
+  margin-top: 22px;
+}
+
+/* right rail */
+.tui-review-decision-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.tui-review-decision-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.tui-review-decision-lead {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-gray-okText);
+}
+.tui-review-decision-reasoning {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--gate-font-meta);
+}
+.tui-review-tier-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.tui-review-checks-card {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.tui-review-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tui-review-verdict-heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
 }
