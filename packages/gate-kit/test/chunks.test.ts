@@ -1,7 +1,11 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 
-import { chunkGroupKey, collapseChunks, splitChunkSelections } from './chunks';
-import type { GateQuestion } from './types';
+import {
+  chunkGroupKey,
+  collapseChunks,
+  splitChunkSelections,
+} from '@mattstack/gate-kit';
+import type { GateQuestion } from '@mattstack/gate-kit';
 
 const q = (id: string, options: string[], multi = true): GateQuestion => ({
   id,
