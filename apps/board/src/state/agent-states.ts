@@ -304,8 +304,9 @@ export function ingestReport(
     shown): stamp pruned_at and null the ingested report rather than delete,
     so a review row can be resurrected if its MR returns to the board still
     carrying an armed latch. Best-effort unlink each tombstoned row's
-    handle-sibling .md scratch file so pane report handoffs never accumulate
-    once their row goes dark. */
+    handle-sibling .md scratch file (and its .json structured-report
+    sibling, if any) so pane report handoffs never accumulate once their
+    row goes dark. */
 export function pruneStates(
   lane: Lane,
   keepUrls: ReadonlySet<string>,
@@ -341,10 +342,16 @@ export function pruneStates(
   });
   if (!committed) return;
   for (const row of stale) {
+    const mdPath = reportPathForHandle(row.handle);
     try {
-      unlinkSync(reportPathForHandle(row.handle));
+      unlinkSync(mdPath);
     } catch {
       // no sibling report to remove
+    }
+    try {
+      unlinkSync(mdPath.replace(/\.md$/, '.json'));
+    } catch {
+      // no sibling structured report to remove
     }
   }
 }

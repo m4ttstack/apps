@@ -1,6 +1,8 @@
+import { readFileSync } from 'fs';
 import { Database } from 'bun:sqlite';
 
 import {
+  boardStateRoot,
   dropPrunedState,
   getStateDb,
   insertAgentState,
@@ -79,6 +81,26 @@ export function reviewFilePath(mrUrl: string): string {
     location without passing it around. Still the pane's scratch handoff. */
 export function reviewReportPath(handle: string): string {
   return reportPathForHandle(handle);
+}
+
+/** Sibling `.json` structured report a review pane can write beside its
+    `.md` one, for the sheet UI. Read straight off disk rather than ingested
+    into the db like the markdown (see readReviewReport): it reflects
+    whatever the pane last wrote at read time. `root` defaults to the real
+    board state root; tests pass their own tmp dir, matching mintHandle. */
+export function readReviewReportJson(
+  mrUrl: string,
+  root: string = boardStateRoot()
+): string | null {
+  const reportPath = reviewReportPath(mintHandle('review', mrUrl, root));
+  const jsonPath = /\.md$/.test(reportPath)
+    ? reportPath.replace(/\.md$/, '.json')
+    : `${reportPath}.json`;
+  try {
+    return readFileSync(jsonPath, 'utf8');
+  } catch {
+    return null;
+  }
 }
 
 /** The written review markdown for an MR, or null if the agent hasn't saved one. */
