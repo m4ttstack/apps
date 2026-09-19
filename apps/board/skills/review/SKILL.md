@@ -209,8 +209,9 @@ remembered in the conversation.
        (see the flag table); this redesign doesn't add a third. Each
        option now carries a `description`: a short one-liner of what
        picking it *does* for this review, not a restatement of the label.
-       Mark the one you'd recommend by listing it FIRST with a label
-       ending in " (recommended)", same convention as before.
+       See "Mark the recommended outcome" below the fallback branch for
+       the recommended-suffix rule -- it's unconditional, not specific to
+       this branch.
      - **Clean review** (empty or missing `findings`): omit every
        `findings-N` question and open the gate with `outcome` alone, so a
        clean review is approvable in one click -- unchanged from before.
@@ -220,7 +221,10 @@ remembered in the conversation.
      print one line in the pane noting the fallback (e.g. "report.json not
      found; falling back to tier-level options") so a human watching knows
      posting will be tier-grained instead of per-finding. Posting still
-     accepts this legacy `{tiers, outcome}` shape:
+     accepts this legacy `{tiers, outcome}` shape. Add a `tiers` question
+     (multi-select over the severity levels the domain skill reported
+     present, or your own findings' levels on the generic no-domain-skill
+     path) only when at least one level is present:
 
      ```json
      [
@@ -237,18 +241,39 @@ remembered in the conversation.
      finding titles ride this `tiers` question's own `context` (one line
      per finding, verbatim from the report file, never re-summarized).
 
+     When no levels are present here either (a clean review with no
+     findings, and no json to confirm it), omit the `tiers` question the
+     same way as the per-finding path and open the gate with `outcome`
+     alone, so a clean review is approvable in one click on this branch
+     too:
+
+     ```json
+     [{"id": "outcome", "label": "Verdict", "multi": false, "options": ["comment", "approve"]}]
+     ```
+
+     **Mark the recommended outcome on every branch above**,
+     unconditionally, the same convention as before: list it FIRST and
+     give it a label ending in " (recommended)", e.g. `[{"value":
+     "approve", "label": "approve (recommended)"}, "comment"]` -- the
+     other option can stay a bare string. The outcome question's shape
+     doesn't change between branches; only whether a `findings-N` or
+     `tiers` question sits alongside it does.
+
    - **Open the gate:**
      `<status-bin> gate open <state> --kind review-post --questions <json> --context <context text>`
      The output is one JSON line: `{"gateId": "...", "presentation": "form"}` or `"wait"`.
-     `--context` carries the readiness line (`summary.readiness` plus
-     `summary.reasoning`, verbatim) and a tier-counts line (e.g. "Critical
-     (1), Important (3), Minor (2)"); it's the only context carrier this
-     gate uses now, since finding titles ride the `findings-N` options
-     instead of question `context` (the tier-fallback path above is the
-     one exception, whose `tiers` question still carries the finding
-     titles in its own `context`). `--context` fits inside the gate's 8192
-     UTF-8 byte budget; an oversized one is dropped loudly by the daemon,
-     not by you -- never pre-trim it yourself.
+     On the per-finding path, `--context` carries the readiness line
+     (`summary.readiness` plus `summary.reasoning`, verbatim) and a
+     tier-counts line (e.g. "Critical (1), Important (3), Minor (2)");
+     it's the only context carrier this gate uses, since finding titles
+     ride the `findings-N` options instead of question `context`. On the
+     tier-fallback path there's no `summary` to read a readiness line
+     from, so `--context` carries only the tier-counts line, same as
+     before the redesign -- the `tiers` question still carries the
+     finding titles in its own `context`, unchanged. Either way,
+     `--context` fits inside the gate's 8192 UTF-8 byte budget; an
+     oversized one is dropped loudly by the daemon, not by you -- never
+     pre-trim it yourself.
    - **presentation "form":** follow `mattstack:gate-protocol`'s "Acting
      on the response" (form branch) and "CAS and the doorbell" sections
      (stable source checkout, machine-local by design: `cat
