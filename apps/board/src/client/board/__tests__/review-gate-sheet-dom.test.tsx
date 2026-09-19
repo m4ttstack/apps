@@ -456,8 +456,10 @@ test('one malformed option in a findings question does not hide the rest: the qu
   expect(tally?.textContent).toContain('2 of 2 selected');
 });
 
-test('a malformed report.json renders the sheet without throwing and skips the record cluster\'s bad parts', async () => {
-  (globalThis as { fetch: unknown }).fetch = async (input: RequestInfo | URL) => {
+test("a malformed report.json renders the sheet without throwing and skips the record cluster's bad parts", async () => {
+  (globalThis as { fetch: unknown }).fetch = async (
+    input: RequestInfo | URL
+  ) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (url.startsWith('/review/report.json')) {
       return new Response(
