@@ -3824,10 +3824,8 @@ body {
   align-items: center;
   padding: 2px 8px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
   color: var(--color-gray-mutedText);
   background: color-mix(in srgb, var(--fg) 7%, transparent);
 }
@@ -3881,6 +3879,14 @@ body {
 .tui-review-finding-row .tui-gate-choice-input {
   margin-top: 3px;
 }
+/* The mock's checked box carries a white checkmark; the shared control is
+   a bare accent fill, so the glyph rides a sheet-scoped background image. */
+.tui-review-finding-row .tui-gate-choice-input[data-checked] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 11px 11px;
+}
 .tui-review-finding-body {
   display: flex;
   flex-direction: column;
@@ -3899,9 +3905,7 @@ body {
   min-width: 0;
 }
 .tui-review-finding-kind {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-size: 11px;
   color: var(--color-gray-badgeText);
   background: color-mix(in srgb, var(--fg) 8%, transparent);
   border-radius: 4px;
@@ -3969,7 +3973,7 @@ body {
   display: inline-flex;
 }
 .tui-review-record-icon-ok {
-  color: var(--color-gray-okText);
+  color: var(--green);
 }
 /* Strengths' two-line entries: a dark lead, a dim detail underneath --
    never inline with a separator dot. */

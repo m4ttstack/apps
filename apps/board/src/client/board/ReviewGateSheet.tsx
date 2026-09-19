@@ -16,7 +16,6 @@ import {
 import {
   Button,
   Chip,
-  ICONS,
   Markdown,
   useBodyScrollLock,
   useEscapeClose,
@@ -29,7 +28,11 @@ import { parseFindingOption, type ParsedFinding } from './finding-option.ts';
 import { ago, cleanTitle } from './format.ts';
 import { parseGateContext, sectionFor } from './gate-context.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
-import { PencilLineIcon, SearchCheckIcon } from './icons.tsx';
+import {
+  CircleCheckFilledIcon,
+  PencilLineIcon,
+  SearchCheckIcon,
+} from './icons.tsx';
 
 /** Readiness values (`with-fixes`, `blocked`, ...) come as hyphenated
     tokens whether they arrive from `report.summary.readiness` or from a
@@ -624,7 +627,7 @@ function ReviewGateSheet({
                     {strengths.map((s, i) => (
                       <div className="tui-review-record-item" key={i}>
                         <span className="tui-review-record-icon tui-review-record-icon-ok">
-                          {ICONS['circle-check']}
+                          <CircleCheckFilledIcon />
                         </span>
                         <span className="tui-review-record-stack">
                           <span className="tui-review-record-lead">

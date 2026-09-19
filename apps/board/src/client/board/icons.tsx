@@ -186,6 +186,23 @@ const RECORD_ICON = {
   style: { flexShrink: 0 } as const,
 } as const;
 
+/** Strengths' mark: circle-check with the disc filled in currentColor and
+    the check knocked out, matching the mock's solid green badge. */
+export function CircleCheckFilledIcon() {
+  return (
+    <svg {...RECORD_ICON} stroke="none">
+      <circle cx="12" cy="12" r="10" fill="currentColor" />
+      <path
+        d="m9 12 2 2 4-4"
+        stroke="#fff"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function SearchCheckIcon() {
   return (
     <svg {...RECORD_ICON}>
