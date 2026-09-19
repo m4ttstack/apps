@@ -821,9 +821,11 @@ function ReviewGateSheet({
                   >
                     {form.busy
                       ? 'submitting…'
-                      : outcomeText
-                        ? `post ${selectedFindings.size} · ${outcomeText}`
-                        : `post ${selectedFindings.size}`}
+                      : findingsQuestion === undefined
+                        ? (outcomeText ?? 'submit')
+                        : outcomeText
+                          ? `post ${selectedFindings.size} · ${outcomeText}`
+                          : `post ${selectedFindings.size}`}
                   </Button>
                   <Button
                     type="button"

@@ -316,6 +316,17 @@ test('the previous-gate chevron is disabled even when queue.index > 0, since bac
   expect(prev.disabled).toBe(true);
 });
 
+test('a clean review labels the submit with the outcome alone, never post 0', async () => {
+  await render(CLEAN_GATE);
+
+  expect(buttonByText('approve')).toBeDefined();
+  expect(
+    [...container.querySelectorAll('button')].some(b =>
+      b.textContent?.includes('post 0')
+    )
+  ).toBe(false);
+});
+
 test('isReviewSheetGate is true for a finding-shaped gate and an outcome-only gate, false for a tier-option gate or a respond-plan gate', () => {
   expect(isReviewSheetGate(GATE)).toBe(true);
   expect(isReviewSheetGate(CLEAN_GATE)).toBe(true);
