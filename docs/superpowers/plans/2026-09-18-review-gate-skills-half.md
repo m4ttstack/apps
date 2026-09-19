@@ -14,7 +14,8 @@
 
 - Repo: a worktree of `/Users/matt/Documents/GitHub/mattstack-skills`, provisioned with `rt worktree provision` (never hand-rolled `git worktree add`); branch from main.
 - These files compile into employer-visible packs: no ticket references anywhere, no em dashes, no real review content in examples (invented `acme/webapp` examples only).
-- Skill edits follow superpowers:writing-skills discipline: baseline a fresh reader on the current text before editing, verify the edited text changes the behavior, and keep additions in the file's existing voice and density.
+- REQUIRED SUB-SKILLS: load superpowers:writing-skills AND mattstack:editing-skills before touching any file; both govern every edit in this plan.
+- Skill edits follow superpowers:writing-skills discipline: baseline a fresh reader on the current text before editing, verify the edited text changes the behavior, and keep additions in the file's existing voice and density. Every baseline and every verify runs at least 3 fresh-context reps; a verify passes only when the reps converge on the compliant behavior, and each transcript summary lands in the report file.
 - Every content change certifies: `sh tests/certify.sh <edited dir>` from the repo root, and the plugin version bumps once in the same commit series (`.claude-plugin/plugin.json`, currently `0.17.18`, one patch bump for the whole plan).
 - Fixed vocabulary from the spec, verbatim: readiness `yes | no | with-fixes`; tiers `Critical | Important | Minor`; finding fields `id, tier, kind, title, file, line, fix` (+ `fileLabel` for non-anchorable); optional blocks `depth`, `strengths [{lead, detail}]`, `checks [{tag, text}]`, `notes []`; selection `{findings: [ids], disposition}` with legacy `{levels}` accepted.
 
@@ -146,7 +147,7 @@ Expected: purity clean; check names exactly the three edited sources as pending.
 
 - [ ] **Step 2: Stop**
 
-Do NOT run `rt skills sync` from the branch. Post-merge, from canonical main: `rt skills sync --pack mattstack`, then `rt skills sync --pack <each compiled pack>`, then restart sessions it names. That handoff belongs to the operator.
+Do NOT run `rt skills sync` from the branch. Post-merge, from canonical main: `rt skills sync --pack mattstack`, then `rt skills sync --pack <each compiled pack>`, then restart sessions it names, and per mattstack:editing-skills' Final Validation read the compiled output of every affected verb IN FULL (no grep) against the expected text. That handoff belongs to the operator.
 
 ## Self-review notes
 
