@@ -20,6 +20,7 @@ import {
   useGateForm,
   type GateFormState,
 } from './GateForm.tsx';
+import { isReviewSheetGate, ReviewGateSheet } from './ReviewGateSheet.tsx';
 import {
   DELIVERY_STUCK_MESSAGE,
   EXECUTION_UNASSIGNED_MESSAGE,
@@ -237,6 +238,32 @@ function DecisionQueueModal({
   useEffect(() => {
     onLostChange?.(form.lost !== null);
   }, [form.lost, onLostChange]);
+
+  // `actionable` also keeps a stuck/unassigned-delivery review-post gate on
+  // DeliveryStatusCard: the sheet has no face for retrying a stored answer,
+  // only for building a fresh one.
+  if (isReviewSheetGate(gate) && actionable) {
+    return (
+      <ReviewGateSheet
+        gate={gate}
+        mr={mr}
+        form={form}
+        queue={{
+          index: position - 1,
+          total: states.length,
+          states,
+          // The queue only ever advances (skip or answer); there is no
+          // backward traversal to wire the previous chevron to, so it is
+          // inert rather than skipping a gate the reviewer meant to revisit.
+          onPrev: () => {},
+          onNext: onSkip,
+        }}
+        onClose={onClose}
+        onSkip={onSkip}
+        onFocusPane={onFocusPane}
+      />
+    );
+  }
 
   return (
     <Modal

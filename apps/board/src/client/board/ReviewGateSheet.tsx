@@ -6,6 +6,7 @@ import {
   displayForValue,
   optionDisplayFor,
   optionValue,
+  splitChunkSelections,
   type GateAnswers,
   type GateDomain,
   type GateOption,
@@ -51,14 +52,17 @@ export interface ReviewGateSheetQueue {
 }
 
 /** True when a gate is the review-post shape this sheet renders: at least
-    one question option parses as a finding (`[Tier] title`). A gate whose
-    only multi question is the legacy per-tier checkbox ("Minor (4)") falls
-    through to the generic decision-queue modal instead. */
+    one question option parses as a finding (`[Tier] title`), or the gate
+    carries no multi question at all (a clean review, outcome only). A gate
+    whose only multi question is the legacy per-tier checkbox ("Minor (4)")
+    falls through to the generic decision-queue modal instead. */
 export function isReviewSheetGate(gate: GateRow): boolean {
   if (gate.kind !== 'review-post') return false;
-  return gate.questions.some(q =>
+  const hasFindingOption = gate.questions.some(q =>
     q.options.some(o => parseFindingOption(o) !== null)
   );
+  if (hasFindingOption) return true;
+  return !gate.questions.some(q => q.multi);
 }
 
 function hasRecord(report: ReviewReportJson | null): boolean {
@@ -115,6 +119,24 @@ function FullReportDisclosure({ mrUrl }: { mrUrl?: string | null }) {
   );
 }
 
+/** The collapsed multi's checked union, e.g. `{ findings: [...] }` -- the
+    only array-valued answer on this form -- ready for
+    `splitChunkSelections`'s per-chunk `Record<string, string[]>` input. */
+function pickMultis(answers: GateAnswers): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(answers))
+    if (Array.isArray(value)) out[key] = value;
+  return out;
+}
+
+/** Every non-array answer (the outcome, bare or `{value, note}`) untouched. */
+function singles(answers: GateAnswers): GateAnswers {
+  const out: GateAnswers = {};
+  for (const [key, value] of Object.entries(answers))
+    if (!Array.isArray(value)) out[key] = value;
+  return out;
+}
+
 function tierGroupsOf(
   findings: ParsedFinding[]
 ): Array<[string, ParsedFinding[]]> {
@@ -153,7 +175,7 @@ function ReviewGateSheet({
   useEscapeClose(onClose);
   useBodyScrollLock();
 
-  const { questions } = useMemo(
+  const { questions, groups } = useMemo(
     () => collapseChunks(gate.questions),
     [gate.questions]
   );
@@ -319,7 +341,10 @@ function ReviewGateSheet({
           ? { value: selectedOutcome, note: trimmedNote }
           : selectedOutcome,
     };
-    void form.submit({ answers });
+    void form.submit({ answers }, submitted => ({
+      ...splitChunkSelections(groups, gate.questions, pickMultis(submitted)),
+      ...singles(submitted),
+    }));
   };
 
   const parked = gate.status === 'parked';

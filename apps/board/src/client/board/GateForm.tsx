@@ -157,16 +157,22 @@ function useGateForm(gate: GateRow, onAnswered?: () => void) {
     }
   };
 
-  const submit = async (payload: { answers: GateAnswers } | null) => {
+  const submit = async (
+    payload: { answers: GateAnswers } | null,
+    transformAnswers?: (answers: GateAnswers) => GateAnswers
+  ) => {
     if (!payload || busy) return;
     setBusy(true);
     setFailed(false);
     setLost(null);
+    const answers = transformAnswers
+      ? transformAnswers(payload.answers)
+      : payload.answers;
     try {
       const res = await fetch('/gate/answer', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ gateId: gate.gateId, answers: payload.answers }),
+        body: JSON.stringify({ gateId: gate.gateId, answers }),
       });
       const outcome = resolveAnswerOutcome(
         res.status,

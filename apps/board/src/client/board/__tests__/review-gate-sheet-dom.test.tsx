@@ -292,9 +292,26 @@ test('the verdict renders as gate choices with the recommended badge', async () 
   expect(recommended?.textContent?.trim()).toBe('recommended');
 });
 
-test('isReviewSheetGate is true for a finding-shaped gate and false for a tier-option gate', () => {
+/** No findings question at all: a clean review still opens the sheet
+    (controller ruling, Task 6/7) since there's nothing a tier-option gate
+    would have that a bare verdict question doesn't already cover. */
+const CLEAN_GATE: GateRow = {
+  ...GATE,
+  gateId: 'g-clean',
+  questions: [GATE.questions[2]!],
+};
+
+const RESPOND_GATE: GateRow = {
+  ...GATE,
+  gateId: 'g-respond',
+  kind: 'respond-plan',
+};
+
+test('isReviewSheetGate is true for a finding-shaped gate and an outcome-only gate, false for a tier-option gate or a respond-plan gate', () => {
   expect(isReviewSheetGate(GATE)).toBe(true);
+  expect(isReviewSheetGate(CLEAN_GATE)).toBe(true);
   expect(isReviewSheetGate(TIER_GATE)).toBe(false);
+  expect(isReviewSheetGate(RESPOND_GATE)).toBe(false);
 });
 
 test('a note on the outcome question posts as {value, note}, not silently dropped', async () => {
@@ -315,8 +332,10 @@ test('a note on the outcome question posts as {value, note}, not silently droppe
     value: 'approve',
     note: 'Merge once CI settles.',
   });
-  // The findings union is untouched by the note wrap -- still a bare array.
-  expect(Array.isArray(body.answers.findings)).toBe(true);
+  // The note wrap on outcome doesn't disturb the chunk split.
+  expect(body.answers.findings).toBeUndefined();
+  expect(body.answers['findings-1']).toEqual(['f1', 'f2', 'f3', 'f4']);
+  expect(body.answers['findings-2']).toEqual(['f5', 'f6']);
 });
 
 test('a blank or whitespace-only note posts the bare selection, not an empty note', async () => {
@@ -357,6 +376,35 @@ test('reset re-seeds every finding checked and the recommended outcome, never a 
   expect(container.querySelector('.tui-review-submit')?.textContent).not.toBe(
     'post 6 · '
   );
+});
+
+function checkboxForTitle(title: string): HTMLInputElement {
+  const row = [...container.querySelectorAll('.tui-review-finding-row')].find(
+    r => r.querySelector('.tui-review-finding-title')?.textContent === title
+  );
+  if (!row) throw new Error(`no finding row titled "${title}"`);
+  return row.querySelector('input[type="checkbox"]') as HTMLInputElement;
+}
+
+test('submit splits the checked union back into the original findings-1/findings-2 chunks, with an explicit [] for an emptied chunk', async () => {
+  await render();
+
+  // Both findings-2 rows unchecked: that chunk posts an explicit [], while
+  // findings-1 (untouched) posts its full four-id union.
+  await click(checkboxForTitle('Retry loop lacks backoff'));
+  await click(checkboxForTitle('Inconsistent spacing'));
+
+  await click(buttonByText('post 4 · approve'));
+
+  const answerPost = posts.find(p => p.url === '/gate/answer');
+  expect(answerPost).toBeDefined();
+  const body = answerPost!.body as { answers: Record<string, unknown> };
+  expect(body.answers).toEqual({
+    'findings-1': ['f1', 'f2', 'f3', 'f4'],
+    'findings-2': [],
+    outcome: 'approve',
+  });
+  expect(body.answers.findings).toBeUndefined();
 });
 
 test('a verdict recommendation carried in gate.context drives the badge, the default pick, and the decision-card fallback prose', async () => {
