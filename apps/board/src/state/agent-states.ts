@@ -342,26 +342,35 @@ export function pruneStates(
   });
   if (!committed) return;
   for (const row of stale) {
-    // Re-check the tombstone right before touching the filesystem: every
-    // revival path (insert, updateByHandle, resurrect) clears pruned_at,
-    // and a relaunch between the commit above and this loop writes fresh
-    // reports at this same deterministic handle path. Deleting those
-    // would hand the new cycle a silent data loss, so a revived row keeps
-    // its files and the next prune cycle owns their cleanup.
-    const live = db
-      .query('SELECT pruned_at FROM agent_states WHERE lane = ? AND mr_url = ?')
-      .get(lane, row.mr_url) as { pruned_at: number | null } | null;
-    if (!live || live.pruned_at === null) continue;
-    const mdPath = reportPathForHandle(row.handle);
-    try {
-      unlinkSync(mdPath);
-    } catch {
-      // no sibling report to remove
-    }
-    try {
-      unlinkSync(mdPath.replace(/\.md$/, '.json'));
-    } catch {
-      // no sibling structured report to remove
-    }
+    // The tombstone re-check and the unlinks run inside one IMMEDIATE
+    // transaction: it exists for mutual exclusion, not atomicity of the
+    // filesystem ops. Every revival path (insert, updateByHandle,
+    // resurrect) clears pruned_at through its own write, and holding the
+    // db write lock across check+unlink means a relaunch lands entirely
+    // before the check (pruned_at NULL, files spared) or entirely after
+    // the unlinks (its fresh reports are never the ones deleted). A busy
+    // skip is the lock saying a revival is in flight -- sparing the files
+    // is exactly right, and the next prune cycle owns their cleanup.
+    persistOrWarn('agent-state prune unlink', () => {
+      db.transaction(() => {
+        const live = db
+          .query(
+            'SELECT pruned_at FROM agent_states WHERE lane = ? AND mr_url = ?'
+          )
+          .get(lane, row.mr_url) as { pruned_at: number | null } | null;
+        if (!live || live.pruned_at === null) return;
+        const mdPath = reportPathForHandle(row.handle);
+        try {
+          unlinkSync(mdPath);
+        } catch {
+          // no sibling report to remove
+        }
+        try {
+          unlinkSync(mdPath.replace(/\.md$/, '.json'));
+        } catch {
+          // no sibling structured report to remove
+        }
+      }).immediate();
+    });
   }
 }
