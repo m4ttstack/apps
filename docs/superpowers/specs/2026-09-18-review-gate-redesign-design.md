@@ -114,8 +114,8 @@ Layout (locked in the pen mock):
   group headers (wash pill + all/none links); rows = accent checkbox,
   title, kind tag, mono anchor, fix gist; then the review record cluster:
   STRENGTHS / DEPTH / EVIDENCE / NOTES sharing one right-aligned label
-  column and one text edge, green disc checks on strengths, muted lucide
-  icons (search-check, camera, pencil-line) on the rest.
+  column and one text edge, green disc checks on strengths, muted inline
+  record icons (search-check, camera, pencil-line shapes) on the rest.
 - **Right rail**: Decision context card (small-caps label, readiness lead,
   reasoning, tier pills), checks card (fixed-width PASS/N/A chips), then
   "Verdict on !<iid>", the option cards (kit geometry: 1px border, 7px
@@ -167,8 +167,7 @@ tui-kit and mantine-tokyo, recoloring every app in this repo.
 Text companions for green and amber are new token concepts (only accent had
 one); generation and consumers gain them together. Badges keep the
 light-wash-plus-colored-text concept. Contrast held approximately in the
-mock; the token PR does a proper AA pass. Gray badge texts darkened one
-step (kind tags #454B66, N/A chips #565d80).
+mock; the token PR does a proper AA pass. Gray badge texts darkened one step: kind tags read a new badgeText token (#454b66 light, #aab3d8 dark); N/A chips read mutedText (#565d80).
 
 Open question: the recolor lands on every app at once; decide before merge
 whether to eyeball chat/console/deck served locally first.

@@ -60,7 +60,7 @@
 
 - [ ] **Step 2: Add the two text companions**
 
-In the `ColorScheme` interface `text` member add `okText: string;` and `warnText: string;` after `accentText`. Light values: `accentText: '#3a3fe8'`, `okText: '#008559'`, `warnText: '#bd6500'`. Dark values equal the dark hues (already AA on dark surfaces): `okText: '#9ece6a'`, `warnText: '#e0af68'`. Leave every other dark value untouched.
+In the `ColorScheme` interface `text` member add `okText: string;`, `warnText: string;`, and `badgeText: string;` after `accentText`. Light values: `accentText: '#3a3fe8'`, `okText: '#008559'`, `warnText: '#bd6500'`, `badgeText: '#454b66'` (the darkened small-badge text the mock locked). Dark values: `okText: '#9ece6a'`, `warnText: '#e0af68'` (the dark hues, already AA there), `badgeText: '#aab3d8'` (matches dark mutedOnCard). Leave every other dark value untouched.
 
 - [ ] **Step 3: Emit the new leaves in `generate.ts`**
 
@@ -69,9 +69,10 @@ In `buildTuiKitColors`'s `gray` map, after the `accentText` line:
 ```ts
       okText: at('text.okText', t.text.okText),
       warnText: at('text.warnText', t.text.warnText),
+      badgeText: at('text.badgeText', t.text.badgeText),
 ```
 
-In `buildTokyoDeclarations`, after `accentText`: `okText: at('text.okText', t.text.okText),` and after `amber`: `amberText: at('text.warnText', t.text.warnText),`. In `renderTokyoSchemeBlock`'s declaration array add `--tk-green-text: ${d.okText};` directly after the `--tk-green` line and `--tk-amber-text: ${d.amberText};` after `--tk-amber`. Do not touch `CSS_TEXT` (new leaves have no historical spelling to preserve).
+In `buildTokyoDeclarations`, after `accentText`: `okText: at('text.okText', t.text.okText),`, `badgeText: at('text.badgeText', t.text.badgeText),` and after `amber`: `amberText: at('text.warnText', t.text.warnText),`. In `renderTokyoSchemeBlock`'s declaration array add `--tk-green-text: ${d.okText};` directly after the `--tk-green` line, `--tk-amber-text: ${d.amberText};` after `--tk-amber`, and `--tk-badge-text: ${d.badgeText};` after the accent-text line. Do not touch `CSS_TEXT` (new leaves have no historical spelling to preserve).
 
 - [ ] **Step 4: Regenerate and verify freshness**
 
@@ -88,11 +89,15 @@ Expected: no hits outside comments. Fix any literal by switching it to the var.
 Run: `bun run tokens:test && bun run tui-kit:gates && bun run board:typecheck && bun run board:test`
 Expected: green. (tui-kit visual snapshots are excluded from CI; refresh locally only if a later task needs them.)
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: AA pass on the text companions**
+
+Compute WCAG contrast for each light text value on `#ffffff`: `bun -e` with the standard relative-luminance formula over `['#3a3fe8','#008559','#bd6500','#454b66','#565d80','#ff3d81']`. Every companion used for body-size text must clear 4.5; a value that misses gets darkened along its own hue until it clears, keeping the hue family, and the final hex goes in the commit body. (`#ff3d81` is fill/large-bold only and is exempt; note it.)
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add packages/tokens packages/tui-kit/src/generated packages/tokyo/src
-git commit -m "tokens: lock the arcade light palette, add ok/warn text companions"
+git commit -m "tokens: lock the arcade light palette, add ok/warn/badge text companions"
 ```
 
 ### Task 2: Gate selection states move from amber to accent
@@ -198,6 +203,16 @@ describe('collapseChunks', () => {
     expect(groups.size).toBe(0);
   });
 
+  test('non-adjacent chunks sharing a base throw instead of mis-grouping', () => {
+    expect(() =>
+      collapseChunks([
+        q('findings-1', ['f1']),
+        q('outcome', ['approve'], false),
+        q('findings-2', ['f2']),
+      ])
+    ).toThrow();
+  });
+
   test('a lone -1 chunk still collapses to its base id', () => {
     const { questions: out, groups } = collapseChunks([q('findings-1', ['f1'])]);
     expect(out[0]!.id).toBe('findings');
@@ -276,6 +291,8 @@ export function collapseChunks(questions: GateQuestion[]): {
       };
       prior.push(question.id);
     } else {
+      if (groups.has(base))
+        throw new Error(`non-adjacent chunks for ${base}: ${question.id}`);
       out.push({ ...question, id: base });
       groups.set(base, [question.id]);
     }
@@ -501,6 +518,7 @@ git commit -m "board: parse finding options into tier, title, anchor, fix"
 
 **Files:**
 - Create: `apps/board/src/client/board/ReviewGateSheet.tsx`
+- Modify: `apps/board/src/client/board/icons.tsx` (three new inline SVG glyphs)
 - Modify: `apps/board/src/style.css` (append a `/* review gate sheet */` section)
 - Test: `apps/board/src/client/board/__tests__/review-gate-sheet-dom.test.tsx`
 - Story: `apps/board/src/client/board/ReviewGateSheet.stories.tsx`
@@ -526,7 +544,7 @@ Component structure (class names are the contract for the CSS section; render ex
           (checkbox input, title, kind tag from description-less options
           omitted, mono anchor, fix line), then the record cluster when
           report.json arrived: STRENGTHS/DEPTH/EVIDENCE/NOTES label column
-          plus green disc checks and the lucide icons. */}
+          plus green disc checks and the record icons from icons.tsx. */}
     </section>
     <aside className="tui-review-sheet-rail">
       {/* Decision context card (readiness lead + reasoning + tier pills),
@@ -538,7 +556,7 @@ Component structure (class names are the contract for the CSS section; render ex
 </div>
 ```
 
-Data flow: `const { questions, groups } = useMemo(() => collapseChunks(gate.questions), [gate.questions])`; findings = the collapsed multi question whose options all parse via `parseFindingOption`; outcome = the remaining single-select. Selection state and submit come from the existing `useGateForm` (Task 7 passes the split-back answers, so the sheet's form state keys by collapsed ids). `report.json` is fetched once per mrUrl into local state; fetch failure or 404 renders the sheet without the record cluster and with the raw md link untouched.
+Data flow: `const { questions, groups } = useMemo(() => collapseChunks(gate.questions), [gate.questions])`; findings = the collapsed multi question whose options all parse via `parseFindingOption`; outcome = the remaining single-select. Selection state and submit come from the existing `useGateForm` (Task 7 passes the split-back answers, so the sheet's form state keys by collapsed ids). `report.json` is fetched once per mrUrl into local state. The record cluster renders only from the json's optional arrays; when the fetch fails, 404s, or the json carries none of the optional arrays, the sheet instead renders a `full report` disclosure below the findings that lazily fetches `/review/report?mr=` and renders the markdown (same `Markdown` component the queue modal uses), so the review's prose is never unreachable.
 
 - [ ] **Step 1: Write the failing DOM test**
 
@@ -551,11 +569,11 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implement the component**
 
-Build exactly the structure above. Checkbox rows reuse `.tui-gate-choice-input[data-type='checkbox']` styling; all/none are `<button type="button" className="tui-review-allnone">` mutating the same selection state; kind tag renders only when the description carries one (Task 8 appends ` · kind` when present; parser change not needed since kind rides the fix tail). Keep every color a var: accent for selection and primary, `--color-gray-okText` for PASS/RECOMMENDED text, `--color-gray-warnText` for Important pill text with `color-mix(in srgb, var(--amber) 15%, transparent)` washes, purple for the author, no literal hexes.
+First add `SearchCheckIcon`, `CameraIcon`, and `PencilLineIcon` to `icons.tsx` as inline SVG components following that file's existing pattern (24-unit viewBox, `currentColor` strokes; copy the path data from the lucide SVG set, which is ISC licensed, and note the origin in the icons.tsx header if it does not already credit it). lucide is NOT added as a dependency; the catalog and lockfile do not change. Then build exactly the structure above, the record cluster using those three components at 14px. Checkbox rows reuse `.tui-gate-choice-input[data-type='checkbox']` styling; all/none are `<button type="button" className="tui-review-allnone">` mutating the same selection state; kind tag renders only when the description carries one (Task 8 appends ` · kind` when present; parser change not needed since kind rides the fix tail). Keep every color a var: accent for selection and primary, `--color-gray-okText` for PASS/RECOMMENDED text, `--color-gray-warnText` for Important pill text with `color-mix(in srgb, var(--amber) 15%, transparent)` washes, `--color-gray-badgeText` for kind-tag text, purple for the author, no literal hexes.
 
 - [ ] **Step 4: Append the CSS section**
 
-New section in `style.css` keyed to the class names above: sheet fills the viewport (`position: fixed; inset: 0; background: var(--card); display: flex; flex-direction: column;`), head row bordered below, body `flex: 1; display: flex; min-height: 0;`, main `flex: 1; overflow-y: auto; padding: 22px 28px;`, rail `width: 470px; border-left: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; gap: 14px; padding: 22px 26px; overflow-y: auto;`. Record-cluster label column: `width: 78px; text-align: right; font-size: 10px; letter-spacing: 0.5px; color: var(--muted);`. all/none states per the mock: rest muted, `:hover` accent + underline, `:active` deeper via `color-mix(in srgb, var(--accent) 80%, var(--fg))`, `[data-noop]` gray with `pointer-events: none`.
+New section in `style.css` keyed to the class names above: sheet fills the viewport (`position: fixed; inset: 0; background: var(--card); display: flex; flex-direction: column;`), head row bordered below, body `flex: 1; display: flex; min-height: 0;`, main `flex: 1; overflow-y: auto; padding: 22px 28px;`, rail `width: 470px; border-left: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; gap: 14px; padding: 22px 26px; overflow-y: auto;`. Record-cluster label column: `width: 78px; text-align: right; font-size: 10px; letter-spacing: 0.5px; color: var(--muted);`. all/none states per the mock: rest muted, `:hover` accent + underline, `:active` deeper via `color-mix(in srgb, var(--accent) 80%, var(--fg))`, `[data-noop]` gray with `pointer-events: none`. The findings list wrapper gets a sticky bottom fade (`::after`, transparent to `var(--card)`, ~46px) toggled off via `[data-at-end]` when a scroll listener reports the region scrolled to its end; the head tally appends `· k more below` from the same measurement.
 
 - [ ] **Step 5: Run tests, add the story**
 
@@ -647,7 +665,11 @@ Expected: everything green.
 
 Run `bun run board:build`, `deck restart board`, open the board, confirm: a tier-option gate (pre-contract) still renders the generic modal; the storybook sheet states match the pen mock.
 
-- [ ] **Step 3: Commit any stragglers and stop**
+- [ ] **Step 3: Cross-app recolor check-in**
+
+The tokens PR recolors every app. Before merging it, run chat, console, and deck locally against the rebuilt packages (or state explicitly that Matt waived the preview) and get Matt's go on the cross-app look. This resolves the spec's open question; record the answer in the tokens PR description.
+
+- [ ] **Step 4: Commit any stragglers and stop**
 
 PR split at the end: Task 1-2 ship as the tokens PR; Tasks 3-9 as the board PR (spec section 6).
 
