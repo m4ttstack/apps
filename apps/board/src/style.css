@@ -3658,7 +3658,7 @@ body {
 }
 .tui-review-queue-pos {
   font-size: var(--gate-font-meta);
-  color: var(--muted);
+  color: var(--muted-text);
   white-space: nowrap;
 }
 .tui-review-head-sep {
@@ -3670,7 +3670,7 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--muted);
+  color: var(--muted-text);
 }
 .tui-review-close {
   display: inline-flex;
@@ -3708,7 +3708,18 @@ body {
   flex-direction: column;
   gap: 14px;
   padding: 22px 26px;
+  min-height: 0;
+}
+/* The rail splits in two: reference material scrolls, the decision docks.
+   The submit is the one control a long report must never push off-screen,
+   so the scroll lives on the half above it rather than on the rail. */
+.tui-review-rail-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 /* MR card */
@@ -3756,7 +3767,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: var(--gate-font-meta);
   font-family: var(--font-mono);
 }
@@ -3783,7 +3794,7 @@ body {
   font-weight: 600;
 }
 .tui-review-find-tally {
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: var(--gate-font-meta);
   white-space: nowrap;
 }
@@ -3915,12 +3926,12 @@ body {
 .tui-review-finding-anchor {
   font-family: var(--font-mono);
   font-size: var(--gate-font-meta);
-  color: var(--muted);
+  color: var(--accent-text);
   flex-shrink: 0;
   text-align: right;
 }
 .tui-review-finding-fix {
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: var(--gate-font-meta);
 }
 
@@ -3951,7 +3962,7 @@ body {
   font-size: 10px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--muted-text);
   padding-top: 2px;
 }
 .tui-review-record-content {
@@ -3988,7 +3999,7 @@ body {
   font-weight: 500;
 }
 .tui-review-record-detail {
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: var(--gate-font-meta);
 }
 .tui-review-full-report {
@@ -4009,7 +4020,7 @@ body {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: var(--muted-text);
 }
 .tui-review-decision-lead {
   margin: 0;
@@ -4018,7 +4029,7 @@ body {
 }
 .tui-review-decision-reasoning {
   margin: 0;
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: var(--gate-font-meta);
 }
 .tui-review-tier-pills {
@@ -4040,7 +4051,7 @@ body {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: var(--muted-text);
 }
 .tui-review-checks-list {
   display: flex;
