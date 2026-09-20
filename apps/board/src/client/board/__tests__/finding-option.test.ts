@@ -75,11 +75,9 @@ describe('parseFindingOption', () => {
     const parsed = parseFindingOption({
       value: 'f14',
       label: '[Minor] Trap comment overstates the claim',
-      description: 'apps/adjuster/src/sentryThirdPartyNoise.ts:18 · soften it',
+      description: 'apps/widgets/src/noiseFilter.ts:18 · soften it',
     });
-    expect(parsed?.anchor).toBe(
-      'apps/adjuster/src/sentryThirdPartyNoise.ts:18'
-    );
+    expect(parsed?.anchor).toBe('apps/widgets/src/noiseFilter.ts:18');
     expect(parsed?.anchorLabel).toBeUndefined();
     expect(parsed?.fix).toBe('soften it');
   });
