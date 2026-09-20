@@ -36,6 +36,7 @@ import { parseGateContext, sectionFor } from './gate-context.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
 import {
   CircleCheckFilledIcon,
+  NoAnchorIcon,
   PencilLineIcon,
   SearchCheckIcon,
 } from './icons.tsx';
@@ -666,17 +667,23 @@ function ReviewGateSheet({
                                 <span className="tui-review-finding-title">
                                   {f.title}
                                 </span>
-                                {f.anchor && (
-                                  <span className="tui-review-finding-anchor">
-                                    {f.anchor}
-                                  </span>
-                                )}
                                 {f.kind && (
                                   <span className="tui-review-finding-kind">
                                     {f.kind}
                                   </span>
                                 )}
                               </span>
+                              {f.anchor && (
+                                <span className="tui-review-finding-anchor">
+                                  {f.anchor}
+                                </span>
+                              )}
+                              {f.anchorLabel && (
+                                <span className="tui-review-finding-anchor-label">
+                                  <NoAnchorIcon />
+                                  {f.anchorLabel}
+                                </span>
+                              )}
                               {f.fix && (
                                 <span className="tui-review-finding-fix">
                                   {f.fix}
@@ -851,9 +858,18 @@ function ReviewGateSheet({
 
               {outcomeQuestion && (
                 <div className="tui-review-verdict">
-                  <h3 className="tui-review-verdict-heading">
-                    Verdict on !{mr?.iid ?? ''}
-                  </h3>
+                  <div className="tui-review-verdict-head">
+                    <h3 className="tui-review-verdict-heading">
+                      Verdict on !{mr?.iid ?? ''}
+                    </h3>
+                    <button
+                      type="button"
+                      className="tui-review-reset"
+                      onClick={handleReset}
+                    >
+                      reset
+                    </button>
+                  </div>
                   <div className="tui-gate-choices">
                     {outcomeQuestion.options.map((o: GateOption) => {
                       const display = optionDisplayFor(o);
@@ -933,16 +949,6 @@ function ReviewGateSheet({
                         : outcomeText
                           ? `post ${selectedFindings.size} · ${outcomeText}`
                           : `post ${selectedFindings.size}`}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="subtle"
-                    intent="muted"
-                    size="lg"
-                    className="tui-review-reset"
-                    onClick={handleReset}
-                  >
-                    reset
                   </Button>
                   {form.failed && (
                     <span className="tui-gate-error">
