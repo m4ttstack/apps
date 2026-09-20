@@ -67,11 +67,11 @@ ramp change propagates everywhere.
 That remap is also why `--ui-text-muted` and `--ui-text-dimmed` are the same
 colour: both point at `--tk-muted-text`. Two names, one value.
 
-Soribashi's codegen already emits three tiers from `values.ts`: raw
-`--color-<group>-<key>`, semantic `--surface-<role>` / `--text-<role>` /
-`--border-<role>`, and the short aliases (`--card`, `--fg`, `--border`) that
-components write. The new ramps slot into that emission; they do not add a
-fourth tier.
+Soribashi's codegen already emits three tiers: raw `--color-<group>-<key>`
+and semantic `--surface-<role>` / `--text-<role>` / `--border-<role>` from
+`values.ts`, plus the short aliases (`--card`, `--fg`, `--border`) that
+components write, authored in `packages/tui-kit/soribashi.config.ts`. The
+new ramps slot into that emission; they do not add a fourth tier.
 
 ## 3. Surfaces
 
@@ -298,10 +298,14 @@ Light: `--border` and `--border-control` share `line-1` because they share
 `line-3` (`#3b4261`, one step more visible). Dark card scope is where the
 `edgeOnCard`, `controlEdgeOnCard` and `softOnCard` tokens live today,
 because a card in dark is lighter than the page and a page-tuned line
-vanishes on it. The replacement is a scope rule, not more tokens: the card
-ground re-points `--border` one step up in its own scope
-(`.card { --border: var(--line-2) }`), which lands today's `edgeOnCard`
-`#505879` exactly and is what the board's `--gate-*` block does by hand.
+vanishes on it. The replacement is a scope rule, not more tokens: a card
+ground re-points `--border` in its own scope through the emitted
+`--border-on-card` alias, which carries this table's per-scheme mapping
+(`light-dark(var(--line-1), var(--line-2))`), so the rule
+`.card { --border: var(--border-on-card) }` is a no-op in light and lands
+today's `edgeOnCard` `#505879` exactly in dark. That is what the board's
+`--gate-*` block does by hand. A literal `.card { --border: var(--line-2) }`
+would also fire in light and soften light card edges; do not write it.
 `controlEdgeOnCard` `#6b7499` is `line-1` exactly. `softOnCard` moves from
 `#404866` to `line-3` (`#3b4261`, 1.79 to 1.64 against the card, slightly
 quieter). Those two moves are the whole visible change.
@@ -355,24 +359,28 @@ its codegen only (§9 step 1).
 
 ## 9. Verification and sequencing
 
-Seven steps, in the order they must land. Each lands green on its own;
-the dark seed change is deliberately its own step because it is the one
-that cannot.
+Seven steps, in the order they must land. Each lands green on its own.
+The dark seed change is deliberately its own step because it is the one
+that cannot be split any further.
 
 0. **Tokens, scheme-safe part.** `values.ts` gains, per scheme:
    `surface1..4` (§3), the six semantic surface roles pointing at steps
    (§4), `text1..4` (§5), `hueText` and `hueTextSmall` (§7, dark values
    solved at the corrected hue angle even though the dark fill has not
-   moved yet; they have no consumer until migration), and `line1..3` plus
-   the three border roles with the per-scheme mapping and the card-scope
-   rule (§7.2). `TOKENS.dark.hue.*` is NOT touched here. `scripts/generate.ts`
+   moved yet; their first consumer is step 2), and `line1..3` plus
+   the three border roles with the per-scheme mapping (§7.2). `TOKENS.dark.hue.*` is NOT touched here. `scripts/generate.ts`
    emits the numeric ramps and the new semantic names into tui-kit's
    `tokens.ts` and tokyo's `tokyo-theme.css`. Old names are emitted as
    aliases for one release: `--fg` → `text-1`; `--muted-text` → `text-3`
    (today's `#565d80` measures 5.83 and `text-3` at 5.57 is the nearest;
    migration then moves small and micro sites to `text-4`); `--bg` →
-   `--page`; the five `*OnCard` line names → the card-scope values in
-   §7.2; `--muted` keeps its name and value until the step-6 audit. The
+   `--page`; the three `*OnCard` line names → the §7.2 card-scope values
+   (`--border-on-card` is `light-dark(var(--line-1), var(--line-2))`);
+   `--text-muted-on-card` (`mutedOnCard`, two live board consumers) →
+   `text-3` by the same nearest-value reasoning; `--muted` keeps its name
+   and value until the step-6 audit. The card-scope rule itself is CSS,
+   applied at migration in the board and in any recipe that grounds on a
+   card; step 0 only ships the aliases it consumes. The
    short-alias tier is authored in `packages/tui-kit/soribashi.config.ts`
    (a `CssVariablesResolver`), not derived from `values.ts`, and soribashi
    has no `line` semantic group today, so `--line-[1-3]` and
@@ -410,7 +418,11 @@ that cannot.
    against the old palette: in dark, `filled` paints its label `#ffffff`
    instead of `var(--bg)` (5.3:1 on every new fill, §7.1), and
    `outline`/`subtle`/`light` take their tone from `--text-<hue>` rather
-   than mixing the seed toward `--fg`. `Button.matrix.test.tsx` runs the
+   than mixing the seed toward `--fg`. Both retunes are dark-only in this
+   step. Doing the same in light would clear roughly twelve
+   `known-contrast-debt.ts` entries (the ratchet then forces their
+   removal) but visibly changes every light outline and subtle hue button,
+   so it is migration work, not part of the seed change. `Button.matrix.test.tsx` runs the
    dark grid in CI and `known-contrast-debt.ts` has no dark entries; this
    step must leave it that way. Any dark cell that still measures under
    the floor after the retune is a bug in this step, not a new ledger
