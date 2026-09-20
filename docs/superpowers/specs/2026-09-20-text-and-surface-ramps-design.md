@@ -372,12 +372,13 @@ that cannot be split any further.
    the three border roles with the per-scheme mapping (§7.2). `TOKENS.dark.hue.*` is NOT touched here. `scripts/generate.ts`
    emits the numeric ramps and the new semantic names into tui-kit's
    `tokens.ts` and tokyo's `tokyo-theme.css`. Old names are emitted as
-   aliases for one release: `--fg` → `text-1`; `--muted-text` → the nearest step per scheme, which
-   differs: `text-3` in light (today's `#565d80` measures 5.83, `text-3`
-   5.57) and `text-4` in dark (today's `#969ec2` measures 6.11; `text-4`
-   at 7.01 is nearer than `text-3` at 5.54 and is the brighter direction
-   every dark complaint in §1 asked for). Migration then moves light small
-   and micro sites to `text-4`; `--bg` →
+   aliases for one release: `--fg` → `text-1`; `--muted-text` → a different step per scheme:
+   `text-3` in light, the nearest (today's `#565d80` measures 5.83,
+   `text-3` 5.57), and `text-4` in dark by direction rather than distance
+   (today's `#969ec2` measures 6.11; `text-3` at 5.54 is the nearer step
+   but dims every muted string, `text-4` at 7.01 brightens them, which is
+   what every dark complaint in §1 asked for). Migration then moves light
+   small and micro sites to `text-4`; `--bg` →
    `--page`; the three `*OnCard` line names → the §7.2 card-scope values
    (`--border-on-card` is `light-dark(var(--line-1), var(--line-2))`);
    `--text-muted-on-card` (`mutedOnCard`, two live board consumers) →
