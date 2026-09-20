@@ -6,7 +6,7 @@
 
 **Architecture:** `packages/tokens/src/values.ts` becomes the single home of every ramp; each scheme's role values (`surface.card`, `line.border`, `text.mutedText`) are derived from a ramp index rather than typed by hand, so "every role is a ramp member" is true by construction and checkable by test. The existing generator (`scripts/generate.ts`) emits the new families into tui-kit's `tokens.ts` and tokyo's `tokyo-theme.css`; a new generator (`scripts/generate-ramps.ts`) writes tokyo's Mantine ramps from the same seeds. tui-kit's soribashi codegen then emits the public names (`--surface-1`, `--text-3`, `--fill-ok`, `--text-ok-small`). Everything downstream (provider, storybook, gate, lint) consumes those names.
 
-**Tech Stack:** bun workspaces, TypeScript, vitest (node + browser projects), soribashi codegen (`soribashi build`), `@mantine/colors-generator` + `chroma-js` (codegen devDependency only), Storybook 10 (`@storybook/react-vite`, `@storybook/addon-a11y`), ESLint 9 flat config with `@eslint/css`.
+**Tech Stack:** bun workspaces, TypeScript, vitest (node + browser projects), soribashi codegen (`soribashi build`), `@mantine/colors-generator` + `chroma-js` (codegen devDependency only), Storybook 10 (`@storybook/react-vite`, `@storybook/addon-a11y`), ESLint 10 flat config with `@eslint/css`.
 
 **Spec:** `docs/superpowers/specs/2026-09-20-text-and-surface-ramps-design.md`
 
@@ -24,6 +24,7 @@
 - Contrast bars: text 4.5 (display/title/body), 5.5 (meta), 7.0 (small/micro); fills 3.0 (non-text). Solver values are the first hex clearing the bar, so assert `>= bar` at full float precision with the tokens package's `contrastRatio`.
 - No em dashes or en dashes in any text this plan produces (code, comments, commit messages, stories).
 - Comments state constraints the code cannot show. No comments that narrate the next line, cite this plan or the spec's section numbers, or record decision history.
+- Run `bun run format` before every commit; CI runs `bun run format:check` over the tree (`packages/tui-kit`, `docs` and `apps/deck/core/generated` are prettier-ignored, and Task 5 adds `packages/tokyo/src/ramps.ts` to that list because its generator, not prettier, owns its layout).
 - Commit after every task with the message given in that task.
 
 ## Values reference (copy verbatim; every task reads from here)
@@ -89,11 +90,13 @@ Part F (spec step 5):
 - Modify `packages/tui-kit/src/a11y/known-contrast-debt.ts` (fill entry shape); create `packages/tui-kit/test/ramps.matrix.test.tsx`.
 
 Part G (spec step 6):
-- Create `packages/ui/presets/eslint-rules/token-namespaces.js` (classifier + JS rule + CSS rule), tests under `packages/ui/presets/eslint-rules/__tests__/`; wire into `packages/ui/presets/eslint.js` and root `eslint.config.js`.
+- Create `packages/ui/presets/eslint-local/token-namespaces.js` (classifier), `token-namespaces-tsx.js`, `token-namespaces-css.js`, one `.d.ts` beside each (the `presets/vite.d.ts` convention; `packages/ui/tsconfig.json` compiles `presets`), and `token-namespaces.test.ts`; wire into `packages/ui/presets/eslint.js` and root `eslint.config.js`.
 
 ---
 
 ## Part A: tokens, scheme-safe part (spec §9 step 0)
+
+Tasks 1, 2 and 3 land as one PR: Task 1 alone leaves the generated files stale, Task 2 alone leaves tokyo and deck stale.
 
 ### Task 1: Ramps in `values.ts`, derived roles, invariants
 
@@ -216,21 +219,18 @@ describe('palette', () => {
     }
   });
 
-  it.each(SCHEMES)('%s: fill, body, small progress in one direction', scheme => {
-    const t = TOKENS[scheme];
+  it('light: fill, body, small progress darker', () => {
+    const t = TOKENS.light;
     for (const hue of HUES) {
       const [fill, body, small] = [t.hue[hue], t.hueText[hue], t.hueTextSmall[hue]].map(srgbLuminance);
-      if (scheme === 'light') {
-        expect(fill, `${hue} fill vs body`).toBeGreaterThanOrEqual(body!);
-        expect(body, `${hue} body vs small`).toBeGreaterThan(small!);
-      } else {
-        expect(fill, `${hue} fill vs body`).toBeLessThan(body!);
-        expect(body, `${hue} body vs small`).toBeLessThan(small!);
-      }
+      expect(fill, `${hue} fill vs body`).toBeGreaterThanOrEqual(body!);
+      expect(body, `${hue} body vs small`).toBeGreaterThan(small!);
     }
   });
 });
 ```
+
+The dark direction (fill lighter than body lighter than small) is asserted in Task 6, where the dark fills change; with today's Tokyo Night seeds every dark fill is lighter than its solved body text and the assertion would fail here.
 
 Also change the existing `AA floors for text-role tokens` describe so its `surfaces` list reads the ramp: replace `const surfaces = ['chrome', 'bg', 'panel', 'card'] as const;` and the inner loop with `for (const surface of t.surfaceRamp)` and `contrastRatio(t.text[roleName], surface)`.
 
@@ -696,21 +696,48 @@ In `packages/tui-kit/soribashi.config.ts`, add inside the `root` object after th
     "--text-cyan-small": "var(--color-cyan-textSmall)",
 ```
 
-- [ ] **Step 5: Regenerate and run the node tier**
+- [ ] **Step 5: Waive the new public names in the consumption gate**
+
+`packages/tokens/test/consumption.test.ts` fails any custom property emitted in tui-kit's `theme.css` that no recipe CSS, `canvas.css` or `theme.css` itself references, unless it is listed in `WAIVED_TUI` with a reason. The 31 public ramp names have no kit consumer until the storybook and the gate (both outside its scan) and the migration. Above `WAIVED_TUI` in that file add:
+
+```ts
+const RAMP_HUES = ['accent', 'ok', 'bad', 'warn', 'purple', 'cyan'];
+const RAMP_PUBLIC_NAMES = [
+  '--page',
+  '--border-control',
+  ...[1, 2, 3, 4].flatMap(i => [`--surface-${i}`, `--text-${i}`]),
+  ...[1, 2, 3].map(i => `--line-${i}`),
+  ...RAMP_HUES.flatMap(h => [`--fill-${h}`, `--text-${h}`, `--text-${h}-small`]),
+];
+const RAMP_WAIVER =
+  'ramp name emitted ahead of the apps-wide migration; the storybook specimens and the ramp contrast gate read it, no kit recipe does yet.';
+```
+
+and make the first entries of `WAIVED_TUI`:
+
+```ts
+const WAIVED_TUI: Record<string, string> = {
+  ...Object.fromEntries(RAMP_PUBLIC_NAMES.map(name => [name, RAMP_WAIVER])),
+```
+
+keeping every existing entry after that spread.
+
+- [ ] **Step 6: Regenerate and run the node tier**
 
 Run:
 ```bash
 bun run tokens:codegen
 cd packages/tui-kit && bun run codegen && bunx vitest run --project node
+cd ../tokens && bunx vitest run test/consumption.test.ts
 ```
 Expected: PASS, including `theme.test.ts`'s referential-closure test (every `var()` has a declaration) and the census sweeps with the new ruling. If `token-existence.test.ts` or `no-hardcoded-values.test.ts` fail, the failure names a recipe reading a token that moved; none should, because no recipe changes here.
 
-- [ ] **Step 6: Run the browser tier the way CI does**
+- [ ] **Step 7: Run the browser tier the way CI does**
 
 Run: `cd packages/tui-kit && bun run build && bunx vitest run --project browser --exclude '**/*.visual.test.tsx' --exclude '**/*.parity.test.tsx'`
-Expected: PASS. `Button.matrix.test.tsx` is unaffected: no seed or resolver changed. If a light ledger cell measures differently by more than 0.05, the cause is the `--muted-text` re-alias reaching a Button through `muted` intent text; record the new ratio only if it IMPROVED (remove the entry if it now clears 4.5); a worsened cell is a defect in this task.
+Expected: PASS. `Button.matrix.test.tsx` is unaffected: no seed or resolver changed, and the `muted` intent reads `--color-gray-muted`, which did not move.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add packages/tokens packages/tui-kit/src/theme.ts packages/tui-kit/soribashi.config.ts packages/tui-kit/test/theme.test.ts packages/tui-kit/src/generated
@@ -793,7 +820,26 @@ and at the top of `renderTokyoSchemeBlock` add `const t = TOKENS[scheme];` and `
 
 Because `--tk-text-1` light goes through `CSS_TEXT` it prints `#222`; the test only checks text-2 and text-4 for that reason.
 
-- [ ] **Step 4: Regenerate everything downstream**
+- [ ] **Step 4: Waive the new `--tk-*` names, regenerate everything downstream**
+
+The tokyo half of `packages/tokens/test/consumption.test.ts` fails any `--tk-*` name no `packages/tokyo` or `packages/ui` CSS references unless it is in `WAIVED_TOKYO`. Above `WAIVED_TOKYO` add:
+
+```ts
+const TK_RAMP_NAMES = [
+  ...[1, 2, 3, 4].flatMap(i => [`--tk-surface-${i}`, `--tk-text-${i}`]),
+  ...[1, 2, 3].map(i => `--tk-line-${i}`),
+  ...RAMP_HUES.flatMap(h => [`--tk-fill-${h}`, `--tk-text-${h}`, `--tk-text-${h}-small`]),
+];
+const TK_RAMP_WAIVER =
+  'ramp name mirrored from the tui theme for app-kit consumers ahead of the migration; no packages/ui component wires it yet.';
+```
+
+(`RAMP_HUES` is the constant Task 2 added at the top of the same file) and make the first entries of `WAIVED_TOKYO`:
+
+```ts
+const WAIVED_TOKYO: Record<string, string> = {
+  ...Object.fromEntries(TK_RAMP_NAMES.map(name => [name, TK_RAMP_WAIVER])),
+```
 
 Run:
 ```bash
@@ -803,7 +849,7 @@ cd ../../ && bun run tui-kit:build
 cd apps/deck && bun run build:board
 cd ../.. && git status --short
 ```
-Expected: tokens tests PASS; `git status` lists `packages/tokyo/src/tokyo-theme.css` and `apps/deck/core/generated/*` as modified.
+Expected: tokens tests PASS, including both consumption suites and their no-stale-waivers checks; `git status` lists `packages/tokyo/src/tokyo-theme.css` and `apps/deck/core/generated/*` as modified.
 
 - [ ] **Step 5: Run the freshness gate and the app suites CI runs**
 
@@ -833,7 +879,9 @@ git commit -m "tokyo: emit the ramps as --tk-* names; regenerate deck's vendored
 **Interfaces:**
 - Produces: `type Lab = readonly [number, number, number]`; `rawPosition(outIndex: number, baseIndex: number, targetIndex: number): number`; `resampleRamp(raw: readonly Lab[], baseIndex: number, targetIndex: number): Lab[]`. Both pure; no colour library.
 
-The warp keeps three fixed points (0 → 0, target → base, 9 → 9) and is linear between them, so an output index maps to a fractional raw position and the OKLab triple is interpolated between the two raw stops around it.
+The warp keeps three fixed points (0 to 0, target to base, 9 to 9) and is linear between them, so an output index maps to a fractional raw position and the OKLab triple is interpolated between the two raw stops around it.
+
+`@mantine/colors-generator` never produces a stop darker than about HSL lightness 0.34, and three of the dark seeds Task 6 introduces (`ok #277860`, `warn #955f1f`, `cyan #00768b`) sit below that, so the generator returns them at `baseColorIndex 9` with nothing darker to warp onto. For that case the light side is resampled from the raw ramp as usual and the five stops past the seed are extrapolated from the seed toward black in OKLab: lightness falls linearly to 45% of the seed's and chroma to 60% of the seed's at stop 9. A seed lighter than the raw ramp's lightest stop (`baseColorIndex 0`) still throws; no seed in this program hits it.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -882,9 +930,19 @@ describe('resampleRamp', () => {
     for (let i = 1; i < out.length; i++) expect(out[i]![0]).toBeLessThan(out[i - 1]![0]);
   });
 
-  it('throws when the base sits on an endpoint, since the warp would flatten one side', () => {
-    expect(() => resampleRamp(raw, 0, 6)).toThrow(/endpoint/);
-    expect(() => resampleRamp(raw, 9, 4)).toThrow(/endpoint/);
+  it('extrapolates past a seed that is the darkest raw stop', () => {
+    const out = resampleRamp(raw, 9, 4);
+    expect(out).toHaveLength(10);
+    expect(out[0]).toEqual(raw[0]);
+    expect(out[4]).toEqual(raw[9]);
+    expect(out[2]![0]).toBeCloseTo(raw[4]![0] + (raw[5]![0] - raw[4]![0]) * 0.5);
+    for (let i = 1; i < out.length; i++) expect(out[i]![0]).toBeLessThan(out[i - 1]![0]);
+    expect(out[9]![0]).toBeCloseTo(raw[9]![0] * 0.45);
+    expect(out[9]![1]).toBeCloseTo(raw[9]![1] * 0.6);
+  });
+
+  it('throws when the seed is lighter than the lightest raw stop', () => {
+    expect(() => resampleRamp(raw, 0, 6)).toThrow(/lighter/);
   });
 });
 ```
@@ -915,18 +973,44 @@ function lerp(a: Lab, b: Lab, f: number): Lab {
   return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
 }
 
+const DARK_L_FLOOR = 0.45;
+const DARK_CHROMA_FLOOR = 0.6;
+
+function sampleAt(raw: readonly Lab[], p: number): Lab {
+  const lo = Math.floor(p);
+  const hi = Math.min(lo + 1, LAST);
+  return lo === hi ? raw[lo]! : lerp(raw[lo]!, raw[hi]!, p - lo);
+}
+
+// The generator has no stop darker than this seed, so the dark side is
+// drawn from the seed toward black instead of warped from the raw ramp.
+function extrapolateDark(seed: Lab, count: number): Lab[] {
+  const out: Lab[] = [];
+  for (let k = 1; k <= count; k++) {
+    const f = k / count;
+    out.push([
+      seed[0] * (1 - (1 - DARK_L_FLOOR) * f),
+      seed[1] * (1 - (1 - DARK_CHROMA_FLOOR) * f),
+      seed[2] * (1 - (1 - DARK_CHROMA_FLOOR) * f),
+    ]);
+  }
+  return out;
+}
+
 export function resampleRamp(raw: readonly Lab[], baseIndex: number, targetIndex: number): Lab[] {
   if (raw.length !== STOPS) throw new Error(`resampleRamp: expected ${STOPS} stops, got ${raw.length}`);
-  if (baseIndex <= 0 || baseIndex >= LAST) {
-    throw new Error(`resampleRamp: base index ${baseIndex} is an endpoint; the seed is outside the generator's range`);
+  if (baseIndex <= 0) {
+    throw new Error(`resampleRamp: base index 0; the seed is lighter than the generator's lightest stop`);
+  }
+  if (baseIndex === LAST) {
+    const out: Lab[] = [];
+    for (let i = 0; i < targetIndex; i++) out.push(sampleAt(raw, (i * LAST) / targetIndex));
+    out[0] = raw[0]!;
+    out.push(raw[LAST]!, ...extrapolateDark(raw[LAST]!, LAST - targetIndex));
+    return out;
   }
   const out: Lab[] = [];
-  for (let i = 0; i < STOPS; i++) {
-    const p = rawPosition(i, baseIndex, targetIndex);
-    const lo = Math.floor(p);
-    const hi = Math.min(lo + 1, LAST);
-    out.push(lo === hi ? raw[lo]! : lerp(raw[lo]!, raw[hi]!, p - lo));
-  }
+  for (let i = 0; i < STOPS; i++) out.push(sampleAt(raw, rawPosition(i, baseIndex, targetIndex)));
   out[targetIndex] = raw[baseIndex]!;
   out[0] = raw[0]!;
   out[LAST] = raw[LAST]!;
@@ -1063,7 +1147,7 @@ export function buildRamp(seed: string, targetIndex: number): string[] {
   const out = resampleRamp(raw, map.baseColorIndex, targetIndex).map(lab => chroma.oklab(lab[0], lab[1], lab[2]).hex());
   out[targetIndex] = seed;
   out[0] = map.colors[0]!.hex();
-  out[9] = map.colors[9]!.hex();
+  if (map.baseColorIndex !== 9) out[9] = map.colors[9]!.hex();
   return out;
 }
 
@@ -1110,8 +1194,10 @@ Root `package.json` scripts, after `"tokens:codegen"`:
     "tokens:ramps": "bun run packages/tokens/scripts/generate-ramps.ts",
 ```
 
+Add `packages/tokyo/src/ramps.ts` to `.prettierignore` under the `apps/deck/core/generated` entry, with the comment `# generated by packages/tokens/scripts/generate-ramps.ts; the freshness gate byte-compares it against a live rebuild`.
+
 Run: `bun run tokens:ramps && git diff --stat packages/tokyo/src/ramps.ts`
-Expected: the file is rewritten; the generator threw nothing. If it throws `is an endpoint`, that seed sits outside the generator's lightness range; stop and report which seed, do not hand-edit the output.
+Expected: the file is rewritten; the generator threw nothing (every current seed sits inside the generator's range, so the extrapolation branch is not exercised until Task 6). If it throws `lighter than`, stop and report which seed; do not hand-edit the output.
 
 - [ ] **Step 5: Verify anchors and record the delta**
 
@@ -1156,7 +1242,7 @@ Expected: exit 0.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add package.json bun.lock packages/tokens packages/tokyo/src/ramps.ts .github/workflows/ci.yml
+git add package.json bun.lock .prettierignore packages/tokens packages/tokyo/src/ramps.ts .github/workflows/ci.yml
 git commit -m "tokens: generate tokyo's Mantine ramps from the hue seeds (MAT-421)"
 ```
 
@@ -1204,11 +1290,20 @@ describe('dark hue correction', () => {
       expect(delta, `${hue}: light ${light.toFixed(1)} vs dark ${dark.toFixed(1)}`).toBeLessThanOrEqual(1);
     }
   });
+
+  it('dark: fill, body, small progress lighter', () => {
+    const t = TOKENS.dark;
+    for (const hue of HUES) {
+      const [fill, body, small] = [t.hue[hue], t.hueText[hue], t.hueTextSmall[hue]].map(srgbLuminance);
+      expect(fill, `${hue} fill vs body`).toBeLessThan(body!);
+      expect(body, `${hue} body vs small`).toBeLessThan(small!);
+    }
+  });
 });
 ```
 
 Run: `cd packages/tokens && bunx vitest run test/invariants.test.ts`
-Expected: FAIL for `ok` (73 degrees apart), `accent`, `cyan`, `bad`, `purple`, `warn`.
+Expected: FAIL on both new tests (`ok` is 73 degrees apart; every Tokyo Night fill is lighter than its solved body text).
 
 - [ ] **Step 2: Change the dark seeds**
 
@@ -1231,7 +1326,7 @@ In `packages/tokens/src/values.ts`, the dark `hue` block becomes:
 bun run tokens:ramps && bun run tokens:codegen
 cd packages/tokens && bunx vitest run
 ```
-Expected: PASS, including `ramp-anchors.test.ts` (the Night ramps were regenerated in the same step) and the `dark fills clear 3.0` and `fill, body, small progress` tests from Task 1.
+Expected: PASS, including `ramp-anchors.test.ts` (the Night ramps were regenerated in the same step), `generated-ramps.test.ts`, and the two `dark hue correction` tests. `okNight`, `warnNight` and `cyanNight` take the extrapolation branch of `resampleRamp` (their seeds are darker than anything the generator emits); open the regenerated `ramps.ts` and confirm those three have stop 4 equal to the seed and stops 5 to 9 darker, then note it in the report.
 
 - [ ] **Step 4: Regenerate the kits and deck**
 
@@ -1384,6 +1479,14 @@ export function retunedTextColor(tone: string, variant: string, intent: string):
 }
 ```
 
+In `packages/tui-kit/src/recipes/Button/Button.tsx` line 89, the `default|bad` cell is pinned outside the resolver; change it to
+
+```ts
+        "--sb-button-bad-color": "light-dark(color-mix(in srgb, var(--red) 80%, var(--fg)), var(--text-bad))",
+```
+
+(with the new dark red it measures 3.77:1 on the panel as a mix; `--text-bad` is solved at 4.5). `Button.test.tsx`'s light probe still matches because the light branch is unchanged.
+
 In `tuiIntentResolver`, change the `filled` branch's `color` to `"light-dark(var(--bg), #ffffff)"` and replace the tail
 
 ```ts
@@ -1405,23 +1508,23 @@ Update the header comment above `LIGHT_VARIANT_TONE_WEIGHT` so its last paragrap
 - [ ] **Step 3: Run the resolver test, then codegen**
 
 Run: `cd packages/tui-kit && bunx vitest run --project node test/intent-resolver.test.ts && bun run codegen && git diff --stat src/generated/theme.css`
-Expected: PASS; `theme.css` changes only inside Button recipe rules (soribashi bakes the resolver's strings into the recipe CSS).
+Expected: PASS; `theme.css` does not change. The resolver's strings are applied at render time as inline custom properties (`autoVars`), not baked into the generated stylesheet, so the codegen run is only a check that nothing else moved.
 
 - [ ] **Step 4: Run the matrix in both schemes**
 
 Run: `cd packages/tui-kit && bun run build && bunx vitest run --project browser src/recipes/Button/Button.matrix.test.tsx`
-Expected: PASS in dark with no ledger entry; light unchanged. If a dark cell still fails, the message prints `fg`, `bg`, `backdrop` and `ratio`; the fix is in this file (a wrong tone for that variant/intent), never a new ledger entry. If a light ledger cell now clears 4.5 (the message says `cleared MIN_CONTRAST; remove this cell's entry`), remove that entry: the ratchet allows removal.
+Expected: PASS in dark with no ledger entry; light unchanged. If a dark cell still fails, the message prints `fg`, `bg`, `backdrop` and `ratio`; the fix is in `intent-resolver.ts` (a wrong tone for that variant/intent) or, for `default|bad`, in `Button.tsx`, never a new ledger entry. If a light ledger cell now clears 4.5 (the message says `cleared MIN_CONTRAST; remove this cell's entry`), remove that entry: the ratchet allows removal.
 
 - [ ] **Step 5: Run the rest of the browser tier and refresh dark baselines**
 
 Run: `cd packages/tui-kit && bunx vitest run --project browser --exclude '**/*.visual.test.tsx' --exclude '**/*.parity.test.tsx'`
 Expected: PASS. `Chip.test.tsx` and `Button.test.tsx` build their expected probes from `retunedTextColor`, so they follow the retune.
 
-Then refresh the dark visual baselines, which are local-only (CI excludes `*.visual.test.tsx`):
+Then refresh every recipe's visual baselines, which are local-only (CI excludes `*.visual.test.tsx`) and all moved in dark with the new seeds, and some in Task 2 with the muted-text re-alias:
 
-`cd packages/tui-kit && bunx vitest run --project browser src/recipes/Button/Button.visual.test.tsx -u`
+`cd packages/tui-kit && bunx vitest run --project browser visual -u`
 
-Look at the regenerated `button-grid-dark` PNG before committing: labels on filled buttons are white, outline and subtle text is the brighter solved tone. `Button.parity.test.tsx` is also excluded from CI and its oracle predates the arcade palette; leave it alone and say so in the report.
+Look at the regenerated `button-grid-dark` PNG before committing: labels on filled buttons are white, outline and subtle text is the brighter solved tone. Skim the other dark baselines for anything that is not a hue change (a layout shift is a defect, a colour shift is expected). `Button.parity.test.tsx` is also excluded from CI and its oracle predates the arcade palette; leave it alone and say so in the report.
 
 - [ ] **Step 6: Regenerate deck, run the app suites, commit**
 
@@ -1534,13 +1637,17 @@ Expected: PASS; `dist/src/provider.js` and `dist/src/provider.d.ts` exist (`ls d
 
 In `apps/board/src/client/main.tsx`, replace the two imports on lines 4-5 with `import { TuiKitProvider } from '@mattstack/tui-kit/provider';`, delete the `registerTheme(tuiTheme);` call and its explanatory comment block (lines 19-28), and replace `<SoribashiProvider theme={tuiTheme}>` / `</SoribashiProvider>` with `<TuiKitProvider>` / `</TuiKitProvider>`.
 
-Run: `bun run tui-kit:build && bun run board:typecheck && bun run board:test && bun run board:build`
-Expected: PASS.
+Update the two docs that name the old file: `packages/tui-kit/docs/consuming.md` line 83 and `packages/tui-kit/docs/decisions.md` line 145 say `src/provider.ts`; make them `src/provider.tsx` and mention `TuiKitProvider` as the one-import path.
+
+Deck bundles the provider from `dist` into `apps/deck/core/generated/board.js`, and `apps/deck/core/generated-fresh.test.ts` byte-compares that file against a live rebuild in CI, so regenerate it here.
+
+Run: `bun run tui-kit:build && bun run board:typecheck && bun run board:test && bun run board:build && cd apps/deck && bun run build:board && cd ../..`
+Expected: PASS; `git status` shows `apps/deck/core/generated/board.js` modified.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add -A packages/tui-kit/src packages/tui-kit/test/provider.test.tsx apps/board/src/client/main.tsx
+git add -A packages/tui-kit/src packages/tui-kit/test/provider.test.tsx packages/tui-kit/docs apps/board/src/client/main.tsx apps/deck/core/generated
 git commit -m "tui-kit: TuiKitProvider registers and provides the theme in one import"
 ```
 
@@ -2058,7 +2165,7 @@ This one reads the emitted `--type-*` and `--text-N` names, so it follows the to
 - [ ] **Step 7: Build and look**
 
 Run: `bun run tui-kit:build && bunx tsc -p tsconfig.tools.json && bun run lint && bun run build-storybook`
-Expected: clean. Then `bun run storybook` and open `Tokens/Palette` in both schemes; the six ratios in red are exactly light `fill-ok`, `fill-warn`, `fill-cyan` and nothing else. Take a screenshot of each story in each scheme and attach the paths to the task report.
+Expected: clean. Then `bun run storybook` and open `Tokens/Palette`; the three ratios in red are exactly light `fill-ok`, `fill-warn`, `fill-cyan` and nothing else. Take a screenshot of each story in each scheme and attach the paths to the task report.
 
 - [ ] **Step 8: Commit**
 
@@ -2258,19 +2365,19 @@ export const KNOWN_FILL_DEBT: readonly FillContrastDebtEntry[] = [
   {
     hue: "ok",
     scheme: "light",
-    measuredRatio: 2.11,
+    measuredRatio: 2.106,
     reason: "locked arcade hex; a light ok fill alone must not carry meaning",
   },
   {
     hue: "warn",
     scheme: "light",
-    measuredRatio: 2.15,
+    measuredRatio: 2.149,
     reason: "locked arcade hex; a light warn fill alone must not carry meaning",
   },
   {
     hue: "cyan",
     scheme: "light",
-    measuredRatio: 2.16,
+    measuredRatio: 2.156,
     reason: "locked arcade hex; a light cyan fill alone must not carry meaning",
   },
 ];
@@ -2440,9 +2547,11 @@ git commit -m "tui-kit: ramp contrast matrix gate with a ratcheted fill ledger"
 ### Task 13: Classifier and the TSX rule
 
 **Files:**
-- Create: `packages/ui/presets/eslint-local/token-namespaces.js` (classifier), `packages/ui/presets/eslint-local/token-namespaces-tsx.js` (rule)
+- Create: `packages/ui/presets/eslint-local/token-namespaces.js` (classifier) and `token-namespaces.d.ts`, `packages/ui/presets/eslint-local/token-namespaces-tsx.js` (rule) and `token-namespaces-tsx.d.ts`
 - Test: `packages/ui/presets/eslint-local/token-namespaces.test.ts`
 - Modify: `packages/ui/vitest.config.ts` (`include`), `packages/ui/presets/eslint.js`
+
+`packages/ui/tsconfig.json` compiles `presets`, so the `.ts` test's imports of `.js` rule files need declaration files beside them (the `presets/vite.d.ts` convention); without them `bun run typecheck` fails with TS7016.
 
 **Interfaces:**
 - Produces: `classifyTokenUse(property: string, varName: string): string | null` returning a message when the pair is a violation, else `null`; `tokenNamespacesTsx` ESLint rule reporting `local/token-namespaces` on string-valued style object properties.
@@ -2454,7 +2563,10 @@ Rules, from the spec:
 | `--text-*` | `color` | |
 | `--fill-*` | anything but `color` | `color` |
 | `--surface-*` | `background`, `background-color`, `background-image`, `fill` | `--surface-[1-4]` anywhere |
-| `--border-*`, `--line-*` | properties starting `border` or `outline` | `--line-[1-3]` anywhere |
+| `--border`, `--border-*` | properties starting `border` or `outline`, and `scrollbar-color` | |
+| `--line-[1-3]` | | anywhere |
+
+`--line-height-*` is soribashi's line-height scale, not a line token; only the exact numeric ramp steps `--line-1..3` are checked.
 
 A property that is itself a custom property (`--gate-muted: var(--text-muted-on-card)`) is an alias and is never checked; the alias's use site is.
 
@@ -2491,15 +2603,17 @@ describe('classifyTokenUse', () => {
     expect(classifyTokenUse('border', '--line-2')).toMatch(/only the tokens file/);
   });
 
-  it('lets border tokens draw borders and outlines', () => {
+  it('lets border tokens draw borders, outlines and scrollbars', () => {
     expect(classifyTokenUse('border', '--border')).toBeNull();
     expect(classifyTokenUse('border-top-color', '--border-soft')).toBeNull();
     expect(classifyTokenUse('outline-color', '--border-control')).toBeNull();
+    expect(classifyTokenUse('scrollbar-color', '--border-on-card')).toBeNull();
     expect(classifyTokenUse('background', '--border-soft')).toMatch(/--border-\* is for border/);
   });
 
-  it('ignores alias declarations and unrelated tokens', () => {
+  it('ignores alias declarations, line-height and unrelated tokens', () => {
     expect(classifyTokenUse('--gate-muted', '--text-muted-on-card')).toBeNull();
+    expect(classifyTokenUse('line-height', '--line-height-base')).toBeNull();
     expect(classifyTokenUse('color', '--muted')).toBeNull();
     expect(classifyTokenUse('color', '--accent')).toBeNull();
   });
@@ -2516,7 +2630,8 @@ Create `packages/ui/presets/eslint-local/token-namespaces.js`:
 ```js
 const BACKGROUND = new Set(['background', 'background-color', 'background-image', 'fill']);
 
-const isBorderish = property => property.startsWith('border') || property.startsWith('outline');
+const isBorderish = property =>
+  property.startsWith('border') || property.startsWith('outline') || property === 'scrollbar-color';
 
 /**
  * @param {string} property CSS property (kebab-case) or a style-object key
@@ -2539,13 +2654,20 @@ export function classifyTokenUse(property, varName) {
   if (varName.startsWith('--surface-')) {
     return BACKGROUND.has(prop) ? null : `${varName}: --surface-* is for background and fill only.`;
   }
-  if (varName.startsWith('--border-') || varName === '--border' || varName.startsWith('--line-')) {
+  if (varName.startsWith('--border-') || varName === '--border') {
     return isBorderish(prop) ? null : `${varName}: --border-* is for border and outline properties only.`;
   }
   return null;
 }
 
 export const VAR_PATTERN = /var\(\s*(--[a-zA-Z0-9-]+)/g;
+```
+
+Create `packages/ui/presets/eslint-local/token-namespaces.d.ts`:
+
+```ts
+export function classifyTokenUse(property: string, varName: string): string | null;
+export const VAR_PATTERN: RegExp;
 ```
 
 - [ ] **Step 3: The TSX rule**
@@ -2588,6 +2710,15 @@ export default {
 };
 ```
 
+and `packages/ui/presets/eslint-local/token-namespaces-tsx.d.ts`:
+
+```ts
+import type { Rule } from 'eslint';
+
+declare const rule: Rule.RuleModule;
+export default rule;
+```
+
 - [ ] **Step 4: Rule tests**
 
 Append to `packages/ui/presets/eslint-local/token-namespaces.test.ts`:
@@ -2620,8 +2751,8 @@ describe('local/token-namespaces (tsx)', () => {
 });
 ```
 
-Run: `cd packages/ui && bunx vitest run presets/eslint-local/token-namespaces.test.ts`
-Expected: PASS.
+Run: `cd packages/ui && bunx vitest run presets/eslint-local/token-namespaces.test.ts && bun run typecheck`
+Expected: PASS, typecheck clean.
 
 - [ ] **Step 5: Wire into the preset**
 
@@ -2640,12 +2771,12 @@ git commit -m "eslint: token-namespaces rule for style objects (MAT-420)"
 ### Task 14: The CSS rule
 
 **Files:**
-- Create: `packages/ui/presets/eslint-local/token-namespaces-css.js`
+- Create: `packages/ui/presets/eslint-local/token-namespaces-css.js` and `token-namespaces-css.d.ts` (same two-line shape as `token-namespaces-tsx.d.ts`)
 - Modify: `packages/ui/presets/eslint-local/token-namespaces.test.ts`, `eslint.config.js`, root `package.json`
 
 **Interfaces:**
 - Consumes: `classifyTokenUse` from Task 13.
-- Produces: `tokenNamespacesCss`, an `@eslint/css` rule; root config blocks that lint `.css` under `packages/ui/src`, `packages/tui-kit/src` (excluding `generated/`), `stories/` and `apps/board/src`.
+- Produces: `tokenNamespacesCss`, an `@eslint/css` rule; root config blocks that lint `.css` under `packages/ui/src` and `stories/` at `error`, and under `packages/tui-kit/src` (excluding `generated/`) and `apps/board/src` at `warn` until each migrates.
 
 - [ ] **Step 1: Install the CSS language plugin**
 
@@ -2741,23 +2872,23 @@ In `eslint.config.js`:
 
 ```js
   {
-    files: ['packages/ui/src/**/*.css', 'packages/tui-kit/src/**/*.css', 'stories/**/*.css'],
+    files: ['packages/ui/src/**/*.css', 'stories/**/*.css'],
     plugins: { css, local: { rules: { 'token-namespaces-css': tokenNamespacesCss } } },
     language: 'css/css',
     rules: { 'local/token-namespaces-css': 'error' },
   },
   {
-    files: ['apps/board/src/**/*.css'],
+    files: ['packages/tui-kit/src/**/*.css', 'apps/board/src/**/*.css'],
     plugins: { css, local: { rules: { 'token-namespaces-css': tokenNamespacesCss } } },
     language: 'css/css',
     rules: { 'local/token-namespaces-css': 'warn' },
   },
 ```
 
-Change the root `lint` script to `eslint --no-error-on-unmatched-pattern packages .storybook stories apps/board/src`.
+Change the root `lint` script to `eslint --no-error-on-unmatched-pattern packages .storybook stories 'apps/board/src/**/*.css'` (the CSS glob, not the directory: the board's TypeScript is not linted by the root config and reports over a hundred unrelated errors if it is).
 
 Run: `bun run lint`
-Expected: zero errors. Warnings under `apps/board/src/style.css` are expected: count them, paste the list (file:line and message) into the task report, and leave the code alone; the board's migration to the new namespaces is where they get fixed, and the block is `warn` until then. If `packages/ui/src` or `packages/tui-kit/src` report an error, it is a real misuse in kit CSS: fix it only if the fix is a one-token swap on that line, otherwise report it.
+Expected: zero errors. Warnings are expected and are the migration's work list, not this task's: in tui-kit today they are `Panel.module.css` (a wash used as `color`), `ContextMenu.module.css` and `Table.module.css` (`--border-soft` / `--border` painted as a hairline `background`), plus whatever `apps/board/src/style.css` reports. Count them, paste the list (file:line and message) into the task report, and leave the code alone. An error under `packages/ui/src` is a real misuse in kit CSS: fix it only if the fix is a one-token swap on that line, otherwise report it.
 
 - [ ] **Step 5: Add the rule to the app presets' docs and commit**
 
