@@ -33,8 +33,10 @@ and was confident both times.
 ### 1.1 The size trap
 
 Chat looked bad while passing. Its dim text measures 4.95:1, above the 4.5
-bar. The platform's root is 17px, body renders at 14.45px, and chat's
-secondary text lands at 10.5-12px.
+bar. The board's root is 17px (`html { font-size: 17px }` in its
+`style.css`; tui-kit's canvas and tokyo's body are 13.5px literals with no
+root override), body renders at 14.45px there, and chat's secondary text
+lands at 10.5-12px.
 
 WCAG 1.4.3 has no small-text provision: 4.5:1 is its bar at every size below
 "large" (about 24px, or 18.7px bold). The 5.5 and 7.0 bars in §6 are this
@@ -172,8 +174,11 @@ the two never disagree at the third decimal.
 
 ## 6. Type
 
-Six steps named by role, measured live at a 17px root. Each names the
-contrast bar any secondary text must clear at that size. **This column is
+Six steps named by role. Sizes are measured live on the board at its 17px
+root; weight and line-height are targets, since `--type-*` carries size
+only and the board uses `micro` at both 500 and 600 today. The bars are
+conservative for any smaller root. Each step names the contrast bar any
+secondary text must clear at that size. **This column is
 the link the old system lacked:** nothing stopped a colour tuned for body
 copy being used on 10.54px text.
 
@@ -251,11 +256,12 @@ The dark fills in §7 hold the light hue angle and are the darkest value
 clearing 3:1 against all four dark surfaces, so fill, body and small
 progress upward. They replace `TOKENS.dark.hue.*` (today `#7aa2f7`,
 `#9ece6a`, `#f7768e`, `#e0af68`, `#bb9af7`, `#7dcfff`) and become the
-Night ramp seeds. That is why MAT-421 lands first: changing the dark seeds
-by hand invalidates every hand-written Night tuple.
+Night ramp seeds. That is why MAT-421 (§9 step 1) lands before this change
+(§9 step 2): changing the dark seeds by hand invalidates every hand-written
+Night tuple, and the tui-kit button resolver is tuned against the old ones.
 
 Every dark fill carries a white label at 5.3:1 and `text-1` at 4.3:1;
-filled buttons in dark use a white label.
+filled buttons in dark use a white label (§9 step 2 makes that change).
 
 **Open, default taken:** `fill-ok` in dark (`#277860`) is deep, because 3:1
 is a low bar on a near-black page. Default is to ship 3:1. If dark fills
@@ -264,26 +270,41 @@ for all six hues and re-solve; do not hand-pick one.
 
 ### 7.2 Lines
 
-Three steps per scheme, ordered like surfaces: `line-1` is the strongest
-against the surface it sits on. Values are today's, deduplicated, so no
-light element repaints and dark dividers move by one step at most.
+Three steps, ordered like surfaces: `line-1` is the strongest against the
+surface it sits on. Every value is one that ships today, so the mapping
+below repaints nothing in light and moves two dark dividers by one step.
+Light needs only two steps; its `line-3` slot is reserved and unassigned
+rather than invented. The table grid hairline (`line.grid`,
+`rgba(52,59,88,.05)` light, `rgba(122,162,247,.06)` dark) is not a border
+value and keeps its own token in both schemes.
 
 | | light | vs `#ffffff` | dark | vs card `#1e2030` | vs page `#16161e` |
 | --- | --- | --- | --- | --- | --- |
 | `line-1` | `#c8cad6` | 1.63 | `#6b7499` | 3.51 | 3.93 |
 | `line-2` | `#d5d7e2` | 1.43 | `#505879` | 2.31 | 2.58 |
-| `line-3` | `rgba(52,59,88,.05)` | hairline | `#3b4261` | 1.64 | 1.83 |
+| `line-3` | unassigned | | `#3b4261` | 1.64 | 1.83 |
 
-Semantic layer, both schemes: `--border-control` → `line-1`, `--border` →
-`line-2`, `--border-soft` → `line-3`. The dark `edgeOnCard`,
-`controlEdgeOnCard` and `softOnCard` tokens exist because a card in dark is
-lighter than the page and a page-tuned line vanishes on it. The replacement
-is a scope rule, not more tokens: a card ground re-points its own borders
-one step up (`.card { --border: var(--line-1); --border-soft: var(--line-2) }`),
-which is exactly what the board's `--gate-*` block does by hand today. Two
-dark values retire: `softOnCard` `#404866` (its role is now `line-2` on
-cards) and `soft` `#313853` (now `line-3`, `#3b4261`, one step more
-visible; the only dark divider change).
+The semantic mapping differs per scheme, which §4 permits:
+
+| role | light | dark, base | dark, card scope |
+| --- | --- | --- | --- |
+| `--border-control` | `line-1` | `line-1` | `line-1` |
+| `--border` | `line-1` | `line-3` | `line-2` |
+| `--border-soft` | `line-2` | `line-3` | `line-3` |
+
+Light: `--border` and `--border-control` share `line-1` because they share
+`#c8cad6` today; `--border-soft` is today's `#d5d7e2`. Dark base:
+`--border` is today's `#3b4261`; `--border-soft` moves from `#313853` to
+`line-3` (`#3b4261`, one step more visible). Dark card scope is where the
+`edgeOnCard`, `controlEdgeOnCard` and `softOnCard` tokens live today,
+because a card in dark is lighter than the page and a page-tuned line
+vanishes on it. The replacement is a scope rule, not more tokens: the card
+ground re-points `--border` one step up in its own scope
+(`.card { --border: var(--line-2) }`), which lands today's `edgeOnCard`
+`#505879` exactly and is what the board's `--gate-*` block does by hand.
+`controlEdgeOnCard` `#6b7499` is `line-1` exactly. `softOnCard` moves from
+`#404866` to `line-3` (`#3b4261`, 1.79 to 1.64 against the card, slightly
+quieter). Those two moves are the whole visible change.
 
 Lines have no text bar. WCAG 1.4.11's 3:1 applies to a control's boundary
 only when the border is the sole boundary cue; every light line here is
@@ -334,36 +355,69 @@ its codegen only (§9 step 1).
 
 ## 9. Verification and sequencing
 
-Six steps, in the order they must land:
+Seven steps, in the order they must land. Each lands green on its own;
+the dark seed change is deliberately its own step because it is the one
+that cannot.
 
-0. **Tokens.** `values.ts` gains, per scheme: `surface1..4` (§3), the six
-   semantic surface roles pointing at steps (§4), `text1..4` (§5),
-   `hueText` and `hueTextSmall` (§7), `line1..3` plus the three border
-   roles (§7.2), and the corrected `TOKENS.dark.hue.*` (§7.1).
-   `scripts/generate.ts` emits the numeric ramps and the new semantic
-   names into tui-kit's `tokens.ts` and tokyo's `tokyo-theme.css`; old
-   names (`--muted-text`, `--fg`, `bg`, the `*OnCard` set) are emitted as
-   aliases of the new ones for one release. `invariants.test.ts` gains the
-   sort checks: surfaces by contrast against `text-1`, text by bar, lines
-   by contrast, and one assertion per §5/§7 value that it clears its bar.
-   The tui-kit census (`test/theme.test.ts`) gets one ruling set for the
-   moves this step makes. Then `bun run tokens:codegen`, tui-kit codegen,
-   and `cd apps/deck && bun run build:board` for the vendored copies.
-1. **Generated ramps (MAT-421).** Seed is `TOKENS.<scheme>.hue.<h>` from
-   step 0. Raw `@mantine/colors-generator` output is unusable: of the 8
-   seeds measured (six light hues plus two dark `ok` candidates), only 2
-   landed on the index Mantine reads as primary, so `filled`/`outline`/
-   `text` would render colours nobody chose (`#29feb6` in place of
-   `#00c287`). The generator lives in `packages/tokens/scripts` beside
-   `generate.ts`, runs the OKLab re-anchoring already described in
-   `ramps.ts`'s header, writes `packages/tokyo/src/ramps.ts` as a generated
-   file (the freshness gate already diffs `packages/tokyo/src`), and asserts
-   per ramp before writing: exact seed at the primary index, strictly
-   monotonic luminance, ten entries. A failing assertion fails the build
-   rather than emitting.
-2. **Bound provider (§8.2).** Then the storybook can be built on the real
+0. **Tokens, scheme-safe part.** `values.ts` gains, per scheme:
+   `surface1..4` (§3), the six semantic surface roles pointing at steps
+   (§4), `text1..4` (§5), `hueText` and `hueTextSmall` (§7, dark values
+   solved at the corrected hue angle even though the dark fill has not
+   moved yet; they have no consumer until migration), and `line1..3` plus
+   the three border roles with the per-scheme mapping and the card-scope
+   rule (§7.2). `TOKENS.dark.hue.*` is NOT touched here. `scripts/generate.ts`
+   emits the numeric ramps and the new semantic names into tui-kit's
+   `tokens.ts` and tokyo's `tokyo-theme.css`. Old names are emitted as
+   aliases for one release: `--fg` → `text-1`; `--muted-text` → `text-3`
+   (today's `#565d80` measures 5.83 and `text-3` at 5.57 is the nearest;
+   migration then moves small and micro sites to `text-4`); `--bg` →
+   `--page`; the five `*OnCard` line names → the card-scope values in
+   §7.2; `--muted` keeps its name and value until the step-6 audit. The
+   short-alias tier is authored in `packages/tui-kit/soribashi.config.ts`
+   (a `CssVariablesResolver`), not derived from `values.ts`, and soribashi
+   has no `line` semantic group today, so `--line-[1-3]` and
+   `--border-control` need entries there. `invariants.test.ts` gains the
+   sort checks (surfaces by contrast against `text-1`, text by bar, lines
+   by contrast) and one assertion per §5 text value, per §7 hue text value
+   and per §7 dark fill that it clears its bar; light fills are asserted
+   to equal the locked hex, not to clear a bar, because §7 keeps three of
+   them under it. `packages/tokens/src/color-math.ts` uses the 0.04045 sRGB
+   threshold and soribashi's `contrastRatio` uses 0.03928; they agree for
+   every 8-bit channel, so the invariants keep `color-math.ts` and nobody
+   "fixes" one to match the other. The tui-kit census (`test/theme.test.ts`)
+   gets one ruling set for the moves this step makes. Then
+   `bun run tokens:codegen`, tui-kit codegen, and
+   `cd apps/deck && bun run build:board` for the vendored copies.
+1. **Generated ramps (MAT-421).** Seed is `TOKENS.<scheme>.hue.<h>`, still
+   today's values, so `ramp-anchors.test.ts` keeps passing and the
+   generator is proven by reproducing the hand-written ramps' anchors
+   before it is trusted with new seeds. Raw `@mantine/colors-generator`
+   output is unusable: of the 8 seeds measured (six light hues plus two
+   dark `ok` candidates), only 2 landed on the index Mantine reads as
+   primary, so `filled`/`outline`/`text` would render colours nobody chose
+   (`#29feb6` in place of `#00c287`). The generator lives in
+   `packages/tokens/scripts` beside `generate.ts`, runs the OKLab
+   re-anchoring already described in `ramps.ts`'s header, writes
+   `packages/tokyo/src/ramps.ts` as a generated file (the freshness gate
+   already diffs `packages/tokyo/src`), and asserts per ramp before
+   writing: exact seed at the primary index, strictly monotonic luminance,
+   ten entries. A failing assertion fails the build rather than emitting.
+2. **Dark seeds (§7.1), one change.** `TOKENS.dark.hue.*` becomes the §7
+   dark fills; the step-1 generator rewrites the Night ramps in the same
+   commit, so the anchors test never sees a mismatch. The same change
+   retunes tui-kit's `intent-resolver.ts`, which derives every Button
+   variant from `--color-<family>-500` (the seed) with mix weights tuned
+   against the old palette: in dark, `filled` paints its label `#ffffff`
+   instead of `var(--bg)` (5.3:1 on every new fill, §7.1), and
+   `outline`/`subtle`/`light` take their tone from `--text-<hue>` rather
+   than mixing the seed toward `--fg`. `Button.matrix.test.tsx` runs the
+   dark grid in CI and `known-contrast-debt.ts` has no dark entries; this
+   step must leave it that way. Any dark cell that still measures under
+   the floor after the retune is a bug in this step, not a new ledger
+   entry. Deck regen follows, as in step 0.
+3. **Bound provider (§8.2).** Then the storybook can be built on the real
    providers rather than a hand-wired approximation.
-3. **Storybook (MAT-419).** Two clearly separated halves: a reference
+4. **Storybook (MAT-419).** Two clearly separated halves: a reference
    catalogue rendering the ramps from the imported tokens with contrast
    computed at render time (via `@soribashi/core/testing`), and a specimen
    wall covering both kits, using the bound providers, with
@@ -373,21 +427,23 @@ Six steps, in the order they must land:
    `.dark` on the root (Mantine reads `forceColorScheme`; tui-kit reads
    `color-scheme`). `bun run tui-kit:build` must precede the storybook
    build, as it does every board and deck gate.
-4. **Contrast gate.** Extends the existing `Button.matrix.test.tsx`
+5. **Contrast gate.** Extends the existing `Button.matrix.test.tsx`
    browser-vitest pattern and its `known-contrast-debt.ts` ratchet to cover
    every text step against every surface in both schemes, every hue text
-   value likewise, and the §7 light-fill debt entries. Not a Storybook
-   test-runner: there is none installed, and the vitest browser project is
-   already in CI.
-5. **Lint (MAT-420).** The four §8.1 rules as one ESLint rule over CSS-in-
+   value likewise, and the §7 light-fill debt entries. The ledger's entry
+   type is a Button cell today (`variant`, `intent`, `scheme`, `state`);
+   this step widens it with a second entry shape for a raw
+   fill-against-surface pair. Not a Storybook test-runner: there is none
+   installed, and the vitest browser project is already in CI.
+6. **Lint (MAT-420).** The four §8.1 rules as one ESLint rule over CSS-in-
    TS and `.css` sources, shared by app-kit and tui-kit consumers. Lands
    BEFORE the apps-wide migration. Roughly 154 `--muted` uses must be
    classified as text or fill by hand, and that is the same judgment that
    failed the first time.
 
-Migration then proceeds per package, cheapest first, with old names aliased
-to new for one release. `--muted-text` (765 uses) and `--fg` (348) map
-one-to-one; the hand-audited work is the 154 `--muted` uses.
+Migration then proceeds per package, cheapest first, on the step-0
+aliases. `--muted-text` (765 uses) and `--fg` (348) map one-to-one; the
+hand-audited work is the 154 `--muted` uses.
 
 ### 9.1 A measurement bug to avoid
 
