@@ -1635,7 +1635,7 @@ Expected: PASS; `dist/src/provider.js` and `dist/src/provider.d.ts` exist (`ls d
 
 - [ ] **Step 4: Switch the board to the bound provider**
 
-In `apps/board/src/client/main.tsx`, replace the two imports on lines 4-5 with `import { TuiKitProvider } from '@mattstack/tui-kit/provider';`, delete the `registerTheme(tuiTheme);` call and its explanatory comment block (lines 19-28), and replace `<SoribashiProvider theme={tuiTheme}>` / `</SoribashiProvider>` with `<TuiKitProvider>` / `</TuiKitProvider>`.
+In `apps/board/src/client/main.tsx`, replace the two imports on lines 4-5 with `import { TuiKitProvider } from '@mattstack/tui-kit/provider';`, delete the `registerTheme(tuiTheme);` call and its explanatory comment block (lines 18-28), and replace `<SoribashiProvider theme={tuiTheme}>` / `</SoribashiProvider>` with `<TuiKitProvider>` / `</TuiKitProvider>`.
 
 Update the two docs that name the old file: `packages/tui-kit/docs/consuming.md` line 83 and `packages/tui-kit/docs/decisions.md` line 145 say `src/provider.ts`; make them `src/provider.tsx` and mention `TuiKitProvider` as the one-import path.
 
@@ -2733,20 +2733,22 @@ const tester = new RuleTester({
   languageOptions: { parser: tseslint.parser, ecmaVersion: 2023, sourceType: 'module', parserOptions: { ecmaFeatures: { jsx: true } } },
 });
 
+// RuleTester.run creates its own describe/it blocks from the vitest globals
+// (`globals: true` in packages/ui/vitest.config.ts); wrapping it in an it()
+// makes vitest throw "Calling the suite function inside test function is
+// not allowed", so the run call sits directly in the describe body.
 describe('local/token-namespaces (tsx)', () => {
-  it('reports and passes the right style objects', () => {
-    tester.run('token-namespaces', tokenNamespacesTsx, {
-      valid: [
-        { code: 'const s = { color: "var(--text-3)", background: "var(--card)" };' },
-        { code: 'const s = { borderColor: `1px solid var(--border-soft)` };' },
-        { code: 'const s = { "--gate-muted": "var(--text-muted-on-card)" };' },
-      ],
-      invalid: [
-        { code: 'const s = { color: "var(--fill-warn)" };', errors: [{ messageId: 'misuse' }] },
-        { code: 'const s = { background: "var(--surface-2)" };', errors: [{ messageId: 'misuse' }] },
-        { code: 'const s = { backgroundColor: `var(--text-2)` };', errors: [{ messageId: 'misuse' }] },
-      ],
-    });
+  tester.run('token-namespaces', tokenNamespacesTsx, {
+    valid: [
+      { code: 'const s = { color: "var(--text-3)", background: "var(--card)" };' },
+      { code: 'const s = { borderColor: `1px solid var(--border-soft)` };' },
+      { code: 'const s = { "--gate-muted": "var(--text-muted-on-card)" };' },
+    ],
+    invalid: [
+      { code: 'const s = { color: "var(--fill-warn)" };', errors: [{ messageId: 'misuse' }] },
+      { code: 'const s = { background: "var(--surface-2)" };', errors: [{ messageId: 'misuse' }] },
+      { code: 'const s = { backgroundColor: `var(--text-2)` };', errors: [{ messageId: 'misuse' }] },
+    ],
   });
 });
 ```
@@ -2797,22 +2799,20 @@ const cssTester = new RuleTester({
 });
 
 describe('local/token-namespaces-css', () => {
-  it('reports and passes the right declarations', () => {
-    cssTester.run('token-namespaces-css', tokenNamespacesCss, {
-      valid: [
-        { code: '.a { color: var(--text-3); background: var(--card); }' },
-        { code: '.a { border: 1px solid var(--border-soft); outline: 2px solid var(--border-control); }' },
-        { code: '.a { --gate-muted: var(--text-muted-on-card); }' },
-        { code: '.a { background: color-mix(in srgb, var(--fill-warn) 9%, transparent); }' },
-      ],
-      invalid: [
-        { code: '.a { color: var(--fill-warn); }', errors: [{ messageId: 'misuse' }] },
-        { code: '.a { color: color-mix(in srgb, var(--fill-warn) 86%, #000); }', errors: [{ messageId: 'misuse' }] },
-        { code: '.a { background: var(--surface-1); }', errors: [{ messageId: 'misuse' }] },
-        { code: '.a { border-color: var(--surface-card); }', errors: [{ messageId: 'misuse' }] },
-        { code: '.a { background: var(--text-2); }', errors: [{ messageId: 'misuse' }] },
-      ],
-    });
+  cssTester.run('token-namespaces-css', tokenNamespacesCss, {
+    valid: [
+      { code: '.a { color: var(--text-3); background: var(--card); }' },
+      { code: '.a { border: 1px solid var(--border-soft); outline: 2px solid var(--border-control); }' },
+      { code: '.a { --gate-muted: var(--text-muted-on-card); }' },
+      { code: '.a { background: color-mix(in srgb, var(--fill-warn) 9%, transparent); }' },
+    ],
+    invalid: [
+      { code: '.a { color: var(--fill-warn); }', errors: [{ messageId: 'misuse' }] },
+      { code: '.a { color: color-mix(in srgb, var(--fill-warn) 86%, #000); }', errors: [{ messageId: 'misuse' }] },
+      { code: '.a { background: var(--surface-1); }', errors: [{ messageId: 'misuse' }] },
+      { code: '.a { border-color: var(--surface-card); }', errors: [{ messageId: 'misuse' }] },
+      { code: '.a { background: var(--text-2); }', errors: [{ messageId: 'misuse' }] },
+    ],
   });
 });
 ```
@@ -2857,7 +2857,7 @@ export default {
 };
 ```
 
-`@eslint/css` hands rules a css-tree AST in plain-object form (`children` are arrays, not css-tree lists), which is what the walker above reads. If the tester shows `children` as a list object instead, use `node.children.toArray()` in `collectVars` and note the plugin version in the report.
+`@eslint/css` hands rules a css-tree AST in plain-object form (`children` are arrays, not css-tree lists), which is what the walker above reads.
 
 Run: `cd packages/ui && bunx vitest run presets/eslint-local/token-namespaces.test.ts`
 Expected: PASS.
@@ -2868,6 +2868,13 @@ In `eslint.config.js`:
 
 - Change the tui-kit ignore from `{ ignores: ['packages/tui-kit/**'] }` to `{ ignores: ['packages/tui-kit/**/*.{ts,tsx,js,mjs}', 'packages/tui-kit/dist/**', 'packages/tui-kit/src/generated/**'] }` so its recipe CSS becomes lintable while its TS keeps its own conventions.
 - Add imports: `import css from '@eslint/css';` and `import tokenNamespacesCss from './packages/ui/presets/eslint-local/token-namespaces-css.js';`.
+- `mattstackEslint()` returns `js.configs.recommended`, the react-hooks block, `tseslint.configs.recommended` and the prettier config with no `files`, so once `.css` files match a config block those JavaScript rules run against the CSS language's SourceCode and ESLint crashes (`sourceCode.getAllComments is not a function`). Scope them to script files: add `const SCRIPT_FILES = ['**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}'];` near the top and replace `...mattstackEslint(),` with
+
+```js
+  ...mattstackEslint().map(c => (c.files || c.ignores ? c : { ...c, files: SCRIPT_FILES })),
+```
+
+  The apps' own configs never see CSS and need nothing.
 - Append before `...storybook.configs['flat/recommended']`:
 
 ```js
@@ -2888,7 +2895,7 @@ In `eslint.config.js`:
 Change the root `lint` script to `eslint --no-error-on-unmatched-pattern packages .storybook stories 'apps/board/src/**/*.css'` (the CSS glob, not the directory: the board's TypeScript is not linted by the root config and reports over a hundred unrelated errors if it is).
 
 Run: `bun run lint`
-Expected: zero errors. Warnings are expected and are the migration's work list, not this task's: in tui-kit today they are `Panel.module.css` (a wash used as `color`), `ContextMenu.module.css` and `Table.module.css` (`--border-soft` / `--border` painted as a hairline `background`), plus whatever `apps/board/src/style.css` reports. Count them, paste the list (file:line and message) into the task report, and leave the code alone. An error under `packages/ui/src` is a real misuse in kit CSS: fix it only if the fix is a one-token swap on that line, otherwise report it.
+Expected: zero errors and five warnings, the migration's work list, not this task's: `Panel.module.css` (a wash used as `color`), `ContextMenu.module.css` and `Table.module.css` (`--border-soft` / `--border` painted as a hairline `background`), and `apps/board/src/style.css` lines 3644 and 3667 (`--border` outside a border property). Paste the list (file:line and message) into the task report and leave the code alone; a sixth warning is a regression to look at, not to add to the list. An error under `packages/ui/src` is a real misuse in kit CSS: fix it only if the fix is a one-token swap on that line, otherwise report it.
 
 - [ ] **Step 5: Add the rule to the app presets' docs and commit**
 
