@@ -6,7 +6,6 @@ import {
   type CssNode,
   type Declaration,
   type FunctionNode,
-  type Rule,
   type StyleSheet,
 } from 'css-tree';
 
@@ -66,10 +65,12 @@ const DOT_HUE: Record<string, string> = {
   '--tk-dot-warn': 'warn',
   '--tk-dot-bad': 'bad',
 };
+// --surface-inset and --surface-overlay are deliberately absent: nothing
+// emits --inset or --overlay (only --surface-inset, --surface-overlay,
+// --page and --raised are emitted), so a rename onto them would target a
+// name that does not exist (R14).
 const SURFACE: Record<string, string> = {
   '--bg': '--page',
-  '--surface-inset': '--inset',
-  '--surface-overlay': '--overlay',
 };
 const TYPE_STEP_BAND: Record<string, Band> = {
   display: 'body',
@@ -202,14 +203,15 @@ interface ResolvedRule {
 
 // css-tree only recognizes a nested rule when its selector starts with `&`;
 // a bare nested selector (".label { ... }" inside another rule, no `&`)
-// parses as an opaque Raw block instead. Re-parsing that block's own text
-// with the `rule` context recovers its selector and declarations.
-function tryParseRawAsRule(text: string): Rule | null {
+// parses as an opaque Raw block instead, and css-tree lumps EVERY sibling
+// non-& nested rule from the first one to the end of the parent block into
+// that one Raw node. Re-parsing with the `rule` context assumes a single
+// rule and throws on a second sibling; `stylesheet` parses however many
+// sibling rules the block holds.
+function tryParseRawAsRule(text: string): StyleSheet | null {
   try {
-    const reparsed = parse(text, { context: 'rule', positions: true });
-    return reparsed.type === 'Rule' && reparsed.prelude.type === 'SelectorList'
-      ? reparsed
-      : null;
+    const reparsed = parse(text, { context: 'stylesheet', positions: true });
+    return reparsed.type === 'StyleSheet' ? reparsed : null;
   } catch {
     return null;
   }
@@ -240,7 +242,7 @@ function collectRules(
       const reparsed = tryParseRawAsRule(child.value);
       if (!reparsed) continue;
       const rawLine = child.loc?.start.line ?? 1;
-      collectRules([reparsed], parentSel, rawLine + lineOffset - 1, out);
+      collectRules(reparsed.children, parentSel, rawLine + lineOffset - 1, out);
     }
   }
 }
@@ -324,10 +326,55 @@ function applyRenamesToLine(line: string, renames: Rename[]): string {
   return result;
 }
 
+// Every old name the mapping tables know how to rename, minus --muted and
+// --tk-muted: those two are the neutral fill outside `color` and legitimately
+// stay, so flagging them as leftovers would drown the signal on every
+// `border: 1px solid var(--muted)`.
+const LEFTOVER_NAMES: Set<string> = new Set([
+  ...[...NEUTRAL_TEXT].filter(n => n !== '--muted' && n !== '--tk-muted'),
+  ...Object.keys(TEXT_ALIAS),
+  ...Object.keys(DOT),
+  ...Object.keys(SURFACE),
+  '--fg',
+  '--tk-fg',
+  '--ui-text-dimmed',
+  ...Object.keys(HUE_OF).flatMap(hue => [`--${hue}`, `--tk-${hue}`]),
+]);
+
+// Additive safety net for the misses `planRenames` and the tsx regex don't
+// reach (a const assignment, a ternary, a JSX attribute string, a
+// declaration nested inside an at-rule): scans the REWRITTEN output for any
+// old name the tables know, using the same "next char is `)` or `,`"
+// boundary as applyRenamesToLine so a longer name sharing a prefix doesn't
+// false-match.
+function findLeftovers(out: string): Unresolved[] {
+  const leftover: Unresolved[] = [];
+  const lines = out.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    for (const name of LEFTOVER_NAMES) {
+      const pattern = `var(${name}`;
+      let idx = line.indexOf(pattern);
+      while (idx !== -1) {
+        const boundary = line[idx + pattern.length];
+        if (boundary === ')' || boundary === ',')
+          leftover.push({ line: i + 1, text: line.trim() });
+        idx = line.indexOf(pattern, idx + 1);
+      }
+    }
+  }
+  return leftover;
+}
+
 export function rewriteCss(
   css: string,
   rootPx: number
-): { out: string; renames: Rename[]; unresolved: Unresolved[] } {
+): {
+  out: string;
+  renames: Rename[];
+  unresolved: Unresolved[];
+  leftover: Unresolved[];
+} {
   const renames = planRenames(css, rootPx);
   const lines = css.split('\n');
   const byLine = new Map<number, Rename[]>();
@@ -344,7 +391,8 @@ export function rewriteCss(
     if (r.unresolved)
       unresolved.push({ line: r.line, text: lines[r.line - 1]!.trim() });
   }
-  return { out: lines.join('\n'), renames, unresolved };
+  const out = lines.join('\n');
+  return { out, renames, unresolved, leftover: findLeftovers(out) };
 }
 
 // Style objects and template strings in TSX: `color: 'var(--tk-muted-text)'`.
@@ -355,6 +403,7 @@ export function renameInTsx(source: string): {
   out: string;
   renames: Rename[];
   unresolved: Unresolved[];
+  leftover: Unresolved[];
 } {
   const unresolved: Unresolved[] = [];
   const renames: Rename[] = [];
@@ -399,7 +448,8 @@ export function renameInTsx(source: string): {
       }
     );
   }
-  return { out: lines.join('\n'), renames, unresolved };
+  const out = lines.join('\n');
+  return { out, renames, unresolved, leftover: findLeftovers(out) };
 }
 
 if (import.meta.main) {
@@ -418,6 +468,8 @@ if (import.meta.main) {
     }
     for (const u of res.unresolved)
       console.log(`  UNRESOLVED ${file}:${u.line}  ${u.text}`);
+    for (const l of res.leftover)
+      console.log(`  LEFTOVER ${file}:${l.line}  ${l.text}`);
     if (write && res.out !== src) writeFileSync(file, res.out);
   }
 }

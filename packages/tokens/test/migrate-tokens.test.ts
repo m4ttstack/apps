@@ -112,16 +112,43 @@ describe('planRenames', () => {
     expect(out).toContain('background: var(--tk-fill-accent-hover);');
   });
 
-  it('treats a non-& nested rule as a descendant selector and still renames', () => {
-    const css = `.card { .label { color: var(--tk-muted-text); } }`;
+  it('recovers every sibling non-& nested rule from one Raw block, not just the first', () => {
+    const css = [
+      '.card {',
+      '  font-size: 12px;',
+      '  color: var(--tk-fg);',
+      '  .label {',
+      '    color: var(--tk-muted-text);',
+      '  }',
+      '  .other {',
+      '    color: var(--tk-accent);',
+      '  }',
+      '}',
+    ].join('\n');
     const r = planRenames(css, 16);
-    expect(r).toEqual([
-      expect.objectContaining({
-        to: '--tk-text-3',
-        band: null,
-        unresolved: true,
-      }),
-    ]);
+    expect(r).toHaveLength(3);
+    expect(r[0]).toMatchObject({
+      from: '--tk-fg',
+      to: '--tk-text-1',
+      line: 3,
+    });
+    expect(r[1]).toMatchObject({
+      from: '--tk-muted-text',
+      to: '--tk-text-4',
+      unresolved: false,
+      line: 5,
+    });
+    expect(r[2]).toMatchObject({
+      from: '--tk-accent',
+      to: '--tk-text-accent-small',
+      unresolved: false,
+      line: 8,
+    });
+    const { out } = rewriteCss(css, 16);
+    const lines = out.split('\n');
+    expect(lines[2]).toBe('  color: var(--tk-text-1);');
+    expect(lines[4]).toBe('    color: var(--tk-text-4);');
+    expect(lines[7]).toBe('    color: var(--tk-text-accent-small);');
   });
 
   it('routes dot tokens to hue text in color and keeps them as fill elsewhere', () => {
@@ -150,5 +177,54 @@ describe('planRenames', () => {
     const { out } = rewriteCss(css, 17);
     expect(out).toContain(`color: var(--ui-text-4)`);
     expect(out).toContain(`color: var(--ui-text-muted)`);
+  });
+
+  it('leaves --surface-inset and --surface-overlay alone (nothing emits them) and still renames --bg', () => {
+    const css = `.a { background: var(--surface-inset); } .b { background: var(--surface-overlay); } .c { background: var(--bg); }`;
+    const r = planRenames(css, 17);
+    expect(r).toEqual([
+      expect.objectContaining({ from: '--bg', to: '--page' }),
+    ]);
+    const { out } = rewriteCss(css, 17);
+    expect(out).toContain(`background: var(--surface-inset)`);
+    expect(out).toContain(`background: var(--surface-overlay)`);
+    expect(out).toContain(`background: var(--page)`);
+  });
+});
+
+describe('leftover reporting', () => {
+  it('reports a const assignment and a ternary that the tsx regex cannot reach, with zero renames', () => {
+    const src = [
+      `const MUTED = 'var(--tk-muted-text)';`,
+      `const label = active ? 'var(--tk-fg)' : 'plain';`,
+    ].join('\n');
+    const { renames, leftover } = renameInTsx(src);
+    expect(renames).toEqual([]);
+    expect(leftover).toEqual([
+      { line: 1, text: `const MUTED = 'var(--tk-muted-text)';` },
+      {
+        line: 2,
+        text: `const label = active ? 'var(--tk-fg)' : 'plain';`,
+      },
+    ]);
+  });
+
+  it('reports a declaration directly inside a nested at-rule that collectRules never visits', () => {
+    const css = `.a { @media (min-width: 1px) { color: var(--fg); } }`;
+    const { leftover } = rewriteCss(css, 17);
+    expect(leftover).toEqual([{ line: 1, text: css }]);
+  });
+
+  it('reports nothing once every var has already been rewritten', () => {
+    const css = `.a { color: var(--text-1); background: var(--fill-accent); }`;
+    const { leftover } = rewriteCss(css, 17);
+    expect(leftover).toEqual([]);
+  });
+
+  it('never flags --muted outside color, the neutral fill that legitimately stays', () => {
+    const css = `.a { border: 1px solid var(--muted); }`;
+    const { renames, leftover } = rewriteCss(css, 17);
+    expect(renames).toEqual([]);
+    expect(leftover).toEqual([]);
   });
 });
