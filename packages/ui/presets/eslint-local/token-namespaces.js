@@ -10,6 +10,19 @@ const isBorderish = property =>
   property.startsWith('outline') ||
   property === 'scrollbar-color';
 
+// The pre-migration public aliases still resolve to the FILL steps
+// (soribashi.config.ts maps each to --color-<family>-500), so reading one as
+// a text colour is the fill-as-text violation wearing an older name.
+const FILL_ALIAS_HUE = {
+  '--accent': 'accent',
+  '--green': 'ok',
+  '--red': 'bad',
+  '--amber': 'warn',
+  '--purple': 'purple',
+  '--cyan': 'cyan',
+  '--gold': 'gold',
+};
+
 /**
  * @param {string} property CSS property (kebab-case) or a style-object key
  * @param {string} varName custom property name including the leading `--`
@@ -28,6 +41,12 @@ export function classifyTokenUse(property, varName) {
   if (varName.startsWith('--fill-')) {
     return prop === 'color'
       ? `${varName}: --fill-* is never a text colour; use --text-${varName.slice(7)}.`
+      : null;
+  }
+  const aliasHue = FILL_ALIAS_HUE[varName];
+  if (aliasHue) {
+    return prop === 'color'
+      ? `${varName} aliases the ${aliasHue} fill and is never a text colour; use --text-${aliasHue} (or --text-${aliasHue}-vivid for status).`
       : null;
   }
   if (varName.startsWith('--surface-')) {

@@ -59,7 +59,16 @@ describe('classifyTokenUse', () => {
     expect(classifyTokenUse('--gate-muted', '--text-muted-on-card')).toBeNull();
     expect(classifyTokenUse('line-height', '--line-height-base')).toBeNull();
     expect(classifyTokenUse('color', '--muted')).toBeNull();
-    expect(classifyTokenUse('color', '--accent')).toBeNull();
+  });
+
+  it('rejects the legacy fill aliases as text, allows them elsewhere', () => {
+    expect(classifyTokenUse('color', '--accent')).toMatch(
+      /aliases the accent fill/
+    );
+    expect(classifyTokenUse('color', '--amber')).toMatch(/--text-warn/);
+    expect(classifyTokenUse('color', '--red')).toMatch(/--text-bad/);
+    expect(classifyTokenUse('background', '--amber')).toBeNull();
+    expect(classifyTokenUse('border-color', '--red')).toBeNull();
   });
 });
 
@@ -102,6 +111,10 @@ describe('local/token-namespaces (tsx)', () => {
         errors: [{ messageId: 'misuse' }],
       },
       {
+        code: 'const s = { color: "var(--amber)" };',
+        errors: [{ messageId: 'misuse' }],
+      },
+      {
         code: 'const s = { background: "var(--surface-2)" };',
         errors: [{ messageId: 'misuse' }],
       },
@@ -139,10 +152,18 @@ describe('local/token-namespaces-css', () => {
       },
       // on-fill label tokens are legal as text colour.
       { code: '.a { color: var(--on-fill-warn); }' },
+      // legacy fill aliases stay legal in washes and edges, like --fill-*.
+      {
+        code: '.a { background: color-mix(in srgb, var(--accent) 14%, transparent); }',
+      },
     ],
     invalid: [
       {
         code: '.a { color: var(--fill-warn); }',
+        errors: [{ messageId: 'misuse' }],
+      },
+      {
+        code: '.a { color: var(--red); }',
         errors: [{ messageId: 'misuse' }],
       },
       {
