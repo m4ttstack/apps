@@ -3863,8 +3863,8 @@ body {
   color: var(--text-bad-small);
   background: color-mix(in srgb, var(--fill-bad) 15%, transparent);
 }
-/* warnText (#582d1d on white) already reads about 11.6:1, well past AA.
-   The pill still darkens it 86% + #000 to pay for its own background. */
+/* warnText already has headroom on white, so this darkening is paying for
+   the pill's own background, not for contrast. */
 .tui-review-tier-pill[data-tier='Important'] {
   color: color-mix(in srgb, var(--color-gray-warnText) 86%, #000);
   background: color-mix(in srgb, var(--fill-warn) 9%, transparent);
