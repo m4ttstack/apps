@@ -33,9 +33,11 @@ html {
      decide, which read the warn hue via --text-warn-vivid. */
   --orange: light-dark(#ab6400, #ffca16);
   /* Radix step 11, pinned as literals: the generated --text-ok, --text-warn,
-     --text-cyan, and --text-bad tokens promote to step 12 in light, which is
-     near-black and loses the hue a status label needs. Provisional pending
-     emitted vivid tokens; swap back to tokens is one line each. */
+     and --text-cyan tokens promote to step 12 in light, which is near-black
+     and loses the hue a status label needs. --text-bad is step 11 in both
+     schemes; the pin holds that value so the rule cannot change meaning if
+     the token's step moves later. All four are provisional pending emitted
+     vivid tokens; swap back to tokens is one line each. */
   --text-ok-vivid: light-dark(#008573, #0bd8b6);
   --text-warn-vivid: light-dark(#cc4e00, #ffa057);
   --text-cyan-vivid: light-dark(#107d98, #4ccce6);
