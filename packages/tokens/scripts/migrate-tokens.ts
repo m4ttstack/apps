@@ -7,6 +7,7 @@ import {
   type Declaration,
   type FunctionNode,
   type Rule,
+  type StyleSheet,
 } from 'css-tree';
 
 export type Band = 'body' | 'meta' | 'small';
@@ -54,6 +55,16 @@ const DOT: Record<string, string> = {
   '--tk-dot-ok': '--tk-fill-ok',
   '--tk-dot-warn': '--tk-fill-warn',
   '--tk-dot-bad': '--tk-fill-bad',
+};
+// The spec forbids `--fill-*` in `color`; a dot in color routes to its hue's
+// text token by band instead, same as any other hue name.
+const DOT_HUE: Record<string, string> = {
+  '--dot-ok': 'ok',
+  '--dot-warn': 'warn',
+  '--dot-bad': 'bad',
+  '--tk-dot-ok': 'ok',
+  '--tk-dot-warn': 'warn',
+  '--tk-dot-bad': 'bad',
 };
 const SURFACE: Record<string, string> = {
   '--bg': '--page',
@@ -127,17 +138,20 @@ function target(
 ): { to: string; unresolved: boolean } | null {
   const tk = name.startsWith('--tk-');
   const pre = tk ? '--tk-' : '--';
-  if (DOT[name]) return { to: DOT[name]!, unresolved: false };
   if (isColor(property)) {
     if (name === '--fg' || name === '--tk-fg')
       return { to: `${pre}text-1`, unresolved: false };
+    if (name === '--ui-text-dimmed')
+      return { to: '--ui-text-4', unresolved: false };
+    if (name === '--ui-text-muted') return null;
     if (NEUTRAL_TEXT.has(name))
       return {
         to: `${pre}${BAND_TEXT[band ?? 'meta'].slice(2)}`,
         unresolved: band === null,
       };
+    const dotHue = DOT_HUE[name];
     const alias = TEXT_ALIAS[name];
-    const hue = alias ?? hueOf(name)?.hue;
+    const hue = dotHue ?? alias ?? hueOf(name)?.hue;
     if (hue) {
       const small = band === 'small' || band === 'meta' || band === null;
       return {
@@ -147,6 +161,7 @@ function target(
     }
     return null;
   }
+  if (DOT[name]) return { to: DOT[name]!, unresolved: false };
   if (isFillish(property) || isBorderish(property)) {
     const h = hueOf(name);
     if (h)
@@ -160,25 +175,87 @@ function target(
   return null;
 }
 
-function selectorText(rule: Rule): string {
-  return generate(rule.prelude);
+// A CSS-nested rule's own prelude is written relative to its parent
+// ("&:hover", or a bare ".label" meaning "<parent> .label"). Band inheritance
+// and hover detection need the fully expanded selector, not the literal text.
+function expandSelector(own: string, parentSel: string): string {
+  return own
+    .split(',')
+    .map(part => {
+      const trimmed = part.trim();
+      return trimmed.includes('&')
+        ? trimmed.replaceAll('&', parentSel)
+        : `${parentSel} ${trimmed}`;
+    })
+    .join(', ');
+}
+
+interface ResolvedRule {
+  sel: string;
+  hover: boolean;
+  declarations: Declaration[];
+  // Added to a loc.line captured within this rule's own subtree to get the
+  // absolute file line; nonzero only for a rule recovered from a Raw block
+  // (see tryParseRawAsRule), whose re-parse numbers lines from 1 again.
+  lineOffset: number;
+}
+
+// css-tree only recognizes a nested rule when its selector starts with `&`;
+// a bare nested selector (".label { ... }" inside another rule, no `&`)
+// parses as an opaque Raw block instead. Re-parsing that block's own text
+// with the `rule` context recovers its selector and declarations.
+function tryParseRawAsRule(text: string): Rule | null {
+  try {
+    const reparsed = parse(text, { context: 'rule', positions: true });
+    return reparsed.type === 'Rule' && reparsed.prelude.type === 'SelectorList'
+      ? reparsed
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function collectRules(
+  children: Iterable<CssNode>,
+  parentSel: string | undefined,
+  lineOffset: number,
+  out: ResolvedRule[]
+): void {
+  for (const child of children) {
+    if (child.type === 'Rule') {
+      const own = generate(child.prelude);
+      const sel =
+        parentSel === undefined ? own : expandSelector(own, parentSel);
+      const declarations: Declaration[] = [];
+      const nested: CssNode[] = [];
+      for (const c of child.block.children) {
+        if (c.type === 'Declaration') declarations.push(c);
+        else nested.push(c);
+      }
+      out.push({ sel, hover: /:hover/.test(sel), declarations, lineOffset });
+      collectRules(nested, sel, lineOffset, out);
+    } else if (child.type === 'Atrule' && child.block) {
+      collectRules(child.block.children, parentSel, lineOffset, out);
+    } else if (child.type === 'Raw') {
+      const reparsed = tryParseRawAsRule(child.value);
+      if (!reparsed) continue;
+      const rawLine = child.loc?.start.line ?? 1;
+      collectRules([reparsed], parentSel, rawLine + lineOffset - 1, out);
+    }
+  }
 }
 
 export function planRenames(css: string, rootPx: number): Rename[] {
-  const ast = parse(css, { positions: true });
+  const ast = parse(css, { positions: true }) as StyleSheet;
+  const rules: ResolvedRule[] = [];
+  collectRules(ast.children, undefined, 0, rules);
+
   const sizes = new Map<string, string>();
-  walk(ast, {
-    visit: 'Rule',
-    enter(rule: Rule) {
-      const sel = selectorText(rule);
-      walk(rule.block, {
-        visit: 'Declaration',
-        enter(d: Declaration) {
-          if (d.property === 'font-size') sizes.set(sel, generate(d.value));
-        },
-      });
-    },
-  });
+  for (const rule of rules) {
+    for (const d of rule.declarations) {
+      if (d.property === 'font-size') sizes.set(rule.sel, generate(d.value));
+    }
+  }
   const sizeFor = (sel: string): string | undefined => {
     if (sizes.has(sel)) return sizes.get(sel);
     const base = sel.replace(/:[a-z-]+(\(.*\))?$/, '');
@@ -192,48 +269,59 @@ export function planRenames(css: string, rootPx: number): Rename[] {
     }
     return bestKey === undefined ? undefined : sizes.get(bestKey);
   };
+
   const out: Rename[] = [];
-  walk(ast, {
-    visit: 'Rule',
-    enter(rule: Rule) {
-      const sel = selectorText(rule);
-      const hover = /:hover/.test(sel);
-      const size = sizeFor(sel);
-      const band = size === undefined ? null : bandFromSize(size, rootPx);
-      walk(rule.block, {
-        visit: 'Declaration',
-        enter(d: Declaration) {
-          walk(d.value as CssNode, {
-            visit: 'Function',
-            enter(fn: FunctionNode) {
-              if (fn.name !== 'var') return;
-              const first = fn.children.first;
-              if (!first || first.type !== 'Identifier') return;
-              const t = target(first.name, d.property, band, hover);
-              if (!t) return;
-              out.push({
-                property: d.property,
-                from: first.name,
-                to: t.to,
-                band: isColor(d.property) ? band : null,
-                unresolved: t.unresolved,
-                line: fn.loc?.start.line ?? d.loc?.start.line ?? 0,
-              });
-            },
+  for (const rule of rules) {
+    const size = sizeFor(rule.sel);
+    const band = size === undefined ? null : bandFromSize(size, rootPx);
+    for (const d of rule.declarations) {
+      walk(d.value as CssNode, {
+        visit: 'Function',
+        enter(fn: FunctionNode) {
+          if (fn.name !== 'var') return;
+          const first = fn.children.first;
+          if (!first || first.type !== 'Identifier') return;
+          const t = target(first.name, d.property, band, rule.hover);
+          if (!t) return;
+          out.push({
+            property: d.property,
+            from: first.name,
+            to: t.to,
+            band: isColor(d.property) ? band : null,
+            unresolved: t.unresolved,
+            line:
+              (fn.loc?.start.line ?? d.loc?.start.line ?? 0) + rule.lineOffset,
           });
         },
       });
-    },
-  });
+    }
+  }
   return out;
 }
 
-function replaceVarName(line: string, from: string, to: string): string {
-  const exact = `var(${from})`;
-  if (line.includes(exact)) return line.replace(exact, `var(${to})`);
-  const fallback = `var(${from},`;
-  if (line.includes(fallback)) return line.replace(fallback, `var(${to},`);
-  return line;
+// Two renames on the same line can share a `from` name (one exact, one with
+// a fallback), so matching by substring alone can grab the wrong one out of
+// source order. `cursor` pins each search to start after the previous
+// rename's replacement, and the boundary check after the name (`)` or `,`)
+// rejects a longer var name that merely starts with this one.
+function applyRenamesToLine(line: string, renames: Rename[]): string {
+  let result = line;
+  let cursor = 0;
+  for (const r of renames) {
+    const pattern = `var(${r.from}`;
+    let idx = result.indexOf(pattern, cursor);
+    while (idx !== -1) {
+      const boundary = result[idx + pattern.length];
+      if (boundary === ')' || boundary === ',') break;
+      idx = result.indexOf(pattern, idx + 1);
+    }
+    if (idx === -1) continue;
+    const replacement = `var(${r.to}`;
+    result =
+      result.slice(0, idx) + replacement + result.slice(idx + pattern.length);
+    cursor = idx + replacement.length;
+  }
+  return result;
 }
 
 export function rewriteCss(
@@ -242,11 +330,19 @@ export function rewriteCss(
 ): { out: string; renames: Rename[]; unresolved: Unresolved[] } {
   const renames = planRenames(css, rootPx);
   const lines = css.split('\n');
+  const byLine = new Map<number, Rename[]>();
+  for (const r of renames) {
+    const list = byLine.get(r.line);
+    if (list) list.push(r);
+    else byLine.set(r.line, [r]);
+  }
+  for (const [lineNo, lineRenames] of byLine) {
+    lines[lineNo - 1] = applyRenamesToLine(lines[lineNo - 1]!, lineRenames);
+  }
   const unresolved: Unresolved[] = [];
   for (const r of renames) {
-    const i = r.line - 1;
-    lines[i] = replaceVarName(lines[i]!, r.from, r.to);
-    if (r.unresolved) unresolved.push({ line: r.line, text: lines[i]!.trim() });
+    if (r.unresolved)
+      unresolved.push({ line: r.line, text: lines[r.line - 1]!.trim() });
   }
   return { out: lines.join('\n'), renames, unresolved };
 }
