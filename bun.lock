@@ -19,6 +19,8 @@
         "@mattstack/app-kit": "workspace:*",
         "@mattstack/glance": "catalog:",
         "@mattstack/rt-client": "catalog:",
+        "@mattstack/tokens": "workspace:*",
+        "@mattstack/tui-kit": "workspace:*",
         "@storybook/addon-a11y": "^10.5.2",
         "@storybook/addon-docs": "^10.5.2",
         "@storybook/react-vite": "^10.5.2",

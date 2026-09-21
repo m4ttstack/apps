@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/values.ts"
+    ".": "./src/values.ts",
+    "./color-math": "./src/color-math.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

@@ -40,7 +40,7 @@
   },
   "scripts": {
     "typecheck": "bun run --filter '@mattstack/*' typecheck",
-    "lint": "eslint --no-error-on-unmatched-pattern packages .storybook",
+    "lint": "eslint --no-error-on-unmatched-pattern packages .storybook stories",
     "test": "vitest",
     "format": "prettier --write . --cache",
     "format:check": "prettier --check . --cache",
@@ -74,6 +74,8 @@
   },
   "devDependencies": {
     "@mattstack/app-kit": "workspace:*",
+    "@mattstack/tui-kit": "workspace:*",
+    "@mattstack/tokens": "workspace:*",
     "@chromatic-com/storybook": "^5.2.1",
     "@eslint/js": "^10.0.1",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
