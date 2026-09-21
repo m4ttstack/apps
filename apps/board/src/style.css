@@ -1037,14 +1037,14 @@ body {
   flex-shrink: 0;
 }
 .tui-cd-thread.resolved .tui-comment-icon {
-  color: var(--fill-ok);
+  color: var(--text-ok-small);
 }
 .tui-cd-thread.replied .tui-comment-icon {
   /* Status-dot family, not text: siblings use --dot-ok/--dot-warn; this state has no dedicated dot token yet. */
   color: var(--text-accent-small);
 }
 .tui-cd-thread.awaiting .tui-comment-icon {
-  color: var(--fill-warn);
+  color: var(--text-warn-small);
 }
 
 .tui-cd-head {
@@ -1529,7 +1529,7 @@ body {
   border-color: var(--fill-accent);
 }
 .tui-drawer-action[data-copied] {
-  color: var(--fill-ok);
+  color: var(--text-ok);
   border-color: var(--fill-ok);
 }
 
@@ -1681,7 +1681,7 @@ body {
    re-invite, so the pixel gate would not catch it. */
 .tui-invite-btn.copied,
 .tui-invite-btn[data-copied] {
-  color: var(--fill-ok);
+  color: var(--text-ok-small);
   border-color: var(--fill-ok);
 }
 /* free-text handle entry, and the join input: field + button on one line */
@@ -1731,7 +1731,7 @@ body {
   font-size: 0.72rem;
 }
 .tui-invite-error {
-  color: var(--fill-bad);
+  color: var(--text-bad-small);
   margin: 0.6rem 0 0;
 }
 /* join / re-join sits below the roster, separated the way the modal separates
@@ -1746,7 +1746,7 @@ body {
   font-size: 0.76rem;
 }
 .tui-join-warning {
-  color: var(--fill-bad);
+  color: var(--text-bad-small);
   margin: 0 0 0.5rem;
 }
 /* collapsed affordance: a text button, so a healthy board isn't nagged by a form */
@@ -2317,7 +2317,7 @@ body {
 .tui-gate-invalid {
   margin: 0;
   font-size: var(--gate-font-meta);
-  color: var(--fill-bad);
+  color: var(--text-bad-small);
 }
 .tui-gate-note {
   width: 100%;
@@ -2353,7 +2353,7 @@ body {
 }
 .tui-gate-error {
   margin-right: auto;
-  color: var(--fill-bad);
+  color: var(--text-bad-small);
   font-size: var(--gate-font-meta);
 }
 .tui-gate-summary {
@@ -2846,7 +2846,7 @@ body {
 }
 .tui-draft-error {
   margin-right: auto;
-  color: var(--fill-bad);
+  color: var(--text-bad-small);
   font-size: 0.76rem;
 }
 .tui-draft-act {
@@ -3013,7 +3013,7 @@ body {
 /* Trailing nodes a slack-mark item hands the shell: the set mark, and the
    in-flight spinner that replaces it while the reaction is being written. */
 .tui-menu-check {
-  color: var(--fill-ok);
+  color: var(--text-ok-small);
   font-size: 0.75rem;
 }
 .tui-menu-spin {
@@ -3226,7 +3226,7 @@ body {
 }
 .tui-config-status {
   min-width: 4.5em;
-  color: var(--fill-ok);
+  color: var(--text-ok-small);
   font-size: 0.72rem;
   white-space: nowrap;
 }
