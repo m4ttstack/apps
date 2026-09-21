@@ -32,12 +32,14 @@ html {
      doctor lane (row and menu) read amber, distinct from ci-running and
      decide, which read the warn hue via --text-warn-vivid. */
   --orange: light-dark(#ab6400, #ffca16);
-  /* Radix step 11, pinned as literals: the generated --text-ok, --text-warn
-     and --text-cyan tokens promote to step 12 in light, which is
-     near-black and loses the hue a status label needs. */
+  /* Radix step 11, pinned as literals: the generated --text-ok, --text-warn,
+     --text-cyan, and --text-bad tokens promote to step 12 in light, which is
+     near-black and loses the hue a status label needs. Provisional pending
+     emitted vivid tokens; swap back to tokens is one line each. */
   --text-ok-vivid: light-dark(#008573, #0bd8b6);
   --text-warn-vivid: light-dark(#cc4e00, #ffa057);
   --text-cyan-vivid: light-dark(#107d98, #4ccce6);
+  --text-bad-vivid: light-dark(#cb1d63, #ff92ad);
 }
 body {
   font-size: 0.84375rem;
@@ -592,10 +594,10 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .tui-adds {
-  color: color-mix(in srgb, var(--text-ok-small) 70%, var(--text-3));
+  color: color-mix(in srgb, var(--text-ok-vivid) 70%, var(--text-3));
 }
 .tui-dels {
-  color: color-mix(in srgb, var(--text-bad-small) 70%, var(--text-3));
+  color: color-mix(in srgb, var(--text-bad-vivid) 70%, var(--text-3));
 }
 .tui-rail {
   margin-left: auto;
