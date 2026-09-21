@@ -309,7 +309,8 @@ scale, but a white label only clears 4.5 on two of the six fills.
 
 The pick is a property of the hue, not the scheme: it is the same in light
 and dark for every hue. Only `bad` stays under 4.5 even with its better
-pick, at 4.26, so the Button ledger drops from eight entries to one. The
+pick, at 4.26, so the Button ledger drops from eight entries to one hue,
+carried as two rows because the ledger is keyed per scheme. The
 neutral fill (`--muted`, slate 9) carries no hue and keeps its own label,
 `light-dark(<text-1>, #ffffff)` (4.96 in light, 5.13 in dark), unrelated
 to `--on-fill-<hue>`.
