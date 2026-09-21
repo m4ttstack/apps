@@ -6,7 +6,12 @@ import {
   FONT_SMOOTHING_END_MARKER,
   renderFontSmoothing,
 } from '../src/fragments.ts';
-import { CSS_TEXT, TOKENS, type ColorScheme } from '../src/values.ts';
+import {
+  CSS_TEXT,
+  TOKENS,
+  type ColorScheme,
+  type HueName,
+} from '../src/values.ts';
 
 const PACKAGES_ROOT = join(import.meta.dirname, '..', '..');
 const TUI_KIT_TOKENS_TS = join(
@@ -38,22 +43,34 @@ function pick(path: string, value: string): string {
 
 /**
  * Maps a TOKENS color scheme onto tui-kit's `tuiTheme.tokens.colors` /
- * `TUI_DARK_COLORS` shape. tui-kit has one canonical shade per hue (`"500"`)
- * where TOKENS has a bare hex, and collapses `text` to the nine leaves
- * (`fg`, `muted`, `mutedText`, `accentText`, `okText`, `warnText`,
- * `badgeText`, `redText`, `mutedOnCard`) it
+ * `TUI_DARK_COLORS` shape. Each hue family carries its fill (`"500"`), hover,
+ * text and small-text steps; the three neutral ramps land as `ground`, `ink`
+ * and `rule` keyed by 1-based index; `text` collapses to the nine leaves tui-kit
  * consumes -- `wash` is a percentage, not a color, and stays out of this map.
  */
 function buildTuiKitColors(scheme: 'light' | 'dark') {
   const t: ColorScheme = TOKENS[scheme];
   const at = (leaf: string, value: string) => pick(`${scheme}.${leaf}`, value);
+  const family = (hue: HueName) => ({
+    '500': at(`hue.${hue}`, t.hue[hue]),
+    hover: at(`hueHover.${hue}`, t.hueHover[hue]),
+    text: at(`hueText.${hue}`, t.hueText[hue]),
+    textSmall: at(`hueTextSmall.${hue}`, t.hueTextSmall[hue]),
+  });
+  const ramp = (leaf: string, values: readonly string[]) =>
+    Object.fromEntries(
+      values.map((v, i) => [String(i + 1), at(`${leaf}.${i}`, v)])
+    );
   return {
-    blue: { '500': at('hue.accent', t.hue.accent) },
-    green: { '500': at('hue.ok', t.hue.ok) },
-    red: { '500': at('hue.bad', t.hue.bad) },
-    amber: { '500': at('hue.warn', t.hue.warn) },
-    purple: { '500': at('hue.purple', t.hue.purple) },
-    cyan: { '500': at('hue.cyan', t.hue.cyan) },
+    blue: family('accent'),
+    green: family('ok'),
+    red: family('bad'),
+    amber: family('warn'),
+    purple: family('purple'),
+    cyan: family('cyan'),
+    ground: ramp('surfaceRamp', t.surfaceRamp),
+    ink: ramp('textRamp', t.textRamp),
+    rule: ramp('lineRamp', t.lineRamp),
     gray: {
       fg: at('text.fg', t.text.fg),
       muted: at('text.muted', t.text.muted),
@@ -72,19 +89,21 @@ function buildTuiKitColors(scheme: 'light' | 'dark') {
       chrome: at('surface.chrome', t.surface.chrome),
       inset: at('surface.inset', t.surface.inset),
       overlay: at('surface.overlay', t.surface.overlay),
+      raised: at('surface.raised', t.surface.raised),
     },
     line: {
       border: at('line.border', t.line.border),
       soft: at('line.soft', t.line.soft),
       grid: at('line.grid', t.line.grid),
+      control: at('line.control', t.line.control),
       edgeOnCard: at('line.edgeOnCard', t.line.edgeOnCard),
       controlEdgeOnCard: at('line.controlEdgeOnCard', t.line.controlEdgeOnCard),
       softOnCard: at('line.softOnCard', t.line.softOnCard),
     },
     dot: {
-      ok: at('dot.ok', t.dot.ok),
-      warn: at('dot.warn', t.dot.warn),
-      bad: at('dot.bad', t.dot.bad),
+      ok: at('hue.ok', t.hue.ok),
+      warn: at('hue.warn', t.hue.warn),
+      bad: at('hue.bad', t.hue.bad),
     },
   };
 }
@@ -181,9 +200,9 @@ function buildTokyoDeclarations(scheme: 'light' | 'dark') {
     purple: at('hue.purple', t.hue.purple),
     cyan: at('hue.cyan', t.hue.cyan),
     gridLine: at('line.grid', t.line.grid),
-    dotOk: at('dot.ok', t.dot.ok),
-    dotWarn: at('dot.warn', t.dot.warn),
-    dotBad: at('dot.bad', t.dot.bad),
+    dotOk: at('hue.ok', t.hue.ok),
+    dotWarn: at('hue.warn', t.hue.warn),
+    dotBad: at('hue.bad', t.hue.bad),
     wash: at('wash', t.wash),
   };
 }

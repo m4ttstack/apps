@@ -49,43 +49,43 @@
      and the ladder inverted (--bg ended up lighter than --panel). The chrome
      retarget below maps rail/nav onto --tk-chrome and PageShell header/sidebar +
      content onto card. */
-  --tk-chrome: #f3f4f7;
-  --tk-bg: #f7f8fa;
-  --tk-panel: #fbfbfc;
+  --tk-chrome: #f0f0f3;
+  --tk-bg: #f9f9fb;
+  --tk-panel: #fcfcfd;
   --tk-card: #ffffff;
-  --tk-inset: #f7f8fa;
-  --tk-overlay: #fbfbfc;
-  --tk-border: #c8cad6;
-  --tk-border-soft: #d5d7e2;
-  --tk-border-on-card: #c8cad6;
-  --tk-control-edge: #c8cad6;
-  --tk-soft-on-card: #d5d7e2;
-  --tk-fg: #222;
-  --tk-muted: #8990b3;
+  --tk-inset: #f9f9fb;
+  --tk-overlay: #fcfcfd;
+  --tk-border: #cdced6;
+  --tk-border-soft: #d9d9e0;
+  --tk-border-on-card: #cdced6;
+  --tk-control-edge: #b9bbc6;
+  --tk-soft-on-card: #d9d9e0;
+  --tk-fg: #1c2024;
+  --tk-muted: #8b8d98;
   /* AA-compliant muted for TEXT (>=4.5:1 on bg 1-3). The raw muted token above
      stays tui-kit's exact hex for dots/borders; only the muted TEXT roles read
      the value below, which the scheme-vars contract lets an app remap. */
-  --tk-muted-text: #565d80;
-  --tk-muted-on-card: #565d80;
-  --tk-accent: #4658ff;
+  --tk-muted-text: #60646c;
+  --tk-muted-on-card: #60646c;
+  --tk-accent: #3e63dd;
   /* AA-compliant accent for LINK TEXT (>=4.5:1 on bg 1-3). The raw accent
      token above stays tui-kit's exact hex for fills and badges; only anchor
      text reads the darker value below. Same split as the muted pair. */
-  --tk-accent-text: #3a3fe8;
-  --tk-badge-text: #454b66;
+  --tk-accent-text: #3a5bc7;
+  --tk-badge-text: #60646c;
   /* AA-compliant red for TEXT (>=4.5:1 on bg 1-3); the raw red token above stays tui-kit's exact hex for fills and error surfaces. Same split as the muted/accent pair. */
-  --tk-red-text: #c8214f;
-  --tk-green: #00c287;
-  --tk-green-text: #008559;
-  --tk-red: #ff3d81;
-  --tk-amber: #ff8a00;
-  --tk-amber-text: #b36000;
-  --tk-purple: #9b45ff;
-  --tk-cyan: #00b8d9;
+  --tk-red-text: #cb1d63;
+  --tk-green: #0d9b8a;
+  --tk-green-text: #0d3d38;
+  --tk-red: #e93d82;
+  --tk-amber: #ef5f00;
+  --tk-amber-text: #582d1d;
+  --tk-purple: #8e4ec6;
+  --tk-cyan: #0797b9;
   --tk-grid-line: rgba(52, 59, 88, 0.05);
-  --tk-dot-ok: #1f9d3a;
-  --tk-dot-warn: #e08a00;
-  --tk-dot-bad: #e5153f;
+  --tk-dot-ok: #0d9b8a;
+  --tk-dot-warn: #ef5f00;
+  --tk-dot-bad: #e93d82;
 
   --tk-wash: 10%;
   /* END GENERATED */
@@ -95,40 +95,40 @@
   /* BEGIN GENERATED: tokyo tokens dark */
   /* Dark never inverted (bg < panel < card already), so --tk-chrome equals the
      panel rung: the rail/nav frame reads as a step up from the near-black page. */
-  --tk-chrome: #1a1c28;
-  --tk-bg: #16161e;
-  --tk-panel: #1a1c28;
-  --tk-card: #1e2030;
-  --tk-inset: #181a24;
-  --tk-overlay: #181a24;
-  --tk-border: #3b4261;
-  --tk-border-soft: #313853;
-  --tk-border-on-card: #505879;
-  --tk-control-edge: #6b7499;
-  --tk-soft-on-card: #404866;
-  --tk-fg: #e3e7f6;
-  --tk-muted: #7e86ad;
+  --tk-chrome: #18191b;
+  --tk-bg: #111113;
+  --tk-panel: #18191b;
+  --tk-card: #212225;
+  --tk-inset: #111113;
+  --tk-overlay: #111113;
+  --tk-border: #43484e;
+  --tk-border-soft: #363a3f;
+  --tk-border-on-card: #696e77;
+  --tk-control-edge: #696e77;
+  --tk-soft-on-card: #43484e;
+  --tk-fg: #edeef0;
+  --tk-muted: #696e77;
   /* AA-compliant muted text for the dark scheme (>=4.5:1 on bg 1-3). */
-  --tk-muted-text: #969ec2;
-  --tk-muted-on-card: #aab3d8;
-  --tk-accent: #7aa2f7;
+  --tk-muted-text: #b0b4ba;
+  --tk-muted-on-card: #b0b4ba;
+  --tk-accent: #3e63dd;
   /* Accent for link text in dark (>=4.5:1 on bg 1-3); the accent already
      clears AA there, so this equals it. */
-  --tk-accent-text: #7aa2f7;
-  --tk-badge-text: #aab3d8;
+  --tk-accent-text: #9eb1ff;
+  --tk-badge-text: #b0b4ba;
   /* Red text for the dark scheme; the raw red already clears AA there, so this equals it. */
-  --tk-red-text: #f7768e;
-  --tk-green: #9ece6a;
-  --tk-green-text: #9ece6a;
-  --tk-red: #f7768e;
-  --tk-amber: #e0af68;
-  --tk-amber-text: #e0af68;
-  --tk-purple: #bb9af7;
-  --tk-cyan: #7dcfff;
+  --tk-red-text: #ff92ad;
+  --tk-green: #12a594;
+  --tk-green-text: #0bd8b6;
+  --tk-red: #e93d82;
+  --tk-amber: #f76b15;
+  --tk-amber-text: #ffa057;
+  --tk-purple: #8e4ec6;
+  --tk-cyan: #00a2c7;
   --tk-grid-line: rgba(122, 162, 247, 0.06);
-  --tk-dot-ok: #4ade5b;
-  --tk-dot-warn: #ffbb3d;
-  --tk-dot-bad: #ff5c72;
+  --tk-dot-ok: #12a594;
+  --tk-dot-warn: #f76b15;
+  --tk-dot-bad: #e93d82;
 
   --tk-wash: 15%;
   /* END GENERATED */

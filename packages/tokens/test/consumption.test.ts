@@ -8,7 +8,25 @@ import { describe, expect, it } from 'vitest';
  * the one-line reason that justifies keeping it definition-only for now.
  * Deletion is Phase 2 material.
  */
+const RAMP_HUES = ['accent', 'ok', 'bad', 'warn', 'purple', 'cyan'];
+const RAMP_PUBLIC_NAMES = [
+  '--page',
+  '--raised',
+  '--border-control',
+  ...[1, 2, 3, 4].flatMap(i => [`--surface-${i}`, `--text-${i}`]),
+  ...[1, 2, 3].map(i => `--line-${i}`),
+  ...RAMP_HUES.flatMap(h => [
+    `--fill-${h}`,
+    `--fill-${h}-hover`,
+    `--text-${h}`,
+    `--text-${h}-small`,
+  ]),
+];
+const RAMP_WAIVER =
+  'ramp name emitted ahead of the apps-wide migration; the storybook specimens and the ramp contrast gate read it, no kit recipe does yet.';
+
 const WAIVED_TUI: Record<string, string> = {
+  ...Object.fromEntries(RAMP_PUBLIC_NAMES.map(name => [name, RAMP_WAIVER])),
   '--border-control-on-card':
     "on-card contrast role read by apps/board's gate control edges (its --gate-control-edge alias); no kit recipe reads it yet.",
   '--border-soft-on-card':
