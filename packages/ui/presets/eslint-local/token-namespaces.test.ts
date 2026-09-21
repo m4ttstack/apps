@@ -3,9 +3,9 @@ import { RuleTester } from 'eslint';
 import tseslint from 'typescript-eslint';
 import { describe, expect, it } from 'vitest';
 
-import { classifyTokenUse } from './token-namespaces.js';
 import tokenNamespacesCss from './token-namespaces-css.js';
 import tokenNamespacesTsx from './token-namespaces-tsx.js';
+import { classifyTokenUse } from './token-namespaces.js';
 
 describe('classifyTokenUse', () => {
   it('lets text tokens colour text', () => {
@@ -14,21 +14,35 @@ describe('classifyTokenUse', () => {
   });
 
   it('rejects text tokens as backgrounds and fills as text', () => {
-    expect(classifyTokenUse('background', '--text-3')).toMatch(/--text-\* is for color/);
-    expect(classifyTokenUse('color', '--fill-warn')).toMatch(/--fill-\* is never a text colour/);
+    expect(classifyTokenUse('background', '--text-3')).toMatch(
+      /--text-\* is for color/
+    );
+    expect(classifyTokenUse('color', '--fill-warn')).toMatch(
+      /--fill-\* is never a text colour/
+    );
   });
 
   it('lets surfaces be backgrounds and fills, nothing else', () => {
     expect(classifyTokenUse('background', '--surface-card')).toBeNull();
-    expect(classifyTokenUse('background-color', '--surface-wash-fg-8')).toBeNull();
+    expect(
+      classifyTokenUse('background-color', '--surface-wash-fg-8')
+    ).toBeNull();
     expect(classifyTokenUse('fill', '--surface-panel')).toBeNull();
-    expect(classifyTokenUse('color', '--surface-card')).toMatch(/--surface-\* is for background/);
-    expect(classifyTokenUse('border-color', '--surface-card')).toMatch(/--surface-\* is for background/);
+    expect(classifyTokenUse('color', '--surface-card')).toMatch(
+      /--surface-\* is for background/
+    );
+    expect(classifyTokenUse('border-color', '--surface-card')).toMatch(
+      /--surface-\* is for background/
+    );
   });
 
   it('rejects the numeric ramp steps everywhere', () => {
-    expect(classifyTokenUse('background', '--surface-1')).toMatch(/only the tokens file/);
-    expect(classifyTokenUse('border', '--line-2')).toMatch(/only the tokens file/);
+    expect(classifyTokenUse('background', '--surface-1')).toMatch(
+      /only the tokens file/
+    );
+    expect(classifyTokenUse('border', '--line-2')).toMatch(
+      /only the tokens file/
+    );
   });
 
   it('lets border tokens draw borders, outlines and scrollbars', () => {
@@ -36,7 +50,9 @@ describe('classifyTokenUse', () => {
     expect(classifyTokenUse('border-top-color', '--border-soft')).toBeNull();
     expect(classifyTokenUse('outline-color', '--border-control')).toBeNull();
     expect(classifyTokenUse('scrollbar-color', '--border-on-card')).toBeNull();
-    expect(classifyTokenUse('background', '--border-soft')).toMatch(/--border-\* is for border/);
+    expect(classifyTokenUse('background', '--border-soft')).toMatch(
+      /--border-\* is for border/
+    );
   });
 
   it('ignores alias declarations, line-height and unrelated tokens', () => {
@@ -48,7 +64,12 @@ describe('classifyTokenUse', () => {
 });
 
 const tester = new RuleTester({
-  languageOptions: { parser: tseslint.parser, ecmaVersion: 2023, sourceType: 'module', parserOptions: { ecmaFeatures: { jsx: true } } },
+  languageOptions: {
+    parser: tseslint.parser,
+    ecmaVersion: 2023,
+    sourceType: 'module',
+    parserOptions: { ecmaFeatures: { jsx: true } },
+  },
 });
 
 // RuleTester.run creates its own describe/it blocks from the vitest globals
@@ -58,7 +79,9 @@ const tester = new RuleTester({
 describe('local/token-namespaces (tsx)', () => {
   tester.run('token-namespaces', tokenNamespacesTsx, {
     valid: [
-      { code: 'const s = { color: "var(--text-3)", background: "var(--card)" };' },
+      {
+        code: 'const s = { color: "var(--text-3)", background: "var(--card)" };',
+      },
       { code: 'const s = { borderColor: `1px solid var(--border-soft)` };' },
       { code: 'const s = { "--gate-muted": "var(--text-muted-on-card)" };' },
       // on-fill label tokens are legal as a text colour; the classifier
@@ -66,13 +89,26 @@ describe('local/token-namespaces (tsx)', () => {
       { code: 'const s = { color: "var(--on-fill-warn)" };' },
       // a var() named only inside a comment is not code; the ESTree
       // walker never visits comment tokens as Property nodes.
-      { code: '// color: var(--fill-warn)\nconst s = { color: "var(--text-3)" };' },
-      { code: '/* color: var(--fill-warn) */\nconst s = { color: "var(--text-3)" };' },
+      {
+        code: '// color: var(--fill-warn)\nconst s = { color: "var(--text-3)" };',
+      },
+      {
+        code: '/* color: var(--fill-warn) */\nconst s = { color: "var(--text-3)" };',
+      },
     ],
     invalid: [
-      { code: 'const s = { color: "var(--fill-warn)" };', errors: [{ messageId: 'misuse' }] },
-      { code: 'const s = { background: "var(--surface-2)" };', errors: [{ messageId: 'misuse' }] },
-      { code: 'const s = { backgroundColor: `var(--text-2)` };', errors: [{ messageId: 'misuse' }] },
+      {
+        code: 'const s = { color: "var(--fill-warn)" };',
+        errors: [{ messageId: 'misuse' }],
+      },
+      {
+        code: 'const s = { background: "var(--surface-2)" };',
+        errors: [{ messageId: 'misuse' }],
+      },
+      {
+        code: 'const s = { backgroundColor: `var(--text-2)` };',
+        errors: [{ messageId: 'misuse' }],
+      },
     ],
   });
 });
@@ -86,24 +122,45 @@ describe('local/token-namespaces-css', () => {
   cssTester.run('token-namespaces-css', tokenNamespacesCss, {
     valid: [
       { code: '.a { color: var(--text-3); background: var(--card); }' },
-      { code: '.a { border: 1px solid var(--border-soft); outline: 2px solid var(--border-control); }' },
+      {
+        code: '.a { border: 1px solid var(--border-soft); outline: 2px solid var(--border-control); }',
+      },
       { code: '.a { --gate-muted: var(--text-muted-on-card); }' },
-      { code: '.a { background: color-mix(in srgb, var(--fill-warn) 9%, transparent); }' },
+      {
+        code: '.a { background: color-mix(in srgb, var(--fill-warn) 9%, transparent); }',
+      },
       // a fill token painting a border is common and legal; only the
       // literal `color` property is banned for --fill-*, not the
       // `border-color` tail a substring match on "color:" would catch.
       { code: '.a { border-color: var(--fill-accent); }' },
       // a var() named only inside a CSS comment is not a declaration.
-      { code: '.a { /* color: var(--fill-warn); */ background: var(--card); }' },
+      {
+        code: '.a { /* color: var(--fill-warn); */ background: var(--card); }',
+      },
       // on-fill label tokens are legal as text colour.
       { code: '.a { color: var(--on-fill-warn); }' },
     ],
     invalid: [
-      { code: '.a { color: var(--fill-warn); }', errors: [{ messageId: 'misuse' }] },
-      { code: '.a { color: color-mix(in srgb, var(--fill-warn) 86%, #000); }', errors: [{ messageId: 'misuse' }] },
-      { code: '.a { background: var(--surface-1); }', errors: [{ messageId: 'misuse' }] },
-      { code: '.a { border-color: var(--surface-card); }', errors: [{ messageId: 'misuse' }] },
-      { code: '.a { background: var(--text-2); }', errors: [{ messageId: 'misuse' }] },
+      {
+        code: '.a { color: var(--fill-warn); }',
+        errors: [{ messageId: 'misuse' }],
+      },
+      {
+        code: '.a { color: color-mix(in srgb, var(--fill-warn) 86%, #000); }',
+        errors: [{ messageId: 'misuse' }],
+      },
+      {
+        code: '.a { background: var(--surface-1); }',
+        errors: [{ messageId: 'misuse' }],
+      },
+      {
+        code: '.a { border-color: var(--surface-card); }',
+        errors: [{ messageId: 'misuse' }],
+      },
+      {
+        code: '.a { background: var(--text-2); }',
+        errors: [{ messageId: 'misuse' }],
+      },
     ],
   });
 });

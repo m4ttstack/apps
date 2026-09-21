@@ -2,8 +2,8 @@ import css from '@eslint/css';
 import storybook from 'eslint-plugin-storybook';
 import tseslint from 'typescript-eslint';
 
-import { mattstackEslint } from './packages/ui/presets/eslint.js';
 import tokenNamespacesCss from './packages/ui/presets/eslint-local/token-namespaces-css.js';
+import { mattstackEslint } from './packages/ui/presets/eslint.js';
 
 const SCRIPT_FILES = ['**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}'];
 
@@ -18,7 +18,9 @@ export default tseslint.config(
       'packages/tui-kit/src/generated/**',
     ],
   },
-  ...mattstackEslint().map(c => (c.files || c.ignores ? c : { ...c, files: SCRIPT_FILES })),
+  ...mattstackEslint().map(c =>
+    c.files || c.ignores ? c : { ...c, files: SCRIPT_FILES }
+  ),
   {
     // Config presets ship as plain JS (see packages/ui/presets/vite.js) and
     // run in Node, unlike the .tsx source that typescript-eslint's ts-file
@@ -64,13 +66,19 @@ export default tseslint.config(
   },
   {
     files: ['packages/ui/src/**/*.css', 'stories/**/*.css'],
-    plugins: { css, local: { rules: { 'token-namespaces-css': tokenNamespacesCss } } },
+    plugins: {
+      css,
+      local: { rules: { 'token-namespaces-css': tokenNamespacesCss } },
+    },
     language: 'css/css',
     rules: { 'local/token-namespaces-css': 'error' },
   },
   {
     files: ['packages/tui-kit/src/**/*.css', 'apps/board/src/**/*.css'],
-    plugins: { css, local: { rules: { 'token-namespaces-css': tokenNamespacesCss } } },
+    plugins: {
+      css,
+      local: { rules: { 'token-namespaces-css': tokenNamespacesCss } },
+    },
     language: 'css/css',
     rules: { 'local/token-namespaces-css': 'warn' },
   },

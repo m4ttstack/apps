@@ -1,7 +1,14 @@
-const BACKGROUND = new Set(['background', 'background-color', 'background-image', 'fill']);
+const BACKGROUND = new Set([
+  'background',
+  'background-color',
+  'background-image',
+  'fill',
+]);
 
 const isBorderish = property =>
-  property.startsWith('border') || property.startsWith('outline') || property === 'scrollbar-color';
+  property.startsWith('border') ||
+  property.startsWith('outline') ||
+  property === 'scrollbar-color';
 
 /**
  * @param {string} property CSS property (kebab-case) or a style-object key
@@ -19,13 +26,19 @@ export function classifyTokenUse(property, varName) {
     return prop === 'color' ? null : `${varName}: --text-* is for color only.`;
   }
   if (varName.startsWith('--fill-')) {
-    return prop === 'color' ? `${varName}: --fill-* is never a text colour; use --text-${varName.slice(7)}.` : null;
+    return prop === 'color'
+      ? `${varName}: --fill-* is never a text colour; use --text-${varName.slice(7)}.`
+      : null;
   }
   if (varName.startsWith('--surface-')) {
-    return BACKGROUND.has(prop) ? null : `${varName}: --surface-* is for background and fill only.`;
+    return BACKGROUND.has(prop)
+      ? null
+      : `${varName}: --surface-* is for background and fill only.`;
   }
   if (varName.startsWith('--border-') || varName === '--border') {
-    return isBorderish(prop) ? null : `${varName}: --border-* is for border and outline properties only.`;
+    return isBorderish(prop)
+      ? null
+      : `${varName}: --border-* is for border and outline properties only.`;
   }
   return null;
 }

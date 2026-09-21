@@ -8,7 +8,8 @@ function collectVars(node, out) {
   }
   const children = node.children ?? [];
   for (const child of children) collectVars(child, out);
-  if (node.value && typeof node.value === 'object') collectVars(node.value, out);
+  if (node.value && typeof node.value === 'object')
+    collectVars(node.value, out);
   return out;
 }
 
@@ -22,7 +23,8 @@ export default {
       Declaration(node) {
         for (const varName of collectVars(node.value, [])) {
           const message = classifyTokenUse(node.property, varName);
-          if (message) context.report({ node, messageId: 'misuse', data: { message } });
+          if (message)
+            context.report({ node, messageId: 'misuse', data: { message } });
         }
       },
     };
