@@ -19,6 +19,8 @@ describe('local/no-dimmed-xs', () => {
       { code: '<Text size="sm" c="dimmed">a</Text>' },
       { code: '<Text size="xs">a</Text>' },
       { code: '<Text size={size} c="dimmed">a</Text>' },
+      { code: '<Title size="sm" c="dimmed">a</Title>' },
+      { code: '<Anchor size="sm" c="dimmed">a</Anchor>' },
     ],
     invalid: [
       {
@@ -27,6 +29,14 @@ describe('local/no-dimmed-xs', () => {
       },
       {
         code: '<Badge size="xs" c="dimmed">a</Badge>',
+        errors: [{ messageId: 'dimmedXs' }],
+      },
+      {
+        code: '<Title size="xs" c="dimmed">a</Title>',
+        errors: [{ messageId: 'dimmedXs' }],
+      },
+      {
+        code: '<Anchor size="xs" c="dimmed">a</Anchor>',
         errors: [{ messageId: 'dimmedXs' }],
       },
     ],
