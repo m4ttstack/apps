@@ -319,10 +319,7 @@ export function GateCard({ gate }: { gate: GateRow }) {
           <AnsweredSummary row={gate} />
         ) : lost ? (
           <>
-            <Text
-              fz={12}
-              style={{ color: 'var(--tk-text-bad-vivid)' }}
-            >
+            <Text fz={12} style={{ color: 'var(--tk-text-bad-vivid)' }}>
               answered elsewhere
             </Text>
             <AnsweredSummary
