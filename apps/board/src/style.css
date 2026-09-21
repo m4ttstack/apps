@@ -25,10 +25,16 @@
    here in rem (13.5/16) so body text rides the same knob. */
 html {
   font-size: 17px;
-  /* Tokyo Night's orange, absent from the kit palette: the conflicts flag
-     and the doctor lane, on the row and in its menu (which portals outside
-     the row list). */
-  --orange: light-dark(#b15c00, #ff9e64);
+  /* Radix amber, held under the --orange name: the conflicts flag and the
+     doctor lane (row and menu) read amber, distinct from ci-running and
+     decide, which read the warn hue via --text-warn-vivid. */
+  --orange: light-dark(#ab6400, #ffca16);
+  /* Radix step 11, pinned as literals: the generated --text-ok, --text-warn
+     and --text-cyan tokens promote to step 12 in light, which is
+     near-black and loses the hue a status label needs. */
+  --text-ok-vivid: light-dark(#008573, #0bd8b6);
+  --text-warn-vivid: light-dark(#cc4e00, #ffa057);
+  --text-cyan-vivid: light-dark(#107d98, #4ccce6);
 }
 body {
   font-size: 0.84375rem;
@@ -427,19 +433,19 @@ body {
   --flag: color-mix(in srgb, var(--muted-text) 75%, transparent);
 }
 .tui-flag[data-flag='auto-merge'] {
-  --flag: var(--green);
+  --flag: var(--text-ok-vivid);
 }
 .tui-flag[data-flag='conflicts'] {
   --flag: var(--orange);
 }
 .tui-flag[data-flag='ci-failing'] {
-  --flag: var(--red-text);
+  --flag: var(--text-bad);
 }
 .tui-flag[data-flag='ci-running'] {
-  --flag: var(--amber);
+  --flag: var(--text-warn-vivid);
 }
 .tui-flag[data-flag='stacked'] {
-  --flag: var(--cyan);
+  --flag: var(--text-cyan-vivid);
 }
 .tui-behind {
   display: inline-flex;
@@ -507,26 +513,32 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--pill);
+  color: var(--pill-text);
   background: color-mix(in srgb, var(--pill) 17%, transparent);
 }
 .tui-phrase[data-hue='amber'] {
-  --pill: var(--color-gray-warnText);
+  --pill: var(--fill-warn);
+  --pill-text: var(--text-warn-small);
 }
 .tui-phrase[data-hue='cyan'] {
-  --pill: var(--cyan);
+  --pill: var(--fill-cyan);
+  --pill-text: var(--text-cyan-small);
 }
 .tui-phrase[data-hue='green'] {
-  --pill: var(--green);
+  --pill: var(--fill-ok);
+  --pill-text: var(--text-ok-small);
 }
 .tui-phrase[data-hue='red'] {
-  --pill: var(--red-text);
+  --pill: var(--fill-bad);
+  --pill-text: var(--text-bad-small);
 }
 .tui-phrase[data-hue='accent'] {
-  --pill: var(--accent-text);
+  --pill: var(--fill-accent);
+  --pill-text: var(--text-accent-small);
 }
 .tui-phrase[data-hue='purple'] {
-  --pill: var(--purple);
+  --pill: var(--fill-purple);
+  --pill-text: var(--text-purple-small);
 }
 
 /* Line 1: the title, alone. */
@@ -762,16 +774,16 @@ body {
   font-weight: 600;
 }
 .tui-status-verb[data-lane='review'] {
-  --verb: var(--accent-text);
+  --verb: var(--text-accent);
 }
 .tui-status-verb[data-lane='respond'] {
-  --verb: var(--green);
+  --verb: var(--text-ok-vivid);
 }
 .tui-status-verb[data-lane='doctor'] {
   --verb: var(--orange);
 }
 .tui-status-verb[data-decide] {
-  --verb: var(--amber);
+  --verb: var(--text-warn-vivid);
 }
 .tui-status-verb[data-secondary] {
   --verb: var(--muted-text);
@@ -1768,7 +1780,7 @@ body {
 
 /* ── stacked chains ───────────────────────────────────────────────── */
 /* A chain reads as one unit: a single thread rail spans the children
-   (cyan to match the stacked flag), the row dividers inside the
+   (cyan, the stacked flag's hue), the row dividers inside the
    chain go quiet, and the boundary dividers move to the wrapper since the
    wrapper breaks .tui-row + .tui-row adjacency. */
 /* Opaque rail color (cyan over the panel tone): the rail is drawn as
@@ -2158,9 +2170,6 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-/* Orange, not the pill's amber: in light Tokyo Night amber is a muted
-   brown (#8c6c3e) that reads dead on a card, while orange stays hot in
-   both themes and is the hue the row already spends on a real problem. */
 .tui-gate-group-label {
   color: var(--orange);
 }
@@ -2995,10 +3004,10 @@ body {
   color: var(--lane);
 }
 .tui-menu-agent[data-lane='review'] {
-  --lane: var(--accent-text);
+  --lane: var(--text-accent);
 }
 .tui-menu-agent[data-lane='respond'] {
-  --lane: var(--green);
+  --lane: var(--text-ok-vivid);
 }
 .tui-menu-agent[data-lane='doctor'] {
   --lane: var(--orange);
