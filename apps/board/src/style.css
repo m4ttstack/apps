@@ -1043,7 +1043,6 @@ body {
   color: var(--text-ok-small);
 }
 .tui-cd-thread.replied .tui-comment-icon {
-  /* Status-dot family, not text: siblings use --dot-ok/--dot-warn; this state has no dedicated dot token yet. */
   color: var(--text-accent-small);
 }
 .tui-cd-thread.awaiting .tui-comment-icon {
@@ -3355,9 +3354,9 @@ body {
     border-color 150ms ease,
     background 150ms ease;
 }
-/* The active tab is marked by the accent underline and --fg text, not by a
-   lighter fill: a white active tab against the strip was the loudest seam
-   on the page. */
+/* The active tab is marked by the accent underline and --text-1 text, not
+   by a lighter fill: a white active tab against the strip was the loudest
+   seam on the page. */
 .tui-tab:hover {
   color: var(--text-1);
   background: color-mix(in srgb, var(--fg) 8%, var(--page));
