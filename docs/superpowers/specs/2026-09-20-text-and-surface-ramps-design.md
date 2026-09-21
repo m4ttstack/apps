@@ -179,8 +179,9 @@ because the lint and the type table speak in roles.
 Every value is measured against all four surfaces and carries its worst
 case, so it is safe on any of them. `text-2` and `text-3` share a value by
 design: slate 11's worst case is 5.22 on the light row surface, so the meta
-bar is set there (§6). Small and micro text takes the high-contrast step,
-which is what Radix means by 12.
+bar is set there (§6). `text-4` is the same hex as `text-1`: small and micro
+text takes the high-contrast step, which is what Radix means by 12, and
+there is no quieter small-text value to look for.
 
 **Margins.** With published values rather than solved ones the margins are
 whatever Radix gives; the gate in §9 asserts `ratio >= bar` at full float
@@ -240,8 +241,11 @@ that scale, never a solved hex:
   is listed in the fill ledger. In dark, 9 wins over 10 whenever 10 would
   drop the white label under 4.5 (indigo, purple); that exception is
   written into the rule, not hand-picked per hue.
-- **fill hover:** fill + 1 (Radix's own direction: darker in light, lighter
-  in dark).
+- **fill hover:** step 10 when the fill is 9 (Radix's own hover, darker in
+  light and lighter in dark). A fill already on 10 has no non-text step
+  left, so it hovers as `color-mix(in srgb, <fill> 88%, <text-1>)`, the
+  mix tui-kit ships for filled hover today; step 11 is never a fill or a
+  hover.
 - **text (body):** the first step from 11 upward that clears 4.5 against
   every surface; that is 11 or 12.
 - **text (small):** step 12.
@@ -262,8 +266,10 @@ and purple-9 at 2.77 and 2.79 against `surface-4`, the raised ground; both
 clear 3.0 on the page, panels and cards.
 
 **Tokens.** `--fill-<hue>`, `--fill-<hue>-hover`, `--text-<hue>` (body
-value, allowed at `display`, `title`, `body`, `meta`), `--text-<hue>-small`
-(allowed at `small`, `micro`). A fill is never a text colour, and the names
+value, allowed at `display`, `title`, `body`), `--text-<hue>-small` (allowed
+at `meta`, `small`, `micro`; light crimson 11 measures 4.74 on the row
+surface, under the 5.2 meta bar, so meta takes the small token like the
+neutral ramp does). A fill is never a text colour, and the names
 retire the `accent` versus `accentText` guesswork. In `values.ts` these are
 step numbers (`hueStep.<h>.fill`, `.text`) resolved against the vendored
 scale, so the invariants can assert the rule itself, not just the result.
@@ -273,12 +279,16 @@ scale and accepts what that measures. We do the same: filled buttons carry
 a white label in both schemes, and the Button ledger records the cells
 under 4.5 (light: teal-10 3.46, orange-10 3.33, cyan-10 3.42, crimson-9
 3.85; dark: teal-9 3.07, orange-9 2.97, cyan-9 3.00, crimson-9 3.85).
-Indigo and purple clear 5 in both schemes (5.21 and 5.18). Eight entries replaces the
-twenty the ledger holds today.
+Indigo and purple clear 5 in both schemes (5.21 and 5.18). The neutral
+fill (`--muted`, slate 9) is the one exception to the white label: it
+measures 3.30 with white in light and 5.13 in dark, so its filled label is
+`light-dark(<text-1>, #ffffff)` (4.96 in light), which keeps it out of the
+ledger. Eight entries replaces the nineteen the ledger holds today.
 
 The status `dot` block in `values.ts` (`dot.ok/warn/bad`) retires: a dot is
-a fill, and `--fill-ok` at 3.04 (light) and 4.70 (dark) clears the bar a
-6px dot needs.
+a fill. `--fill-ok` at 3.04 (light) and 4.70 (dark) clears the bar a 6px
+dot needs; `--fill-warn` in light is the ledgered 2.93, so a warn dot on a
+row carries the same debt as the warn fill does.
 
 ### 7.1 Dark hue correction
 
@@ -289,14 +299,17 @@ as the guard that nobody swaps one scale's dark half for another's.
 
 ### 7.2 Lines
 
-Three steps per scheme from slate's border band (8, 7, 6), ordered like
-surfaces: `line-1` is the strongest against the surface it sits on.
+Three steps per scheme from slate, ordered like surfaces: `line-1` is the
+strongest against the surface it sits on. Light takes the border band (8,
+7, 6). Dark takes 9, 7, 6: slate 8 measures 2.54 on the dark card, and the
+control edge is the one line that has to hold WCAG 1.4.11's 3:1 (it does
+today at 3.51), so `line-1` steps up to slate 9 at 3.10.
 
 | | light | Radix | vs `#ffffff` | dark | Radix | vs card `#212225` | vs page `#111113` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `line-1` | `#b9bbc6` | slate 8 | 1.91 | `#5a6169` | slate 8 | 2.30 | 2.81 |
-| `line-2` | `#cdced6` | slate 7 | 1.57 | `#43484e` | slate 7 | 1.56 | 1.91 |
-| `line-3` | `#d9d9e0` | slate 6 | 1.40 | `#363a3f` | slate 6 | 1.26 | 1.54 |
+| `line-1` | `#b9bbc6` | slate 8 | 1.91 | `#696e77` | slate 9 | 3.10 | 3.68 |
+| `line-2` | `#cdced6` | slate 7 | 1.57 | `#43484e` | slate 7 | 1.72 | 2.04 |
+| `line-3` | `#d9d9e0` | slate 6 | 1.40 | `#363a3f` | slate 6 | 1.39 | 1.65 |
 
 The semantic mapping differs per scheme, which §4 permits:
 
@@ -306,9 +319,12 @@ The semantic mapping differs per scheme, which §4 permits:
 | `--border` | `line-2` | `line-2` | `line-1` |
 | `--border-soft` | `line-3` | `line-3` | `line-2` |
 
-Today's values sit within a few points of these (light border `#c8cad6`
-is between slate 7 and 8; dark card edge `#505879` measures 2.31 where
-slate 8 measures 2.30), so borders move by shade, not by weight. Dark card
+Today's values sit close to these (light border `#c8cad6` is between
+slate 7 and 8; dark border `#3b4261` measures 1.64 on the old card where
+slate 7 measures 1.72 on the new one; dark soft `#313853` 1.40 where slate
+6 is 1.39). The one weight change is the dark card edge: `#505879` measures
+2.31 on the old card, slate 9 measures 3.10 on the new one, so card
+borders in dark get crisper. Dark card
 scope is where the `edgeOnCard`, `controlEdgeOnCard` and `softOnCard`
 tokens live today, because a card in dark is lighter than the page and a
 page-tuned line vanishes on it. The replacement is a scope rule, not more
@@ -324,8 +340,9 @@ would also fire in light and darken light card edges; do not write it.
 
 Lines have no text bar. WCAG 1.4.11's 3:1 applies to a control's boundary
 only when the border is the sole boundary cue; every light line here is
-under it, as they are today. That is a ledgered debt for the gate, not a
-change this spec makes.
+under it, as they are today, and dark `line-1` clears it. The light
+control edge is a ledgered debt for the gate, not a change this spec
+makes.
 
 ### 7.3 Mantine
 
@@ -338,32 +355,50 @@ and its hover at 2, `light-color` at 9; in dark, `filled` at
 steps become ten by a fixed pick, one per scheme:
 
 - **Day tuple** (index ← Radix step): `0←1, 1←3, 2←4, 3←5, 4←6, 5←7, 6←9,
-  7←10, 8←11, 9←12`. `primaryShade.light` stays 6. Drops 2 and 8, which
-  Mantine never reads.
+  7←10, 8←11, 9←12`. `primaryShade.light` stays 6. Steps 2 and 8 have no
+  Mantine job.
 - **Night tuple**: Radix's dark scales run darkest to lightest, Mantine's
   tuples lightest to darkest, so the pick is reversed: `0←12, 1←11, 2←10,
   3←9, 4←8, 5←7, 6←6, 7←5, 8←4, 9←3`. `primaryShade.dark` becomes 3.
 
 The pick lands `filled` (9), `filled-hover` (10), the light tint (3, hover
 4) and `light-color` (12) on the right Radix steps in light with no help.
-Five of Mantine's derivations disagree with either Radix's contract or the
-§7 rule, and a generated `cssVariablesResolver` in the tokyo theme pins
-them, per colour, to the exact steps `values.ts` chose:
+Six of Mantine's derivations disagree with either Radix's contract or the
+§7 rule, and they are pinned per colour to the exact values `values.ts`
+chose. `cssVariablesResolver` is a `MantineProvider` prop, not a theme
+field, so the pins do not travel with the theme; they ship instead as a
+generated block in `tokyo-theme.css` under
+`:root:root[data-mantine-color-scheme='<scheme>']`, the doubled-`:root`
+pattern that file already uses to beat Mantine's runtime style tag for
+`anchor`. Every provider site gets them for free.
 
 | Mantine variable | scheme | Mantine derives | pinned to |
 | --- | --- | --- | --- |
-| `--mantine-color-<c>-filled`, `-filled-hover` | light, ok/warn/cyan only | step 9, 10 | step 10, 11 (the §7 fill rule) |
+| `--mantine-color-<c>-filled`, `-filled-hover` | light, ok/warn/cyan only | step 9, 10 | step 10 and the §7 hover mix |
 | `--mantine-color-<c>-text`, `-outline` | light | step 9 | the §7 body text step (11 or 12) |
 | `--mantine-color-<c>-filled-hover` | dark | index 4 = step 8 | step 10 |
-| `--mantine-color-<c>-text`, `--mantine-color-anchor` | dark | index 4 = step 8 | step 11 |
+| `--mantine-color-<c>-text` | dark | index 4 = step 8 | step 11 |
+| `--mantine-color-<c>-outline` | dark | index 0 = step 12 | step 11, so Mantine and tui-kit outline text agree |
 | `--mantine-color-<c>-light`, `-light-hover` | dark | `darken(step 3, 50%)` | steps 3, 4 |
 
-`gray` (light) and `dark` (dark) tuples come from slate the same way, so
-Mantine's own neutral reads land on the ramp: `gray-4` (default border) ←
-slate 7, `gray-6` (dimmed) ← slate 11, `dark-4` (border) ← slate 8,
-`dark-2` (dimmed) ← slate 11, `dark-7` (body) ← slate 2. Two slots carry a
-duplicate step because twelve steps do not divide into ten jobs; that is
-harmless. Full tuples are in the plan.
+`--mantine-color-anchor` is already pinned in both schemes by the existing
+`:root:root` block to `--tk-accent-text`, which becomes indigo 11; that
+block stays and covers the dark anchor (Mantine would read index 4).
+
+`gray` (light) and `dark` (dark) tuples come from slate by their own picks,
+chosen so Mantine's neutral reads land on the ramp:
+
+- **gray** (index ← slate step): `[2, 3, 4, 6, 7, 8, 11, 11, 12, 12]`, so
+  `gray-4` (default border) is slate 7 and `gray-6` (dimmed) is slate 11.
+- **dark** (index ← slate step): `[12, 11, 11, 9, 8, 7, 6, 2, 2, 1]`, so
+  `dark-0` (text) is slate 12, `dark-2` (dimmed) slate 11, `dark-4`
+  (border) slate 8, `dark-7` (body) slate 2.
+
+Two slots in each carry a duplicate step because twelve steps do not divide
+into ten jobs; that is harmless. The hand-written
+`--mantine-color-dark-0..9` remap block in `tokyo-theme.css` retires with
+this change: the tuple now lands in-palette on its own, and the block would
+otherwise re-point `dark-7` at the page.
 
 `autoContrast` stays off: labels are white per Radix's contract and the
 ledger, not per-cell luminance flips.
@@ -412,7 +447,10 @@ only (§9 step 0).
 
 ## 9. Verification and sequencing
 
-Six steps, in the order they must land. Each lands green on its own.
+Six steps, in the order they must land. Each lands green on its own; step
+0 carries the tui-kit button retune and the ledger rewrite because the
+button matrix runs in CI against every hue, and moving the fills without
+moving the labels and the ledger cannot be green.
 
 0. **Tokens.** `packages/tokens` gains `scripts/generate-radix.ts`, which
    reads the seven scales from the installed `@radix-ui/colors` and writes
@@ -429,8 +467,12 @@ Six steps, in the order they must land. Each lands green on its own.
    `--fg` → `text-1`; `--muted-text` and `--text-muted-on-card` → `text-3`;
    `--bg` → `--page`; the three `*OnCard` line names → the §7.2 card-scope
    values; `--accent-text`/`--red-text`/`okText`/`warnText` → the hue body
-   text; `--dot-*` → `--fill-*`; `--muted` keeps its name and value until
-   the step-5 audit. The short-alias tier is authored in
+   text; `--dot-*` → `--fill-*`; `--muted` keeps its name and moves to
+   slate 9, Radix's solid neutral, so the fill gray sits on the same scale
+   as everything else (its 154 uses are still the step-5 audit). In
+   `tokyo-theme.css`, `--ui-bg-4` becomes `var(--tk-raised)` instead of a
+   mix over the card. `@radix-ui/colors` enters through the root
+   `workspaces.catalog` like every shared version. The short-alias tier is authored in
    `packages/tui-kit/soribashi.config.ts`, and soribashi has no `line`
    semantic group today, so `--line-[1-3]` and `--border-control` need
    entries there. `invariants.test.ts` asserts the rules: surfaces sorted
@@ -440,29 +482,30 @@ Six steps, in the order they must land. Each lands green on its own.
    text step the first from 11 that clears 4.5, and `light[9] === dark[9]`;
    line ramps non-increasing. The tui-kit census (`test/theme.test.ts`)
    gets one ruling set for the palette change, since every colour moves.
-   Then `bun run tokens:codegen`, tui-kit codegen, and
-   `cd apps/deck && bun run build:board` for the vendored copies.
-1. **Mantine tuples (MAT-421, reframed).** No generator, no colour math:
-   `scripts/generate-ramps.ts` writes `packages/tokyo/src/ramps.ts` from
-   `radix.ts` by the §7.3 pick, and writes the per-colour
-   `cssVariablesResolver` entries into `packages/tokyo/src/theme.ts`'s
-   input (`ramps.ts` exports them beside the tuples) for the five pinned
-   variables. `theme.ts` sets `primaryShade: { light: 6, dark: 3 }` and
-   installs the resolver. `ramp-anchors.test.ts` pins `Day[6]` and
-   `Night[3]` to the hue's step 9. `@mantine/colors-generator` is not
-   installed and stays that way.
-2. **tui-kit button resolver.** `intent-resolver.ts` derives every variant
-   from `--color-<family>-500` (the fill) with mix weights tuned against
-   the old palette. It now reads the hue text tokens in both schemes:
-   `outline`/`subtle` text from `--text-<hue>`, the tinted `light` variant's
-   text from `--text-<hue>-small`, `filled` labels white. `Button.tsx`'s
-   pinned `default|bad` colour reads `--text-bad`. `Button.matrix.test.tsx`
-   then measures every cell against the new palette; `known-contrast-debt.ts`
+   In the same change, tui-kit's `intent-resolver.ts`, which derives every
+   Button variant from `--color-<family>-500` (the fill) with mix weights
+   tuned against the old palette, reads the hue text tokens in both
+   schemes: `outline`/`subtle` text from `--text-<hue>`, the tinted `light`
+   variant's text from `--text-<hue>-small`, `filled` labels white (the
+   neutral fill's label `light-dark(<text-1>, #ffffff)`). `Button.tsx`'s
+   pinned `default|bad` colour reads `--text-bad`. `known-contrast-debt.ts`
    is rewritten to the eight filled cells in §7 and nothing else, and the
-   ratchet holds from there. Deck regen follows.
-3. **Bound provider (§8.2).** Then the storybook can be built on the real
+   ratchet holds from there. Then `bun run tokens:codegen`, tui-kit
+   codegen, and `cd apps/deck && bun run build:board` for the vendored
+   copies.
+1. **Mantine tuples and pins (MAT-421, reframed).** No generator, no
+   colour math: `scripts/generate-ramps.ts` writes `packages/tokyo/src/ramps.ts`
+   from `radix.ts` by the §7.3 picks (six hue pairs plus `grayDay` and
+   `darkNight`), and `scripts/generate.ts` splices the §7.3 pins into
+   `tokyo-theme.css` as a generated `:root:root[data-mantine-color-scheme]`
+   block per scheme. `theme.ts` sets `primaryShade: { light: 6, dark: 3 }`
+   and registers `gray` and `dark`; the hand-written `--mantine-color-dark-*`
+   block retires. `ramp-anchors.test.ts` pins `Day[6]` and `Night[3]` to
+   the hue's step 9 and every pin to the token it mirrors.
+   `@mantine/colors-generator` is not installed and stays that way.
+2. **Bound provider (§8.2).** Then the storybook can be built on the real
    providers rather than a hand-wired approximation.
-4. **Storybook (MAT-419).** Two clearly separated halves: a reference
+3. **Storybook (MAT-419).** Two clearly separated halves: a reference
    catalogue rendering the ramps from the imported tokens with contrast
    computed at render time, and a specimen wall covering both kits, using
    the bound providers, with `parameters.a11y.test = 'error'` per story.
@@ -472,7 +515,7 @@ Six steps, in the order they must land. Each lands green on its own.
    `forceColorScheme`; tui-kit reads `color-scheme`). `bun run
    tui-kit:build` must precede the storybook build, as it does every board
    and deck gate.
-5. **Contrast gate.** Extends the existing `Button.matrix.test.tsx`
+4. **Contrast gate.** Extends the existing `Button.matrix.test.tsx`
    browser-vitest pattern and its `known-contrast-debt.ts` ratchet to cover
    every text step against every surface in both schemes, every hue text
    value likewise, and every fill against every surface with the three §7
@@ -481,7 +524,7 @@ Six steps, in the order they must land. Each lands green on its own.
    second entry shape for a raw fill-against-surface pair. Not a Storybook
    test-runner: there is none installed, and the vitest browser project is
    already in CI.
-6. **Lint (MAT-420).** The four §8.1 rules as ESLint rules over style
+5. **Lint (MAT-420).** The four §8.1 rules as ESLint rules over style
    objects (TS/TSX) and stylesheets (`@eslint/css`), shared by app-kit and
    tui-kit consumers. Lands BEFORE the apps-wide migration. Roughly 154
    `--muted` uses must be classified as text or fill by hand, and that is
@@ -521,5 +564,5 @@ them.
   come with both schemes and a twelve-step contract, and replaces the
   solver, the dark hue correction and the OKLab generator with step
   numbers chosen by rule. The cost is stated in §7: three fills and eight
-  filled-button labels under their bars, ledgered, against twenty ledger
+  filled-button labels under their bars, ledgered, against nineteen ledger
   entries today.
