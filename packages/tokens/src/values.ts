@@ -149,8 +149,8 @@ function buildScheme(spec: SchemeSpec): ColorScheme {
   const hueText = hueValue((scale, step) => at(scale, step.text));
   const hueTextSmall = hueValue(scale => at(scale, 12));
   // Radix's step 9 and 10 are chosen to carry a white label, but only the two
-  // blue-violet hues actually do: on the other four a white label measures
-  // 2.97 to 3.85 while the dark neutral measures 4.26 to 5.52. The winner is
+  // blue-violet hues actually do: on the other five a white label measures
+  // 1.58 to 3.85 while the dark neutral measures 4.26 to 10.38. The winner is
   // the same in both schemes for every hue, so this is a property of the hue.
   const onFillDark = RADIX.slate.light[11]!;
   const hueOnFill = hueValue((scale, step) =>
@@ -160,7 +160,7 @@ function buildScheme(spec: SchemeSpec): ColorScheme {
       : onFillDark
   );
   // Step 11 unconditionally. `hueText` promotes to 12 wherever 11 misses 4.5,
-  // which in light is four of the six hues, so it cannot name this step.
+  // which in light is five of the seven hues, so it cannot name this step.
   const hueTextVivid = hueValue(scale => at(scale, 11));
   return {
     hue,
