@@ -5,6 +5,7 @@ import tseslint from 'typescript-eslint';
 
 import noInlineStyles from './eslint-local/no-inline-styles.js';
 import requireDataTestid from './eslint-local/require-data-testid.js';
+import tokenNamespacesTsx from './eslint-local/token-namespaces-tsx.js';
 
 const KIT = '@mattstack/app-kit';
 
@@ -74,12 +75,14 @@ export function mattstackEslint(opts = {}) {
           rules: {
             'require-data-testid': requireDataTestid,
             'no-inline-styles': noInlineStyles,
+            'token-namespaces': tokenNamespacesTsx,
           },
         },
       },
       rules: {
         'local/require-data-testid': 'off',
         'local/no-inline-styles': 'off',
+        'local/token-namespaces': 'error',
         'no-restricted-imports': ['error', importWall],
       },
     },
