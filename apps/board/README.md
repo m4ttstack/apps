@@ -191,6 +191,13 @@ when it boots last, and the displaced process stands its own write side down
 within one 15s heartbeat. A lease whose holder has died, or whose heartbeat
 is over 60s old, is free for the next board to claim.
 
+Deciding and writing the lease happen in one `IMMEDIATE` transaction, so two
+boots cannot both read the same free lease and both believe they won it, and
+a lease only counts when the db acknowledged it. A heartbeat lost to
+contention (`state.db` gives the server a 250ms busy timeout, so that is
+ordinary) is not a displacement: the holder keeps the lease until the beat
+it last committed is stale enough for another board to claim anyway.
+
 A launched pane (review, respond, doctor) never sees `BOARD_STATE_DB`
 itself. Instead the server hands it a **claim ticket**: a `--state <path>`
 argv value that is really an opaque handle, `<root>/state/<lane>s/<slug>.json`,

@@ -242,6 +242,7 @@ import {
   unreactFromMR,
 } from './slack.ts';
 import {
+  beatStillValid,
   boardStateRoot,
   claimWriterLease,
   dismissByHandle,
@@ -328,7 +329,10 @@ const writerLeaseIo = stateWriterLeaseIo({
 });
 // `let`: a higher-ranked board can take the lease mid-run, and this process
 // then stands its own write side down rather than doubling every effect.
-let writer = !FIXTURE_DIR && claimWriterLease(writerLeaseIo);
+let writer = !FIXTURE_DIR && claimWriterLease(writerLeaseIo) === 'held';
+// The last beat the db acknowledged, which is what bounds how long an
+// unanswered beat may be treated as continued ownership.
+let lastHeldAt = Date.now();
 if (!FIXTURE_DIR && !writer) {
   console.error(
     `board: pid ${writerLeaseIo.read()?.pid} already owns ${boardStateRoot()}; ` +
@@ -3644,7 +3648,18 @@ if (writer) {
   // displaced. Standing down stops the loops but leaves the read side up:
   // the UI a dev opened on this port keeps working.
   const leaseTimer = setInterval(() => {
-    if (renewWriterLease(writerLeaseIo)) return;
+    const result = renewWriterLease(writerLeaseIo);
+    if (result === 'held') {
+      lastHeldAt = Date.now();
+      return;
+    }
+    // An unanswered db is not a displacement: a 250ms busy timeout means a
+    // contended beat is ordinary, and the lease is still ours until it goes
+    // stale enough for another board to claim it.
+    if (result === 'unknown' && beatStillValid(lastHeldAt, Date.now())) {
+      console.error('board: writer lease beat unanswered; keeping the lease');
+      return;
+    }
     writer = false;
     clearInterval(leaseTimer);
     clearInterval(sweepTimer);
@@ -3652,7 +3667,9 @@ if (writer) {
     // /peer/join keep working off the client this leaves in place.
     peering.stop();
     console.error(
-      `board: writer lease taken by pid ${writerLeaseIo.read()?.pid}; standing down to read-only`
+      result === 'lost'
+        ? `board: writer lease taken by pid ${writerLeaseIo.read()?.pid}; standing down to read-only`
+        : 'board: writer lease unconfirmed past its stale window; standing down to read-only'
     );
   }, LEASE_BEAT_MS);
 }
@@ -3783,6 +3800,10 @@ if (writer) {
   void (async () => {
     try {
       const boardUrl = await deckAppUrl('board', `http://localhost:${port}`);
+      // The await is long enough to lose the lease inside: installing the
+      // rule now would point every gate notification at a board that has
+      // already stood down.
+      if (!writer) return;
       ensureEventBridgeRule(
         readEventBridges,
         writeEventBridges,

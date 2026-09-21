@@ -19,6 +19,7 @@ export {
 export { persistOrWarn, runCriticalWrite } from './busy.ts';
 
 export {
+  beatStillValid,
   claimWriterLease,
   LEASE_BEAT_MS,
   LEASE_STALE_MS,
