@@ -1314,7 +1314,7 @@ body {
   margin-top: 2.2rem;
   opacity: 0.8;
 }
-/* Daemon data older than 10 minutes (or unknown) -- same amber the fetchError
+/* Daemon data older than 10 minutes (or unknown) -- same warn hue the fetchError
    banner uses, so "trust this less" reads the same way everywhere. */
 .tui-footer-stale {
   color: var(--text-warn-small);
