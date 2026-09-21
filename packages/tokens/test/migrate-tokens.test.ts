@@ -151,6 +151,36 @@ describe('planRenames', () => {
     expect(lines[7]).toBe('    color: var(--tk-text-accent-small);');
   });
 
+  it('recovers a declaration after a nested rule without recursing forever', () => {
+    const css = [
+      '.card {',
+      '  font-size: 12px;',
+      '  .label { color: var(--tk-muted-text); }',
+      '  color: var(--tk-fg);',
+      '}',
+    ].join('\n');
+    const start = performance.now();
+    const r = planRenames(css, 16);
+    expect(performance.now() - start).toBeLessThan(200);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({
+      from: '--tk-muted-text',
+      to: '--tk-text-4',
+      band: 'small',
+      line: 3,
+    });
+    expect(r[1]).toMatchObject({
+      from: '--tk-fg',
+      to: '--tk-text-1',
+      line: 4,
+    });
+    const { out, leftover } = rewriteCss(css, 16);
+    const lines = out.split('\n');
+    expect(lines[2]).toBe('  .label { color: var(--tk-text-4); }');
+    expect(lines[3]).toBe('  color: var(--tk-text-1);');
+    expect(leftover).toEqual([]);
+  });
+
   it('routes dot tokens to hue text in color and keeps them as fill elsewhere', () => {
     const css = `.a { color: var(--dot-bad); font-size: 15px; } .b { background: var(--dot-bad); }`;
     const r = planRenames(css, 17);

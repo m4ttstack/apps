@@ -217,6 +217,26 @@ function tryParseRawAsRule(text: string): StyleSheet | null {
   }
 }
 
+// A declaration that trails a sibling nested rule lands in the SAME Raw as
+// that rule (css-tree sweeps everything after the first non-& selector to
+// the end of the parent block); once the Raw text has no `{` left, parsing
+// it as a declaration list recovers it directly.
+function parseDeclarationList(text: string): Declaration[] {
+  try {
+    const reparsed = parse(text, {
+      context: 'declarationList',
+      positions: true,
+    });
+    return reparsed.type === 'DeclarationList'
+      ? [...reparsed.children].filter(
+          (c): c is Declaration => c.type === 'Declaration'
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 function collectRules(
   children: Iterable<CssNode>,
   parentSel: string | undefined,
@@ -239,10 +259,29 @@ function collectRules(
     } else if (child.type === 'Atrule' && child.block) {
       collectRules(child.block.children, parentSel, lineOffset, out);
     } else if (child.type === 'Raw') {
+      const rawLine = child.loc?.start.line ?? 1;
+      const absLine = rawLine + lineOffset - 1;
+      if (!child.value.includes('{')) {
+        // No rule left to recover, only trailing declarations of the block
+        // this Raw sits in; reparsing this as 'stylesheet' would just hand
+        // the identical text back as another Raw, forever.
+        if (parentSel !== undefined)
+          out.push({
+            sel: parentSel,
+            hover: /:hover/.test(parentSel),
+            declarations: parseDeclarationList(child.value),
+            lineOffset: absLine,
+          });
+        continue;
+      }
       const reparsed = tryParseRawAsRule(child.value);
       if (!reparsed) continue;
-      const rawLine = child.loc?.start.line ?? 1;
-      collectRules(reparsed.children, parentSel, rawLine + lineOffset - 1, out);
+      // A reparse that recovers no Rule made no progress on this text
+      // (malformed CSS); recursing on it would repeat the same reparse
+      // forever until the call stack overflows, so give up on it instead.
+      const madeProgress = [...reparsed.children].some(c => c.type === 'Rule');
+      if (!madeProgress) continue;
+      collectRules(reparsed.children, parentSel, absLine, out);
     }
   }
 }
