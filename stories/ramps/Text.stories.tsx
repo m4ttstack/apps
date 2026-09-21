@@ -20,7 +20,7 @@ function TextRamp() {
           <>
             {t.surfaceRamp.map((surface, s) => (
               <div
-                key={surface}
+                key={s}
                 style={{
                   background: surface,
                   padding: 12,
@@ -32,7 +32,7 @@ function TextRamp() {
                 <code style={{ color: t.text.fg }}>surface-{s + 1}</code>
                 {t.textRamp.map((hex, i) => (
                   <div
-                    key={hex}
+                    key={i}
                     style={{
                       color: hex,
                       fontSize: SIZE[i],
