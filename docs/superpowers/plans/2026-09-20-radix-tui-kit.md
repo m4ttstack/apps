@@ -40,7 +40,7 @@ Group A (app-kit and the codemod) is the only ordering constraint: Groups B to F
 | same six | background, fill, border | `--fill-<hue>`; a `:hover` rule's background takes `--fill-<hue>-hover` |
 | `--dot-ok`, `--dot-warn`, `--dot-bad` | any | `--fill-ok`, `--fill-warn`, `--fill-bad` |
 | `--bg` | background | `--page` |
-| `--surface-inset`, `--surface-overlay` | background | `--inset`, `--overlay` |
+| `--surface-inset`, `--surface-overlay` | background | unchanged; `--inset` and `--overlay` are NOT emitted (the spec section 4 block showing them is labelled illustrative). Renaming to them paints the element transparent. |
 | `--border-on-card`, `--border-soft-on-card`, `--border-control-on-card` | border | keep the alias in card scopes (see the board's Task D2); elsewhere `--border`, `--border-soft`, `--border-control` |
 | `--tk-fg`, `--tk-muted-text`, `--tk-muted-on-card` | color | `--tk-text-1`; by band `--tk-text-2/3/4` |
 | `--tk-muted` | color | by band `--tk-text-2/3/4`; other properties unchanged |
