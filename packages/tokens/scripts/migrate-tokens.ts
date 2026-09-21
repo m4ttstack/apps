@@ -239,7 +239,7 @@ function replaceVarName(line: string, from: string, to: string): string {
 export function rewriteCss(
   css: string,
   rootPx: number
-): { out: string; unresolved: Unresolved[] } {
+): { out: string; renames: Rename[]; unresolved: Unresolved[] } {
   const renames = planRenames(css, rootPx);
   const lines = css.split('\n');
   const unresolved: Unresolved[] = [];
@@ -248,7 +248,7 @@ export function rewriteCss(
     lines[i] = replaceVarName(lines[i]!, r.from, r.to);
     if (r.unresolved) unresolved.push({ line: r.line, text: lines[i]!.trim() });
   }
-  return { out: lines.join('\n'), unresolved };
+  return { out: lines.join('\n'), renames, unresolved };
 }
 
 // Style objects and template strings in TSX: `color: 'var(--tk-muted-text)'`.
@@ -257,9 +257,11 @@ export function rewriteCss(
 // default, exactly like CSS.
 export function renameInTsx(source: string): {
   out: string;
+  renames: Rename[];
   unresolved: Unresolved[];
 } {
   const unresolved: Unresolved[] = [];
+  const renames: Rename[] = [];
   const lines = source.split('\n');
   const objectBand = (i: number): Band | null => {
     for (
@@ -284,6 +286,14 @@ export function renameInTsx(source: string): {
           (v, name: string) => {
             const t = target(name, property, band, hover);
             if (!t) return v;
+            renames.push({
+              property,
+              from: name,
+              to: t.to,
+              band: isColor(property) ? band : null,
+              unresolved: t.unresolved,
+              line: i + 1,
+            });
             if (t.unresolved)
               unresolved.push({ line: i + 1, text: whole.trim() });
             return `var(${t.to})`;
@@ -293,7 +303,7 @@ export function renameInTsx(source: string): {
       }
     );
   }
-  return { out: lines.join('\n'), unresolved };
+  return { out: lines.join('\n'), renames, unresolved };
 }
 
 if (import.meta.main) {
@@ -305,11 +315,13 @@ if (import.meta.main) {
     const res = file.endsWith('.css')
       ? rewriteCss(src, rootPx)
       : renameInTsx(src);
-    const changed = res.out !== src;
-    if (changed)
-      console.log(`${file}: ${write ? 'rewritten' : 'would rewrite'}`);
+    for (const r of res.renames) {
+      console.log(
+        `${file}:${r.line}  ${r.property}: ${r.from} -> ${r.to}  [band: ${r.band ?? 'unknown'}]`
+      );
+    }
     for (const u of res.unresolved)
       console.log(`  UNRESOLVED ${file}:${u.line}  ${u.text}`);
-    if (write && changed) writeFileSync(file, res.out);
+    if (write && res.out !== src) writeFileSync(file, res.out);
   }
 }
