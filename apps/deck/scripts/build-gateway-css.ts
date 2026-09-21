@@ -4,7 +4,7 @@ import { tuiTheme } from '@mattstack/tui-kit/theme';
 
 const ROOT = join(import.meta.dir, '..');
 
-// Gateway pages ship zero client JS, so they lean on exactly these six
+// Gateway pages ship zero client JS, so they lean on exactly these seven
 // tokens (never a full kit recipe), named as the ramp names gateway-pages.tsx
 // reads. Non-null: theme.ts declares every family/shade below for both light
 // and dark, so an absent one is a theme regression, not a normal runtime case.
@@ -16,6 +16,7 @@ function readTokens(colors: typeof tuiTheme.tokens.colors) {
     border: colors.line!.border!,
     'fill-accent': colors.blue!['500']!,
     'text-accent': colors.blue!['text']!,
+    'text-bad-vivid': colors.red!['textVivid']!,
   };
 }
 

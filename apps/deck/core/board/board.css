@@ -118,14 +118,12 @@ body {
 }
 /* Bad-tone plain text -- for a value that reads as dim by default (the
    service cell's exit status) and only needs the bad hue, not a pill:
-   Badge is reserved for the health column. The .t-bad and .t-ok light-dark
-   pairs are the vivid step-11 hues, pinned here until the tokens package
-   ships --text-bad-vivid / --text-ok-vivid. */
+   Badge is reserved for the health column. */
 .t-bad {
-  color: light-dark(#cb1d63, #ff92ad);
+  color: var(--text-bad-vivid);
 }
 .t-ok {
-  color: light-dark(#008573, #0bd8b6);
+  color: var(--text-ok-vivid);
 }
 
 /* hstack is a block-level flex container, so a chip after the name would be

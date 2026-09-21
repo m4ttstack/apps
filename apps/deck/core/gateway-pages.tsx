@@ -41,9 +41,7 @@ button.primary:hover { filter: brightness(0.92); }
 button.primary:active { filter: brightness(0.85); transform: translateY(1px); }
 button.primary:focus-visible { outline: none;
        box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill-accent) 38%, transparent); }
-/* Bad hue pinned as literals pending --text-bad-vivid, same as board.css;
-   light-dark() resolves through the :root color-scheme above. */
-.err { color: light-dark(#cb1d63, #ff92ad); font-size: 0.82rem; margin: 0 0 0.1rem; opacity: 1; }
+.err { color: var(--text-bad-vivid); font-size: 0.82rem; margin: 0 0 0.1rem; opacity: 1; }
 `;
 
 function LockBadge() {
