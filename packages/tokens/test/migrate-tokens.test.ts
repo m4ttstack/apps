@@ -93,4 +93,62 @@ describe('planRenames', () => {
       unresolved: true,
     });
   });
+
+  it('rewrites the fallback and exact var() forms by source position, not by which form matches first', () => {
+    const css = `.a { font-size: 12px; color: var(--accent, red); background: var(--accent); }`;
+    const { out } = rewriteCss(css, 17);
+    expect(out).toContain(`color: var(--text-accent-small, red)`);
+    expect(out).toContain(`background: var(--fill-accent)`);
+  });
+
+  it('does not double-count a nested &:hover rule and keeps the hover fill', () => {
+    const css = `.btn { font-size: 14px; background: var(--tk-accent); &:hover { background: var(--tk-accent); } }`;
+    const r = planRenames(css, 16);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ to: '--tk-fill-accent' });
+    expect(r[1]).toMatchObject({ to: '--tk-fill-accent-hover' });
+    const { out } = rewriteCss(css, 16);
+    expect(out).toContain('background: var(--tk-fill-accent);');
+    expect(out).toContain('background: var(--tk-fill-accent-hover);');
+  });
+
+  it('treats a non-& nested rule as a descendant selector and still renames', () => {
+    const css = `.card { .label { color: var(--tk-muted-text); } }`;
+    const r = planRenames(css, 16);
+    expect(r).toEqual([
+      expect.objectContaining({
+        to: '--tk-text-3',
+        band: null,
+        unresolved: true,
+      }),
+    ]);
+  });
+
+  it('routes dot tokens to hue text in color and keeps them as fill elsewhere', () => {
+    const css = `.a { color: var(--dot-bad); font-size: 15px; } .b { background: var(--dot-bad); }`;
+    const r = planRenames(css, 17);
+    expect(r.find(x => x.property === 'color')).toMatchObject({
+      to: '--text-bad',
+      band: 'body',
+      unresolved: false,
+    });
+    expect(r.find(x => x.property === 'background')).toMatchObject({
+      to: '--fill-bad',
+    });
+  });
+
+  it('renames --ui-text-dimmed and leaves --ui-text-muted untouched', () => {
+    const css = `.a { color: var(--ui-text-dimmed); } .b { color: var(--ui-text-muted); }`;
+    const r = planRenames(css, 17);
+    expect(r).toEqual([
+      expect.objectContaining({
+        from: '--ui-text-dimmed',
+        to: '--ui-text-4',
+        unresolved: false,
+      }),
+    ]);
+    const { out } = rewriteCss(css, 17);
+    expect(out).toContain(`color: var(--ui-text-4)`);
+    expect(out).toContain(`color: var(--ui-text-muted)`);
+  });
 });
