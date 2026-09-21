@@ -25,7 +25,7 @@
     cursor: pointer;
     background: transparent;
     border: none;
-    color: var(--muted);
+    color: var(--text-3);
   }
 
   .option + .option {
@@ -33,7 +33,7 @@
   }
 
   .option[data-active] {
-    background: var(--accent);
+    background: var(--fill-accent);
     /* --on-fill-accent, not --bg: --bg is the page ground, and dark
        scheme's page-on-accent measures 3.62, under the 4.5 AA floor. */
     color: var(--on-fill-accent);
@@ -41,11 +41,11 @@
   }
 
   .option:not([data-active]):hover {
-    color: var(--fg);
+    color: var(--text-1);
   }
 
   .option:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--fill-accent);
     outline-offset: 2px;
   }
 
