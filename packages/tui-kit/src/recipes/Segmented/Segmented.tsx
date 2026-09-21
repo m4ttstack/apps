@@ -57,6 +57,19 @@ export type SegmentedSignature = <T extends string>(
   props: SegmentedProps<T> & { ref?: Ref<HTMLSpanElement> },
 ) => ReactElement | null;
 
+/** Verbatim mr-board value. An em has no theme rung by design, but still needs
+    a `var()` outlet to pass the CSS gate. */
+const SEGMENTED_TEXT_SCALARS: Record<string, string> = {
+  "--sb-segmented-text-size": "0.8em",
+};
+
+/** White on the accent fill in both schemes, as filled Buttons do. */
+const SEGMENTED_ACTIVE_COLOR: Record<string, string> = {
+  "--sb-segmented-active-color": "#ffffff",
+};
+
+const SEGMENTED_VARS = { ...SEGMENTED_TEXT_SCALARS, ...SEGMENTED_ACTIVE_COLOR };
+
 /** No vocabulary axes and no variants: mr-board's Segmented is one fixed
     neutral shape with an accent-filled active state, not a colour-bearing
     family, so opting into an axis would be an API promotion. */
@@ -69,6 +82,7 @@ export const Segmented = defineGenericComponent<
   name: "Segmented",
   selectors: SEGMENTED_SELECTORS,
   classes,
+  vars: (_theme, _props) => ({ root: { ...SEGMENTED_ACTIVE_COLOR } }),
   render: ({ props, getStyles, ref }) => {
     const {
       options,
@@ -137,12 +151,6 @@ export type LabeledSegSignature = <T extends string>(
   props: LabeledSegProps<T> & { ref?: Ref<HTMLSpanElement> },
 ) => ReactElement | null;
 
-/** Verbatim mr-board value. An em has no theme rung by design, but still needs
-    a `var()` outlet to pass the CSS gate. */
-const SEGMENTED_TEXT_SCALARS: Record<string, string> = {
-  "--sb-segmented-text-size": "0.8em",
-};
-
 /** Shares Segmented's selectors, classes and parts (one CSS shape) but is its
     own builder call: the two prop shapes differ too much for one signature. */
 export const LabeledSeg = defineGenericComponent<
@@ -154,7 +162,7 @@ export const LabeledSeg = defineGenericComponent<
   name: "LabeledSeg",
   selectors: SEGMENTED_SELECTORS,
   classes,
-  vars: (_theme, _props) => ({ root: { ...SEGMENTED_TEXT_SCALARS } }),
+  vars: (_theme, _props) => ({ root: { ...SEGMENTED_VARS } }),
   render: ({ props, getStyles, ref }) => {
     const {
       legend,

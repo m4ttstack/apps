@@ -34,7 +34,7 @@
 
   .option[data-active] {
     background: var(--fill-accent);
-    color: var(--bg);
+    color: var(--sb-segmented-active-color);
     font-weight: 700;
   }
 
