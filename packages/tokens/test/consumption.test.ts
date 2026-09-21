@@ -159,7 +159,6 @@ const TK_RAMP_NAMES = [
   ...RAMP_HUES.flatMap(h => [
     `--tk-fill-${h}`,
     `--tk-fill-${h}-hover`,
-    `--tk-on-fill-${h}`,
     `--tk-text-${h}`,
     `--tk-text-${h}-small`,
     `--tk-text-${h}-vivid`,
@@ -168,8 +167,15 @@ const TK_RAMP_NAMES = [
 const TK_RAMP_WAIVER =
   'ramp name mirrored from the tui theme for app-kit consumers ahead of the migration; no packages/ui component wires it yet.';
 
+const TK_ON_FILL_NAMES = RAMP_HUES.map(h => `--tk-on-fill-${h}`);
+const TK_ON_FILL_WAIVER =
+  "app-kit's variantColorResolver builds this name at runtime from the intent, so no static reference to any single hue exists; the filled label is genuinely wired.";
+
 const WAIVED_TOKYO: Record<string, string> = {
   ...Object.fromEntries(TK_RAMP_NAMES.map(name => [name, TK_RAMP_WAIVER])),
+  ...Object.fromEntries(
+    TK_ON_FILL_NAMES.map(name => [name, TK_ON_FILL_WAIVER])
+  ),
   '--tk-overlay':
     "modal/overlay chrome role (dark sits below panel, light equals it), mirrored from the tui theme's --surface-overlay; no packages/ui component wires this surface yet.",
   '--tk-soft-on-card':
@@ -255,6 +261,9 @@ function isCss(path: string): boolean {
 }
 
 function isUiSource(path: string): boolean {
+  // A test that names a token is not a component consuming it: counting them
+  // lets a waiver go stale the moment someone asserts on the token's name.
+  if (path.includes('.test.') || path.includes('/test-utils/')) return false;
   const ext = extname(path);
   return ext === '.ts' || ext === '.tsx' || ext === '.css';
 }

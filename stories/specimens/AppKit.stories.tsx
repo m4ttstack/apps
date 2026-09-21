@@ -10,7 +10,12 @@ function ButtonWall() {
   return (
     <Stack gap="md">
       {GROUNDS.map(ground => (
-        <Stack key={ground} gap="xs" p="md" style={{ background: `var(${ground})`, borderRadius: 8 }}>
+        <Stack
+          key={ground}
+          gap="xs"
+          p="md"
+          style={{ background: `var(${ground})`, borderRadius: 8 }}
+        >
           <Text size="xs" c="dimmed">
             {ground}
           </Text>
@@ -40,9 +45,18 @@ function TextWall() {
   return (
     <Stack gap="md">
       {GROUNDS.map(ground => (
-        <Stack key={ground} gap={4} p="md" style={{ background: `var(${ground})`, borderRadius: 8 }}>
-          <Text>Default text on {ground}: inventory counts pause on Friday.</Text>
-          <Text c="dimmed">Dimmed text on {ground}: items on loan keep their due dates.</Text>
+        <Stack
+          key={ground}
+          gap={4}
+          p="md"
+          style={{ background: `var(${ground})`, borderRadius: 8 }}
+        >
+          <Text>
+            Default text on {ground}: inventory counts pause on Friday.
+          </Text>
+          <Text c="dimmed">
+            Dimmed text on {ground}: items on loan keep their due dates.
+          </Text>
           <Text size="xs" c="dimmed">
             Small dimmed text on {ground}: returns reopen Monday.
           </Text>
