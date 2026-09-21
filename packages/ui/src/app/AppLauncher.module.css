@@ -82,7 +82,16 @@
   text-align: center;
 }
 
+/* Indigo step 11 in both schemes, pinned pending --tk-text-accent-vivid
+ * (not emitted on this branch's base): the small-band accent token is step
+ * 12, which stops reading as accent next to the other tile labels. Scheme
+ * selector rather than light-dark(): this pipeline transpiles light-dark()
+ * into polyfill variables that only tui-kit's theme layer defines. */
 .label[data-current='true'] {
-  color: var(--tk-text-accent-small);
+  color: #3a5bc7;
   font-weight: 600;
+}
+
+:global([data-mantine-color-scheme='dark']) .label[data-current='true'] {
+  color: #9eb1ff;
 }
