@@ -33,7 +33,7 @@
   }
 
   .title:hover {
-    color: var(--text-accent);
+    text-decoration: underline;
   }
 
   .title:focus-visible {

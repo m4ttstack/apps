@@ -88,7 +88,7 @@
      from that neutral rule, so it stays here as a narrow override rather
      than becoming a resolver patch that would leak into every other variant.
      `color` is the hue text token (same as intent-resolver.ts's outline and
-     subtle tone): the raw `--red` fill on `--surface-panel` reads below WCAG
+     subtle tone): the `--fill-bad` fill on `--surface-panel` reads below WCAG
      AA; `border-color` stays the raw tone since border isn't the failing
      axis. The token is pinned from Button.tsx's `vars` as
      `--sb-button-bad-color`, alongside the other pinned cells. */

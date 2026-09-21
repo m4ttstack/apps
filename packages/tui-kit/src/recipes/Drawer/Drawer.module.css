@@ -38,7 +38,7 @@
   }
 
   .back:hover {
-    color: var(--text-1);
+    text-decoration: underline;
   }
 
   .back:focus-visible {

@@ -42,7 +42,7 @@
     border-bottom: none;
   }
 
-  /* No `color` here, deliberately: `.root` already sets `--fg` as the panel's
+  /* No `color` here, deliberately: `.root` already sets `--text-1` as the panel's
      base text colour, and Action's `[data-intent]` rule below relies on this
      span INHERITING its button's colour rather than fighting a same-specificity
      declaration of its own. */
