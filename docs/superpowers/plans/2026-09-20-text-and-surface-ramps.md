@@ -3031,3 +3031,506 @@ visual 76 (refreshed with `-u`, no baseline bytes changed: the comparator's
 console 748, board 1707, boxscore 309, deck 753. Freshness
 gate, `bun run format`, `bun run lint`, `bun run typecheck` and
 `scripts/repo-purity.sh` all clean.
+
+---
+
+## Part I: on-fill labels and the vivid hue text step (spec §7, §10)
+
+Two per-hue tokens that the ramp rules cannot express, both discovered from
+rendered UI rather than from the spec.
+
+`--on-fill-<hue>` exists because "white on a hue fill" is wrong for four of
+the six hues. `--text-<hue>-vivid` exists because `--text-<hue>` is defined
+as the first step from 11 upward clearing 4.5, so it silently resolves to
+step 12 in light for ok, warn and cyan, and there is no token that names
+step 11 unconditionally.
+
+### Task 12: Emit `--on-fill-<hue>` and `--text-<hue>-vivid`, retune the filled label, rewrite the ledger
+
+**Files:**
+- Modify: `packages/tokens/src/values.ts`
+- Modify: `packages/tokens/scripts/generate.ts`
+- Modify: `packages/tokens/test/invariants.test.ts`
+- Modify: `packages/tui-kit/src/intent-resolver.ts:76`
+- Modify: `packages/tui-kit/src/a11y/known-contrast-debt.ts`
+- Modify: `docs/superpowers/specs/2026-09-20-text-and-surface-ramps-design.md` (§7, the "Labels on fills" paragraph)
+- Regenerate (never hand-edit): `packages/tui-kit/src/generated/tokens.ts`,
+  `packages/tui-kit/src/generated/theme.css`, `packages/tokyo/src/tokyo-theme.css`,
+  `packages/tokyo/src/ramps.ts`, `apps/deck/core/generated/*`
+
+**Interfaces:**
+- Consumes: `buildScheme()`'s `hueValue()` helper and `HueStep` from Task 1;
+  the `family()` record in `generate.ts:56-61` from Task 2.
+- Produces: `ColorScheme.hueOnFill` and `ColorScheme.hueTextVivid` (both
+  `HueSet`); CSS custom properties `--tk-on-fill-<hue>` / `--on-fill-<hue>`
+  and `--tk-text-<hue>-vivid` / `--text-<hue>-vivid`; tui-kit token-map keys
+  `colors.<family>.onFill` and `colors.<family>.textVivid`, which reach CSS
+  as `--color-<family>-onFill` and `--color-<family>-textVivid`.
+
+**The two values, measured.** These are the numbers the invariants assert.
+The dark neutral label is `#1c2024`, slate 12 light, which is already
+`textRamp[0]` in the light scheme.
+
+On-fill, label against fill, both schemes:
+
+| hue | light fill | white | dark label | dark fill | white | dark label | pick |
+|---|---|---|---|---|---|---|---|
+| accent | `#3e63dd` | 5.21 | 3.15 | `#3e63dd` | 5.21 | 3.15 | white |
+| purple | `#8e4ec6` | 5.18 | 3.16 | `#8e4ec6` | 5.18 | 3.16 | white |
+| ok | `#0d9b8a` | 3.46 | 4.74 | `#12a594` | 3.07 | 5.33 | dark |
+| warn | `#ef5f00` | 3.33 | 4.92 | `#f76b15` | 2.97 | 5.52 | dark |
+| cyan | `#0797b9` | 3.42 | 4.79 | `#00a2c7` | 3.00 | 5.46 | dark |
+| bad | `#e93d82` | 3.85 | 4.26 | `#e93d82` | 3.85 | 4.26 | dark |
+
+The pick is the same in both schemes for every hue, so it is a property of
+the hue, not the scheme. Only `bad` stays under 4.5, at 4.26, so the ledger
+goes from eight entries to one.
+
+Vivid text, step 11 unconditionally:
+
+| hue | light | dark |
+|---|---|---|
+| accent | `#3a5bc7` | `#9eb1ff` |
+| ok | `#008573` | `#0bd8b6` |
+| bad | `#cb1d63` | `#ff92ad` |
+| warn | `#cc4e00` | `#ffa057` |
+| purple | `#8145b5` | `#d19dff` |
+| cyan | `#107d98` | `#4ccce6` |
+
+- [ ] **Step 1: Write the failing invariants**
+
+In `packages/tokens/test/invariants.test.ts`, add:
+
+```ts
+import { contrast } from '../src/color-math.ts';
+
+test('on-fill labels clear 4.5 except the ledgered miss', () => {
+  const ledger: string[] = [];
+  for (const scheme of ['light', 'dark'] as const) {
+    for (const hue of HUES) {
+      const fill = TOKENS[scheme].hue[hue];
+      const label = TOKENS[scheme].hueOnFill[hue];
+      const ratio = contrast(fill, label);
+      if (ratio < 4.5) ledger.push(`${scheme}/${hue}`);
+      expect(label === '#ffffff' || label === TOKENS.light.textRamp[0]).toBe(true);
+    }
+  }
+  expect(ledger).toEqual(['light/bad', 'dark/bad']);
+});
+
+test('on-fill picks the better of white and the dark neutral', () => {
+  const dark = TOKENS.light.textRamp[0];
+  for (const scheme of ['light', 'dark'] as const) {
+    for (const hue of HUES) {
+      const fill = TOKENS[scheme].hue[hue];
+      const chosen = TOKENS[scheme].hueOnFill[hue];
+      const other = chosen === '#ffffff' ? dark : '#ffffff';
+      expect(contrast(fill, chosen)).toBeGreaterThanOrEqual(contrast(fill, other));
+    }
+  }
+});
+
+test('the on-fill pick is the same in both schemes', () => {
+  for (const hue of HUES) {
+    const light = TOKENS.light.hueOnFill[hue] === '#ffffff';
+    const dark = TOKENS.dark.hueOnFill[hue] === '#ffffff';
+    expect(light).toBe(dark);
+  }
+});
+
+test('vivid text is step 11 for every hue in both schemes', () => {
+  for (const scheme of ['light', 'dark'] as const) {
+    for (const hue of HUES) {
+      expect(TOKENS[scheme].hueTextVivid[hue]).toBe(
+        RADIX[HUE_SCALE[hue]][scheme][10]
+      );
+    }
+  }
+});
+```
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `bun run --cwd packages/tokens test`
+Expected: FAIL, `hueOnFill` and `hueTextVivid` are not properties of `ColorScheme`.
+
+- [ ] **Step 3: Add both to `values.ts`**
+
+Extend the interface (beside `hueTextSmall`, around line 36):
+
+```ts
+  hueOnFill: HueSet;
+  hueTextVivid: HueSet;
+```
+
+Inside `buildScheme()`, after the `hueTextSmall` line:
+
+```ts
+  // Radix's step 9 and 10 are chosen to carry a white label, but only the two
+  // blue-violet hues actually do: on the other four a white label measures
+  // 2.97 to 3.85 while the dark neutral measures 4.26 to 5.52. The winner is
+  // the same in both schemes for every hue, so this is a property of the hue.
+  const onFillDark = RADIX.slate.light[11]!;
+  const hueOnFill = hueValue((scale, step) =>
+    contrast(at(scale, step.fill), '#ffffff') >= contrast(at(scale, step.fill), onFillDark)
+      ? '#ffffff'
+      : onFillDark
+  );
+  // Step 11 unconditionally. `hueText` promotes to 12 wherever 11 misses 4.5,
+  // which in light is three of the six hues, so it cannot name this step.
+  const hueTextVivid = hueValue(scale => at(scale, 11));
+```
+
+Add `contrast` to the imports at the top of the file:
+
+```ts
+import { contrast } from './color-math.ts';
+```
+
+Return both from `buildScheme()`, beside `hueTextSmall`:
+
+```ts
+    hueOnFill,
+    hueTextVivid,
+```
+
+- [ ] **Step 4: Run the tokens tests**
+
+Run: `bun run --cwd packages/tokens test`
+Expected: PASS, all four new cases green.
+
+- [ ] **Step 5: Emit them**
+
+In `packages/tokens/scripts/generate.ts`, extend `family()` (line 56-61):
+
+```ts
+  const family = (hue: HueName) => ({
+    '500': at(`hue.${hue}`, t.hue[hue]),
+    hover: at(`hueHover.${hue}`, t.hueHover[hue]),
+    onFill: at(`hueOnFill.${hue}`, t.hueOnFill[hue]),
+    text: at(`hueText.${hue}`, t.hueText[hue]),
+    textSmall: at(`hueTextSmall.${hue}`, t.hueTextSmall[hue]),
+    textVivid: at(`hueTextVivid.${hue}`, t.hueTextVivid[hue]),
+  });
+```
+
+In the `--tk-*` block, beside the existing `--tk-fill-${h}-hover` line (268)
+and `--tk-text-${h}-small` line (273), add the two matching emitters:
+
+```ts
+      h => `  --tk-on-fill-${h}: ${at(`hueOnFill.${h}`, t.hueOnFill[h])};`
+```
+
+```ts
+        `  --tk-text-${h}-vivid: ${at(`hueTextVivid.${h}`, t.hueTextVivid[h])};`
+```
+
+Follow the surrounding block's existing alias pattern so `--on-fill-<hue>`
+and `--text-<hue>-vivid` land beside `--fill-<hue>` and `--text-<hue>-small`.
+Read the block before editing; do not invent a second alias mechanism.
+
+- [ ] **Step 6: Regenerate and commit the generated files**
+
+Run, in this order:
+
+```bash
+bun run tokens:radix && bun run tokens:codegen && bun run tokens:ramps
+bun run --cwd packages/tui-kit codegen
+bun run tui-kit:build
+```
+
+Then confirm the freshness gate: re-run the same commands and check
+`git status --porcelain` is empty on the second pass.
+
+- [ ] **Step 7: Point the filled label at the token**
+
+`packages/tui-kit/src/intent-resolver.ts`, in the `variant === "filled"`
+block. Replace the `color:` line and its comment:
+
+```ts
+      // The neutral fill is the one case with no hue token: slate 9 carries a
+      // white label at 3.3 in light and 5.1 in dark, so it flips per scheme.
+      color: neutral ? "light-dark(var(--text-1), #ffffff)" : `var(--color-${family}-onFill)`,
+```
+
+- [ ] **Step 8: Rewrite the ledger**
+
+`packages/tui-kit/src/a11y/known-contrast-debt.ts` currently holds eight
+`filled` entries. Seven of them exist only because the label was white; with
+the token they measure 4.74 to 5.52 and are no longer debt. Delete those
+seven. Keep exactly one, rewritten to the new value:
+
+```ts
+  {
+    id: 'filled/bad',
+    schemes: ['light', 'dark'],
+    measured: 4.26,
+    note:
+      'Crimson 9 is the one hue no label clears 4.5 on: white measures 3.85 ' +
+      'and the dark neutral 4.26. The dark neutral is the better of the two ' +
+      'and the fill step is fixed by the spec, so this is the floor.',
+  },
+```
+
+Match the file's existing entry shape exactly; read it before editing rather
+than assuming the field names above.
+
+- [ ] **Step 9: Run every gate**
+
+```bash
+bun run --cwd packages/tokens test
+bun run --cwd packages/tui-kit test
+bun run tui-kit:build
+bun run format:check && scripts/repo-purity.sh
+```
+
+Expected: all pass. Visual baselines will move where a filled control's label
+changed colour; regenerate them with `-u` and LOOK at the resulting PNGs
+before accepting. If a baseline moved in a way the token does not explain,
+stop and report it rather than accepting the rewrite.
+
+- [ ] **Step 10: Correct the spec**
+
+In `docs/superpowers/specs/2026-09-20-text-and-surface-ramps-design.md` §7,
+the "Labels on fills" paragraph currently says a label on a hue fill is
+white. Replace that claim with the measured rule and the table from this
+task's header, and add `--text-<hue>-vivid` to the §7 token list with its
+one-line reason. Do not cite this task number or the review that found it.
+
+- [ ] **Step 11: Commit**
+
+```bash
+git add -A
+git commit -m "tokens: emit --on-fill-<hue> and --text-<hue>-vivid, retune the filled label"
+```
+
+---
+
+## Part J: the seventh hue (spec §7)
+
+Board uses two distinct warm status hues (conflicts vs ci-running, doctor vs
+decide) and the six-hue palette has one. This adds a seventh.
+
+### Task 14: Add `gold`, backed by the Radix amber scale
+
+**Files:**
+- Modify: `packages/tokens/scripts/generate-radix.ts`
+- Regenerate: `packages/tokens/src/radix.ts`
+- Modify: `packages/tokens/src/values.ts`
+- Modify: `packages/tokens/scripts/generate.ts`
+- Modify: `packages/tokens/test/invariants.test.ts`
+- Modify: `packages/tui-kit/src/intent-resolver.ts` (`FAMILY`, `TEXT_TONE`, `TINT_TEXT_TONE`)
+- Modify: `packages/tui-kit/src/a11y/known-contrast-debt.ts`
+- Modify: `packages/tui-kit/soribashi.config.ts`
+- Modify: `packages/tui-kit/docs/css-contract.md`
+- Modify: `docs/superpowers/specs/2026-09-20-text-and-surface-ramps-design.md` (§7 palette table)
+- Regenerate: `packages/tui-kit/src/generated/*`, `packages/tokyo/src/tokyo-theme.css`,
+  `packages/tokyo/src/ramps.ts`, `apps/deck/core/generated/*`
+
+**Interfaces:**
+- Consumes: `--on-fill-<hue>` and `--text-<hue>-vivid` from Task 12; `HUES`,
+  `HUE_SCALE`, `LIGHT_HUE_STEPS`, `DARK_HUE_STEPS` from Task 1.
+- Produces: the hue name `gold` in `HUES`, the family alias `gold` in the
+  tui-kit token map, and the public aliases `--gold`, `--fill-gold`,
+  `--fill-gold-hover`, `--text-gold`, `--text-gold-small`,
+  `--text-gold-vivid`, `--on-fill-gold`.
+
+**Why `gold` and not `amber`.** The Radix scale is called amber, but
+`--amber` is already a public alias in tui-kit's CSS contract meaning the
+warn fill, and board reads `var(--amber)` today. Role names and Radix scale
+names already diverge in this file (`warn` is backed by Radix orange), so
+`HUE_SCALE.gold = 'amber'` follows the existing pattern rather than breaking
+a shipped alias mid-migration.
+
+**Values, read from `@radix-ui/colors` 3.0.0:**
+
+```
+light  9 #ffc53d  10 #ffba18  11 #ab6400  12 #4f3422
+dark   9 #ffc53d  10 #ffd60a  11 #ffca16  12 #ffe7b3
+```
+
+**The fill limitation, and why it is a ledger entry rather than a fix.**
+Radix amber is one of their deliberately low-contrast scales: step 9 is a
+bright yellow chosen to carry a dark label, not to sit against a white page.
+Measured against the light surface ramp, `#ffc53d` is 1.58 on `#ffffff` and
+1.51 on `#e8e8ec`, and step 10 is no better. No step between 9 and 10 clears
+the 3.0 fill bar in light, so the rule in §7 cannot pick one. Gold still
+takes fill step 9 so its token shape matches every other hue, and the
+shortfall is ledgered. Gold's intended use is status text, where it is
+strong: `--text-gold-vivid` is 3.77 in light and 9.42 in dark.
+
+Its on-fill label is the dark neutral at 10.38, the widest margin of any hue.
+
+- [ ] **Step 1: Vendor the scale**
+
+In `packages/tokens/scripts/generate-radix.ts`, add `'amber'` to the list of
+scales it vendors. Read the existing list before editing; keep its ordering
+convention.
+
+Run: `bun run tokens:radix`
+Expected: `packages/tokens/src/radix.ts` gains an `amber` entry with the
+twelve light and twelve dark values above, and `RADIX_SCALES` gains `'amber'`.
+
+- [ ] **Step 2: Write the failing test**
+
+In `packages/tokens/test/invariants.test.ts`:
+
+```ts
+test('gold is the seventh hue, backed by Radix amber', () => {
+  expect(HUES).toContain('gold');
+  expect(HUE_SCALE.gold).toBe('amber');
+  expect(TOKENS.light.hue.gold).toBe('#ffc53d');
+  expect(TOKENS.dark.hue.gold).toBe('#ffc53d');
+  expect(TOKENS.light.hueTextVivid.gold).toBe('#ab6400');
+  expect(TOKENS.dark.hueTextVivid.gold).toBe('#ffca16');
+});
+
+test('gold takes the dark on-fill label', () => {
+  expect(TOKENS.light.hueOnFill.gold).toBe(TOKENS.light.textRamp[0]);
+  expect(TOKENS.dark.hueOnFill.gold).toBe(TOKENS.light.textRamp[0]);
+});
+```
+
+- [ ] **Step 3: Run it to verify it fails**
+
+Run: `bun run --cwd packages/tokens test`
+Expected: FAIL, `'gold'` is not in `HUES`.
+
+- [ ] **Step 4: Add the hue**
+
+`packages/tokens/src/values.ts`:
+
+```ts
+export const HUES = ['accent', 'ok', 'bad', 'warn', 'purple', 'cyan', 'gold'] as const;
+```
+
+```ts
+export const HUE_SCALE: Record<HueName, RadixScaleName> = {
+  accent: 'indigo',
+  ok: 'teal',
+  bad: 'crimson',
+  warn: 'orange',
+  purple: 'purple',
+  cyan: 'cyan',
+  // Radix amber. The role is named gold because `--amber` is already the
+  // shipped public alias for the warn fill.
+  gold: 'amber',
+};
+```
+
+Add to both step maps:
+
+```ts
+const LIGHT_HUE_STEPS: Record<HueName, HueStep> = {
+  ...
+  // Radix amber is a low-contrast scale: no step from 9 to 10 clears the 3.0
+  // fill bar on a light surface. Step 9 keeps gold's token shape uniform and
+  // the shortfall is ledgered; gold's real use is text.
+  gold: { fill: 9, text: 12 },
+};
+```
+
+```ts
+const DARK_HUE_STEPS: Record<HueName, HueStep> = {
+  ...
+  gold: { fill: 9, text: 11 },
+};
+```
+
+- [ ] **Step 5: Run the tokens tests**
+
+Run: `bun run --cwd packages/tokens test`
+Expected: PASS. If the existing "fills clear 3.0 on every surface" invariant
+now fails for `light/gold`, that is the documented exception: add
+`'light/gold'` to that test's expected-miss list with the measured 1.58 and
+the reason, in the same shape the list already uses.
+
+- [ ] **Step 6: Wire the family through the generator**
+
+`packages/tokens/scripts/generate.ts`, in `buildTuiKitColors()`:
+
+```ts
+    gold: family('gold'),
+```
+
+The `--tk-*` emitters iterate `HUES`, so they pick gold up with no further
+edit. Verify that by reading the block rather than assuming it.
+
+- [ ] **Step 7: Wire the resolver**
+
+`packages/tui-kit/src/intent-resolver.ts`, three maps:
+
+```ts
+const FAMILY: Record<string, string> = { ..., gold: "gold" };
+```
+
+```ts
+const TEXT_TONE: Record<string, string> = { ..., gold: "var(--text-gold)" };
+```
+
+```ts
+const TINT_TEXT_TONE: Record<string, string> = { ..., gold: "var(--text-gold-small)" };
+```
+
+Read each map first; match its existing key ordering and quoting style.
+
+- [ ] **Step 8: Add the aliases**
+
+`packages/tui-kit/soribashi.config.ts` gains the gold rows beside the warn
+and cyan ones it already has (`--fill-gold`, `--fill-gold-hover`,
+`--text-gold`, `--text-gold-small`, `--text-gold-vivid`, `--on-fill-gold`,
+`--gold`). Update `packages/tui-kit/docs/css-contract.md`'s table to match.
+
+- [ ] **Step 9: Ledger the fill**
+
+`packages/tui-kit/src/a11y/known-contrast-debt.ts`, one new entry alongside
+the `filled/bad` entry from Task 12:
+
+```ts
+  {
+    id: 'fill/gold-on-surface',
+    schemes: ['light'],
+    measured: 1.58,
+    note:
+      'Radix amber is a low-contrast scale by design: step 9 is a bright ' +
+      'yellow meant to carry a dark label, not to separate from a white ' +
+      'page. No step from 9 to 10 clears 3.0 in light. Gold is a text hue; ' +
+      'a gold fill on a light surface needs its own border to read.',
+  },
+```
+
+- [ ] **Step 10: Regenerate and run every gate**
+
+```bash
+bun run tokens:radix && bun run tokens:codegen && bun run tokens:ramps
+bun run --cwd packages/tui-kit codegen
+bun run tui-kit:build
+bun run --cwd packages/tokens test
+bun run --cwd packages/tui-kit test
+bun run format:check && scripts/repo-purity.sh
+```
+
+Re-run the generate commands a second time and confirm `git status
+--porcelain` is empty, proving the freshness gate holds.
+
+- [ ] **Step 11: Add gold to the reference catalogue**
+
+`stories/ramps/Palette.stories.tsx` and `stories/ramps/catalogue.tsx` iterate
+the hue list; confirm gold appears in the palette story with its fill, hover,
+text, small, vivid and on-fill swatches. Screenshot the palette story in both
+schemes to `.superpowers/sdd/2026-09-20-text-and-surface-ramps/screenshots/`
+and LOOK at it. Gold's light-mode fill will look washed out against the page;
+that is the ledgered limitation, not a bug. Say so in the report rather than
+"fixing" it.
+
+- [ ] **Step 12: Update the spec**
+
+Add gold to §7's palette table with its scale, steps and the fill-limitation
+note. Do not cite this task number.
+
+- [ ] **Step 13: Commit**
+
+```bash
+git add -A
+git commit -m "tokens: add gold as the seventh hue, backed by Radix amber"
+```
