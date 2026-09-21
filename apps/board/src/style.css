@@ -5,10 +5,10 @@
    is served from `@mattstack/tui-kit/theme.css` + `/canvas.css`, imported by
    `src/client/main.tsx` and linked as `/app.css` ahead of this file.
 
-   The 15 alias names every rule below still writes -- `--bg`, `--panel`,
+   The 11 alias names every rule below still writes -- `--bg`, `--panel`,
    `--card`, `--chrome`, `--fg`, `--muted`, `--border`, `--border-soft`,
-   `--green`, `--amber`, `--purple`, `--cyan`, `--grid-line`, `--font-mono`,
-   `--font-sans` -- are the kit's alias contract, with byte-identical values.
+   `--cyan`, `--font-mono`, `--font-sans` -- are the kit's alias contract,
+   with byte-identical values.
    Dark still flips on the `dark` class the shell's inline script toggles on
    <html>; the kit does it with `color-scheme` + `light-dark()` instead of
    redeclaring the block.
