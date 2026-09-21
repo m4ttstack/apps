@@ -198,7 +198,10 @@ describe('palette', () => {
     }
   });
 
-  it('the hue body text that misses 4.5 is exactly the ledgered set', () => {
+  // The exact per-cell set lives in tui-kit's ledger, whose gate fails on a
+  // missing or obsolete entry; this package cannot import it without
+  // inverting the dependency, so only the shape is asserted here.
+  it('the hue body text that misses 4.5 is light-only and never surface-1', () => {
     // Step 11 is designed against Radix's own grounds, which are steps 1 to 2
     // of the hue on a near-white page. Ours are slate 2 to 4, so the darker
     // surfaces cost these hues the text bar. The cell is still the one that
