@@ -58,7 +58,7 @@
   .close {
     background: none;
     border: none;
-    color: var(--text-3);
+    color: var(--text-2);
     cursor: pointer;
     font-size: var(--font-size-rem90);
     padding: var(--spacing-rem20) var(--spacing-rem40);

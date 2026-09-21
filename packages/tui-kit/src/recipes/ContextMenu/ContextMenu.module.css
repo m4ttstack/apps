@@ -27,7 +27,7 @@
     padding: var(--spacing-px5) var(--spacing-px8) var(--spacing-px6);
     font-family: var(--font-sans);
     font-size: var(--font-size-px11);
-    color: var(--text-3);
+    color: var(--text-4);
     border-bottom: 1px solid var(--border-soft);
     margin-bottom: var(--spacing-px4);
   }
@@ -67,12 +67,13 @@
   .hint {
     font-family: var(--font-sans);
     font-size: var(--font-size-px10);
-    color: var(--text-3);
+    color: var(--text-4);
   }
 
   .separator {
+    box-sizing: border-box;
     height: 1px;
-    background: var(--border-soft);
+    border-top: 1px solid var(--border-soft);
     margin: var(--spacing-px4) var(--spacing-px2);
   }
 }

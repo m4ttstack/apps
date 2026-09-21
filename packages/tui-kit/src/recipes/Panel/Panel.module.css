@@ -33,7 +33,7 @@
   }
 
   .title:hover {
-    color: var(--surface-wash-accent-fg-70);
+    color: var(--text-accent);
   }
 
   .title:focus-visible {
@@ -62,7 +62,7 @@
   }
 
   .count {
-    color: var(--text-3);
+    color: var(--text-4);
     font-weight: 400;
   }
 

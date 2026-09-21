@@ -27,7 +27,7 @@
   .footer {
     margin: 0;
     padding: var(--spacing-sm) var(--spacing-md);
-    color: var(--text-3);
+    color: var(--text-4);
     font-size: var(--font-size-xs);
   }
 
@@ -51,7 +51,7 @@
   }
 
   .value {
-    color: var(--text-3);
+    color: var(--text-4);
     font-variant-numeric: var(--font-numeric);
   }
 
@@ -62,7 +62,7 @@
   }
 
   .chevron {
-    color: var(--text-3);
+    color: var(--text-4);
   }
 
   .navButton {
