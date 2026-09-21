@@ -110,6 +110,75 @@ export const KNOWN_CONTRAST_DEBT: readonly ContrastDebtEntry[] = [
     reason:
       "White on cyan 9; white is what radix-ui/themes ships on this scale.",
   },
+  {
+    variant: "outline",
+    intent: "ok",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 4.01,
+    reason:
+      "teal 11 on the page ground. Step 11 is the default hue text and " +
+      "radix-ui/themes designs it against its own grounds, steps 1 to 2 " +
+      "on a near-white page; ours is slate 3, which costs the text bar. " +
+      "Step 12 clears it and stops reading as the hue, which is the " +
+      "trade this palette declines to make.",
+  },
+  {
+    variant: "outline",
+    intent: "warn",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 3.96,
+    reason:
+      "orange 11 on the page ground. Step 11 is the default hue text and " +
+      "radix-ui/themes designs it against its own grounds, steps 1 to 2 " +
+      "on a near-white page; ours is slate 3, which costs the text bar. " +
+      "Step 12 clears it and stops reading as the hue, which is the " +
+      "trade this palette declines to make.",
+  },
+  {
+    variant: "outline",
+    intent: "cyan",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 4.19,
+    reason:
+      "cyan 11 on the page ground. Step 11 is the default hue text and " +
+      "radix-ui/themes designs it against its own grounds, steps 1 to 2 " +
+      "on a near-white page; ours is slate 3, which costs the text bar. " +
+      "Step 12 clears it and stops reading as the hue, which is the " +
+      "trade this palette declines to make.",
+  },
+  {
+    variant: "subtle",
+    intent: "ok",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 4.01,
+    reason:
+      "teal 11 on the page ground, the same token and ground as the outline " +
+      "variant above; subtle differs only in having no border.",
+  },
+  {
+    variant: "subtle",
+    intent: "warn",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 3.96,
+    reason:
+      "orange 11 on the page ground, the same token and ground as the outline " +
+      "variant above; subtle differs only in having no border.",
+  },
+  {
+    variant: "subtle",
+    intent: "cyan",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 4.19,
+    reason:
+      "cyan 11 on the page ground, the same token and ground as the outline " +
+      "variant above; subtle differs only in having no border.",
+  },
 ];
 
 export function contrastDebtKey(

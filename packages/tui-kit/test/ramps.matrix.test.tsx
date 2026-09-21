@@ -131,33 +131,38 @@ describe("ramp contrast matrix (text steps, hue text, on-fill labels and fills a
         }
       }
       for (const h of HUES) {
-        const body = textRatio(id("hue", h, s), s);
-        expect(body, `${scheme} text-${h} on surface-${s} ratio=${body.toFixed(3)}`).toBeGreaterThanOrEqual(4.5);
         const small = textRatio(id("hue-small", h, s), s);
         expect(small, `${scheme} text-${h}-small on surface-${s} ratio=${small.toFixed(3)}`).toBeGreaterThanOrEqual(7.0);
 
-        // Two different bars apply to the same vivid step (WCAG 1.4.11 vs
-        // 1.4.3): a glyph reads it everywhere and must never fall under 3.0,
-        // running text reads it as 4.5 and that promise is ledgered per
-        // surface where step 11 alone does not carry it.
+        // `--text-<hue>` and `--text-<hue>-vivid` are the same value: step 11
+        // is the default hue text and the vivid name is kept only so the
+        // consumers that pinned it keep resolving. Both elements are rendered
+        // and both are asserted, so the alias cannot drift from its source.
+        const body = textRatio(id("hue", h, s), s);
         const vivid = textRatio(id("hue-vivid", h, s), s);
+        expect(vivid, `${scheme} text-${h}-vivid diverged from text-${h}`).toBeCloseTo(body, 2);
+
+        // Two bars apply to the same step. A glyph reads it everywhere and
+        // must never fall under 3.0. Running text reads it at 4.5, and that
+        // promise is ledgered per surface, because Radix designs step 11
+        // against ITS grounds (steps 1 to 2 on a near-white page) and ours
+        // are slate 2 to 4.
         expect(
-          vivid,
-          `${scheme} text-${h}-vivid on surface-${s} ratio=${vivid.toFixed(3)} under the ${GLYPH_BAR} glyph bar`,
+          body,
+          `${scheme} text-${h} on surface-${s} ratio=${body.toFixed(3)} under the ${GLYPH_BAR} glyph bar`,
         ).toBeGreaterThanOrEqual(GLYPH_BAR);
-        const vividDebt = VIVID_TEXT_DEBT_BY_KEY.get(vividTextDebtKey({ hue: h, scheme, surface: s }));
-        const vividLabel = `${scheme} text-${h}-vivid on surface-${s} ratio=${vivid.toFixed(3)} as text (${TEXT_LABEL_BAR})`;
-        if (vividDebt) {
-          expect(vivid, `${vividLabel} regressed below its known-contrast-debt.ts floor`).toBeGreaterThanOrEqual(
-            vividDebt.measuredRatio - 0.05,
+        const textDebt = VIVID_TEXT_DEBT_BY_KEY.get(vividTextDebtKey({ hue: h, scheme, surface: s }));
+        const textLabel = `${scheme} text-${h} on surface-${s} ratio=${body.toFixed(3)} as text (${TEXT_LABEL_BAR})`;
+        if (textDebt) {
+          expect(body, `${textLabel} regressed below its known-contrast-debt.ts floor`).toBeGreaterThanOrEqual(
+            textDebt.measuredRatio - 0.05,
           );
-          expect(vivid, `${vividLabel} cleared ${TEXT_LABEL_BAR}; remove this cell's entry from known-contrast-debt.ts`).toBeLessThan(
+          expect(body, `${textLabel} cleared ${TEXT_LABEL_BAR}; remove this cell's entry from known-contrast-debt.ts`).toBeLessThan(
             TEXT_LABEL_BAR,
           );
         } else {
-          expect(vivid, vividLabel).toBeGreaterThanOrEqual(TEXT_LABEL_BAR);
+          expect(body, textLabel).toBeGreaterThanOrEqual(TEXT_LABEL_BAR);
         }
-
         const fill = fillRatio(h, s);
         const label = `${scheme} fill-${h} on surface-${s} ratio=${fill.toFixed(3)}`;
         const debt = FILL_DEBT_BY_KEY.get(fillDebtKey({ hue: h, scheme }));

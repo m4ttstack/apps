@@ -66,12 +66,12 @@
   --tk-accent-text: #3a5bc7;
   --tk-badge-text: #60646c;
   /* AA-compliant red for TEXT (>=4.5:1 on bg 1-3); the raw red token above stays tui-kit's exact hex for fills and error surfaces. Same split as the muted/accent pair. */
-  --tk-red-text: #621639;
+  --tk-red-text: #cb1d63;
   --tk-green: #0d9b8a;
-  --tk-green-text: #0d3d38;
+  --tk-green-text: #008573;
   --tk-red: #e93d82;
   --tk-amber: #ef5f00;
-  --tk-amber-text: #582d1d;
+  --tk-amber-text: #cc4e00;
   --tk-purple: #8e4ec6;
   --tk-cyan: #0797b9;
   --tk-grid-line: rgba(52, 59, 88, 0.05);
@@ -112,12 +112,12 @@
   --tk-on-fill-cyan: #ffffff;
   --tk-on-fill-gold: #1c2024;
   --tk-text-accent: #3a5bc7;
-  --tk-text-ok: #0d3d38;
-  --tk-text-bad: #621639;
-  --tk-text-warn: #582d1d;
+  --tk-text-ok: #008573;
+  --tk-text-bad: #cb1d63;
+  --tk-text-warn: #cc4e00;
   --tk-text-purple: #8145b5;
-  --tk-text-cyan: #0d3c48;
-  --tk-text-gold: #4f3422;
+  --tk-text-cyan: #107d98;
+  --tk-text-gold: #ab6400;
   --tk-text-accent-small: #1f2d5c;
   --tk-text-ok-small: #0d3d38;
   --tk-text-bad-small: #621639;
@@ -373,28 +373,28 @@
   --mantine-color-accent-outline: #3a5bc7;
   --mantine-color-ok-filled: #0d9b8a;
   --mantine-color-ok-filled-hover: color-mix(in srgb, #0d9b8a 88%, #1c2024);
-  --mantine-color-ok-text: #0d3d38;
-  --mantine-color-ok-outline: #0d3d38;
+  --mantine-color-ok-text: #008573;
+  --mantine-color-ok-outline: #008573;
   --mantine-color-bad-filled: #e93d82;
   --mantine-color-bad-filled-hover: #df3478;
-  --mantine-color-bad-text: #621639;
-  --mantine-color-bad-outline: #621639;
+  --mantine-color-bad-text: #cb1d63;
+  --mantine-color-bad-outline: #cb1d63;
   --mantine-color-warn-filled: #ef5f00;
   --mantine-color-warn-filled-hover: color-mix(in srgb, #ef5f00 88%, #1c2024);
-  --mantine-color-warn-text: #582d1d;
-  --mantine-color-warn-outline: #582d1d;
+  --mantine-color-warn-text: #cc4e00;
+  --mantine-color-warn-outline: #cc4e00;
   --mantine-color-purple-filled: #8e4ec6;
   --mantine-color-purple-filled-hover: #8347b9;
   --mantine-color-purple-text: #8145b5;
   --mantine-color-purple-outline: #8145b5;
   --mantine-color-cyan-filled: #0797b9;
   --mantine-color-cyan-filled-hover: color-mix(in srgb, #0797b9 88%, #1c2024);
-  --mantine-color-cyan-text: #0d3c48;
-  --mantine-color-cyan-outline: #0d3c48;
+  --mantine-color-cyan-text: #107d98;
+  --mantine-color-cyan-outline: #107d98;
   --mantine-color-gold-filled: #ffc53d;
   --mantine-color-gold-filled-hover: #ffba18;
-  --mantine-color-gold-text: #4f3422;
-  --mantine-color-gold-outline: #4f3422;
+  --mantine-color-gold-text: #ab6400;
+  --mantine-color-gold-outline: #ab6400;
   /* END GENERATED */
 }
 :root:root[data-mantine-color-scheme='dark'] {

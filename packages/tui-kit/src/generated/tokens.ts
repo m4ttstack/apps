@@ -13,7 +13,7 @@ export const GENERATED_LIGHT_COLORS = {
     "500": "#0d9b8a",
     "hover": "color-mix(in srgb, #0d9b8a 88%, #1c2024)",
     "onFill": "#ffffff",
-    "text": "#0d3d38",
+    "text": "#008573",
     "textSmall": "#0d3d38",
     "textVivid": "#008573"
   },
@@ -21,7 +21,7 @@ export const GENERATED_LIGHT_COLORS = {
     "500": "#e93d82",
     "hover": "#df3478",
     "onFill": "#ffffff",
-    "text": "#621639",
+    "text": "#cb1d63",
     "textSmall": "#621639",
     "textVivid": "#cb1d63"
   },
@@ -29,7 +29,7 @@ export const GENERATED_LIGHT_COLORS = {
     "500": "#ef5f00",
     "hover": "color-mix(in srgb, #ef5f00 88%, #1c2024)",
     "onFill": "#ffffff",
-    "text": "#582d1d",
+    "text": "#cc4e00",
     "textSmall": "#582d1d",
     "textVivid": "#cc4e00"
   },
@@ -45,7 +45,7 @@ export const GENERATED_LIGHT_COLORS = {
     "500": "#0797b9",
     "hover": "color-mix(in srgb, #0797b9 88%, #1c2024)",
     "onFill": "#ffffff",
-    "text": "#0d3c48",
+    "text": "#107d98",
     "textSmall": "#0d3c48",
     "textVivid": "#107d98"
   },
@@ -53,7 +53,7 @@ export const GENERATED_LIGHT_COLORS = {
     "500": "#ffc53d",
     "hover": "#ffba18",
     "onFill": "#1c2024",
-    "text": "#4f3422",
+    "text": "#ab6400",
     "textSmall": "#4f3422",
     "textVivid": "#ab6400"
   },
@@ -79,10 +79,10 @@ export const GENERATED_LIGHT_COLORS = {
     "muted": "#8b8d98",
     "mutedText": "#60646c",
     "accentText": "#3a5bc7",
-    "okText": "#0d3d38",
-    "warnText": "#582d1d",
+    "okText": "#008573",
+    "warnText": "#cc4e00",
     "badgeText": "#60646c",
-    "redText": "#621639",
+    "redText": "#cb1d63",
     "mutedOnCard": "#60646c"
   },
   "surface": {

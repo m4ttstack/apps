@@ -147,7 +147,20 @@ function buildScheme(spec: SchemeSpec): ColorScheme {
       ? at(scale, 10)
       : `color-mix(in srgb, ${at(scale, step.fill)} 88%, ${textRamp[0]})`
   );
-  const hueText = hueValue((scale, step) => at(scale, step.text));
+  // Step 11 is the DEFAULT hue text and step 12 is the high-contrast one.
+  // That is radix-ui/themes' model: its components read `--<scale>-a11` and
+  // reach for step 12 only inside `.rt-high-contrast`. Promoting 11 to 12
+  // wherever 11 missed 4.5 was the inverse, and it is why five migration
+  // groups independently pinned step 11 for status text: 12 as the default
+  // reads near-black in light and stops carrying the hue.
+  //
+  // CAVEAT, and the reason the vivid ledger does not empty: Radix's step 11
+  // is designed against THEIR grounds, which are steps 1 to 2 of the same
+  // hue on a near-white page. Ours are slate 2 to 4 after the surface
+  // stretch, so hue 11 measures 3.7 to 4.4 off the card. Those cells are
+  // ledgered against this token now rather than against a separate one.
+  const hueText = hueValue(scale => at(scale, 11));
+  // The high-contrast step, and what the platform's 7.0 small-text bar needs.
   const hueTextSmall = hueValue(scale => at(scale, 12));
   // Radix Themes ships this decision per scale as `--<scale>-contrast`, and
   // it is white for every scale we use except amber. Only the pale scales
@@ -161,9 +174,10 @@ function buildScheme(spec: SchemeSpec): ColorScheme {
   const hueOnFill = hueValue((_scale, _step, hue) =>
     PALE_SCALES.has(HUE_SCALE[hue]) ? onFillDark : '#ffffff'
   );
-  // Step 11 unconditionally. `hueText` promotes to 12 wherever 11 misses 4.5,
-  // which in light is five of the seven hues, so it cannot name this step.
-  const hueTextVivid = hueValue(scale => at(scale, 11));
+  // Equal to `hueText` now that the default is step 11. Kept emitted so the
+  // consumers that pinned a vivid name keep resolving; retiring the name is
+  // a separate sweep, not a rider on the step change.
+  const hueTextVivid = hueText;
   return {
     hue,
     hueHover,
@@ -213,15 +227,15 @@ function buildScheme(spec: SchemeSpec): ColorScheme {
 
 const LIGHT_HUE_STEPS: Record<HueName, HueStep> = {
   accent: { fill: 9, text: 11 },
-  ok: { fill: 10, text: 12 },
-  bad: { fill: 9, text: 12 },
-  warn: { fill: 10, text: 12 },
+  ok: { fill: 10, text: 11 },
+  bad: { fill: 9, text: 11 },
+  warn: { fill: 10, text: 11 },
   purple: { fill: 9, text: 11 },
-  cyan: { fill: 10, text: 12 },
+  cyan: { fill: 10, text: 11 },
   // Radix amber is a low-contrast scale: no step from 9 to 10 clears the 3.0
   // fill bar on a light surface. Step 9 keeps gold's token shape uniform and
   // the shortfall is ledgered; gold's real use is text.
-  gold: { fill: 9, text: 12 },
+  gold: { fill: 9, text: 11 },
 };
 
 const DARK_HUE_STEPS: Record<HueName, HueStep> = {
