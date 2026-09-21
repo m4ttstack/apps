@@ -641,7 +641,7 @@ body {
   vertical-align: middle;
 }
 .tui-threads-await {
-  color: var(--text-warn-small);
+  color: var(--text-warn-vivid);
   font-weight: 600;
 }
 .tui-threads-replied {
@@ -677,17 +677,17 @@ body {
   gap: 6px;
 }
 .tui-status[data-tone='bad'] .tui-status-word {
-  color: var(--text-bad-small);
+  color: var(--text-bad);
 }
 .tui-status[data-tone='warn'] .tui-status-word {
-  color: var(--text-warn-small);
+  color: var(--text-warn-vivid);
 }
 .tui-status[data-tone='work'] .tui-status-word,
 .tui-status[data-tone='work'] .tui-status-ring {
-  color: var(--text-purple-small);
+  color: var(--text-purple);
 }
 .tui-status[data-tone='go'] .tui-status-word {
-  color: var(--text-ok-small);
+  color: var(--text-ok-vivid);
 }
 .tui-status[data-tone='quiet'] .tui-status-word {
   font-weight: 500;
@@ -1314,10 +1314,10 @@ body {
   margin-top: 2.2rem;
   opacity: 0.8;
 }
-/* Daemon data older than 10 minutes (or unknown) -- same warn hue the fetchError
-   banner uses, so "trust this less" reads the same way everywhere. */
+/* Daemon data older than 10 minutes (or unknown) -- the warn hue, so "trust
+   this less" reads the same way everywhere the hue appears. */
 .tui-footer-stale {
-  color: var(--text-warn-small);
+  color: var(--text-warn-vivid);
   opacity: 1;
 }
 
@@ -3248,7 +3248,7 @@ body {
 }
 .tui-config-flag {
   margin-left: 6px;
-  color: var(--text-warn-small);
+  color: var(--text-warn-vivid);
   font-family: var(--font-sans);
   font-size: 0.72rem;
 }
