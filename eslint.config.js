@@ -3,8 +3,7 @@ import storybook from 'eslint-plugin-storybook';
 import tseslint from 'typescript-eslint';
 
 import tokenNamespacesCss from './packages/ui/presets/eslint-local/token-namespaces-css.js';
-import tokenNamespacesTsx from './packages/ui/presets/eslint-local/token-namespaces-tsx.js';
-import { mattstackEslint } from './packages/ui/presets/eslint.js';
+import { local, mattstackEslint } from './packages/ui/presets/eslint.js';
 
 const SCRIPT_FILES = ['**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}'];
 
@@ -28,7 +27,7 @@ export default tseslint.config(
     // every app-only rule. Only the token rule is re-applied here: the rest
     // of that block is the import wall, which the kit is the far side of.
     files: ['packages/ui/src/**/*.{ts,tsx}'],
-    plugins: { local: { rules: { 'token-namespaces': tokenNamespacesTsx } } },
+    plugins: { local },
     rules: { 'local/token-namespaces': 'error' },
   },
   {

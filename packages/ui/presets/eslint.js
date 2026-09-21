@@ -13,7 +13,7 @@ const KIT = '@mattstack/app-kit';
 // Defined once and reused by every config block below: ESLint throws
 // "Cannot redefine plugin" if two blocks each declare their own `local`
 // plugin object under the same name.
-const local = {
+export const local = {
   rules: {
     'require-data-testid': requireDataTestid,
     'no-inline-styles': noInlineStyles,
