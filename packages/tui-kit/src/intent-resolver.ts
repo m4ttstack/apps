@@ -12,7 +12,6 @@ const FAMILY: Record<string, string> = {
   bad: "red",
   cyan: "cyan",
   purple: "purple",
-  gold: "gold",
   muted: "gray",
 };
 
@@ -30,7 +29,6 @@ const TEXT_TONE: Record<string, string> = {
   bad: "var(--text-bad)",
   cyan: "var(--text-cyan)",
   purple: "var(--text-purple)",
-  gold: "var(--text-gold)",
   muted: "var(--text-2)",
 };
 
@@ -41,7 +39,6 @@ const TINT_TEXT_TONE: Record<string, string> = {
   bad: "var(--text-bad-small)",
   cyan: "var(--text-cyan-small)",
   purple: "var(--text-purple-small)",
-  gold: "var(--text-gold-small)",
   muted: "var(--text-4)",
 };
 

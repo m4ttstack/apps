@@ -21,7 +21,8 @@ export const HUE_SCALE: Record<HueName, RadixScaleName> = {
   purple: 'purple',
   cyan: 'cyan',
   // Radix amber. The role is named gold because `--amber` is already the
-  // shipped public alias for the warn fill.
+  // shipped public alias for the warn fill. Radix also ships an unrelated
+  // scale literally called gold, a muted brown; it is not vendored here.
   gold: 'amber',
 };
 
