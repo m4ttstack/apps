@@ -19,15 +19,23 @@ import { HUMAN_HANDLE } from './human';
 import { STATUS_WORD } from './statusDetail';
 import { useAutoGrowTextarea } from './use-auto-grow-textarea';
 
-/** `size="xs"` sites (13px under `chatFontTheme`, meta band). */
-const MUTED_META = 'var(--tk-text-3)';
-/** `size="sm"` and the composer input itself (15-16px under
-    `chatFontTheme`, body band). */
+/** `BuddyOption`/`HereOption` render inside `Popover.Dropdown`
+    (`withinPortal` below): Mantine portals mount to `document.body`,
+    outside the DOM subtree `ScopedThemeProvider` scopes its CSS-variable
+    overrides to (`cssVariablesSelector={`.${scope}`}` --
+    packages/ui/src/design-system/ScopedThemeProvider.tsx:88), so
+    `chatFontTheme` never reaches them. `size="xs"`/`"sm"` there read the
+    base tokyo theme instead (`packages/tokyo/src/theme.ts:62-68`, `xs` =
+    10.56px, `sm` = 11.2px) -- both small band. */
+const MUTED_SMALL = 'var(--tk-text-4)';
+/** The composer input itself (`Popover.Target`, never portalled): body
+    band at its own 16px font size, under `chatFontTheme` as normal. */
 const MUTED_BODY = 'var(--tk-text-2)';
-const MUTED_DIM = 'var(--tk-text-3)';
 const INPUT_LINE_HEIGHT = 1.4;
 const BORDER = 'var(--tk-border)';
 const BORDER_SOFT = 'var(--tk-border-soft)';
+/** Same portal reasoning as `MUTED_SMALL`: the "not in #room" subtext
+    renders inside the portalled dropdown too, at small band. */
 const PURPLE = 'var(--tk-text-purple-small)';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
 
@@ -155,13 +163,13 @@ function BuddyOption({
   task: DoingLine | null;
   onSelect: (handle: string, inRoom: boolean) => void;
 }) {
+  // `path`-kind tasks and any other kind used to read two different
+  // shades (`--tk-muted`/`--tk-muted-text`); both band-resolve to the same
+  // role token now, so there is no longer a kind-based distinction to draw.
   const subtext = !inRoom
     ? { text: `not in #${room}, DM instead`, color: PURPLE }
     : task
-      ? {
-          text: task.text,
-          color: task.kind === 'path' ? MUTED_DIM : MUTED_META,
-        }
+      ? { text: task.text, color: MUTED_SMALL }
       : undefined;
 
   return (
@@ -240,14 +248,14 @@ function HereOption({
           display: 'flex',
           alignItems: 'center',
           width: '100%',
-          color: MUTED_BODY,
+          color: MUTED_SMALL,
         }}
       >
         @here
         <Text
           component="span"
           size="xs"
-          style={{ color: MUTED_META, marginLeft: 'auto' }}
+          style={{ color: MUTED_SMALL, marginLeft: 'auto' }}
         >
           wakes {count} agents
         </Text>

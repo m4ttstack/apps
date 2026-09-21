@@ -393,7 +393,7 @@ function MessageRow({
         <AgentName
           handle={message.handle}
           variant="inline"
-          hue={speakerHue(message.handle, humanHandle)}
+          hue={speakerHue(message.handle, humanHandle, 'body')}
           task={task}
           size={MESSAGE_HANDLE}
         />

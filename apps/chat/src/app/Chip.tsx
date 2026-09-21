@@ -13,12 +13,18 @@ const TONE_COLOR: Record<ChipTone, string | null> = {
   accent: 'var(--mantine-color-accent-text)',
 };
 
-/** The label's own text colour per tone. Same as `TONE_COLOR` except `dm`:
-    a hue's fill and its small-band text step are different role tokens, so
-    a chip's border wash and its label can no longer share one value. */
+/** The label's own text colour per tone. Only `dm` differs from
+    `TONE_COLOR`: a hue's fill and its small-band text step are different
+    role tokens, so a chip's border wash and its label can no longer share
+    one value. Written out rather than spread from `TONE_COLOR`, so a future
+    tone added there doesn't silently inherit a fill value as its text
+    colour too. */
 const TONE_TEXT: Record<ChipTone, string | null> = {
-  ...TONE_COLOR,
+  muted: null,
   dm: 'var(--tk-text-purple-small)',
+  warn: 'var(--mantine-color-warn-text)',
+  ok: 'var(--mantine-color-ok-text)',
+  accent: 'var(--mantine-color-accent-text)',
 };
 
 export interface ChipProps {

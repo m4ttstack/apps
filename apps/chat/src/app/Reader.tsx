@@ -17,7 +17,7 @@ import { PHONE_BORDER, PHONE_TAP, tapButtonStyle } from './phone-chrome';
 import { speakerHue } from './speaker-hue';
 import prose from './transcript-prose.module.css';
 
-/** Explicit `--tk-fs-3xs)` sites (small band). */
+/** Explicit `--tk-fs-3xs` sites (small band). */
 const MUTED_SMALL = 'var(--tk-text-4)';
 /** `size="xs"` under `chatFontTheme` (13px, meta band) and the excerpt
     fallback, which inherits the 13.5px body default (also meta band). */
@@ -166,7 +166,7 @@ function ReaderMessage({
         <AgentName
           handle={message.handle}
           variant="inline"
-          hue={speakerHue(message.handle, humanHandle)}
+          hue={speakerHue(message.handle, humanHandle, 'body')}
           task={task}
           size={MESSAGE_HANDLE}
         />

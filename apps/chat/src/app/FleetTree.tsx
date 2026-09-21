@@ -15,7 +15,7 @@ import type { RoomSummary } from '@mattstack/rt-client';
 import { AgentName } from './AgentName';
 import { doing } from './doing';
 import classes from './fleet-tree.module.css';
-import { DOT_COLOR, MUTED_XS, MUTED_XS_DIM } from './presence-bits';
+import { DOT_COLOR, MUTED_XS } from './presence-bits';
 import type { RosterBuddy } from './roster-types';
 import { STATUS_WORD, statusDetail } from './statusDetail';
 
@@ -297,7 +297,12 @@ function CloseControl({
           display: shown ? undefined : 'none',
           flex: 'none',
           marginRight: nudge ? -4 : undefined,
-          color: 'var(--tk-text-4)',
+          // Icon-tint default (--tk-text-3): `CloseControl` mounts from both
+          // `RoomRow` (no explicit sized sibling, body band) and `DmRow`
+          // (`ROW_NAME_SIZE`, small band) -- one shared icon tint can't
+          // follow both, so it reads the plan's own unknown-size fallback
+          // rather than either row's band.
+          color: 'var(--tk-text-3)',
         }}
       >
         <Icon name="close" size={14} />
@@ -592,7 +597,7 @@ function WorkstreamRow({
         truncate
         data-testid={`ws-doing-${handle}`}
         style={{
-          ...(task?.kind === 'path' || !reachable ? MUTED_XS_DIM : MUTED_XS),
+          ...MUTED_XS,
           flex: 1,
           minWidth: 0,
         }}
