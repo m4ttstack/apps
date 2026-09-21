@@ -50,7 +50,7 @@ const UNREAD_BADGE = {
   fontWeight: 500,
   lineHeight: 1,
   border: '1px solid var(--tk-border)',
-  color: 'var(--tk-muted-text)',
+  color: 'var(--tk-text-4)',
   whiteSpace: 'nowrap',
 } as const;
 
@@ -146,7 +146,7 @@ export function RoomMenu({
       styles={{
         item: {
           minHeight: size >= 44 ? 44 : 24,
-          color: 'var(--tk-fg)',
+          color: 'var(--tk-text-1)',
           // The 44px touch variant grows its type and padding to the tap
           // scale; the desk keeps Mantine's default item size.
           ...(size >= 44
@@ -185,14 +185,14 @@ export function RoomMenu({
   );
 }
 
-const MUTED = { color: 'var(--tk-muted-text)' } as const;
+const MUTED = { color: 'var(--tk-text-4)' } as const;
 
 const GROUP_LABEL = {
   fontSize: 'var(--tk-fs-4xs)',
   fontWeight: 700,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
-  color: 'var(--tk-muted-text)',
+  color: 'var(--tk-text-4)',
 } as const;
 
 /** One membership chip in place of the fanned-out live/idle/offline chips:
@@ -383,7 +383,7 @@ export function PageBar({
           style={{
             display: 'inline-flex',
             flex: 'none',
-            color: 'var(--tk-muted-text)',
+            color: 'var(--tk-text-2)',
           }}
           data-testid="page-bar-hash"
         >

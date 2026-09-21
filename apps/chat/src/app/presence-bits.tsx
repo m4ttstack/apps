@@ -6,21 +6,21 @@ export const STATUS_TEXT_COLOR: Record<'live' | 'idle', string> = {
 };
 
 export const DOT_COLOR: Record<'live' | 'idle', string> = {
-  live: 'var(--tk-dot-ok)',
-  idle: 'var(--tk-dot-warn)',
+  live: 'var(--tk-fill-ok)',
+  idle: 'var(--tk-fill-warn)',
 };
 
 /** `.doing` and every other extra-small meta line. */
 export const MUTED_XS = {
   fontSize: 'var(--tk-fs-3xs)',
-  color: 'var(--tk-muted-text)',
+  color: 'var(--tk-text-4)',
 } as const;
 
 /** `.doing.dim`: the honest "nothing better known" state for a `kind:
     'path'` task line -- one step dimmer than `MUTED_XS`. */
 export const MUTED_XS_DIM = {
   fontSize: 'var(--tk-fs-3xs)',
-  color: 'var(--tk-muted)',
+  color: 'var(--tk-text-4)',
 } as const;
 
 export function headTruncatePath(cwd: string): string {

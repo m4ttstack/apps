@@ -71,7 +71,7 @@ function NewRoomButton({
         height: 24,
         flex: 'none',
         borderRadius: 'var(--mantine-radius-md)',
-        color: 'var(--tk-muted-text)',
+        color: 'var(--tk-text-3)',
         background: hovered && !disabled ? 'var(--ui-bg-4)' : 'transparent',
         cursor: disabled ? 'default' : 'pointer',
       }}
@@ -140,7 +140,7 @@ export function RoomRail({
           fw={600}
           style={{
             margin: 0,
-            color: 'var(--tk-muted-text)',
+            color: 'var(--tk-text-3)',
             letterSpacing: '0.04em',
           }}
         >

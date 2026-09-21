@@ -5,8 +5,8 @@ import { HUMAN_HANDLE } from './human';
     the human owns it outright below. Ordered so adjacent hash values (the
     modulo wraps) land on visibly distinct hues. */
 export const HUES = [
-  'var(--tk-purple)',
-  'var(--tk-cyan)',
+  'var(--tk-text-purple-small)',
+  'var(--tk-text-cyan-small)',
   'var(--mantine-color-ok-text)',
   'var(--mantine-color-warn-text)',
   'var(--mantine-color-bad-text)',

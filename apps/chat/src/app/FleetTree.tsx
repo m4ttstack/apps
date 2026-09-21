@@ -249,7 +249,7 @@ function UnreadBadge({ count }: { count: number }) {
         whiteSpace: 'nowrap',
         flex: 'none',
         border: `1px solid ${BORDER}`,
-        color: 'var(--tk-muted-text)',
+        color: 'var(--tk-text-4)',
       }}
     >
       {count}
@@ -297,7 +297,7 @@ function CloseControl({
           display: shown ? undefined : 'none',
           flex: 'none',
           marginRight: nudge ? -4 : undefined,
-          color: 'var(--tk-muted-text)',
+          color: 'var(--tk-text-4)',
         }}
       >
         <Icon name="close" size={14} />
@@ -480,7 +480,7 @@ function RepoRow({ repo }: { repo: string }) {
           fontSize: ROW_NAME_SIZE,
           flex: 1,
           minWidth: 0,
-          color: 'var(--tk-muted-text)',
+          color: 'var(--tk-text-4)',
         }}
       >
         {repo}
@@ -723,7 +723,9 @@ function DmRow({
         style={{ fontSize: ROW_NAME_SIZE, flex: 1, minWidth: 0 }}
       >
         <AgentName handle={pair.a} withCard={false} withAvatar={false} />{' '}
-        <span style={{ color: 'var(--tk-purple)', flex: 'none' }}>↔</span>{' '}
+        <span style={{ color: 'var(--tk-text-purple-small)', flex: 'none' }}>
+          ↔
+        </span>{' '}
         <AgentName handle={pair.b} withCard={false} withAvatar={false} />
       </Text>
       {room.unread > 0 && <UnreadBadge count={room.unread} />}
@@ -877,7 +879,7 @@ export function FleetTree({
               style={{
                 margin: 0,
                 fontSize: 'var(--tk-fs-4xs)',
-                color: 'var(--tk-muted-text)',
+                color: 'var(--tk-text-4)',
                 letterSpacing: '0.06em',
               }}
             >

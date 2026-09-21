@@ -218,7 +218,7 @@ export function InboxBar({
                       height: 8,
                       borderRadius: '50%',
                       flex: 'none',
-                      background: 'var(--tk-dot-ok)',
+                      background: 'var(--tk-fill-ok)',
                     }}
                   />
                 }

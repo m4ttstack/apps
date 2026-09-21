@@ -126,7 +126,7 @@ const LABEL = {
   fontWeight: 700,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
-  color: 'var(--tk-muted-text)',
+  color: 'var(--tk-text-4)',
 } as const;
 
 const RULE = { height: 1, background: 'var(--tk-border-soft)' } as const;

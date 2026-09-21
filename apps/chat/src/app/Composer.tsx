@@ -32,8 +32,8 @@ const STATUS_TEXT_COLOR: Record<'live' | 'idle', string> = {
   idle: 'var(--mantine-color-warn-text)',
 };
 const DOT_COLOR: Record<'live' | 'idle', string> = {
-  live: 'var(--tk-dot-ok)',
-  idle: 'var(--tk-dot-warn)',
+  live: 'var(--tk-fill-ok)',
+  idle: 'var(--tk-fill-warn)',
 };
 const STATUS_ORDER: readonly ('live' | 'idle')[] = ['live', 'idle'];
 const BAD_TEXT = 'var(--mantine-color-bad-text)';
