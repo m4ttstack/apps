@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { planRenames, renameInTsx } from '../scripts/migrate-tokens.ts';
+import {
+  planRenames,
+  renameInTsx,
+  rewriteCss,
+} from '../scripts/migrate-tokens.ts';
 
 describe('planRenames', () => {
   it('renames by property class and infers the band from the rule', () => {
@@ -10,6 +14,7 @@ describe('planRenames', () => {
       ['color', '--muted-text', '--text-3', 'meta'],
       ['background', '--accent', '--fill-accent', null],
     ]);
+    expect(rewriteCss(css, 17).renames).toEqual(r);
   });
 
   it('inherits font-size from a prefix selector in the same file and maps type steps by name', () => {
@@ -61,9 +66,21 @@ describe('planRenames', () => {
 
   it('renames tokyo mirrors and style-object strings in tsx', () => {
     const src = `const s = { color: 'var(--tk-muted-text)', background: 'var(--tk-accent)', fontSize: 'var(--tk-fs-3xs)' };`;
-    const { out, unresolved } = renameInTsx(src);
+    const { out, renames, unresolved } = renameInTsx(src);
     expect(out).toContain(`color: 'var(--tk-text-4)'`);
     expect(out).toContain(`background: 'var(--tk-fill-accent)'`);
+    expect(renames).toEqual([
+      expect.objectContaining({
+        property: 'color',
+        from: '--tk-muted-text',
+        to: '--tk-text-4',
+      }),
+      expect.objectContaining({
+        property: 'background',
+        from: '--tk-accent',
+        to: '--tk-fill-accent',
+      }),
+    ]);
     expect(unresolved).toEqual([]);
   });
 
