@@ -218,7 +218,14 @@ function Row({
           </Text>
         </button>
         {!row.resolved && (
-          <Text component="span" size="xs" c="warn" ml={6}>
+          <Text
+            component="span"
+            size="xs"
+            ml={6}
+            // Pinned literal pending --text-warn-vivid (tokens package,
+            // not yet on this branch); swap when it lands.
+            style={{ color: 'light-dark(#cc4e00, #ffa057)' }}
+          >
             unresolved
           </Text>
         )}

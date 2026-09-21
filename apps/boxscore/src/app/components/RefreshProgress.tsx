@@ -46,7 +46,15 @@ export function RefreshProgress({ progress, onCancel }: Props) {
       </Text>
 
       {stalled && (
-        <Text size="xs" c="warn" style={{ whiteSpace: 'nowrap' }}>
+        <Text
+          size="xs"
+          style={{
+            whiteSpace: 'nowrap',
+            // Pinned literal pending --text-warn-vivid (tokens package,
+            // not yet on this branch); swap when it lands.
+            color: 'light-dark(#cc4e00, #ffa057)',
+          }}
+        >
           {stalled}
         </Text>
       )}

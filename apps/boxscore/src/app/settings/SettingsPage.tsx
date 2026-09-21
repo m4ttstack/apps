@@ -256,7 +256,7 @@ function SettingRow({
         )}
         {control}
         {row.error && (
-          <Text size="xs" c="red">
+          <Text size="xs" style={{ color: 'var(--tk-text-bad-small)' }}>
             {row.error}
           </Text>
         )}
@@ -406,7 +406,7 @@ function RosterRow({ keyState }: { keyState: SettingKeyState }) {
           </Text>
         )}
         {error && (
-          <Text size="xs" c="red">
+          <Text size="xs" style={{ color: 'var(--tk-text-bad-small)' }}>
             {error}
           </Text>
         )}
