@@ -41,9 +41,7 @@ button.primary:hover { filter: brightness(0.92); }
 button.primary:active { filter: brightness(0.85); transform: translateY(1px); }
 button.primary:focus-visible { outline: none;
        box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill-accent) 38%, transparent); }
-.err { color: var(--text-bad-small); font-size: 0.82rem; margin: 0 0 0.1rem;
-       width: fit-content; padding: 0.15rem 0.45rem; border-radius: 6px; opacity: 1;
-       background: color-mix(in srgb, var(--fill-bad) 14%, transparent); }
+.err { color: var(--text-bad-small); font-size: 0.82rem; margin: 0 0 0.1rem; opacity: 1; }
 `;
 
 function LockBadge() {
