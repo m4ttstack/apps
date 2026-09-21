@@ -28,7 +28,7 @@ export function Tooltip({
           cursor: 'help',
           textDecoration: 'underline dotted',
           textUnderlineOffset: 4,
-          textDecorationColor: 'var(--ui-text-4)',
+          textDecorationColor: 'var(--ui-text-dimmed)',
           outline: 'none',
         }}
       >
