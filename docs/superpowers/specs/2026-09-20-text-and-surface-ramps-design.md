@@ -340,9 +340,10 @@ would also fire in light and darken light card edges; do not write it.
 
 Lines have no text bar. WCAG 1.4.11's 3:1 applies to a control's boundary
 only when the border is the sole boundary cue; every light line here is
-under it, as they are today, and dark `line-1` clears it. The light
-control edge is a ledgered debt for the gate, not a change this spec
-makes.
+under it, as they are today, and dark `line-1` clears it on the page,
+panels and cards (3.68, 3.43, 3.10) but not on `raised` (2.82), the
+active-control ground. The light control edge and dark `line-1` on
+`raised` are ledgered debts for the gate, not changes this spec makes.
 
 ### 7.3 Mantine
 
@@ -390,15 +391,21 @@ chosen so Mantine's neutral reads land on the ramp:
 
 - **gray** (index ← slate step): `[2, 3, 4, 6, 7, 8, 11, 11, 12, 12]`, so
   `gray-4` (default border) is slate 7 and `gray-6` (dimmed) is slate 11.
-- **dark** (index ← slate step): `[12, 11, 11, 9, 8, 7, 6, 2, 2, 1]`, so
+- **dark** (index ← slate step): `[12, 11, 11, 9, 8, 4, 3, 2, 1, 1]`, so
   `dark-0` (text) is slate 12, `dark-2` (dimmed) slate 11, `dark-4`
-  (border) slate 8, `dark-7` (body) slate 2.
+  (border, and Menu item hover, which Mantine overloads onto the same
+  slot) slate 8, `dark-5` (filled input background, default hover) slate 4,
+  `dark-6` (default component background: default Buttons, inputs, Kbd,
+  Code, Table, Notification) slate 3, the card, and `dark-7` (body) slate
+  2. Indices 5 and 6 sit on surface steps, not border steps, because
+  Mantine paints component grounds from them.
 
 Two slots in each carry a duplicate step because twelve steps do not divide
 into ten jobs; that is harmless. The hand-written
 `--mantine-color-dark-0..9` remap block in `tokyo-theme.css` retires with
-this change: the tuple now lands in-palette on its own, and the block would
-otherwise re-point `dark-7` at the page.
+this change, as does any bare-`:root` `--mantine-color-gray-*` override
+there: both tuples now land in-palette on their own, and the dark block
+would otherwise re-point `dark-7` at the page.
 
 `autoContrast` stays off: labels are white per Radix's contract and the
 ledger, not per-cell luminance flips.
@@ -487,7 +494,10 @@ moving the labels and the ledger cannot be green.
    tuned against the old palette, reads the hue text tokens in both
    schemes: `outline`/`subtle` text from `--text-<hue>`, the tinted `light`
    variant's text from `--text-<hue>-small`, `filled` labels white (the
-   neutral fill's label `light-dark(<text-1>, #ffffff)`). `Button.tsx`'s
+   neutral fill's label `light-dark(<text-1>, #ffffff)`), `filled` hover
+   from `--fill-<hue>-hover` so tui-kit and Mantine hover to the same
+   colour. The `muted` intent is not a hue: its `outline`/`subtle` text is
+   `--text-2` and its `light` text `--text-4` (slate 11 and 12). `Button.tsx`'s
    pinned `default|bad` colour reads `--text-bad`. `known-contrast-debt.ts`
    is rewritten to the eight filled cells in §7 and nothing else, and the
    ratchet holds from there. Then `bun run tokens:codegen`, tui-kit
@@ -501,7 +511,9 @@ moving the labels and the ledger cannot be green.
    block per scheme. `theme.ts` sets `primaryShade: { light: 6, dark: 3 }`
    and registers `gray` and `dark`; the hand-written `--mantine-color-dark-*`
    block retires. `ramp-anchors.test.ts` pins `Day[6]` and `Night[3]` to
-   the hue's step 9 and every pin to the token it mirrors.
+   the hue's step 9, and pins every entry the generator's `mantinePins()`
+   returns both to the token it mirrors and to a line inside the generated
+   CSS block, which it parses back out of `tokyo-theme.css` by marker.
    `@mantine/colors-generator` is not installed and stays that way.
 2. **Bound provider (§8.2).** Then the storybook can be built on the real
    providers rather than a hand-wired approximation.
@@ -518,8 +530,11 @@ moving the labels and the ledger cannot be green.
 4. **Contrast gate.** Extends the existing `Button.matrix.test.tsx`
    browser-vitest pattern and its `known-contrast-debt.ts` ratchet to cover
    every text step against every surface in both schemes, every hue text
-   value likewise, and every fill against every surface with the three §7
-   fill entries. The ledger's entry type is a Button cell today
+   value likewise, the six hue fills against every surface with the three
+   §7 fill entries, and dark `line-1` against `raised` as a fourth. `--muted`
+   (slate 9, 2.90 light and 2.82 dark against its worst surface) stays out
+   of the gate until the step-5 audit decides which of its 154 uses are
+   fills. The ledger's entry type is a Button cell today
    (`variant`, `intent`, `scheme`, `state`); this step widens it with a
    second entry shape for a raw fill-against-surface pair. Not a Storybook
    test-runner: there is none installed, and the vitest browser project is
