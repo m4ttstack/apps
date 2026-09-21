@@ -150,8 +150,23 @@ const TK_RAMP_NAMES = [
 const TK_RAMP_WAIVER =
   'ramp name mirrored from the tui theme for app-kit consumers ahead of the migration; no packages/ui component wires it yet.';
 
+// The four text-slot mirrors (--tk-text-1..4) are referenced by tokyo-theme.css's
+// own --ui-text-* remap block, so they are never a real defined-but-unreferenced
+// failure and stay out of this waiver set.
+const TK_TEXT_SLOT_NAMES = new Set([
+  '--tk-text-1',
+  '--tk-text-2',
+  '--tk-text-3',
+  '--tk-text-4',
+]);
+
 const WAIVED_TOKYO: Record<string, string> = {
-  ...Object.fromEntries(TK_RAMP_NAMES.map(name => [name, TK_RAMP_WAIVER])),
+  ...Object.fromEntries(
+    TK_RAMP_NAMES.filter(name => !TK_TEXT_SLOT_NAMES.has(name)).map(name => [
+      name,
+      TK_RAMP_WAIVER,
+    ])
+  ),
   '--tk-overlay':
     "modal/overlay chrome role (dark sits below panel, light equals it), mirrored from the tui theme's --surface-overlay; no packages/ui component wires this surface yet.",
   '--tk-soft-on-card':
