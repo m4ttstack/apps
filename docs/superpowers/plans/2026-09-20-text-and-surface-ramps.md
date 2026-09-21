@@ -3534,3 +3534,168 @@ note. Do not cite this task number.
 git add -A
 git commit -m "tokens: add gold as the seventh hue, backed by Radix amber"
 ```
+
+---
+
+## Part K: app-kit's filled labels (spec §7)
+
+Task 12 gave tui-kit's Button the per-hue on-fill label. app-kit's Mantine
+Button was never wired to the same fix, so every filled button still paints a
+white label on its hue fill. The specimen wall in Task 8 rendered both kits
+side by side and made the gap visible: 16 axe violations per scheme in
+app-kit against 1 in tui-kit.
+
+### Task 15: app-kit's filled variant reads `--tk-on-fill-<hue>`
+
+**Files:**
+- Modify: `packages/ui/src/design-system/variant-resolver.ts`
+- Test: `packages/ui/src/design-system/variant-resolver.test.ts` (create if absent; check first)
+
+**Interfaces:**
+- Consumes: `--tk-on-fill-<hue>` from Task 12, emitted in
+  `packages/tokyo/src/tokyo-theme.css` for all seven hues in both schemes.
+  Verified present at lines 107-113 (light) and 203-209 (dark).
+- Produces: nothing new. This points an existing resolver at existing tokens.
+
+**Why Mantine's own options do not solve it.** Read from the installed
+`@mantine/core` 9.5.2, not from memory:
+
+`default-variant-colors-resolver.mjs`, the `filled` branch, sets
+
+```js
+const textColor = _autoContrast
+  ? (isVirtual ? `var(--mantine-color-${parsed.color}-contrast)`
+               : parsed.isLight ? "var(--mantine-color-black)" : "var(--mantine-color-white)")
+  : "var(--mantine-color-white)";
+```
+
+So with `autoContrast` off it is unconditionally white, and with it on it is
+pure black or pure white chosen by Mantine's own `isLight` luminance test.
+Neither reaches our measured pick, which is white for two hues and the dark
+neutral `#1c2024` for the other five. Turning `autoContrast` on is therefore
+not the fix; overriding the resolver is.
+
+**The values, measured.** Label against fill, identical in both schemes
+because the fill hex does not change between them:
+
+| hue | fill (light) | white | `#1c2024` | pick |
+|---|---|---|---|---|
+| accent | `#3e63dd` | 5.21 | 3.15 | white |
+| purple | `#8e4ec6` | 5.18 | 3.16 | white |
+| ok | `#0d9b8a` | 3.46 | 4.74 | dark |
+| warn | `#ef5f00` | 3.33 | 4.92 | dark |
+| cyan | `#0797b9` | 3.42 | 4.79 | dark |
+| bad | `#e93d82` | 3.85 | 4.26 | dark |
+
+`bad` stays under 4.5 on its better pick and is already ledgered. Every other
+hue crosses from failing to passing.
+
+- [ ] **Step 1: Write the failing test**
+
+Check whether `packages/ui/src/design-system/variant-resolver.test.ts`
+exists and follow its conventions if so. Otherwise create it, matching the
+test style of its sibling files in `packages/ui/src/design-system/`.
+
+```ts
+import { describe, expect, test } from 'vitest';
+import { variantColorResolver } from './variant-resolver';
+import { baseTheme } from './base-theme';
+
+const HUES = ['accent', 'ok', 'bad', 'warn', 'purple', 'cyan'] as const;
+
+describe('filled labels', () => {
+  test.each(HUES)('%s reads its on-fill token', hue => {
+    const result = variantColorResolver({
+      color: hue,
+      theme: baseTheme,
+      variant: 'filled',
+    } as Parameters<typeof variantColorResolver>[0]);
+    expect(result.color).toBe(`var(--tk-on-fill-${hue})`);
+  });
+
+  test('a non-hue colour keeps Mantine default', () => {
+    const result = variantColorResolver({
+      color: 'gray',
+      theme: baseTheme,
+      variant: 'filled',
+    } as Parameters<typeof variantColorResolver>[0]);
+    expect(result.color).toBe('var(--mantine-color-white)');
+  });
+
+  test('other variants are untouched', () => {
+    const result = variantColorResolver({
+      color: 'ok',
+      theme: baseTheme,
+      variant: 'light',
+    } as Parameters<typeof variantColorResolver>[0]);
+    expect(result.color).not.toBe('var(--tk-on-fill-ok)');
+  });
+});
+```
+
+Note: the import path for `baseTheme` and the exact shape of the resolver
+input are things to VERIFY before writing, not to copy from here. If
+`baseTheme` is not exported from `./base-theme`, find what is and use that.
+
+- [ ] **Step 2: Run it to verify it fails**
+
+Run: `bun run --cwd packages/ui test variant-resolver`
+Expected: FAIL, the filled colour is `var(--mantine-color-white)`.
+
+- [ ] **Step 3: Add the branch**
+
+In `packages/ui/src/design-system/variant-resolver.ts`, add a `filled`
+branch beside the existing `default` one. Keep the file's existing doc
+comment accurate: it currently says "The one override", which stops being
+true.
+
+```ts
+const ON_FILL_HUES = new Set(['accent', 'ok', 'bad', 'warn', 'purple', 'cyan']);
+```
+
+```ts
+  if (input.variant === 'filled' && typeof input.color === 'string' && ON_FILL_HUES.has(input.color)) {
+    return {
+      ...base,
+      color: `var(--tk-on-fill-${input.color})`,
+    };
+  }
+```
+
+`gold` is deliberately absent: it has no Mantine colour entry because its
+fill measures 1.29 against the tightest light surface, so no gold filled
+button exists to label.
+
+- [ ] **Step 4: Run the test**
+
+Run: `bun run --cwd packages/ui test variant-resolver`
+Expected: PASS.
+
+- [ ] **Step 5: Run every gate**
+
+```bash
+bun run --cwd packages/ui test
+bun run typecheck
+bun run lint
+bun run format:check && scripts/repo-purity.sh
+```
+
+- [ ] **Step 6: Render it and look**
+
+Re-run the `Specimens/app-kit/Buttons` story from Task 8 in both schemes,
+screenshot, and read the PNGs. Report the axe violation count before and
+after, and say plainly whether the filled labels now read. The expected
+result is 16 violations per scheme dropping to 1, the ledgered `bad`.
+
+If the count does not drop as expected, say so rather than declaring
+success: it would mean the token is not reaching the component, which is the
+same class of silent failure that a `light-dark()` pin hit elsewhere in this
+program. Read `getComputedStyle` on a filled button's label to confirm the
+value actually resolves, rather than trusting the screenshot.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add -A
+git commit -m "app-kit: filled buttons read the per-hue on-fill label"
+```
