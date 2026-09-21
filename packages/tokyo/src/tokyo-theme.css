@@ -245,6 +245,12 @@
  * DERIVATION, not parity: tui-kit has three surfaces, so level 4 -- the
  * contrast/hover step -- reads packages/tokens's own raised ground
  * (`--tk-raised`) rather than mixing one up from the card.
+ *
+ * Four text slots, `--ui-text-1` through `--ui-text-4`, mirror the band
+ * ladder: 1 is primary at every size, 2/3 step down for secondary text at
+ * body/meta sizes, and 4 is dimmed's home -- the small-text slot, pinned
+ * back to the high-contrast step because dimmed text under the small-text
+ * bar fails contrast by construction.
  */
 :root {
   --ui-bg-1: var(--tk-bg);
@@ -252,9 +258,13 @@
   --ui-bg-3: var(--tk-card);
   --ui-bg-4: var(--tk-raised);
 
-  --ui-text-muted: var(--tk-muted-text);
-  --ui-text-dimmed: var(--tk-muted-text);
-  --ui-text-gray: var(--tk-fg);
+  --ui-text-1: var(--tk-text-1);
+  --ui-text-2: var(--tk-text-2);
+  --ui-text-3: var(--tk-text-3);
+  --ui-text-4: var(--tk-text-4);
+  --ui-text-muted: var(--ui-text-3);
+  --ui-text-dimmed: var(--ui-text-4);
+  --ui-text-gray: var(--ui-text-1);
 }
 
 /*

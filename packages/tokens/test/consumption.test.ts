@@ -25,13 +25,40 @@ const RAMP_PUBLIC_NAMES = [
 const RAMP_WAIVER =
   'ramp name emitted ahead of the apps-wide migration; the storybook specimens and the ramp contrast gate read it, no kit recipe does yet.';
 
+// Wired by the recipes during the migration, so these are no longer
+// definition-only and must not carry a waiver.
+const RAMP_NOW_CONSUMED = new Set([
+  '--page',
+  ...[1, 2, 3, 4].map(i => `--text-${i}`),
+  '--fill-accent',
+  '--text-accent',
+  '--text-accent-small',
+  '--fill-ok',
+  '--text-ok-small',
+  '--fill-bad',
+  '--text-bad-small',
+]);
+
 const ON_FILL_WAIVER =
   "on-fill label; Button's filled variant reads --color-<family>-onFill directly (intent-resolver.ts), not this bare alias -- Segmented's accent-only active state is the one recipe that reads it today, so the other six hues stay unconsumed here.";
 const TEXT_VIVID_WAIVER =
   'vivid hue text, step 11 unconditionally; emitted ahead of its consumer -- no kit recipe reads it yet.';
 
+const RETIRED_ALIAS_WAIVER =
+  'pre-migration alias kept in the public CSS contract; every recipe moved to the ramp name, so nothing in this repo reads it any more.';
+
 const WAIVED_TUI: Record<string, string> = {
-  ...Object.fromEntries(RAMP_PUBLIC_NAMES.map(name => [name, RAMP_WAIVER])),
+  ...Object.fromEntries(
+    ['--accent-text', '--green', '--red', '--surface-wash-accent-fg-70'].map(
+      name => [name, RETIRED_ALIAS_WAIVER]
+    )
+  ),
+  ...Object.fromEntries(
+    RAMP_PUBLIC_NAMES.filter(name => !RAMP_NOW_CONSUMED.has(name)).map(name => [
+      name,
+      RAMP_WAIVER,
+    ])
+  ),
   ...Object.fromEntries(
     RAMP_HUES.filter(h => h !== 'accent').map(h => [
       `--on-fill-${h}`,
@@ -167,12 +194,35 @@ const TK_RAMP_NAMES = [
 const TK_RAMP_WAIVER =
   'ramp name mirrored from the tui theme for app-kit consumers ahead of the migration; no packages/ui component wires it yet.';
 
+// The four text-slot mirrors (--tk-text-1..4) are referenced by tokyo-theme.css's
+// own --ui-text-* remap block, so they are never a real defined-but-unreferenced
+// failure and stay out of this waiver set.
+const TK_TEXT_SLOT_NAMES = new Set([
+  '--tk-text-1',
+  '--tk-text-2',
+  '--tk-text-3',
+  '--tk-text-4',
+]);
+
+// Read by packages/ui/src/app/AppLauncher.module.css, so these are never a
+// real defined-but-unreferenced failure and stay out of this waiver set.
+// The launcher's current-app label pins indigo 11 as a literal until a vivid
+// token ships, so it reads no text name here.
+const TK_APP_LAUNCHER_NAMES = new Set([
+  '--tk-fill-accent',
+  '--tk-fill-accent-hover',
+]);
+
 const TK_ON_FILL_NAMES = RAMP_HUES.map(h => `--tk-on-fill-${h}`);
 const TK_ON_FILL_WAIVER =
   "app-kit's variantColorResolver builds this name at runtime from the intent, so no static reference to any single hue exists; the filled label is genuinely wired.";
 
 const WAIVED_TOKYO: Record<string, string> = {
-  ...Object.fromEntries(TK_RAMP_NAMES.map(name => [name, TK_RAMP_WAIVER])),
+  ...Object.fromEntries(
+    TK_RAMP_NAMES.filter(
+      name => !TK_TEXT_SLOT_NAMES.has(name) && !TK_APP_LAUNCHER_NAMES.has(name)
+    ).map(name => [name, TK_RAMP_WAIVER])
+  ),
   ...Object.fromEntries(
     TK_ON_FILL_NAMES.map(name => [name, TK_ON_FILL_WAIVER])
   ),
