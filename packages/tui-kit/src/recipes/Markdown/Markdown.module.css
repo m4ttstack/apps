@@ -14,7 +14,7 @@
     font-family: var(--font-sans);
     font-size: var(--font-size-rem95);
     line-height: 1.6;
-    color: var(--fg);
+    color: var(--text-1);
     overflow-wrap: anywhere;
   }
 
@@ -69,7 +69,7 @@
   }
 
   .root a {
-    color: var(--accent);
+    color: var(--text-accent-small);
   }
 
   .root code {
@@ -97,7 +97,7 @@
   .root blockquote {
     margin: var(--sb-markdown-blockquote-margin) 0;
     padding: var(--sb-markdown-blockquote-pad-block) var(--sb-markdown-blockquote-pad-inline);
-    color: var(--muted);
+    color: var(--text-3);
     border-left: var(--sb-markdown-blockquote-border-w) solid var(--border);
   }
 

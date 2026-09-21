@@ -30,7 +30,7 @@
     font-size: var(--type-title);
     font-weight: 600;
     line-height: var(--line-height-snug);
-    color: var(--accent-text);
+    color: var(--text-accent);
     background: var(--surface-wash-fg-4-card);
     border-bottom: 1px solid var(--border-soft);
     border-radius: calc(var(--radius-xl) - 1px) calc(var(--radius-xl) - 1px)

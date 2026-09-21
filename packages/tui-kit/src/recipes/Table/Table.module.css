@@ -41,7 +41,7 @@
   }
 
   .headcell {
-    color: var(--muted);
+    color: var(--text-3);
     text-transform: uppercase;
     font-size: var(--font-size-xs);
     letter-spacing: var(--sb-table-tracking);

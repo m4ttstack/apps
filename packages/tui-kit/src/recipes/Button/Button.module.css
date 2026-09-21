@@ -34,7 +34,7 @@
   }
 
   .root:focus-visible {
-    outline: 1px solid var(--accent);
+    outline: 1px solid var(--fill-accent);
     outline-offset: 1px;
   }
 
@@ -94,6 +94,6 @@
      `--sb-button-bad-color`, alongside the other pinned cells. */
   .root[data-variant="default"][data-intent="bad"] {
     color: var(--sb-button-bad-color);
-    border-color: var(--red);
+    border-color: var(--fill-bad);
   }
 }
