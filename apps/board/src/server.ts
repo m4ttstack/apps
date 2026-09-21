@@ -3648,6 +3648,9 @@ if (writer) {
     writer = false;
     clearInterval(leaseTimer);
     clearInterval(sweepTimer);
+    // Kills the peer tick, not the handle: the UI's own peer reads and
+    // /peer/join keep working off the client this leaves in place.
+    peering.stop();
     console.error(
       `board: writer lease taken by pid ${writerLeaseIo.read()?.pid}; standing down to read-only`
     );
