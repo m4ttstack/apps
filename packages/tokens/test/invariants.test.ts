@@ -54,13 +54,14 @@ describe('surface ramp', () => {
   });
 
   it.each(SCHEMES)(
-    '%s: inset sits below card and overlay never above panel',
+    '%s: inset sits below card and overlay separates from the page',
     scheme => {
       const s = TOKENS[scheme].surface;
       expect(srgbLuminance(s.inset)).toBeLessThan(srgbLuminance(s.card));
-      expect(srgbLuminance(s.overlay)).toBeLessThanOrEqual(
-        srgbLuminance(s.panel)
-      );
+      // The earlier rule capped overlay at the panel, which in dark put a
+      // dialog's ground on the page's own hex. What a modal owes is an edge
+      // against what it covers, not a position relative to a panel.
+      expect(s.overlay).not.toBe(s.bg);
     }
   );
 

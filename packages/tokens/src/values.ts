@@ -266,7 +266,10 @@ export const TOKENS: Tokens = {
       page: 1,
       chrome: 2,
       inset: 1,
-      overlay: 1,
+      // A modal ground must separate from what it covers. Dark's page is the
+      // darkest surface, so an overlay one rung below the panel lands on the
+      // page's own hex and the dialog has no edge at all.
+      overlay: 3,
       raised: 4,
     },
     textRole: { fg: 1, mutedText: 3, mutedOnCard: 3 },

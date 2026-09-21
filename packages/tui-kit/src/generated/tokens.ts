@@ -201,7 +201,7 @@ export const GENERATED_DARK_COLORS = {
     "card": "#212225",
     "chrome": "#18191b",
     "inset": "#111113",
-    "overlay": "#111113",
+    "overlay": "#212225",
     "raised": "#272a2d"
   },
   "line": {

@@ -81,7 +81,7 @@
     --color-surface-card: light-dark(#ffffff, #212225);
     --color-surface-chrome: light-dark(#e8e8ec, #18191b);
     --color-surface-inset: light-dark(#f0f0f3, #111113);
-    --color-surface-overlay: light-dark(#f9f9fb, #111113);
+    --color-surface-overlay: light-dark(#f9f9fb, #212225);
     --color-surface-panel: light-dark(#f9f9fb, #18191b);
     --color-surface-raised: light-dark(#e8e8ec, #272a2d);
     --radius-lg: 8px;
