@@ -8,6 +8,7 @@ import {
 } from '../src/fragments.ts';
 import {
   CSS_TEXT,
+  HUES,
   TOKENS,
   type ColorScheme,
   type HueName,
@@ -143,15 +144,7 @@ function generateTuiKitTokens(): string {
  * TOKENS -- these are prose, kept verbatim in the emitter template per the
  * marker contract (see the BEGIN/END markers in tokyo-theme.css).
  */
-const TOKYO_LIGHT_TOP_COMMENT = `  /* Light surface ramp, Supabase model: a near-white canvas, a subtle grey chrome
-     frame, and true-white content. Contrast rides text and element borders on the
-     light ground, not surface-to-surface fill. --tk-chrome is the frame grey (app
-     rail/nav); it is deliberately kept OUT of the bg/panel/card elevation ladder so
-     that ladder stays ordered (bg < panel < card) AND near-white -- panel is the
-     raised content surface, not the chrome. Without the split, panel had to be both
-     and the ladder inverted (--bg ended up lighter than --panel). The chrome
-     retarget below maps rail/nav onto --tk-chrome and PageShell header/sidebar +
-     content onto card. */`;
+const TOKYO_LIGHT_TOP_COMMENT = `  /* Light surfaces: white cards on Radix slate 1 to 3 (packages/tokens/src/radix.ts); contrast rides text and borders, not surface-to-surface fill. */`;
 const TOKYO_LIGHT_MUTED_TEXT_COMMENT = `  /* AA-compliant muted for TEXT (>=4.5:1 on bg 1-3). The raw muted token above
      stays tui-kit's exact hex for dots/borders; only the muted TEXT roles read
      the value below, which the scheme-vars contract lets an app remap. */`;
@@ -160,8 +153,7 @@ const TOKYO_LIGHT_ACCENT_TEXT_COMMENT = `  /* AA-compliant accent for LINK TEXT 
      text reads the darker value below. Same split as the muted pair. */`;
 const TOKYO_LIGHT_RED_TEXT_COMMENT =
   "  /* AA-compliant red for TEXT (>=4.5:1 on bg 1-3); the raw red token above stays tui-kit's exact hex for fills and error surfaces. Same split as the muted/accent pair. */";
-const TOKYO_DARK_TOP_COMMENT = `  /* Dark never inverted (bg < panel < card already), so --tk-chrome equals the
-     panel rung: the rail/nav frame reads as a step up from the near-black page. */`;
+const TOKYO_DARK_TOP_COMMENT = `  /* Dark surfaces: Radix slate 1 to 4, page darkest, cards on step 3, step 4 reserved for raised grounds. */`;
 const TOKYO_DARK_MUTED_TEXT_COMMENT =
   '  /* AA-compliant muted text for the dark scheme (>=4.5:1 on bg 1-3). */';
 const TOKYO_DARK_ACCENT_TEXT_COMMENT = `  /* Accent for link text in dark (>=4.5:1 on bg 1-3); the accent already
@@ -209,6 +201,8 @@ function buildTokyoDeclarations(scheme: 'light' | 'dark') {
 
 function renderTokyoSchemeBlock(scheme: 'light' | 'dark'): string {
   const d = buildTokyoDeclarations(scheme);
+  const t = TOKENS[scheme];
+  const at = (leaf: string, value: string) => pick(`${scheme}.${leaf}`, value);
   const topComment =
     scheme === 'light' ? TOKYO_LIGHT_TOP_COMMENT : TOKYO_DARK_TOP_COMMENT;
   const mutedTextComment =
@@ -258,6 +252,25 @@ function renderTokyoSchemeBlock(scheme: 'light' | 'dark'): string {
     `  --tk-dot-ok: ${d.dotOk};`,
     `  --tk-dot-warn: ${d.dotWarn};`,
     `  --tk-dot-bad: ${d.dotBad};`,
+    `  --tk-raised: ${at('surface.raised', t.surface.raised)};`,
+    ...t.surfaceRamp.map(
+      (v, i) => `  --tk-surface-${i + 1}: ${at(`surfaceRamp.${i}`, v)};`
+    ),
+    ...t.textRamp.map(
+      (v, i) => `  --tk-text-${i + 1}: ${at(`textRamp.${i}`, v)};`
+    ),
+    ...t.lineRamp.map(
+      (v, i) => `  --tk-line-${i + 1}: ${at(`lineRamp.${i}`, v)};`
+    ),
+    ...HUES.map(h => `  --tk-fill-${h}: ${at(`hue.${h}`, t.hue[h])};`),
+    ...HUES.map(
+      h => `  --tk-fill-${h}-hover: ${at(`hueHover.${h}`, t.hueHover[h])};`
+    ),
+    ...HUES.map(h => `  --tk-text-${h}: ${at(`hueText.${h}`, t.hueText[h])};`),
+    ...HUES.map(
+      h =>
+        `  --tk-text-${h}-small: ${at(`hueTextSmall.${h}`, t.hueTextSmall[h])};`
+    ),
     '',
     `  --tk-wash: ${d.wash};`,
   ].join('\n');

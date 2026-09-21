@@ -40,15 +40,7 @@
    tokyo-theme.test.ts checks by name -- so this note sits outside them. */
 :root[data-mantine-color-scheme='light'] {
   /* BEGIN GENERATED: tokyo tokens light */
-  /* Light surface ramp, Supabase model: a near-white canvas, a subtle grey chrome
-     frame, and true-white content. Contrast rides text and element borders on the
-     light ground, not surface-to-surface fill. --tk-chrome is the frame grey (app
-     rail/nav); it is deliberately kept OUT of the bg/panel/card elevation ladder so
-     that ladder stays ordered (bg < panel < card) AND near-white -- panel is the
-     raised content surface, not the chrome. Without the split, panel had to be both
-     and the ladder inverted (--bg ended up lighter than --panel). The chrome
-     retarget below maps rail/nav onto --tk-chrome and PageShell header/sidebar +
-     content onto card. */
+  /* Light surfaces: white cards on Radix slate 1 to 3 (packages/tokens/src/radix.ts); contrast rides text and borders, not surface-to-surface fill. */
   --tk-chrome: #f0f0f3;
   --tk-bg: #f9f9fb;
   --tk-panel: #fcfcfd;
@@ -86,6 +78,42 @@
   --tk-dot-ok: #0d9b8a;
   --tk-dot-warn: #ef5f00;
   --tk-dot-bad: #e93d82;
+  --tk-raised: #f0f0f3;
+  --tk-surface-1: #ffffff;
+  --tk-surface-2: #fcfcfd;
+  --tk-surface-3: #f9f9fb;
+  --tk-surface-4: #f0f0f3;
+  --tk-text-1: #1c2024;
+  --tk-text-2: #60646c;
+  --tk-text-3: #60646c;
+  --tk-text-4: #1c2024;
+  --tk-line-1: #b9bbc6;
+  --tk-line-2: #cdced6;
+  --tk-line-3: #d9d9e0;
+  --tk-fill-accent: #3e63dd;
+  --tk-fill-ok: #0d9b8a;
+  --tk-fill-bad: #e93d82;
+  --tk-fill-warn: #ef5f00;
+  --tk-fill-purple: #8e4ec6;
+  --tk-fill-cyan: #0797b9;
+  --tk-fill-accent-hover: #3358d4;
+  --tk-fill-ok-hover: color-mix(in srgb, #0d9b8a 88%, #1c2024);
+  --tk-fill-bad-hover: #df3478;
+  --tk-fill-warn-hover: color-mix(in srgb, #ef5f00 88%, #1c2024);
+  --tk-fill-purple-hover: #8347b9;
+  --tk-fill-cyan-hover: color-mix(in srgb, #0797b9 88%, #1c2024);
+  --tk-text-accent: #3a5bc7;
+  --tk-text-ok: #0d3d38;
+  --tk-text-bad: #cb1d63;
+  --tk-text-warn: #582d1d;
+  --tk-text-purple: #8145b5;
+  --tk-text-cyan: #0d3c48;
+  --tk-text-accent-small: #1f2d5c;
+  --tk-text-ok-small: #0d3d38;
+  --tk-text-bad-small: #621639;
+  --tk-text-warn-small: #582d1d;
+  --tk-text-purple-small: #402060;
+  --tk-text-cyan-small: #0d3c48;
 
   --tk-wash: 10%;
   /* END GENERATED */
@@ -93,8 +121,7 @@
 
 :root[data-mantine-color-scheme='dark'] {
   /* BEGIN GENERATED: tokyo tokens dark */
-  /* Dark never inverted (bg < panel < card already), so --tk-chrome equals the
-     panel rung: the rail/nav frame reads as a step up from the near-black page. */
+  /* Dark surfaces: Radix slate 1 to 4, page darkest, cards on step 3, step 4 reserved for raised grounds. */
   --tk-chrome: #18191b;
   --tk-bg: #111113;
   --tk-panel: #18191b;
@@ -129,6 +156,42 @@
   --tk-dot-ok: #12a594;
   --tk-dot-warn: #f76b15;
   --tk-dot-bad: #e93d82;
+  --tk-raised: #272a2d;
+  --tk-surface-1: #111113;
+  --tk-surface-2: #18191b;
+  --tk-surface-3: #212225;
+  --tk-surface-4: #272a2d;
+  --tk-text-1: #edeef0;
+  --tk-text-2: #b0b4ba;
+  --tk-text-3: #b0b4ba;
+  --tk-text-4: #edeef0;
+  --tk-line-1: #696e77;
+  --tk-line-2: #43484e;
+  --tk-line-3: #363a3f;
+  --tk-fill-accent: #3e63dd;
+  --tk-fill-ok: #12a594;
+  --tk-fill-bad: #e93d82;
+  --tk-fill-warn: #f76b15;
+  --tk-fill-purple: #8e4ec6;
+  --tk-fill-cyan: #00a2c7;
+  --tk-fill-accent-hover: #5472e4;
+  --tk-fill-ok-hover: #0eb39e;
+  --tk-fill-bad-hover: #ee518a;
+  --tk-fill-warn-hover: #ff801f;
+  --tk-fill-purple-hover: #9a5cd0;
+  --tk-fill-cyan-hover: #23afd0;
+  --tk-text-accent: #9eb1ff;
+  --tk-text-ok: #0bd8b6;
+  --tk-text-bad: #ff92ad;
+  --tk-text-warn: #ffa057;
+  --tk-text-purple: #d19dff;
+  --tk-text-cyan: #4ccce6;
+  --tk-text-accent-small: #d6e1ff;
+  --tk-text-ok-small: #adf0dd;
+  --tk-text-bad-small: #fdd3e8;
+  --tk-text-warn-small: #ffe0c2;
+  --tk-text-purple-small: #ecd9fa;
+  --tk-text-cyan-small: #b6ecf7;
 
   --tk-wash: 15%;
   /* END GENERATED */
@@ -144,14 +207,14 @@
  * contract permits: it fixes four scheme-aware roles, not their ordering.
  *
  * DERIVATION, not parity: tui-kit has three surfaces, so level 4 -- the
- * contrast/hover step -- is built from the wash tui-kit itself uses for hover
- * (`wash-fg-8`) laid over the card.
+ * contrast/hover step -- reads packages/tokens's own raised ground
+ * (`--tk-raised`) rather than mixing one up from the card.
  */
 :root {
   --ui-bg-1: var(--tk-bg);
   --ui-bg-2: var(--tk-panel);
   --ui-bg-3: var(--tk-card);
-  --ui-bg-4: color-mix(in srgb, var(--tk-fg) 8%, var(--tk-card));
+  --ui-bg-4: var(--tk-raised);
 
   --ui-text-muted: var(--tk-muted-text);
   --ui-text-dimmed: var(--tk-muted-text);

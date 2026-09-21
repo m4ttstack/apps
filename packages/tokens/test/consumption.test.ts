@@ -137,7 +137,21 @@ const WAIVED_TUI: Record<string, string> = {
     "theme.ts: 'every distinct color-mix() expression in mr-board's stylesheet, carried as RAW strings' -- ported verbatim from that external stylesheet, not yet used by a recipe in this repo.",
 };
 
+const TK_RAMP_NAMES = [
+  ...[1, 2, 3, 4].flatMap(i => [`--tk-surface-${i}`, `--tk-text-${i}`]),
+  ...[1, 2, 3].map(i => `--tk-line-${i}`),
+  ...RAMP_HUES.flatMap(h => [
+    `--tk-fill-${h}`,
+    `--tk-fill-${h}-hover`,
+    `--tk-text-${h}`,
+    `--tk-text-${h}-small`,
+  ]),
+];
+const TK_RAMP_WAIVER =
+  'ramp name mirrored from the tui theme for app-kit consumers ahead of the migration; no packages/ui component wires it yet.';
+
 const WAIVED_TOKYO: Record<string, string> = {
+  ...Object.fromEntries(TK_RAMP_NAMES.map(name => [name, TK_RAMP_WAIVER])),
   '--tk-overlay':
     "modal/overlay chrome role (dark sits below panel, light equals it), mirrored from the tui theme's --surface-overlay; no packages/ui component wires this surface yet.",
   '--tk-soft-on-card':
