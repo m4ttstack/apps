@@ -742,8 +742,8 @@ body {
 /* Verbs are subtle buttons: nothing at rest but the word, a tint under the
    pointer. An agent verb wears its lane's color and the bot mark, so the
    reader knows which agent a click starts before reading the word; a decide
-   verb is amber; a secondary verb (hover only) is muted; navigation (open,
-   read, view) stays quiet text. */
+   verb reads the warn hue; a secondary verb (hover only) is muted; navigation
+   (open, read, view) stays quiet text. */
 .tui-status-verb {
   margin: 0;
   padding: 1px 6px;
