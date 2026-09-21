@@ -94,7 +94,7 @@ export function LeaderboardTable({ data, trend }: Props) {
                       {meta.label}
                     </Text>
                     {meta.hint && (
-                      <Text component="span" size="xs" c="dimmed">
+                      <Text component="span" size="xs">
                         {' '}
                         ({meta.hint})
                       </Text>
@@ -213,12 +213,19 @@ function Row({
           >
             {row.name ?? row.username}
           </Text>
-          <Text component="span" size="xs" c="dimmed" ml={4}>
+          <Text component="span" size="xs" ml={4}>
             @{row.username}
           </Text>
         </button>
         {!row.resolved && (
-          <Text component="span" size="xs" c="warn" ml={6}>
+          <Text
+            component="span"
+            size="xs"
+            ml={6}
+            // Pinned literal pending --text-warn-vivid (tokens package,
+            // not yet on this branch); swap when it lands.
+            style={{ color: 'light-dark(#cc4e00, #ffa057)' }}
+          >
             unresolved
           </Text>
         )}
