@@ -3,6 +3,7 @@ import storybook from 'eslint-plugin-storybook';
 import tseslint from 'typescript-eslint';
 
 import tokenNamespacesCss from './packages/ui/presets/eslint-local/token-namespaces-css.js';
+import tokenNamespacesTsx from './packages/ui/presets/eslint-local/token-namespaces-tsx.js';
 import { mattstackEslint } from './packages/ui/presets/eslint.js';
 
 const SCRIPT_FILES = ['**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}'];
@@ -21,6 +22,15 @@ export default tseslint.config(
   ...mattstackEslint().map(c =>
     c.files || c.ignores ? c : { ...c, files: SCRIPT_FILES }
   ),
+  {
+    // The preset's `app` glob is relative to a consuming app's own root, so
+    // from the repo root it matches nothing and the kit's own source skips
+    // every app-only rule. Only the token rule is re-applied here: the rest
+    // of that block is the import wall, which the kit is the far side of.
+    files: ['packages/ui/src/**/*.{ts,tsx}'],
+    plugins: { local: { rules: { 'token-namespaces': tokenNamespacesTsx } } },
+    rules: { 'local/token-namespaces': 'error' },
+  },
   {
     // Config presets ship as plain JS (see packages/ui/presets/vite.js) and
     // run in Node, unlike the .tsx source that typescript-eslint's ts-file
