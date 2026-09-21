@@ -232,10 +232,13 @@ those is out of scope here but worth a follow-up.
 
 ## 7. Palette
 
-Six hues, each a Radix scale chosen for the nearest hue to the arcade
+Seven hues. Six are Radix scales chosen for the nearest hue to the arcade
 palette (crimson is 3 degrees from our red, cyan 2, purple 4, orange is the
 pick that stayed orange rather than going brown, teal was picked by eye
-over jade, indigo was picked by eye over iris, violet and blue):
+over jade, indigo was picked by eye over iris, violet and blue). The
+seventh, gold, has no arcade predecessor: it is Radix amber, added as a
+status-text hue distinct from warn/orange (see the fill-limitation note
+below the steps table):
 
 | role | Radix scale | old light hex, for the migration |
 | --- | --- | --- |
@@ -245,6 +248,7 @@ over jade, indigo was picked by eye over iris, violet and blue):
 | warn | orange | `#ff8a00` |
 | purple | purple | `#9b45ff` |
 | cyan | cyan | `#00b8d9` |
+| gold | amber | n/a (new hue, no arcade predecessor) |
 
 Three values per hue per scheme, each a **step number** chosen by rule from
 that scale, never a solved hex:
@@ -272,6 +276,7 @@ that scale, never a solved hex:
 | warn | 10 `#ef5f00` | 2.72 (ledger) | 12 `#582d1d` | 12 `#582d1d` | 9 `#f76b15` | 4.86 | 11 `#ffa057` | 12 `#ffe0c2` |
 | purple | 9 `#8e4ec6` | 4.24 | 11 `#8145b5` | 12 `#402060` | 9 `#8e4ec6` | 2.79 (ledger) | 11 `#d19dff` | 12 `#ecd9fa` |
 | cyan | 10 `#0797b9` | 2.80 (ledger) | 12 `#0d3c48` | 12 `#0d3c48` | 9 `#00a2c7` | 4.80 | 11 `#4ccce6` | 12 `#b6ecf7` |
+| gold | 9 `#ffc53d` | 1.29 (ledger) | 12 `#4f3422` | 12 `#4f3422` | 9 `#ffc53d` | 9.14 | 11 `#ffca16` | 12 `#ffe7b3` |
 
 Five fills sit under 3.0 by a small margin and are ledgered rather than
 pushed onto a text step: in light, teal-10, orange-10 and cyan-10 at 2.83,
@@ -281,20 +286,28 @@ against `surface-4`, the raised ground. Four of the five clear 3.0 on every
 other surface of their scheme; light orange is the one that also misses on
 the page, at 2.93.
 
+Light gold is a sixth, larger miss: Radix amber clears 3.0 at neither step
+9 nor step 10 (1.58 against the page, 1.29 against the worst surface), so
+the rule that picks between them on contrast grounds has no winner. Gold
+stays at fill 9 by decision, matching every hue that is not pushed to 10
+by a real win, and the shortfall is ledgered rather than hidden by a step
+the rule did not actually choose. Amber is a bright-accent scale, not a
+lightness ramp; its dark scheme clears 3.0 easily, at 9.14.
+
 **Tokens.** `--fill-<hue>`, `--fill-<hue>-hover`, `--text-<hue>` (body
 value, allowed at `display`, `title`, `body`), `--text-<hue>-small` (allowed
 at `meta`, `small`, `micro`; light crimson 11 measures 4.41 on the row
 surface, under the 4.5 body bar, so light `bad` takes step 12 at body as
 well and its two text tokens carry the same hex, as ok, warn and cyan
 already do), `--text-<hue>-vivid` (step 11 unconditionally; `--text-<hue>`
-promotes to 12 in light for four of the six hues, so no other token names
+promotes to 12 in light for five of the seven hues, so no other token names
 the un-promoted step). A fill is never a text colour, and the names
 retire the `accent` versus `accentText` guesswork. In `values.ts` these are
 step numbers (`hueStep.<h>.fill`, `.text`) resolved against the vendored
 scale, so the invariants can assert the rule itself, not just the result.
 
 **Labels on fills.** Radix puts white text on step 9 for every saturated
-scale, but a white label only clears 4.5 on two of the six fills.
+scale, but a white label only clears 4.5 on two of the seven fills.
 `--on-fill-<hue>` measures both candidates, white and slate 12 light
 (`#1c2024`, already `text-1` in the light scheme), and picks whichever wins:
 
@@ -306,6 +319,12 @@ scale, but a white label only clears 4.5 on two of the six fills.
 | warn | `#ef5f00` | 3.33 | 4.92 | `#f76b15` | 2.97 | 5.52 | dark |
 | cyan | `#0797b9` | 3.42 | 4.79 | `#00a2c7` | 3.00 | 5.46 | dark |
 | bad | `#e93d82` | 3.85 | 4.26 | `#e93d82` | 3.85 | 4.26 | dark |
+| gold | `#ffc53d` | 1.58 | 10.38 | `#ffc53d` | 1.58 | 10.38 | dark |
+
+Gold carries the widest on-fill margin of any hue: its fill is bright
+enough that white text fails outright (1.58), and the dark label wins by
+a wide berth. Consistent with the rest of the table, the pick is the same
+hue property in both schemes because the fill hex itself does not change.
 
 The pick is a property of the hue, not the scheme: it is the same in light
 and dark for every hue. Only `bad` stays under 4.5 even with its better

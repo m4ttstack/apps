@@ -96,36 +96,42 @@
   --tk-fill-warn: #ef5f00;
   --tk-fill-purple: #8e4ec6;
   --tk-fill-cyan: #0797b9;
+  --tk-fill-gold: #ffc53d;
   --tk-fill-accent-hover: #3358d4;
   --tk-fill-ok-hover: color-mix(in srgb, #0d9b8a 88%, #1c2024);
   --tk-fill-bad-hover: #df3478;
   --tk-fill-warn-hover: color-mix(in srgb, #ef5f00 88%, #1c2024);
   --tk-fill-purple-hover: #8347b9;
   --tk-fill-cyan-hover: color-mix(in srgb, #0797b9 88%, #1c2024);
+  --tk-fill-gold-hover: #ffba18;
   --tk-on-fill-accent: #ffffff;
   --tk-on-fill-ok: #1c2024;
   --tk-on-fill-bad: #1c2024;
   --tk-on-fill-warn: #1c2024;
   --tk-on-fill-purple: #ffffff;
   --tk-on-fill-cyan: #1c2024;
+  --tk-on-fill-gold: #1c2024;
   --tk-text-accent: #3a5bc7;
   --tk-text-ok: #0d3d38;
   --tk-text-bad: #621639;
   --tk-text-warn: #582d1d;
   --tk-text-purple: #8145b5;
   --tk-text-cyan: #0d3c48;
+  --tk-text-gold: #4f3422;
   --tk-text-accent-small: #1f2d5c;
   --tk-text-ok-small: #0d3d38;
   --tk-text-bad-small: #621639;
   --tk-text-warn-small: #582d1d;
   --tk-text-purple-small: #402060;
   --tk-text-cyan-small: #0d3c48;
+  --tk-text-gold-small: #4f3422;
   --tk-text-accent-vivid: #3a5bc7;
   --tk-text-ok-vivid: #008573;
   --tk-text-bad-vivid: #cb1d63;
   --tk-text-warn-vivid: #cc4e00;
   --tk-text-purple-vivid: #8145b5;
   --tk-text-cyan-vivid: #107d98;
+  --tk-text-gold-vivid: #ab6400;
 
   --tk-wash: 10%;
   /* END GENERATED */
@@ -186,36 +192,42 @@
   --tk-fill-warn: #f76b15;
   --tk-fill-purple: #8e4ec6;
   --tk-fill-cyan: #00a2c7;
+  --tk-fill-gold: #ffc53d;
   --tk-fill-accent-hover: #5472e4;
   --tk-fill-ok-hover: #0eb39e;
   --tk-fill-bad-hover: #ee518a;
   --tk-fill-warn-hover: #ff801f;
   --tk-fill-purple-hover: #9a5cd0;
   --tk-fill-cyan-hover: #23afd0;
+  --tk-fill-gold-hover: #ffd60a;
   --tk-on-fill-accent: #ffffff;
   --tk-on-fill-ok: #1c2024;
   --tk-on-fill-bad: #1c2024;
   --tk-on-fill-warn: #1c2024;
   --tk-on-fill-purple: #ffffff;
   --tk-on-fill-cyan: #1c2024;
+  --tk-on-fill-gold: #1c2024;
   --tk-text-accent: #9eb1ff;
   --tk-text-ok: #0bd8b6;
   --tk-text-bad: #ff92ad;
   --tk-text-warn: #ffa057;
   --tk-text-purple: #d19dff;
   --tk-text-cyan: #4ccce6;
+  --tk-text-gold: #ffca16;
   --tk-text-accent-small: #d6e1ff;
   --tk-text-ok-small: #adf0dd;
   --tk-text-bad-small: #fdd3e8;
   --tk-text-warn-small: #ffe0c2;
   --tk-text-purple-small: #ecd9fa;
   --tk-text-cyan-small: #b6ecf7;
+  --tk-text-gold-small: #ffe7b3;
   --tk-text-accent-vivid: #9eb1ff;
   --tk-text-ok-vivid: #0bd8b6;
   --tk-text-bad-vivid: #ff92ad;
   --tk-text-warn-vivid: #ffa057;
   --tk-text-purple-vivid: #d19dff;
   --tk-text-cyan-vivid: #4ccce6;
+  --tk-text-gold-vivid: #ffca16;
 
   --tk-wash: 15%;
   /* END GENERATED */
@@ -369,6 +381,10 @@
   --mantine-color-cyan-filled-hover: color-mix(in srgb, #0797b9 88%, #1c2024);
   --mantine-color-cyan-text: #0d3c48;
   --mantine-color-cyan-outline: #0d3c48;
+  --mantine-color-gold-filled: #ffc53d;
+  --mantine-color-gold-filled-hover: #ffba18;
+  --mantine-color-gold-text: #4f3422;
+  --mantine-color-gold-outline: #4f3422;
   /* END GENERATED */
 }
 :root:root[data-mantine-color-scheme='dark'] {
@@ -409,6 +425,12 @@
   --mantine-color-cyan-outline: #4ccce6;
   --mantine-color-cyan-light: #082c36;
   --mantine-color-cyan-light-hover: #003848;
+  --mantine-color-gold-filled: #ffc53d;
+  --mantine-color-gold-filled-hover: #ffd60a;
+  --mantine-color-gold-text: #ffca16;
+  --mantine-color-gold-outline: #ffca16;
+  --mantine-color-gold-light: #302008;
+  --mantine-color-gold-light-hover: #3f2700;
   /* END GENERATED */
 }
 

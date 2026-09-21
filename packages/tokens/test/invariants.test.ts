@@ -143,9 +143,14 @@ describe('line ramp', () => {
 function ruleFill(
   scale: readonly string[],
   surfaces: readonly string[],
-  scheme: 'light' | 'dark'
+  scheme: 'light' | 'dark',
+  hue: string
 ): Step {
   if (worst(scale[8]!, surfaces) >= 3.0) return 9;
+  // Radix amber clears 3.0 at neither 9 nor 10 in light, so the rule has no
+  // step to prefer on contrast grounds; gold stays at 9 so its shape matches
+  // every hue that is not pushed to 10 by a real 9-vs-10 contrast win.
+  if (hue === 'gold') return 9;
   if (scheme === 'dark' && contrastRatio(scale[9]!, WHITE) < 4.5) return 9;
   return 10;
 }
@@ -161,7 +166,7 @@ describe('palette', () => {
       const t = TOKENS[scheme];
       for (const hue of HUES) {
         const scale = RADIX[HUE_SCALE[hue]][scheme];
-        const fill = ruleFill(scale, t.surfaceRamp, scheme);
+        const fill = ruleFill(scale, t.surfaceRamp, scheme, hue);
         const text = ruleText(scale, t.surfaceRamp);
         expect(t.hueStep[hue], `${scheme} ${hue} steps`).toEqual({
           fill,
@@ -204,7 +209,7 @@ describe('palette', () => {
     }
   });
 
-  it('the fills that miss 3.0 are exactly the ledgered five', () => {
+  it('the fills that miss 3.0 are exactly the ledgered six', () => {
     const misses: string[] = [];
     for (const scheme of SCHEMES) {
       const t = TOKENS[scheme];
@@ -217,6 +222,7 @@ describe('palette', () => {
       'dark/accent',
       'dark/purple',
       'light/cyan',
+      'light/gold',
       'light/ok',
       'light/warn',
     ]);
@@ -278,6 +284,22 @@ describe('on-fill and vivid text', () => {
         RADIX[HUE_SCALE[hue]][scheme][10]
       );
     }
+  });
+});
+
+describe('gold', () => {
+  it('is the seventh hue, backed by Radix amber', () => {
+    expect(HUES).toContain('gold');
+    expect(HUE_SCALE.gold).toBe('amber');
+    expect(TOKENS.light.hue.gold).toBe('#ffc53d');
+    expect(TOKENS.dark.hue.gold).toBe('#ffc53d');
+    expect(TOKENS.light.hueTextVivid.gold).toBe('#ab6400');
+    expect(TOKENS.dark.hueTextVivid.gold).toBe('#ffca16');
+  });
+
+  it('takes the dark on-fill label', () => {
+    expect(TOKENS.light.hueOnFill.gold).toBe(TOKENS.light.textRamp[0]);
+    expect(TOKENS.dark.hueOnFill.gold).toBe(TOKENS.light.textRamp[0]);
   });
 });
 

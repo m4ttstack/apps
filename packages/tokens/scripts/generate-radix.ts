@@ -14,6 +14,7 @@ const SCALES = [
   'orange',
   'purple',
   'cyan',
+  'amber',
 ] as const;
 
 function steps(file: string, name: string): string[] {

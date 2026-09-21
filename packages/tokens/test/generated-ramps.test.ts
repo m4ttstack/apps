@@ -47,8 +47,11 @@ describe('generated ramps', () => {
   );
 
   it('the day tuples darken from stop 0 to the primary stop 6', () => {
+    // Radix amber (gold) is a bright-accent scale, not a lightness ramp: its
+    // step 9 (the day tuple's stop 6) is brighter than step 7 (stop 5), the
+    // opposite of every other hue vendored here. Excluded rather than forced.
     for (const [name, stops] of Object.entries(tokyoRamps)) {
-      if (!name.endsWith('Day')) continue;
+      if (!name.endsWith('Day') || name === 'goldDay') continue;
       const lums = stops.slice(0, 7).map(srgbLuminance);
       for (let i = 1; i < lums.length; i++)
         expect(lums[i], `${name} stop ${i}`).toBeLessThan(lums[i - 1]!);

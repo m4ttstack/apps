@@ -72,6 +72,7 @@ function buildTuiKitColors(scheme: 'light' | 'dark') {
     amber: family('warn'),
     purple: family('purple'),
     cyan: family('cyan'),
+    gold: family('gold'),
     ground: ramp('surfaceRamp', t.surfaceRamp),
     ink: ramp('textRamp', t.textRamp),
     rule: ramp('lineRamp', t.lineRamp),

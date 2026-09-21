@@ -2,7 +2,7 @@
 
 export const RADIX_VERSION = '3.0.0';
 
-export const RADIX_SCALES = ['slate', 'indigo', 'teal', 'crimson', 'orange', 'purple', 'cyan'] as const;
+export const RADIX_SCALES = ['slate', 'indigo', 'teal', 'crimson', 'orange', 'purple', 'cyan', 'amber'] as const;
 export type RadixScaleName = (typeof RADIX_SCALES)[number];
 
 export type Scale12 = readonly [
@@ -38,5 +38,9 @@ export const RADIX: Record<RadixScaleName, { light: Scale12; dark: Scale12 }> = 
   cyan: {
     light: ['#fafdfe', '#f2fafb', '#def7f9', '#caf1f6', '#b5e9f0', '#9ddde7', '#7dcedc', '#3db9cf', '#00a2c7', '#0797b9', '#107d98', '#0d3c48'],
     dark: ['#0b161a', '#101b20', '#082c36', '#003848', '#004558', '#045468', '#12677e', '#11809c', '#00a2c7', '#23afd0', '#4ccce6', '#b6ecf7'],
+  },
+  amber: {
+    light: ['#fefdfb', '#fefbe9', '#fff7c2', '#ffee9c', '#fbe577', '#f3d673', '#e9c162', '#e2a336', '#ffc53d', '#ffba18', '#ab6400', '#4f3422'],
+    dark: ['#16120c', '#1d180f', '#302008', '#3f2700', '#4d3000', '#5c3d05', '#714f19', '#8f6424', '#ffc53d', '#ffd60a', '#ffca16', '#ffe7b3'],
   },
 };

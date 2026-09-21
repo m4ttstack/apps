@@ -49,6 +49,14 @@ export const GENERATED_LIGHT_COLORS = {
     "textSmall": "#0d3c48",
     "textVivid": "#107d98"
   },
+  "gold": {
+    "500": "#ffc53d",
+    "hover": "#ffba18",
+    "onFill": "#1c2024",
+    "text": "#4f3422",
+    "textSmall": "#4f3422",
+    "textVivid": "#ab6400"
+  },
   "ground": {
     "1": "#ffffff",
     "2": "#f9f9fb",
@@ -150,6 +158,14 @@ export const GENERATED_DARK_COLORS = {
     "text": "#4ccce6",
     "textSmall": "#b6ecf7",
     "textVivid": "#4ccce6"
+  },
+  "gold": {
+    "500": "#ffc53d",
+    "hover": "#ffd60a",
+    "onFill": "#1c2024",
+    "text": "#ffca16",
+    "textSmall": "#ffe7b3",
+    "textVivid": "#ffca16"
   },
   "ground": {
     "1": "#111113",

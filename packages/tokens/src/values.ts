@@ -1,7 +1,15 @@
 import { contrastRatio } from './color-math.ts';
 import { RADIX, type RadixScaleName, type Scale12 } from './radix.ts';
 
-export const HUES = ['accent', 'ok', 'bad', 'warn', 'purple', 'cyan'] as const;
+export const HUES = [
+  'accent',
+  'ok',
+  'bad',
+  'warn',
+  'purple',
+  'cyan',
+  'gold',
+] as const;
 export type HueName = (typeof HUES)[number];
 export type HueSet = Record<HueName, string>;
 
@@ -12,6 +20,9 @@ export const HUE_SCALE: Record<HueName, RadixScaleName> = {
   warn: 'orange',
   purple: 'purple',
   cyan: 'cyan',
+  // Radix amber. The role is named gold because `--amber` is already the
+  // shipped public alias for the warn fill.
+  gold: 'amber',
 };
 
 export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
@@ -204,6 +215,10 @@ const LIGHT_HUE_STEPS: Record<HueName, HueStep> = {
   warn: { fill: 10, text: 12 },
   purple: { fill: 9, text: 11 },
   cyan: { fill: 10, text: 12 },
+  // Radix amber is a low-contrast scale: no step from 9 to 10 clears the 3.0
+  // fill bar on a light surface. Step 9 keeps gold's token shape uniform and
+  // the shortfall is ledgered; gold's real use is text.
+  gold: { fill: 9, text: 12 },
 };
 
 const DARK_HUE_STEPS: Record<HueName, HueStep> = {
@@ -213,6 +228,7 @@ const DARK_HUE_STEPS: Record<HueName, HueStep> = {
   warn: { fill: 9, text: 11 },
   purple: { fill: 9, text: 11 },
   cyan: { fill: 9, text: 11 },
+  gold: { fill: 9, text: 11 },
 };
 
 export const TOKENS: Tokens = {

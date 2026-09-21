@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * the one-line reason that justifies keeping it definition-only for now.
  * Deletion is Phase 2 material.
  */
-const RAMP_HUES = ['accent', 'ok', 'bad', 'warn', 'purple', 'cyan'];
+const RAMP_HUES = ['accent', 'ok', 'bad', 'warn', 'purple', 'cyan', 'gold'];
 const RAMP_PUBLIC_NAMES = [
   '--page',
   '--raised',
@@ -26,7 +26,7 @@ const RAMP_WAIVER =
   'ramp name emitted ahead of the apps-wide migration; the storybook specimens and the ramp contrast gate read it, no kit recipe does yet.';
 
 const ON_FILL_WAIVER =
-  "on-fill label; Button's filled variant reads --color-<family>-onFill directly (intent-resolver.ts), not this bare alias -- Segmented's accent-only active state is the one recipe that reads it today, so the other five hues stay unconsumed here.";
+  "on-fill label; Button's filled variant reads --color-<family>-onFill directly (intent-resolver.ts), not this bare alias -- Segmented's accent-only active state is the one recipe that reads it today, so the other six hues stay unconsumed here.";
 const TEXT_VIVID_WAIVER =
   'vivid hue text, step 11 unconditionally; emitted ahead of its consumer -- no kit recipe reads it yet.';
 
@@ -81,6 +81,8 @@ const WAIVED_TUI: Record<string, string> = {
     "public alias contract (soribashi.config.ts's cssVariablesResolver + docs/css-contract.md); consumed via inline style in StatusDot.tsx, outside this test's CSS-module scope.",
   '--purple':
     "public alias contract (soribashi.config.ts's cssVariablesResolver + docs/css-contract.md); referenced only from Chip.test.tsx today.",
+  '--gold':
+    "public alias contract (soribashi.config.ts's cssVariablesResolver + docs/css-contract.md); no kit recipe or wash mixes it yet.",
   '--terminal-bg':
     'scheme-invariant public alias for consumer terminal/log surfaces, documented in docs/css-contract.md; not consumed by any recipe in this repo.',
   '--terminal-fg':

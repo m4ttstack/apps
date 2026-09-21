@@ -27,6 +27,7 @@ const DAY = [
   'warnDay',
   'purpleDay',
   'cyanDay',
+  'goldDay',
 ] as const;
 const NIGHT = [
   'accentNight',
@@ -35,6 +36,7 @@ const NIGHT = [
   'warnNight',
   'purpleNight',
   'cyanNight',
+  'goldNight',
 ] as const;
 
 describe('tokyo ramps anchor on Radix step 9', () => {
