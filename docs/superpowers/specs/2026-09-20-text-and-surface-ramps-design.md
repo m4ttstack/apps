@@ -212,6 +212,13 @@ The 4.5 rows are WCAG AA. The 5.2 and 7.0 rows are this platform's bars
 11's measured floor on the light row surface, still well above AA, and
 holding 5.5 would have pushed all meta text to the high-contrast step.
 
+The size bands (which text role a type step may carry) are enforced by
+review and by the storybook specimens, not by the lint or the gate: the
+lint is property-based and the gate measures tokens against surfaces, so
+`--text-2` on `micro` is neither impossible nor loud yet. A pairing check
+(`--type-*` against the `--text-*` in the same rule) is the natural next
+lint and is out of scope here.
+
 The six semantic steps sit on 22 ad-hoc primitives (`sm/md/lg/xl`,
 `px9..px13`, `rem60..rem105`, some differing by half a pixel). Collapsing
 those is out of scope here but worth a follow-up.
@@ -406,6 +413,16 @@ into ten jobs; that is harmless. The hand-written
 this change, as does any bare-`:root` `--mantine-color-gray-*` override
 there: both tuples now land in-palette on their own, and the dark block
 would otherwise re-point `dark-7` at the page.
+
+Two more slots Mantine reads from the neutral tuples get a sentence so
+nobody reads them as bugs. `dark-3` (placeholder and disabled text) is
+slate 9, a fill step, which as text measures 3.10 on the input ground; the
+existing bare-`:root` `--mantine-color-placeholder` override loses to
+Mantine's scheme block today, so step 1 scheme-scopes it to
+`--tk-muted-text` (slate 11, 7.64 on the input ground) the way `dimmed`
+already is. Mantine's dark `body` is `dark-7`, the panel, so a Modal's
+content ground in dark is the panel, not `--overlay`; that is accepted, and
+Popover and Paper land on the card through `dark-6` as intended.
 
 `autoContrast` stays off: labels are white per Radix's contract and the
 ledger, not per-cell luminance flips.
