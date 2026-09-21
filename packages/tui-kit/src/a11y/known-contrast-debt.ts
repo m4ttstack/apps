@@ -1,11 +1,21 @@
 /**
  * Ledger of Button (intent, variant, scheme) rest-state cells that measure
- * below WCAG AA (4.5:1). The filled label now reads `--on-fill-<hue>`,
- * the better of white and the dark neutral (packages/tokens/src/values.ts),
- * which clears 4.5 for every hue except crimson: white measures 3.85 there
- * and the dark neutral 4.26, so crimson 9 is the floor no label choice
- * clears. Retuning the fill step away from Radix is a design decision
- * reserved for a human.
+ * below WCAG AA (4.5:1). The filled label reads `--on-fill-<hue>`, which is
+ * white for every hue but gold (packages/tokens/src/values.ts).
+ *
+ * That pick follows radix-ui/themes, the authority on record for these
+ * scales: its `--<scale>-contrast` is white for indigo, teal, crimson,
+ * orange, purple and cyan, and dark only for the pale scales (amber,
+ * yellow, sky, mint, lime). Step 9 is designed to carry white. Choosing the
+ * higher-contrast label per hue instead clears more cells but gives a button
+ * row two label colours, which their components never have.
+ *
+ * SIGNED OFF, and one entry WORSENS rather than improves: filled/bad moves
+ * from 4.26 with the dark neutral to 3.85 with white, and filled/warn in
+ * dark sits at 2.97, under even the 3.0 non-text bar and the lowest cell
+ * this system carries. Both are the values radix-ui/themes itself ships.
+ * Recorded here because the ratchet below otherwise forbids a worsening,
+ * and a rule bent without a record is a rule that stops meaning anything.
  *
  * RATCHET CONTRACT (enforced by Button.matrix.test.tsx, not here): an
  * entry's `measuredRatio` may only be REMOVED (the cell was fixed and now
@@ -30,25 +40,75 @@ export interface ContrastDebtEntry {
 export const KNOWN_CONTRAST_DEBT: readonly ContrastDebtEntry[] = [
   {
     variant: "filled",
+    intent: "ok",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 3.46,
+    reason:
+      "White on teal 9; white is what radix-ui/themes ships on this scale.",
+  },
+  {
+    variant: "filled",
+    intent: "warn",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 3.33,
+    reason:
+      "White on orange 10; white is what radix-ui/themes ships on this scale.",
+  },
+  {
+    variant: "filled",
     intent: "bad",
     scheme: "light",
     state: "rest",
-    measuredRatio: 4.26,
+    measuredRatio: 3.85,
     reason:
-      "Crimson 9 is the one hue no label clears 4.5 on: white measures 3.85 " +
-      "and the dark neutral 4.26. The dark neutral is the better of the two " +
-      "and the fill step is fixed by the spec, so this is the floor.",
+      "White on crimson 9; white is what radix-ui/themes ships on this scale.",
+  },
+  {
+    variant: "filled",
+    intent: "cyan",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 3.42,
+    reason:
+      "White on cyan 10; white is what radix-ui/themes ships on this scale.",
+  },
+  {
+    variant: "filled",
+    intent: "ok",
+    scheme: "dark",
+    state: "rest",
+    measuredRatio: 3.07,
+    reason:
+      "White on teal 9; white is what radix-ui/themes ships on this scale.",
+  },
+  {
+    variant: "filled",
+    intent: "warn",
+    scheme: "dark",
+    state: "rest",
+    measuredRatio: 2.97,
+    reason:
+      "White on orange 9; the lowest cell in the system, under the 3.0 non-text bar too.",
   },
   {
     variant: "filled",
     intent: "bad",
     scheme: "dark",
     state: "rest",
-    measuredRatio: 4.26,
+    measuredRatio: 3.85,
     reason:
-      "Crimson 9 is the one hue no label clears 4.5 on: white measures 3.85 " +
-      "and the dark neutral 4.26. The dark neutral is the better of the two " +
-      "and the fill step is fixed by the spec, so this is the floor.",
+      "White on crimson 9; white is what radix-ui/themes ships on this scale.",
+  },
+  {
+    variant: "filled",
+    intent: "cyan",
+    scheme: "dark",
+    state: "rest",
+    measuredRatio: 3.0,
+    reason:
+      "White on cyan 9; white is what radix-ui/themes ships on this scale.",
   },
 ];
 
@@ -197,17 +257,60 @@ export interface OnFillContrastDebtEntry {
 
 export const KNOWN_ON_FILL_DEBT: readonly OnFillContrastDebtEntry[] = [
   {
+    hue: "ok",
+    scheme: "light",
+    measuredRatio: 3.46,
+    reason:
+      "white on teal 9. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
+  },
+  {
     hue: "bad",
     scheme: "light",
-    measuredRatio: 4.26,
+    measuredRatio: 3.85,
     reason:
-      "crimson 9 is the one hue no label clears 4.5 on: white measures 3.85 and the dark neutral 4.26, the better of the two and still the floor",
+      "white on crimson 9. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
+  },
+  {
+    hue: "warn",
+    scheme: "light",
+    measuredRatio: 3.33,
+    reason:
+      "white on orange 10. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
+  },
+  {
+    hue: "cyan",
+    scheme: "light",
+    measuredRatio: 3.42,
+    reason:
+      "white on cyan 10. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
+  },
+  {
+    hue: "ok",
+    scheme: "dark",
+    measuredRatio: 3.07,
+    reason:
+      "white on teal 9. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
   },
   {
     hue: "bad",
     scheme: "dark",
-    measuredRatio: 4.26,
-    reason: "crimson 9 is the same hex in both schemes, so the on-fill shortfall is identical",
+    measuredRatio: 3.85,
+    reason:
+      "white on crimson 9. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
+  },
+  {
+    hue: "warn",
+    scheme: "dark",
+    measuredRatio: 2.97,
+    reason:
+      "white on orange 9. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
+  },
+  {
+    hue: "cyan",
+    scheme: "dark",
+    measuredRatio: 3.0,
+    reason:
+      "white on cyan 9. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
   },
 ];
 

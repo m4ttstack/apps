@@ -87,7 +87,10 @@ describe("Segmented (browser)", () => {
     const activeStyle = getComputedStyle(buttons[1] as HTMLElement);
     const inactiveStyle = getComputedStyle(buttons[0] as HTMLElement);
     expect(activeStyle.backgroundColor).not.toBe(inactiveStyle.backgroundColor);
-    expect(activeStyle.fontWeight).toBe("700");
+    // Weight carries the selection alongside the fill, so the control still
+    // reads when the fill is the one difference an eye cannot separate.
+    expect(activeStyle.fontWeight).toBe("500");
+    expect(inactiveStyle.fontWeight).toBe("400");
   });
 
   it("labels the active option white on the accent fill, in both schemes", async () => {

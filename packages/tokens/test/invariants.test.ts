@@ -254,18 +254,28 @@ describe('on-fill and vivid text', () => {
         );
       }
     }
-    expect(ledger).toEqual(['light/bad', 'dark/bad']);
+    expect(ledger).toEqual([
+      'light/ok',
+      'light/bad',
+      'light/warn',
+      'light/cyan',
+      'dark/ok',
+      'dark/bad',
+      'dark/warn',
+      'dark/cyan',
+    ]);
   });
 
-  it('on-fill picks the better of white and the dark neutral', () => {
+  it('on-fill is white except on the pale scales', () => {
+    // Radix Themes ships this per scale as `--<scale>-contrast`: white for
+    // every scale here except amber, which gold is built from. Picking the
+    // higher-contrast label per hue instead gives a row two label colours,
+    // which their own components never have.
     const dark = TOKENS.light.textRamp[0];
     for (const scheme of SCHEMES) {
       for (const hue of HUES) {
-        const fill = TOKENS[scheme].hue[hue];
-        const chosen = TOKENS[scheme].hueOnFill[hue];
-        const other = chosen === WHITE ? dark : WHITE;
-        expect(contrastRatio(fill, chosen)).toBeGreaterThanOrEqual(
-          contrastRatio(fill, other)
+        expect(TOKENS[scheme].hueOnFill[hue]).toBe(
+          hue === 'gold' ? dark : WHITE
         );
       }
     }

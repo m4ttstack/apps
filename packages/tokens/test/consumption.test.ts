@@ -206,11 +206,10 @@ const TK_TEXT_SLOT_NAMES = new Set([
 
 // Read by packages/ui/src/app/AppLauncher.module.css, so these are never a
 // real defined-but-unreferenced failure and stay out of this waiver set.
-// The launcher's current-app label pins indigo 11 as a literal until a vivid
-// token ships, so it reads no text name here.
 const TK_APP_LAUNCHER_NAMES = new Set([
   '--tk-fill-accent',
   '--tk-fill-accent-hover',
+  '--tk-text-accent-vivid',
 ]);
 
 const TK_ON_FILL_NAMES = RAMP_HUES.map(h => `--tk-on-fill-${h}`);

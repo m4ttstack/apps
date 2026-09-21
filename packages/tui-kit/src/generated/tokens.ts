@@ -12,7 +12,7 @@ export const GENERATED_LIGHT_COLORS = {
   "green": {
     "500": "#0d9b8a",
     "hover": "color-mix(in srgb, #0d9b8a 88%, #1c2024)",
-    "onFill": "#1c2024",
+    "onFill": "#ffffff",
     "text": "#0d3d38",
     "textSmall": "#0d3d38",
     "textVivid": "#008573"
@@ -20,7 +20,7 @@ export const GENERATED_LIGHT_COLORS = {
   "red": {
     "500": "#e93d82",
     "hover": "#df3478",
-    "onFill": "#1c2024",
+    "onFill": "#ffffff",
     "text": "#621639",
     "textSmall": "#621639",
     "textVivid": "#cb1d63"
@@ -28,7 +28,7 @@ export const GENERATED_LIGHT_COLORS = {
   "amber": {
     "500": "#ef5f00",
     "hover": "color-mix(in srgb, #ef5f00 88%, #1c2024)",
-    "onFill": "#1c2024",
+    "onFill": "#ffffff",
     "text": "#582d1d",
     "textSmall": "#582d1d",
     "textVivid": "#cc4e00"
@@ -44,7 +44,7 @@ export const GENERATED_LIGHT_COLORS = {
   "cyan": {
     "500": "#0797b9",
     "hover": "color-mix(in srgb, #0797b9 88%, #1c2024)",
-    "onFill": "#1c2024",
+    "onFill": "#ffffff",
     "text": "#0d3c48",
     "textSmall": "#0d3c48",
     "textVivid": "#107d98"
@@ -122,7 +122,7 @@ export const GENERATED_DARK_COLORS = {
   "green": {
     "500": "#12a594",
     "hover": "#0eb39e",
-    "onFill": "#1c2024",
+    "onFill": "#ffffff",
     "text": "#0bd8b6",
     "textSmall": "#adf0dd",
     "textVivid": "#0bd8b6"
@@ -130,7 +130,7 @@ export const GENERATED_DARK_COLORS = {
   "red": {
     "500": "#e93d82",
     "hover": "#ee518a",
-    "onFill": "#1c2024",
+    "onFill": "#ffffff",
     "text": "#ff92ad",
     "textSmall": "#fdd3e8",
     "textVivid": "#ff92ad"
@@ -138,7 +138,7 @@ export const GENERATED_DARK_COLORS = {
   "amber": {
     "500": "#f76b15",
     "hover": "#ff801f",
-    "onFill": "#1c2024",
+    "onFill": "#ffffff",
     "text": "#ffa057",
     "textSmall": "#ffe0c2",
     "textVivid": "#ffa057"
@@ -154,7 +154,7 @@ export const GENERATED_DARK_COLORS = {
   "cyan": {
     "500": "#00a2c7",
     "hover": "#23afd0",
-    "onFill": "#1c2024",
+    "onFill": "#ffffff",
     "text": "#4ccce6",
     "textSmall": "#b6ecf7",
     "textVivid": "#4ccce6"

@@ -78,7 +78,7 @@
     color: var(--text-accent-small);
     cursor: pointer;
     font: inherit;
-    font-weight: 600;
+    font-weight: 500;
     padding: var(--spacing-rem20) var(--spacing-rem40);
     border-radius: var(--radius-px5);
   }

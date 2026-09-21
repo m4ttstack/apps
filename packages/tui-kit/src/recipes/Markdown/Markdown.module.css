@@ -22,7 +22,7 @@
   .root h2,
   .root h3,
   .root h4 {
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1.25;
     margin: var(--sb-markdown-heading-margin-top) 0 var(--sb-markdown-heading-margin-bottom);
   }

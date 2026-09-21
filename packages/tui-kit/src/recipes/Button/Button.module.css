@@ -65,7 +65,7 @@
   }
 
   .root[data-variant="filled"] {
-    font-weight: 600;
+    font-weight: 500;
   }
 
   /* `--spacing-xxs` read as too tight around a 14px Icon glyph — bumped to

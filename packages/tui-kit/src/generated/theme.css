@@ -7,7 +7,7 @@
     color-scheme: light;
     --color-amber-500: light-dark(#ef5f00, #f76b15);
     --color-amber-hover: light-dark(color-mix(in srgb, #ef5f00 88%, #1c2024), #ff801f);
-    --color-amber-onFill: light-dark(#1c2024, #1c2024);
+    --color-amber-onFill: light-dark(#ffffff, #ffffff);
     --color-amber-text: light-dark(#582d1d, #ffa057);
     --color-amber-textSmall: light-dark(#582d1d, #ffe0c2);
     --color-amber-textVivid: light-dark(#cc4e00, #ffa057);
@@ -19,7 +19,7 @@
     --color-blue-textVivid: light-dark(#3a5bc7, #9eb1ff);
     --color-cyan-500: light-dark(#0797b9, #00a2c7);
     --color-cyan-hover: light-dark(color-mix(in srgb, #0797b9 88%, #1c2024), #23afd0);
-    --color-cyan-onFill: light-dark(#1c2024, #1c2024);
+    --color-cyan-onFill: light-dark(#ffffff, #ffffff);
     --color-cyan-text: light-dark(#0d3c48, #4ccce6);
     --color-cyan-textSmall: light-dark(#0d3c48, #b6ecf7);
     --color-cyan-textVivid: light-dark(#107d98, #4ccce6);
@@ -43,7 +43,7 @@
     --color-gray-warnText: light-dark(#582d1d, #ffa057);
     --color-green-500: light-dark(#0d9b8a, #12a594);
     --color-green-hover: light-dark(color-mix(in srgb, #0d9b8a 88%, #1c2024), #0eb39e);
-    --color-green-onFill: light-dark(#1c2024, #1c2024);
+    --color-green-onFill: light-dark(#ffffff, #ffffff);
     --color-green-text: light-dark(#0d3d38, #0bd8b6);
     --color-green-textSmall: light-dark(#0d3d38, #adf0dd);
     --color-green-textVivid: light-dark(#008573, #0bd8b6);
@@ -70,7 +70,7 @@
     --color-purple-textVivid: light-dark(#8145b5, #d19dff);
     --color-red-500: light-dark(#e93d82, #e93d82);
     --color-red-hover: light-dark(#df3478, #ee518a);
-    --color-red-onFill: light-dark(#1c2024, #1c2024);
+    --color-red-onFill: light-dark(#ffffff, #ffffff);
     --color-red-text: light-dark(#621639, #ff92ad);
     --color-red-textSmall: light-dark(#621639, #fdd3e8);
     --color-red-textVivid: light-dark(#cb1d63, #ff92ad);

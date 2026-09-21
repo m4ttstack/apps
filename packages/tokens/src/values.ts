@@ -1,4 +1,3 @@
-import { contrastRatio } from './color-math.ts';
 import { RADIX, type RadixScaleName, type Scale12 } from './radix.ts';
 
 export const HUES = [
@@ -131,11 +130,13 @@ function buildScheme(spec: SchemeSpec): ColorScheme {
   const s = (i: RampIndex4) => surfaceRamp[i - 1]!;
   const t = (i: RampIndex4) => textRamp[i - 1]!;
   const l = (i: RampIndex3) => lineRamp[i - 1]!;
-  const hueValue = (pick: (scale: Scale12, step: HueStep) => string): HueSet =>
+  const hueValue = (
+    pick: (scale: Scale12, step: HueStep, hue: HueName) => string
+  ): HueSet =>
     Object.fromEntries(
       HUES.map(h => [
         h,
-        pick(RADIX[HUE_SCALE[h]][spec.scheme], spec.hueStep[h]),
+        pick(RADIX[HUE_SCALE[h]][spec.scheme], spec.hueStep[h], h),
       ])
     ) as HueSet;
   const hue = hueValue((scale, step) => at(scale, step.fill));
@@ -148,16 +149,17 @@ function buildScheme(spec: SchemeSpec): ColorScheme {
   );
   const hueText = hueValue((scale, step) => at(scale, step.text));
   const hueTextSmall = hueValue(scale => at(scale, 12));
-  // Radix's step 9 and 10 are chosen to carry a white label, but only the two
-  // blue-violet hues actually do: on the other five a white label measures
-  // 1.58 to 3.85 while the dark neutral measures 4.26 to 10.38. The winner is
-  // the same in both schemes for every hue, so this is a property of the hue.
+  // Radix Themes ships this decision per scale as `--<scale>-contrast`, and
+  // it is white for every scale we use except amber. Only the pale scales
+  // (amber, yellow, sky, mint, lime) take a dark label there, and
+  // `--sky-contrast` is `#1c2024`, the same neutral used here. Step 9 is
+  // designed to carry white; maximising each hue's label ratio instead
+  // produces a row with two label colours, which their own components never
+  // have. The ratios white misses by are ledgered rather than designed away.
   const onFillDark = RADIX.slate.light[11]!;
-  const hueOnFill = hueValue((scale, step) =>
-    contrastRatio(at(scale, step.fill), '#ffffff') >=
-    contrastRatio(at(scale, step.fill), onFillDark)
-      ? '#ffffff'
-      : onFillDark
+  const PALE_SCALES = new Set<RadixScaleName>(['amber']);
+  const hueOnFill = hueValue((_scale, _step, hue) =>
+    PALE_SCALES.has(HUE_SCALE[hue]) ? onFillDark : '#ffffff'
   );
   // Step 11 unconditionally. `hueText` promotes to 12 wherever 11 misses 4.5,
   // which in light is five of the seven hues, so it cannot name this step.

@@ -26,6 +26,10 @@
     background: transparent;
     border: none;
     color: var(--text-3);
+    /* The active option steps up to 500. Radix Themes marks the selection
+       with weight as well as fill, so the control still reads when the fill
+       is the only thing a colour-blind eye cannot separate. */
+    font-weight: 400;
   }
 
   .option + .option {
@@ -37,7 +41,7 @@
     /* --on-fill-accent, not --bg: --bg is the page ground, and dark
        scheme's page-on-accent measures 3.62, under the 4.5 AA floor. */
     color: var(--on-fill-accent);
-    font-weight: 700;
+    font-weight: 500;
   }
 
   .option:not([data-active]):hover {
