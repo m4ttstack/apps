@@ -53,6 +53,7 @@
     "tokens:test": "cd packages/tokens && bun run test",
     "tokens:codegen": "bun run packages/tokens/scripts/generate.ts",
     "tokens:radix": "bun run packages/tokens/scripts/generate-radix.ts",
+    "tokens:ramps": "bun run packages/tokens/scripts/generate-ramps.ts",
     "gate-kit:test": "cd packages/gate-kit && bun run test",
     "chat:typecheck": "cd apps/chat && bun run typecheck",
     "chat:lint": "cd apps/chat && bun run lint",

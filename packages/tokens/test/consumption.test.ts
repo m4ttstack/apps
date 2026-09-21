@@ -186,6 +186,10 @@ const WAIVED_TOKYO: Record<string, string> = {
     'AA-compliant warn text companion to --tk-accent-text, added for the review-gate redesign; no packages/ui component wires it yet.',
   '--tk-badge-text':
     'darkened small-badge text companion, added for the review-gate redesign; no packages/ui component wires it yet.',
+  '--tk-muted':
+    "raw neutral fill, kept for parity with tui-kit's --muted until the step-5 audit",
+  '--tk-border-soft':
+    "soft rule, kept for parity with tui-kit's --border-soft; no packages/ui component wires it yet",
 };
 
 const REPO_ROOT = join(import.meta.dirname, '..', '..', '..');

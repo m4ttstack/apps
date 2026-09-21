@@ -6,6 +6,7 @@ import {
   FONT_SMOOTHING_END_MARKER,
   renderFontSmoothing,
 } from '../src/fragments.ts';
+import { mantinePins } from '../src/mantine-pins.ts';
 import {
   CSS_TEXT,
   HUES,
@@ -276,6 +277,12 @@ function renderTokyoSchemeBlock(scheme: 'light' | 'dark'): string {
   ].join('\n');
 }
 
+function renderMantinePins(scheme: 'light' | 'dark'): string {
+  return Object.entries(mantinePins(scheme))
+    .map(([name, value]) => `  ${name}: ${value};`)
+    .join('\n');
+}
+
 /**
  * Splices `body` between one BEGIN/END marker pair, replacing whatever
  * currently sits there. The markers themselves are left untouched --
@@ -370,6 +377,16 @@ function generateTokyoThemeCss(): string {
     css,
     '/* BEGIN GENERATED: tokyo tokens dark */',
     renderTokyoSchemeBlock('dark')
+  );
+  css = spliceGenerated(
+    css,
+    '/* BEGIN GENERATED: mantine pins light */',
+    renderMantinePins('light')
+  );
+  css = spliceGenerated(
+    css,
+    '/* BEGIN GENERATED: mantine pins dark */',
+    renderMantinePins('dark')
   );
   css = upsertFontSmoothingFragment(css);
   return css;
