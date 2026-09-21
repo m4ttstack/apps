@@ -274,13 +274,12 @@ body {
   table-layout: fixed;
 }
 
-/* Each section's table is a raised panel on the canvas ground (--bg, set by
-   canvas.css), the same relationship board's own Panel wrapper gives its row
-   groups. Inks inside it (suffixes, pids, hairlines) take the kit's on-card
-   roles rather than the canvas-tuned --muted/--border those default to --
-   the tokens package pins the on-card roles at or above AA against --card
-   (packages/tokens invariants test), where the plain roles are tuned for
-   --bg and fall short on the lighter card surface. */
+/* Each section's table is a raised panel on the canvas ground (--page), the
+   same relationship board's own Panel wrapper gives its row groups. Inks inside it (suffixes, pids, hairlines) take the kit's on-card
+   roles rather than the canvas-tuned --muted/--border kit components default
+   to -- the tokens package pins the on-card roles at or above AA against
+   --card (packages/tokens invariants test), where the plain roles are tuned
+   for the page ground and fall short on the lighter card surface. */
 .apps-grid {
   background: var(--card);
   border: 1px solid var(--border-on-card);
@@ -456,7 +455,7 @@ body {
 }
 
 /* Logs: a genuinely dark surface regardless of page scheme. The kit's
-   `light-dark()`-defined tokens (--bg/--fg/--border) collapse to one branch
+   `light-dark()`-defined tokens (--page/--text-1/--border) collapse to one branch
    once at `:root` -- a descendant's own `color-scheme` cannot re-resolve a
    `var()` that has already been substituted upstream, so there is no token
    chain that pins a leaf element dark in day scheme. `--terminal-bg`/

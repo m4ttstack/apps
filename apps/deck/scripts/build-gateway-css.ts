@@ -16,7 +16,7 @@ function readTokens(colors: typeof tuiTheme.tokens.colors) {
     border: colors.line!.border!,
     'fill-accent': colors.blue!['500']!,
     'text-accent': colors.blue!['text']!,
-    'text-bad': colors.red!['text']!,
+    'text-bad-small': colors.red!['textSmall']!,
   };
 }
 
