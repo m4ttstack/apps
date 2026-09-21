@@ -3042,7 +3042,7 @@ rendered UI rather than from the spec.
 `--on-fill-<hue>` exists because "white on a hue fill" is wrong for four of
 the six hues. `--text-<hue>-vivid` exists because `--text-<hue>` is defined
 as the first step from 11 upward clearing 4.5, so it silently resolves to
-step 12 in light for ok, warn and cyan, and there is no token that names
+step 12 in light for ok, bad, warn and cyan, and there is no token that names
 step 11 unconditionally.
 
 ### Task 12: Emit `--on-fill-<hue>` and `--text-<hue>-vivid`, retune the filled label, rewrite the ledger
