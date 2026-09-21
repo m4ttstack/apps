@@ -8,7 +8,13 @@
 /** Every phone header/drawer control is 44px -- `.aicon.tap`, the hit-target
     floor CONFORMANCE.md pins. */
 export const PHONE_TAP = 44;
-export const PHONE_MUTED = 'var(--tk-muted-text)';
+/** Small band: every direct text use (`App.tsx`'s phone header/inbox rows)
+    sits outside `ThemeOverrideWrapper theme={chatFontTheme}`, and
+    `tapButtonStyle`'s icon-only buttons carry no text glyph to band at all,
+    so this stays the shared default. `RoomRail.tsx`'s one `chatFontTheme`
+    text use reads `PHONE_MUTED_META` instead. */
+export const PHONE_MUTED = 'var(--tk-text-4)';
+export const PHONE_MUTED_META = 'var(--tk-text-3)';
 export const PHONE_BORDER = 'var(--tk-border)';
 
 export function tapButtonStyle(size: number) {

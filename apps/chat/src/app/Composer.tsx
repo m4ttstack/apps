@@ -19,12 +19,16 @@ import { HUMAN_HANDLE } from './human';
 import { STATUS_WORD } from './statusDetail';
 import { useAutoGrowTextarea } from './use-auto-grow-textarea';
 
-const MUTED = 'var(--tk-muted-text)';
-const MUTED_DIM = 'var(--tk-muted)';
+/** `size="xs"` sites (13px under `chatFontTheme`, meta band). */
+const MUTED_META = 'var(--tk-text-3)';
+/** `size="sm"` and the composer input itself (15-16px under
+    `chatFontTheme`, body band). */
+const MUTED_BODY = 'var(--tk-text-2)';
+const MUTED_DIM = 'var(--tk-text-3)';
 const INPUT_LINE_HEIGHT = 1.4;
 const BORDER = 'var(--tk-border)';
 const BORDER_SOFT = 'var(--tk-border-soft)';
-const PURPLE = 'var(--tk-purple)';
+const PURPLE = 'var(--tk-text-purple-small)';
 const ACCENT_TEXT = 'var(--mantine-color-accent-text)';
 
 const STATUS_TEXT_COLOR: Record<'live' | 'idle', string> = {
@@ -154,7 +158,10 @@ function BuddyOption({
   const subtext = !inRoom
     ? { text: `not in #${room}, DM instead`, color: PURPLE }
     : task
-      ? { text: task.text, color: task.kind === 'path' ? MUTED_DIM : MUTED }
+      ? {
+          text: task.text,
+          color: task.kind === 'path' ? MUTED_DIM : MUTED_META,
+        }
       : undefined;
 
   return (
@@ -233,14 +240,14 @@ function HereOption({
           display: 'flex',
           alignItems: 'center',
           width: '100%',
-          color: MUTED,
+          color: MUTED_BODY,
         }}
       >
         @here
         <Text
           component="span"
           size="xs"
-          style={{ color: MUTED, marginLeft: 'auto' }}
+          style={{ color: MUTED_META, marginLeft: 'auto' }}
         >
           wakes {count} agents
         </Text>
@@ -490,7 +497,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
               radius="lg"
               p="md"
               bg={!daemonReachable ? 'var(--tk-panel)' : 'var(--tk-card)'}
-              c={!daemonReachable ? MUTED : undefined}
+              c={!daemonReachable ? MUTED_BODY : undefined}
               bd={`1px ${!daemonReachable ? 'dashed' : 'solid'} ${inputBorderColor}`}
             >
               <textarea

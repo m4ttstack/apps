@@ -48,10 +48,10 @@ export function Tag({ handle, room }: { handle: string; room: string }) {
         whiteSpace: 'nowrap',
         border: `1px solid ${
           isDm
-            ? 'color-mix(in srgb, var(--tk-purple) 45%, transparent)'
+            ? 'color-mix(in srgb, var(--tk-fill-purple) 45%, transparent)'
             : 'var(--tk-border-soft)'
         }`,
-        color: isDm ? 'var(--tk-purple)' : 'var(--tk-muted-text)',
+        color: isDm ? 'var(--tk-text-purple-small)' : 'var(--tk-text-4)',
       }}
     >
       {isDm ? 'dm' : `#${room}`}

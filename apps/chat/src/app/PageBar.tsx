@@ -248,10 +248,10 @@ function RoomMembers({
           leftSection={
             <Group gap={3} wrap="nowrap">
               {live.length > 0 && (
-                <Dot color="var(--tk-dot-ok)" testId="members-dot-live" />
+                <Dot color="var(--tk-fill-ok)" testId="members-dot-live" />
               )}
               {idle.length > 0 && (
-                <Dot color="var(--tk-dot-warn)" testId="members-dot-idle" />
+                <Dot color="var(--tk-fill-warn)" testId="members-dot-idle" />
               )}
               {live.length === 0 && idle.length === 0 && (
                 <Dot hollow testId="members-dot-off" />

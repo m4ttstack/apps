@@ -285,7 +285,7 @@ export function AgentCard({
             color:
               reachable && status !== 'offline'
                 ? STATUS_TEXT_COLOR[status]
-                : 'var(--tk-muted-text)',
+                : 'var(--tk-text-4)',
           }}
         >
           {reachable ? STATUS_WORD[buddy.status] : '—'}

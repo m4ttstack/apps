@@ -483,11 +483,11 @@ function PhoneHeader({
       >
         {reachable ? (
           <>
-            <FleetDot color="var(--tk-dot-ok)" />
+            <FleetDot color="var(--tk-fill-ok)" />
             <Text size="xs" style={{ color: 'var(--mantine-color-ok-text)' }}>
               {live}
             </Text>
-            <FleetDot color="var(--tk-dot-warn)" />
+            <FleetDot color="var(--tk-fill-warn)" />
             <Text size="xs" style={{ color: 'var(--mantine-color-warn-text)' }}>
               {idle}
             </Text>

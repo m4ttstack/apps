@@ -3,14 +3,22 @@ import { Badge } from '@mattstack/app-kit/core';
 
 export type ChipTone = 'muted' | 'dm' | 'warn' | 'ok' | 'accent';
 
-/** The one border/text colour per tone. `muted` is the plain hairline chip;
-    the rest tint a 45%-transparent border to match their text. */
+/** The border-wash colour per tone. `muted` is the plain hairline chip; the
+    rest tint a 45%-transparent border to match their text. */
 const TONE_COLOR: Record<ChipTone, string | null> = {
   muted: null,
-  dm: 'var(--tk-purple)',
+  dm: 'var(--tk-fill-purple)',
   warn: 'var(--mantine-color-warn-text)',
   ok: 'var(--mantine-color-ok-text)',
   accent: 'var(--mantine-color-accent-text)',
+};
+
+/** The label's own text colour per tone. Same as `TONE_COLOR` except `dm`:
+    a hue's fill and its small-band text step are different role tokens, so
+    a chip's border wash and its label can no longer share one value. */
+const TONE_TEXT: Record<ChipTone, string | null> = {
+  ...TONE_COLOR,
+  dm: 'var(--tk-text-purple-small)',
 };
 
 export interface ChipProps {
@@ -72,7 +80,7 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>(function Chip(
         ? `color-mix(in srgb, ${color} 45%, transparent)`
         : 'var(--tk-border-soft)'
     }`,
-    color: color ?? 'var(--tk-muted-text)',
+    color: TONE_TEXT[tone] ?? 'var(--tk-text-4)',
     background: highlighted ? 'var(--ui-bg-4)' : 'transparent',
     cursor: interactive ? 'pointer' : undefined,
   };

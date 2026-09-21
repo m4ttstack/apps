@@ -415,7 +415,7 @@ function RoomRow({
       <Icon
         name="hash"
         size={14}
-        color={active ? ACCENT_TEXT : 'var(--tk-muted-text)'}
+        color={active ? ACCENT_TEXT : 'var(--tk-text-2)'}
         style={{ flex: 'none' }}
       />
       <Text

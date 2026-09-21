@@ -10,7 +10,7 @@ import { useColorScheme, useHover } from '@mattstack/app-kit/hooks';
 import { Icon } from '@mattstack/app-kit/icons';
 
 import { FleetTree, type FleetRoom } from './FleetTree';
-import { PHONE_MUTED, PHONE_TAP, tapButtonStyle } from './phone-chrome';
+import { PHONE_MUTED_META, PHONE_TAP, tapButtonStyle } from './phone-chrome';
 import { MUTED_XS } from './presence-bits';
 import type { RosterBuddy } from './roster-types';
 
@@ -291,7 +291,7 @@ export function FleetDrawer({
           wrap="nowrap"
           style={{ padding: '0 0 0 var(--mantine-spacing-md)', flex: 'none' }}
         >
-          <Text size="xs" style={{ color: PHONE_MUTED }}>
+          <Text size="xs" style={{ color: PHONE_MUTED_META }}>
             {daemonReachable ? 'rt daemon answering' : 'rt daemon unreachable'}
           </Text>
           <UnstyledButton
