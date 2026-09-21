@@ -283,6 +283,9 @@
     "packages/tokens": {
       "name": "@mattstack/tokens",
       "version": "0.0.0",
+      "devDependencies": {
+        "@radix-ui/colors": "catalog:",
+      },
     },
     "packages/tokyo": {
       "name": "@mattstack/mantine-tokyo",
@@ -380,6 +383,7 @@
     "@mantine/spotlight": "^9.5.2",
     "@mattstack/glance": "^0.24.0",
     "@mattstack/rt-client": "0.27.0",
+    "@radix-ui/colors": "^3.0.0",
     "@tanstack/react-query": "^5.102.0",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.13.2",
@@ -773,6 +777,8 @@
     "@oxc-resolver/binding-win32-x64-msvc": ["@oxc-resolver/binding-win32-x64-msvc@11.21.2", "", { "os": "win32", "cpu": "x64" }, "sha512-VPoCAhKvCQTlG7vxqaBXcmuvbh77BfnGXj8g0pbvVXpm1F/R8rDVwqIWcEbMzrI1JvJlm8v7T9uMVQb6UctMRg=="],
 
     "@polka/url": ["@polka/url@1.0.0-next.29", "", {}, "sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww=="],
+
+    "@radix-ui/colors": ["@radix-ui/colors@3.0.0", "", {}, "sha512-FUOsGBkHrYJwCSEtWRCIfQbZG7q1e6DgxCIOe1SUQzDe/7rXXeA47s8yCn6fuTNQAj1Zq4oTFi9Yjp3wzElcxg=="],
 
     "@rolldown/binding-android-arm-eabi": ["@rolldown/binding-android-arm-eabi@1.2.6", "", { "os": "android", "cpu": "arm" }, "sha512-b+jTcARdTiFLI6jB4a5XjTm0RWd6KcRfQj/I2356fxUZemiho9zQLxo0RtCuMDAyKcLo6cEltkgbQp6d1+sjjQ=="],
 

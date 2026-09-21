@@ -9,5 +9,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
+  },
+  "devDependencies": {
+    "@radix-ui/colors": "catalog:"
   }
 }
