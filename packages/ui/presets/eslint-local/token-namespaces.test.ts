@@ -1,8 +1,10 @@
+import css from '@eslint/css';
 import { RuleTester } from 'eslint';
 import tseslint from 'typescript-eslint';
 import { describe, expect, it } from 'vitest';
 
 import { classifyTokenUse } from './token-namespaces.js';
+import tokenNamespacesCss from './token-namespaces-css.js';
 import tokenNamespacesTsx from './token-namespaces-tsx.js';
 
 describe('classifyTokenUse', () => {
@@ -59,11 +61,49 @@ describe('local/token-namespaces (tsx)', () => {
       { code: 'const s = { color: "var(--text-3)", background: "var(--card)" };' },
       { code: 'const s = { borderColor: `1px solid var(--border-soft)` };' },
       { code: 'const s = { "--gate-muted": "var(--text-muted-on-card)" };' },
+      // on-fill label tokens are legal as a text colour; the classifier
+      // must not treat --on-fill-* as a --fill-* misuse by prefix overlap.
+      { code: 'const s = { color: "var(--on-fill-warn)" };' },
+      // a var() named only inside a comment is not code; the ESTree
+      // walker never visits comment tokens as Property nodes.
+      { code: '// color: var(--fill-warn)\nconst s = { color: "var(--text-3)" };' },
+      { code: '/* color: var(--fill-warn) */\nconst s = { color: "var(--text-3)" };' },
     ],
     invalid: [
       { code: 'const s = { color: "var(--fill-warn)" };', errors: [{ messageId: 'misuse' }] },
       { code: 'const s = { background: "var(--surface-2)" };', errors: [{ messageId: 'misuse' }] },
       { code: 'const s = { backgroundColor: `var(--text-2)` };', errors: [{ messageId: 'misuse' }] },
+    ],
+  });
+});
+
+const cssTester = new RuleTester({
+  plugins: { css },
+  language: 'css/css',
+});
+
+describe('local/token-namespaces-css', () => {
+  cssTester.run('token-namespaces-css', tokenNamespacesCss, {
+    valid: [
+      { code: '.a { color: var(--text-3); background: var(--card); }' },
+      { code: '.a { border: 1px solid var(--border-soft); outline: 2px solid var(--border-control); }' },
+      { code: '.a { --gate-muted: var(--text-muted-on-card); }' },
+      { code: '.a { background: color-mix(in srgb, var(--fill-warn) 9%, transparent); }' },
+      // a fill token painting a border is common and legal; only the
+      // literal `color` property is banned for --fill-*, not the
+      // `border-color` tail a substring match on "color:" would catch.
+      { code: '.a { border-color: var(--fill-accent); }' },
+      // a var() named only inside a CSS comment is not a declaration.
+      { code: '.a { /* color: var(--fill-warn); */ background: var(--card); }' },
+      // on-fill label tokens are legal as text colour.
+      { code: '.a { color: var(--on-fill-warn); }' },
+    ],
+    invalid: [
+      { code: '.a { color: var(--fill-warn); }', errors: [{ messageId: 'misuse' }] },
+      { code: '.a { color: color-mix(in srgb, var(--fill-warn) 86%, #000); }', errors: [{ messageId: 'misuse' }] },
+      { code: '.a { background: var(--surface-1); }', errors: [{ messageId: 'misuse' }] },
+      { code: '.a { border-color: var(--surface-card); }', errors: [{ messageId: 'misuse' }] },
+      { code: '.a { background: var(--text-2); }', errors: [{ messageId: 'misuse' }] },
     ],
   });
 });

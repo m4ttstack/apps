@@ -117,6 +117,16 @@ where autofill is actually wanted: `autoComplete="on"`, or a specific
 token (`autoComplete="email"`, `"current-password"`, ...) on real
 login/signup/profile fields.
 
+### Token namespaces (lint)
+
+`local/token-namespaces` (style objects) and `local/token-namespaces-css`
+(stylesheets) enforce the ramp namespaces: `--text-*` only in `color`,
+`--surface-*` only in backgrounds and `fill`, `--border-*` only in border
+and outline properties, `--fill-*` never in `color`, and the numeric
+ramp steps `--surface-N` / `--line-N` never outside the tokens package.
+An app that uses `mattstackEslint()` gets the first rule; add the CSS
+block from the root `eslint.config.js` to lint its stylesheets.
+
 ## 2. Adding a component: kit vs. app
 
 **Add it to the kit (`packages/ui/src/core/<name>/`)** when the component
