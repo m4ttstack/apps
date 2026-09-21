@@ -95,9 +95,9 @@ not lightness.
 
 | | light | Radix | vs text | dark | Radix | vs text | role |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `surface-1` | `#ffffff` | white | 16.39 | `#111113` | slate 1 | 16.25 | light: sheets, cards. dark: the page, insets, overlays |
+| `surface-1` | `#ffffff` | white | 16.39 | `#111113` | slate 1 | 16.25 | light: sheets, cards. dark: the page and insets |
 | `surface-2` | `#f9f9fb` | slate 2 | 15.58 | `#18191b` | slate 2 | 15.15 | light: panels, overlays. dark: panels, chrome |
-| `surface-3` | `#f0f0f3` | slate 3 | 14.41 | `#212225` | slate 3 | 13.70 | light: the page, insets. dark: sheets, cards |
+| `surface-3` | `#f0f0f3` | slate 3 | 14.41 | `#212225` | slate 3 | 13.70 | light: the page, insets. dark: sheets, cards, overlays |
 | `surface-4` | `#e8e8ec` | slate 4 | 13.41 | `#272a2d` | slate 4 | 12.43 | light: rows, chrome. dark: raised (hover, active) |
 
 Light keeps pure white as `surface-1` because cards are white today and
@@ -115,9 +115,13 @@ little darker than the old scheme (panel `#fbfbfc` to `#f9f9fb`, the page
 `#f7f8fa` to `#f0f0f3`, chrome `#f3f4f7` to `#e8e8ec`); dark loses its blue
 tint (slate is a cool gray, our old ramp was a blue
 gray), the page darkens from `#16161e` to `#111113`, and cards move from
-`#1e2030` to `#212225`. `inset` and `overlay` in dark both land on
-`surface-1`; `invariants.test.ts` (inset darker than card, overlay no
-lighter than panel) holds.
+`#1e2030` to `#212225`. `inset` in dark lands on `surface-1`. `overlay` does not: dark's page
+IS `surface-1`, so a modal ground there is the page's own hex and the
+dialog has no edge against what it covers. It sits on `surface-3`, level
+with the card, which is where Material puts a modal's resting elevation.
+The invariant is that `overlay` differs from the page, which light
+satisfies too; the earlier rule capped `overlay` at the panel and is what
+produced the collision.
 
 ## 4. Two layers
 
@@ -142,7 +146,7 @@ mapping is free to differ per scheme.
 
   --card: var(--surface-3);     --panel:   var(--surface-2);
   --page: var(--surface-1);     --chrome:  var(--surface-2);
-  --inset: var(--surface-1);    --overlay: var(--surface-1);
+  --inset: var(--surface-1);    --overlay: var(--surface-3);
   --raised: var(--surface-4);
 }
 ```
@@ -553,13 +557,15 @@ moving the labels and the ledger cannot be green.
    Button variant from `--color-<family>-500` (the fill) with mix weights
    tuned against the old palette, reads the hue text tokens in both
    schemes: `outline`/`subtle` text from `--text-<hue>`, the tinted `light`
-   variant's text from `--text-<hue>-small`, `filled` labels white (the
-   neutral fill's label `light-dark(<text-1>, #ffffff)`), `filled` hover
+   variant's text from `--text-<hue>-small`, `filled` labels from
+   `--on-fill-<hue>` (white for accent and purple, the dark neutral for the
+   rest; the neutral fill keeps `light-dark(<text-1>, #ffffff)`), `filled` hover
    from `--fill-<hue>-hover` so tui-kit and Mantine hover to the same
    colour. The `muted` intent is not a hue: its `outline`/`subtle` text is
    `--text-2` and its `light` text `--text-4` (slate 11 and 12). `Button.tsx`'s
    pinned `default|bad` colour reads `--text-bad`. `known-contrast-debt.ts`
-   is rewritten to the eight filled cells in §7 and nothing else, and the
+   carries four families (fill, on-fill, vivid text, line), each keyed
+   finely enough that no scheme or surface can fall through a branch, and the
    ratchet holds from there. Then `bun run tokens:codegen`, tui-kit
    codegen, and `cd apps/deck && bun run build:board` for the vendored
    copies.
@@ -638,9 +644,10 @@ them.
   every colour from Radix Colors, whose scales keep hue by design and
   come with both schemes and a twelve-step contract, and replaces the
   solver, the dark hue correction and the OKLab generator with step
-  numbers chosen by rule. The cost is stated in §7: five fills and eight
-  filled-button labels under their bars, ledgered, against nineteen ledger
-  entries today.
+  numbers chosen by rule. The cost is stated in §7 and carried in the
+  ledger: six hue fills under the 3.0 bar, one filled-button label under
+  4.5, twelve vivid-text cells under 4.5 in light, and five control edges
+  under 3.0.
 - **The first Radix draft put light's surfaces on slate 1 to 3.** That
   spans 16.39 to 14.41 against `text-1`, and rendered as four
   near-identical whites while dark's four steps were plainly distinct. The

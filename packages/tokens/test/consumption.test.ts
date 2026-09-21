@@ -227,7 +227,7 @@ const WAIVED_TOKYO: Record<string, string> = {
     TK_ON_FILL_NAMES.map(name => [name, TK_ON_FILL_WAIVER])
   ),
   '--tk-overlay':
-    "modal/overlay chrome role (dark sits below panel, light equals it), mirrored from the tui theme's --surface-overlay; no packages/ui component wires this surface yet.",
+    "modal/overlay chrome role (dark sits level with the card so a dialog has an edge against the page, light sits above it), mirrored from the tui theme's --surface-overlay; no packages/ui component wires this surface yet.",
   '--tk-soft-on-card':
     "soft rule for card grounds (dark's --tk-border-soft is darker than the card it frames), mirrored from the tui theme's --border-soft-on-card; no packages/ui component wires it yet.",
   '--tk-red-text':

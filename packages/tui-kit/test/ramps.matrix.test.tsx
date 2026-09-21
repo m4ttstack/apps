@@ -10,6 +10,8 @@ import { render } from "vitest-browser-react/pure";
 import {
   FILL_DEBT_BY_KEY,
   fillDebtKey,
+  LINE_DEBT_BY_KEY,
+  lineDebtKey,
   ON_FILL_DEBT_BY_KEY,
   onFillDebtKey,
   VIVID_TEXT_DEBT_BY_KEY,
@@ -120,11 +122,11 @@ describe("ramp contrast matrix (text steps, hue text, on-fill labels and fills a
       {
         const line = fillRatio("line-1", s);
         const label = `${scheme} line-1 on surface-${s} ratio=${line.toFixed(3)}`;
-        const debt = FILL_DEBT_BY_KEY.get(fillDebtKey({ hue: "line-1", scheme }));
-        if (debt && s === 4) {
+        const debt = LINE_DEBT_BY_KEY.get(lineDebtKey({ scheme, surface: s }));
+        if (debt) {
           expect(line, `${label} regressed below its known-contrast-debt.ts floor`).toBeGreaterThanOrEqual(debt.measuredRatio - 0.05);
           expect(line, `${label} cleared ${FILL_BAR}; remove its entry`).toBeLessThan(FILL_BAR);
-        } else if (scheme === "dark") {
+        } else {
           expect(line, label).toBeGreaterThanOrEqual(FILL_BAR);
         }
       }

@@ -185,31 +185,6 @@ test("the census tables are the shape this suite expects", () => {
 // so no colour still carries its mr-board census literal; both colour sweeps
 // are empty and the "ramps" block further down covers every colour against
 // the tokens package instead. Fonts keep their own block below.
-const LIGHT_COLORS: [string, string][] = [];
-const DARK_COLORS: [string, string][] = [];
-
-test.each(LIGHT_COLORS)(
-  "light %s carries the census value verbatim, in the theme and through the generated CSS",
-  (name: string, value: string) => {
-    const slot = SLOT[name]! as { kind: "color"; family: string; shade: string };
-    const themeValue = tuiTheme.tokens.colors[slot.family]![slot.shade];
-    expect(themeValue).toBe(value);
-    // …and the board's short name still reaches that exact literal after
-    // codegen, through the alias → semantic → token → light-dark() chain.
-    expect(resolve(name, "light")).toBe(value);
-  },
-);
-
-test.each(DARK_COLORS)(
-  "dark %s carries the census value verbatim, in the theme and through the generated CSS",
-  (name: string, value: string) => {
-    const slot = SLOT[name]!;
-    if (slot.kind !== "color") throw new Error(`dark ${name} should be a colour`);
-    expect(tuiTheme.dark!.colors![slot.family]![slot.shade]).toBe(value);
-    expect(resolve(name, "dark")).toBe(value);
-  },
-);
-
 test("light and dark differ everywhere the census says they differ", () => {
   // Without this, a theme that lost its whole `dark` block would still satisfy
   // the two tables above if resolution silently fell back to the light value.
@@ -219,8 +194,7 @@ test("light and dark differ everywhere the census says they differ", () => {
 });
 
 // ── fonts ───────────────────────────────────────────────────────────────
-// A deliberate departure from census parity (see the LIGHT_COLORS filter
-// above): `mono` ships vendored JetBrains Mono; `sans` carries UI/body text in
+// A deliberate departure from census parity: `mono` ships vendored JetBrains Mono; `sans` carries UI/body text in
 // the system sans stack (an all-monospace body was fatiguing for long prose).
 
 const JETBRAINS_STACK = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -361,8 +335,8 @@ test("intent resolver maps intent words onto the single-shade families", () => {
   expect(tuiIntentResolver({ intent: "muted", variant: "subtle", theme: tuiTheme }).color).toBe(
     "var(--text-2)",
   );
-  // `light`'s hover mixes the tone over `--surface-card` — singleShadeVariantColors'
-  // own formula (Button.parity.test.tsx is the oracle that pins this exactly).
+  // `light`'s hover mixes the tone over `--surface-card`, which is
+  // singleShadeVariantColors' own formula rather than anything this kit sets.
   expect(tuiIntentResolver({ intent: "accent", variant: "light", theme: tuiTheme }).hover).toBe(
     "color-mix(in srgb, var(--color-blue-500) 12%, var(--surface-card))",
   );
