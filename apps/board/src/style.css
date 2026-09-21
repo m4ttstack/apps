@@ -5,10 +5,13 @@
    is served from `@mattstack/tui-kit/theme.css` + `/canvas.css`, imported by
    `src/client/main.tsx` and linked as `/app.css` ahead of this file.
 
-   The 11 alias names every rule below still writes -- `--bg`, `--panel`,
-   `--card`, `--chrome`, `--fg`, `--muted`, `--border`, `--border-soft`,
-   `--cyan`, `--font-mono`, `--font-sans` -- are the kit's alias contract,
-   with byte-identical values.
+   The 17 alias names every rule below still writes -- `--bg`, `--panel`,
+   `--card`, `--chrome`, `--fg`, `--muted`, `--muted-text`, `--border`,
+   `--border-soft`, `--border-on-card`, `--border-soft-on-card`,
+   `--border-control`, `--border-control-on-card`, `--page`, `--cyan`,
+   `--font-mono`, `--font-sans` -- are the kit's alias contract. The Radix
+   repaint moved every one of their values, so treat the names as the
+   contract, not the values behind them.
    Dark still flips on the `dark` class the shell's inline script toggles on
    <html>; the kit does it with `color-scheme` + `light-dark()` instead of
    redeclaring the block.
@@ -430,7 +433,7 @@ body {
   color: var(--flag);
 }
 .tui-flag[data-flag='draft'] {
-  --flag: color-mix(in srgb, var(--muted-text) 75%, transparent);
+  --flag: color-mix(in srgb, var(--text-4) 75%, transparent);
 }
 .tui-flag[data-flag='auto-merge'] {
   --flag: var(--text-ok-vivid);
@@ -694,7 +697,7 @@ body {
 }
 .tui-status[data-tone='clear'] .tui-status-word {
   font-weight: 500;
-  color: color-mix(in srgb, var(--text-ok-small) 40%, var(--text-3));
+  color: color-mix(in srgb, var(--text-ok-vivid) 40%, var(--text-3));
 }
 /* Muted on every tone: the word carries the temperature, the detail never
    competes with it. */
@@ -763,7 +766,7 @@ body {
 .tui-status-verb:hover {
   background: color-mix(
     in srgb,
-    var(--verb, var(--muted-text)) 12%,
+    var(--verb-wash, var(--muted)) 12%,
     transparent
   );
 }
@@ -775,18 +778,23 @@ body {
 }
 .tui-status-verb[data-lane='review'] {
   --verb: var(--text-accent);
+  --verb-wash: var(--fill-accent);
 }
 .tui-status-verb[data-lane='respond'] {
   --verb: var(--text-ok-vivid);
+  --verb-wash: var(--fill-ok);
 }
 .tui-status-verb[data-lane='doctor'] {
   --verb: var(--orange);
+  --verb-wash: var(--fill-warn);
 }
 .tui-status-verb[data-decide] {
   --verb: var(--text-warn-vivid);
+  --verb-wash: var(--fill-warn);
 }
 .tui-status-verb[data-secondary] {
-  --verb: var(--muted-text);
+  --verb: var(--text-4);
+  --verb-wash: var(--muted);
 }
 .tui-status-sun {
   display: inline-flex;
@@ -1368,9 +1376,9 @@ body {
   border-radius: 8px;
   background: var(--chrome);
 }
-/* Pending-decision callout above the roster: amber, not the accent blue the
-   rest of the chrome speaks, because this is the one control that means "you
-   owe an action". Sized/weighted up from the kit's md button so it reads as a
+/* Pending-decision callout above the roster: renders as the kit's filled
+   accent button (Sidebar.tsx), the same accent blue the rest of the chrome
+   speaks. Sized/weighted up from the kit's md button so it reads as a
    banner rather than another roster row. */
 .tui-dq-open {
   width: 100%;
@@ -1447,7 +1455,7 @@ body {
   flex-shrink: 0;
 }
 .tui-side-count {
-  color: var(--text-2);
+  color: var(--text-4);
   font-family: var(--font-sans);
   font-size: 0.85em;
 }
@@ -1644,7 +1652,7 @@ body {
 }
 .tui-modal-count {
   flex-shrink: 0;
-  color: var(--text-2);
+  color: var(--text-4);
   font-family: var(--font-sans);
   font-size: 0.85em;
 }
@@ -2755,8 +2763,8 @@ body {
 .tui-triage-modal [data-part='scrollpane-body'] li {
   margin: 0.1rem 0;
 }
-/* Quotes read on the CARD ground, where the base muted/border roles sit
-   too close in dark; the on-card roles equal them in light. */
+/* Quotes read on the CARD ground; border-left uses the on-card border role
+   so it doesn't sit too close to the card fill in dark. */
 .tui-triage-modal [data-part='scrollpane-body'] blockquote {
   margin: 0 0 0.4rem;
   padding-left: 0.6rem;
@@ -3228,7 +3236,7 @@ body {
 }
 .tui-config-status {
   min-width: 4.5em;
-  color: var(--text-ok-small);
+  color: var(--text-ok-vivid);
   font-size: 0.72rem;
   white-space: nowrap;
 }
@@ -3855,9 +3863,8 @@ body {
   color: var(--text-bad-small);
   background: color-mix(in srgb, var(--fill-bad) 15%, transparent);
 }
-/* warnText is tuned to clear AA on white (4.58:1), which leaves nothing
-   for a wash underneath it. The pill keeps the token's hue and darkens it
-   just enough to pay for its own background. */
+/* warnText (#582d1d on white) already reads about 11.6:1, well past AA.
+   The pill still darkens it 86% + #000 to pay for its own background. */
 .tui-review-tier-pill[data-tier='Important'] {
   color: color-mix(in srgb, var(--color-gray-warnText) 86%, #000);
   background: color-mix(in srgb, var(--fill-warn) 9%, transparent);
@@ -3872,8 +3879,9 @@ body {
   color: var(--text-4);
   font-size: 12px;
 }
-/* rest faint; hover = accent + underline; mousedown deepens; a no-op end
-   (already all / already none) drops to gray and stops taking clicks. */
+/* rest at full strength (--text-4, the same hex as --text-1); hover =
+   accent + underline; mousedown deepens; a no-op end (already all /
+   already none) drops to gray and stops taking clicks. */
 .tui-review-allnone {
   border: none;
   background: none;
