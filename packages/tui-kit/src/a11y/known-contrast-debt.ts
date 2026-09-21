@@ -45,7 +45,7 @@ export const KNOWN_CONTRAST_DEBT: readonly ContrastDebtEntry[] = [
     state: "rest",
     measuredRatio: 3.46,
     reason:
-      "White on teal 9; white is what radix-ui/themes ships on this scale.",
+      "White on teal 10; white is what radix-ui/themes ships on this scale.",
   },
   {
     variant: "filled",
@@ -261,7 +261,7 @@ export const KNOWN_ON_FILL_DEBT: readonly OnFillContrastDebtEntry[] = [
     scheme: "light",
     measuredRatio: 3.46,
     reason:
-      "white on teal 9. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
+      "white on teal 10. Radix Themes sets --<scale>-contrast to white for every scale here except amber, so a solid fill carries a white label whatever it measures; a row with two label colours is the cost they decline to pay and we follow them",
   },
   {
     hue: "bad",
