@@ -160,12 +160,19 @@ const TK_TEXT_SLOT_NAMES = new Set([
   '--tk-text-4',
 ]);
 
+// Read by packages/ui/src/app/AppLauncher.module.css, so these are never a
+// real defined-but-unreferenced failure and stay out of this waiver set.
+const TK_APP_LAUNCHER_NAMES = new Set([
+  '--tk-fill-accent',
+  '--tk-fill-accent-hover',
+  '--tk-text-accent-small',
+]);
+
 const WAIVED_TOKYO: Record<string, string> = {
   ...Object.fromEntries(
-    TK_RAMP_NAMES.filter(name => !TK_TEXT_SLOT_NAMES.has(name)).map(name => [
-      name,
-      TK_RAMP_WAIVER,
-    ])
+    TK_RAMP_NAMES.filter(
+      name => !TK_TEXT_SLOT_NAMES.has(name) && !TK_APP_LAUNCHER_NAMES.has(name)
+    ).map(name => [name, TK_RAMP_WAIVER])
   ),
   '--tk-overlay':
     "modal/overlay chrome role (dark sits below panel, light equals it), mirrored from the tui theme's --surface-overlay; no packages/ui component wires this surface yet.",
