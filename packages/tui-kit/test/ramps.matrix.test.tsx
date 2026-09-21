@@ -172,6 +172,20 @@ describe("ramp contrast matrix (text steps, hue text, on-fill labels and fills a
       }
     }
 
+    // The fill ledger keys one entry per (scheme, hue) and runs its removal
+    // check only on surface-4, on the premise that surface-4 is every fill's
+    // worst ground. Assert the premise, so a surface-ramp re-tune that moves
+    // the worst cell elsewhere fails here instead of slipping past the key.
+    for (const h of HUES) {
+      const worst = fillRatio(h, 4);
+      for (const s of SURFACES) {
+        expect(
+          worst,
+          `${scheme} fill-${h}: surface-4 (${worst.toFixed(3)}) must be the worst surface, but surface-${s} measures ${fillRatio(h, s).toFixed(3)}`,
+        ).toBeLessThanOrEqual(fillRatio(h, s) + 1e-9);
+      }
+    }
+
     for (const h of HUES) {
       const ratio = onFillRatio(h);
       const label = `${scheme} on-fill-${h} on fill-${h} ratio=${ratio.toFixed(3)}`;
