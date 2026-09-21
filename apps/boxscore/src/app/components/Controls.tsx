@@ -186,17 +186,17 @@ export function ControlsMeta({ data }: { data: LeaderboardResponse }) {
     <Group gap="lg" wrap="nowrap">
       <Text size="xs" span>
         Scope:{' '}
-        <span style={{ color: 'var(--mantine-color-text)' }}>
+        <Text component="span" size="xs" fw={600}>
           {data.scope.type === 'group'
             ? data.scope.groupPath
             : `${data.scope.projectPaths?.length ?? 0} projects`}
-        </span>
+        </Text>
       </Text>
       <Text size="xs" span>
         Window:{' '}
-        <span style={{ color: 'var(--mantine-color-text)' }}>
+        <Text component="span" size="xs" fw={600}>
           {fmtDate(data.window.start)} → {fmtDate(data.window.end)}
-        </span>
+        </Text>
       </Text>
       <Text size="xs" span>
         {data.fromCache ? 'cached' : 'fresh'}

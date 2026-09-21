@@ -220,7 +220,7 @@ function StatRail({
                     >
                       {formatValue(value, c)}
                       {rank !== null && (
-                        <Text component="span" size="10px" c="dimmed" ml={4}>
+                        <Text component="span" size="10px" ml={4}>
                           #{rank}
                         </Text>
                       )}

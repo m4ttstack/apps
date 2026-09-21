@@ -232,7 +232,12 @@ function AppShell() {
                       <Stack gap={2}>
                         {Object.entries(data.metricNotes).map(([k, v]) => (
                           <Text key={k} size="sm" c="dimmed">
-                            <Text component="span" fw={500} c="dimmed">
+                            <Text
+                              component="span"
+                              size="sm"
+                              fw={500}
+                              c="dimmed"
+                            >
                               {k}:
                             </Text>{' '}
                             {v}
