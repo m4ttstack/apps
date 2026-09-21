@@ -41,7 +41,7 @@ root override), body renders at 14.45px there, and chat's secondary text
 lands at 10.5-12px.
 
 WCAG 1.4.3 has no small-text provision: 4.5:1 is its bar at every size below
-"large" (about 24px, or 18.7px bold). The 5.2 and 7.0 bars in §6 are this
+"large" (about 24px, or 18.7px bold). The 4.8 and 7.0 bars in §6 are this
 platform's own requirement, chosen because 4.5 measured as illegible at
 10.5-12px on these fonts.
 
@@ -96,19 +96,24 @@ not lightness.
 | | light | Radix | vs text | dark | Radix | vs text | role |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `surface-1` | `#ffffff` | white | 16.39 | `#111113` | slate 1 | 16.25 | light: sheets, cards. dark: the page, insets, overlays |
-| `surface-2` | `#fcfcfd` | slate 1 | 15.98 | `#18191b` | slate 2 | 15.15 | light: panels, overlays. dark: panels, chrome |
-| `surface-3` | `#f9f9fb` | slate 2 | 15.58 | `#212225` | slate 3 | 13.70 | light: the page, insets. dark: sheets, cards |
-| `surface-4` | `#f0f0f3` | slate 3 | 14.41 | `#272a2d` | slate 4 | 12.43 | light: rows, chrome. dark: raised (hover, active) |
+| `surface-2` | `#f9f9fb` | slate 2 | 15.58 | `#18191b` | slate 2 | 15.15 | light: panels, overlays. dark: panels, chrome |
+| `surface-3` | `#f0f0f3` | slate 3 | 14.41 | `#212225` | slate 3 | 13.70 | light: the page, insets. dark: sheets, cards |
+| `surface-4` | `#e8e8ec` | slate 4 | 13.41 | `#272a2d` | slate 4 | 12.43 | light: rows, chrome. dark: raised (hover, active) |
 
 Light keeps pure white as `surface-1` because cards are white today and
-Radix's own guidance allows white as the app background. Dark follows
+Radix's own guidance allows white as the app background. The three steps
+under it are slate 2, 3 and 4 rather than 1, 2 and 3: on 1 to 3 the four
+light surfaces spanned 16.39 to 14.41 against `text-1`, which renders as
+four indistinguishable whites (§10). On 2 to 4 the span is 16.39 to 13.41,
+close to dark's 16.25 to 12.43, and the steps are visible. Dark follows
 Radix's ladder exactly: page on step 1, panels on 2, cards on 3, and step 4
 reserved for hovered or active component grounds, which is the one dark
 surface no role names at rest.
 
-What repaints: every light surface moves by two or three hex points
-(`#fbfbfc` to `#fcfcfd`, `#f7f8fa` to `#f9f9fb`, `#f3f4f7` to `#f0f0f3`);
-dark loses its blue tint (slate is a cool gray, our old ramp was a blue
+What repaints: every light surface under white moves down a step and a
+little darker than the old scheme (panel `#fbfbfc` to `#f9f9fb`, the page
+`#f7f8fa` to `#f0f0f3`, chrome `#f3f4f7` to `#e8e8ec`); dark loses its blue
+tint (slate is a cool gray, our old ramp was a blue
 gray), the page darkens from `#16161e` to `#111113`, and cards move from
 `#1e2030` to `#212225`. `inset` and `overlay` in dark both land on
 `surface-1`; `invariants.test.ts` (inset darker than card, overlay no
@@ -123,8 +128,8 @@ mapping is free to differ per scheme.
 ```css
 /* illustrative; see the emission note below */
 :root {
-  --surface-1: #ffffff;  --surface-2: #fcfcfd;
-  --surface-3: #f9f9fb;  --surface-4: #f0f0f3;
+  --surface-1: #ffffff;  --surface-2: #f9f9fb;
+  --surface-3: #f0f0f3;  --surface-4: #e8e8ec;
 
   --card: var(--surface-1);     --panel:   var(--surface-2);
   --page: var(--surface-3);     --chrome:  var(--surface-4);
@@ -171,14 +176,14 @@ because the lint and the type table speak in roles.
 
 | | light | Radix | worst | dark | Radix | worst | bar | serves |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `text-1` | `#1c2024` | slate 12 | 14.41 | `#edeef0` | slate 12 | 12.43 | none | every size |
-| `text-2` | `#60646c` | slate 11 | 5.22 | `#b0b4ba` | slate 11 | 6.93 | 4.5 | display, title, body |
-| `text-3` | `#60646c` | slate 11 | 5.22 | `#b0b4ba` | slate 11 | 6.93 | 5.2 | meta |
-| `text-4` | `#1c2024` | slate 12 | 14.41 | `#edeef0` | slate 12 | 12.43 | 7.0 | small, micro |
+| `text-1` | `#1c2024` | slate 12 | 13.41 | `#edeef0` | slate 12 | 12.43 | none | every size |
+| `text-2` | `#60646c` | slate 11 | 4.86 | `#b0b4ba` | slate 11 | 6.93 | 4.5 | display, title, body |
+| `text-3` | `#60646c` | slate 11 | 4.86 | `#b0b4ba` | slate 11 | 6.93 | 4.8 | meta |
+| `text-4` | `#1c2024` | slate 12 | 13.41 | `#edeef0` | slate 12 | 12.43 | 7.0 | small, micro |
 
 Every value is measured against all four surfaces and carries its worst
 case, so it is safe on any of them. `text-2` and `text-3` share a value by
-design: slate 11's worst case is 5.22 on the light row surface, so the meta
+design: slate 11's worst case is 4.86 on the light row surface, so the meta
 bar is set there (§6). `text-4` is the same hex as `text-1`: small and micro
 text takes the high-contrast step, which is what Radix means by 12, and
 there is no quieter small-text value to look for.
@@ -203,14 +208,16 @@ system lacked:** nothing stopped a colour tuned for body copy being used on
 | `display` | 17 | 700 | 1.25 | 4.5 | `text-2` |
 | `title` | 15.3 | 600 | 1.3 | 4.5 | `text-2` |
 | `body` | 14.45 | 400 | 1.5 | 4.5 | `text-2` |
-| `meta` | 13.26 | 400 | 1.45 | 5.2 | `text-3` |
+| `meta` | 13.26 | 400 | 1.45 | 4.8 | `text-3` |
 | `small` | 11.9 | 400 | 1.4 | 7.0 | `text-4` |
 | `micro` | 10.54 | 500 | 1.35 | 7.0 | `text-4` |
 
-The 4.5 rows are WCAG AA. The 5.2 and 7.0 rows are this platform's bars
-(§1.1), not a standard's. 5.2 was 5.5 in the previous draft; it is slate
-11's measured floor on the light row surface, still well above AA, and
-holding 5.5 would have pushed all meta text to the high-contrast step.
+The 4.5 rows are WCAG AA. The 4.8 and 7.0 rows are this platform's bars
+(§1.1), not a standard's. The meta bar is always slate 11's measured floor
+on the light row surface, so it tracks that surface: 5.5 in the previous
+draft, 5.2 while light sat on slate 1 to 3, and 4.8 now that `surface-4` is
+slate 4 and slate 11 measures 4.86 there. Still above AA, and holding a
+higher number would push all meta text onto the high-contrast step.
 
 The size bands (which text role a type step may carry) are enforced by
 review and by the storybook specimens, not by the lint or the gate: the
@@ -259,24 +266,27 @@ that scale, never a solved hex:
 
 | hue | light fill | worst | light body | light small | dark fill | worst | dark body | dark small |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| accent | 9 `#3e63dd` | 4.58 | 11 `#3a5bc7` | 12 `#1f2d5c` | 9 `#3e63dd` | 2.77 (ledger) | 11 `#9eb1ff` | 12 `#d6e1ff` |
-| ok | 10 `#0d9b8a` | 3.04 | 12 `#0d3d38` | 12 `#0d3d38` | 9 `#12a594` | 4.70 | 11 `#0bd8b6` | 12 `#adf0dd` |
-| bad | 9 `#e93d82` | 3.38 | 11 `#cb1d63` | 12 `#621639` | 9 `#e93d82` | 3.75 | 11 `#ff92ad` | 12 `#fdd3e8` |
-| warn | 10 `#ef5f00` | 2.93 (ledger) | 12 `#582d1d` | 12 `#582d1d` | 9 `#f76b15` | 4.86 | 11 `#ffa057` | 12 `#ffe0c2` |
-| purple | 9 `#8e4ec6` | 4.55 | 11 `#8145b5` | 12 `#402060` | 9 `#8e4ec6` | 2.79 (ledger) | 11 `#d19dff` | 12 `#ecd9fa` |
-| cyan | 10 `#0797b9` | 3.01 | 12 `#0d3c48` | 12 `#0d3c48` | 9 `#00a2c7` | 4.80 | 11 `#4ccce6` | 12 `#b6ecf7` |
+| accent | 9 `#3e63dd` | 4.26 | 11 `#3a5bc7` | 12 `#1f2d5c` | 9 `#3e63dd` | 2.77 (ledger) | 11 `#9eb1ff` | 12 `#d6e1ff` |
+| ok | 10 `#0d9b8a` | 2.83 (ledger) | 12 `#0d3d38` | 12 `#0d3d38` | 9 `#12a594` | 4.70 | 11 `#0bd8b6` | 12 `#adf0dd` |
+| bad | 9 `#e93d82` | 3.15 | 12 `#621639` | 12 `#621639` | 9 `#e93d82` | 3.75 | 11 `#ff92ad` | 12 `#fdd3e8` |
+| warn | 10 `#ef5f00` | 2.72 (ledger) | 12 `#582d1d` | 12 `#582d1d` | 9 `#f76b15` | 4.86 | 11 `#ffa057` | 12 `#ffe0c2` |
+| purple | 9 `#8e4ec6` | 4.24 | 11 `#8145b5` | 12 `#402060` | 9 `#8e4ec6` | 2.79 (ledger) | 11 `#d19dff` | 12 `#ecd9fa` |
+| cyan | 10 `#0797b9` | 2.80 (ledger) | 12 `#0d3c48` | 12 `#0d3c48` | 9 `#00a2c7` | 4.80 | 11 `#4ccce6` | 12 `#b6ecf7` |
 
-Three fills sit under 3.0 by a small margin and are ledgered rather than
-pushed onto a text step: light orange-10 at 2.93 on the row surface (the
-10 was chosen by eye over the 11, which reads brown), and dark indigo-9
-and purple-9 at 2.77 and 2.79 against `surface-4`, the raised ground; both
-clear 3.0 on the page, panels and cards.
+Five fills sit under 3.0 by a small margin and are ledgered rather than
+pushed onto a text step: in light, teal-10, orange-10 and cyan-10 at 2.83,
+2.72 and 2.80 on the row surface (orange's 10 was chosen by eye over the
+11, which reads brown); in dark, indigo-9 and purple-9 at 2.77 and 2.79
+against `surface-4`, the raised ground. Four of the five clear 3.0 on every
+other surface of their scheme; light orange is the one that also misses on
+the page, at 2.93.
 
 **Tokens.** `--fill-<hue>`, `--fill-<hue>-hover`, `--text-<hue>` (body
 value, allowed at `display`, `title`, `body`), `--text-<hue>-small` (allowed
-at `meta`, `small`, `micro`; light crimson 11 measures 4.74 on the row
-surface, under the 5.2 meta bar, so meta takes the small token like the
-neutral ramp does). A fill is never a text colour, and the names
+at `meta`, `small`, `micro`; light crimson 11 measures 4.41 on the row
+surface, under the 4.5 body bar, so light `bad` takes step 12 at body as
+well and its two text tokens carry the same hex, as ok, warn and cyan
+already do). A fill is never a text colour, and the names
 retire the `accent` versus `accentText` guesswork. In `values.ts` these are
 step numbers (`hueStep.<h>.fill`, `.text`) resolved against the vendored
 scale, so the invariants can assert the rule itself, not just the result.
@@ -293,9 +303,10 @@ measures 3.30 with white in light and 5.13 in dark, so its filled label is
 ledger. Eight entries replaces the nineteen the ledger holds today.
 
 The status `dot` block in `values.ts` (`dot.ok/warn/bad`) retires: a dot is
-a fill. `--fill-ok` at 3.04 (light) and 4.70 (dark) clears the bar a 6px
-dot needs; `--fill-warn` in light is the ledgered 2.93, so a warn dot on a
-row carries the same debt as the warn fill does.
+a fill. `--fill-ok` at 4.70 in dark clears the bar a 6px dot needs; in
+light it is the ledgered 2.83 on the row surface (3.04 on the page), and
+`--fill-warn` the ledgered 2.72, so those dots carry the same debt their
+fills do.
 
 ### 7.1 Dark hue correction
 
@@ -501,7 +512,7 @@ moving the labels and the ledger cannot be green.
    semantic group today, so `--line-[1-3]` and `--border-control` need
    entries there. `invariants.test.ts` asserts the rules: surfaces sorted
    by contrast against `text-1`; every role a ramp step; `text-2/3/4`
-   clearing 4.5/5.2/7.0 on every surface; every hue's fill step being the
+   clearing 4.5/4.8/7.0 on every surface; every hue's fill step being the
    first from 9 that clears 3.0 (or the documented exception), every body
    text step the first from 11 that clears 4.5, and `light[9] === dark[9]`;
    line ramps non-increasing. The tui-kit census (`test/theme.test.ts`)
@@ -547,9 +558,9 @@ moving the labels and the ledger cannot be green.
 4. **Contrast gate.** Extends the existing `Button.matrix.test.tsx`
    browser-vitest pattern and its `known-contrast-debt.ts` ratchet to cover
    every text step against every surface in both schemes, every hue text
-   value likewise, the six hue fills against every surface with the three
-   §7 fill entries, and dark `line-1` against `raised` as a fourth. `--muted`
-   (slate 9, 2.90 light and 2.82 dark against its worst surface) stays out
+   value likewise, the six hue fills against every surface with the five
+   §7 fill entries, and dark `line-1` against `raised` as a sixth. `--muted`
+   (slate 9, 2.70 light and 2.82 dark against its worst surface) stays out
    of the gate until the step-5 audit decides which of its 154 uses are
    fills. The ledger's entry type is a Button cell today
    (`variant`, `intent`, `scheme`, `state`); this step widens it with a
@@ -595,6 +606,16 @@ them.
   every colour from Radix Colors, whose scales keep hue by design and
   come with both schemes and a twelve-step contract, and replaces the
   solver, the dark hue correction and the OKLab generator with step
-  numbers chosen by rule. The cost is stated in §7: three fills and eight
+  numbers chosen by rule. The cost is stated in §7: five fills and eight
   filled-button labels under their bars, ledgered, against nineteen ledger
   entries today.
+- **The first Radix draft put light's surfaces on slate 1 to 3.** That
+  spans 16.39 to 14.41 against `text-1`, and rendered as four
+  near-identical whites while dark's four steps were plainly distinct. The
+  storybook's Surfaces story is what caught it: the numbers had been
+  reviewed twice and read as a fine ramp on paper. §3 now puts light on
+  slate 2 to 4 (16.39 to 13.41). The floor moving to `#e8e8ec` moved four
+  more things: the §6 meta bar from 5.2 to 4.8 (slate 11 measures 4.86
+  there), light teal-10 and cyan-10 into the §7 fill ledger beside
+  orange-10, and light `bad` body text from crimson 11 to 12 (11 measures
+  4.41, under AA).

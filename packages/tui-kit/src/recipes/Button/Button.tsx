@@ -35,7 +35,10 @@ const PINNED_CELLS: Record<string, { bg?: string; color: string; hover: string; 
   },
   "light|accent": {
     bg: "color-mix(in srgb, var(--accent) 14%, transparent)",
-    color: "var(--accent-text)",
+    // The tint is translucent, so its painted ground is the page: on the
+    // stretched light ramp the body token measures 4.40 there. The small
+    // token is what the resolver gives every other tinted cell.
+    color: "var(--text-accent-small)",
     hover: "color-mix(in srgb, var(--accent) 22%, transparent)",
     border: "transparent",
   },

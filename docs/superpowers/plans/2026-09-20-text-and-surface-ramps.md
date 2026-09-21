@@ -2978,3 +2978,56 @@ Spec coverage:
 Not in this plan, by the spec's own sequencing: the apps-wide migration onto the new names (the 154 `--muted` classifications, the `--gate-*` block deletion, the board's own CSS moving off `--accent-text` and friends) follows after Task 11 lands.
 
 Type consistency checked: `RADIX`, `RADIX_SCALES`, `Scale12` (Task 0) are what Tasks 1, 4 and 7 read; `HUES`, `HUE_SCALE`, `HueName`, `Step`, `hueStep`, `hueHover`, `surface.raised`, `line.control` (Task 1) are what Tasks 2, 3, 4, 7 read; `mantinePins` (Task 4) is what Task 4's generator and test import; `TuiKitProvider` (Task 5) is what Tasks 6, 8, 9 import; `FILL_DEBT_BY_KEY` / `fillDebtKey` (Task 9) match their own use; `classifyTokenUse` (Task 10) is what Task 11 imports.
+
+---
+
+## Part H: light surface ramp correction (spec §3, §10)
+
+### Task 13: Stretch the light surface ramp to slate 2-4
+
+Added after Task 7's storybook made the defect visible: on slate 1 to 3 the
+four light surfaces spanned 16.39 to 14.41 against `text-1` and rendered as
+four near-identical whites, while dark's four steps (16.25 to 12.43) read
+as a ramp. §3's rule ("each step after `surface-1` has less contrast") was
+not delivered in light, so this is a defect, not a preference.
+
+**Files:**
+- Modify: `packages/tokens/src/values.ts`, `packages/tokens/scripts/generate.ts`, `packages/tokens/test/invariants.test.ts`, `packages/tui-kit/test/theme.test.ts`, `packages/tui-kit/src/recipes/Button/Button.tsx`, `stories/ramps/catalogue.tsx`, `stories/ramps/Palette.stories.tsx`, `stories/ramps/Text.stories.tsx`, `stories/ramps/Type.stories.tsx`, the spec's §1.1/§3/§4/§5/§6/§7/§9/§10
+- Regenerate: `packages/tokyo/src/tokyo-theme.css`, `packages/tui-kit/src/generated/{theme.css,tokens.ts}`, `apps/deck/core/generated/{board.js,board.css,gateway.css}`
+
+**What was done:**
+
+1. `values.ts`: light `surfaceSteps` `['#ffffff', 1, 2, 3]` to
+   `['#ffffff', 2, 3, 4]`, so the light ramp is `#ffffff`, `#f9f9fb`,
+   `#f0f0f3`, `#e8e8ec` (16.39, 15.58, 14.41, 13.41 against `text-1`). Dark
+   is untouched, and no role index moves.
+2. `values.ts`: `LIGHT_HUE_STEPS.bad` text step 11 to 12. Crimson 11
+   measures 4.41 against the new floor, under the 4.5 body bar, which is
+   what `invariants.test.ts`'s `ruleText` computes; the pin now matches the
+   rule again.
+3. `invariants.test.ts`: `TEXT_BAR` meta 5.2 to 4.8 (slate 11's worst case
+   moves 5.22 to 4.86); the surface identity test reads slate 2..4; the
+   fill-ledger case lists five misses (`dark/accent`, `dark/purple`,
+   `light/cyan`, `light/ok`, `light/warn`), not three. Five, not six: light
+   `warn` was already ledgered, so only `ok` and `cyan` join.
+4. `generate.ts`: the emitted tokyo comment says slate 2 to 4.
+5. `Button.tsx`: the pinned `light|accent` cell's label moves from
+   `var(--accent-text)` (indigo 11) to `var(--text-accent-small)`
+   (indigo 12). Its tint is translucent, so its painted ground is the page:
+   on the new page the body token measures 4.399, under AA. The small token
+   is what the resolver already gives every other tinted cell (spec §9
+   step 0), so this is the pin catching up to the rule, not a new exception
+   or a ledger entry.
+6. Stories: the ramp catalogue's scheme columns sit on a warm mid-tone
+   story-chrome literal (`#8a7560`, outside the cool platform palette) with
+   28px padding and a 16px gap, so light and dark surfaces both read as
+   objects with an edge; `Palette` puts each hue block on the scheme's card
+   because it paints hue text directly; `Text` and `Type` carry the 4.8
+   meta bar.
+
+**Verification run:** tokens 90, tui-kit node 189, tui-kit browser 453,
+visual 76 (refreshed with `-u`, no baseline bytes changed: the comparator's
+0.2 per-pixel threshold and 1% mismatch ratio absorb the shift), chat 302,
+console 748, board 1707, boxscore 309, deck 753. Freshness
+gate, `bun run format`, `bun run lint`, `bun run typecheck` and
+`scripts/repo-purity.sh` all clean.

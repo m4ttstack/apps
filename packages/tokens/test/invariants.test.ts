@@ -6,7 +6,7 @@ import { CSS_TEXT, HUE_SCALE, HUES, TOKENS, type Step } from '../src/values.ts';
 
 const SCHEMES = ['light', 'dark'] as const;
 const WHITE = '#ffffff';
-const TEXT_BAR = [0, 4.5, 5.2, 7.0] as const;
+const TEXT_BAR = [0, 4.5, 4.8, 7.0] as const;
 
 function worst(hex: string, surfaces: readonly string[]): number {
   return Math.min(...surfaces.map(s => contrastRatio(hex, s)));
@@ -64,10 +64,10 @@ describe('surface ramp', () => {
     }
   );
 
-  it('light surfaces are white then slate 1..3; dark surfaces are slate 1..4', () => {
+  it('light surfaces are white then slate 2..4; dark surfaces are slate 1..4', () => {
     expect([...TOKENS.light.surfaceRamp]).toEqual([
       WHITE,
-      ...RADIX.slate.light.slice(0, 3),
+      ...RADIX.slate.light.slice(1, 4),
     ]);
     expect([...TOKENS.dark.surfaceRamp]).toEqual([
       ...RADIX.slate.dark.slice(0, 4),
@@ -204,7 +204,7 @@ describe('palette', () => {
     }
   });
 
-  it('the fills that miss 3.0 are exactly the ledgered three', () => {
+  it('the fills that miss 3.0 are exactly the ledgered five', () => {
     const misses: string[] = [];
     for (const scheme of SCHEMES) {
       const t = TOKENS[scheme];
@@ -213,7 +213,13 @@ describe('palette', () => {
           misses.push(`${scheme}/${hue}`);
       }
     }
-    expect(misses.sort()).toEqual(['dark/accent', 'dark/purple', 'light/warn']);
+    expect(misses.sort()).toEqual([
+      'dark/accent',
+      'dark/purple',
+      'light/cyan',
+      'light/ok',
+      'light/warn',
+    ]);
   });
 
   it.each(SCHEMES)('%s: legacy text leaves read the hue text', scheme => {

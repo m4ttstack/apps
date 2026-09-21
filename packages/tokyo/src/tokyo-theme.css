@@ -40,13 +40,13 @@
    tokyo-theme.test.ts checks by name -- so this note sits outside them. */
 :root[data-mantine-color-scheme='light'] {
   /* BEGIN GENERATED: tokyo tokens light */
-  /* Light surfaces: white cards on Radix slate 1 to 3 (packages/tokens/src/radix.ts); contrast rides text and borders, not surface-to-surface fill. */
-  --tk-chrome: #f0f0f3;
-  --tk-bg: #f9f9fb;
-  --tk-panel: #fcfcfd;
+  /* Light surfaces: white cards on Radix slate 2 to 4 (packages/tokens/src/radix.ts); contrast rides text and borders, not surface-to-surface fill. */
+  --tk-chrome: #e8e8ec;
+  --tk-bg: #f0f0f3;
+  --tk-panel: #f9f9fb;
   --tk-card: #ffffff;
-  --tk-inset: #f9f9fb;
-  --tk-overlay: #fcfcfd;
+  --tk-inset: #f0f0f3;
+  --tk-overlay: #f9f9fb;
   --tk-border: #cdced6;
   --tk-border-soft: #d9d9e0;
   --tk-border-on-card: #cdced6;
@@ -66,7 +66,7 @@
   --tk-accent-text: #3a5bc7;
   --tk-badge-text: #60646c;
   /* AA-compliant red for TEXT (>=4.5:1 on bg 1-3); the raw red token above stays tui-kit's exact hex for fills and error surfaces. Same split as the muted/accent pair. */
-  --tk-red-text: #cb1d63;
+  --tk-red-text: #621639;
   --tk-green: #0d9b8a;
   --tk-green-text: #0d3d38;
   --tk-red: #e93d82;
@@ -78,11 +78,11 @@
   --tk-dot-ok: #0d9b8a;
   --tk-dot-warn: #ef5f00;
   --tk-dot-bad: #e93d82;
-  --tk-raised: #f0f0f3;
+  --tk-raised: #e8e8ec;
   --tk-surface-1: #ffffff;
-  --tk-surface-2: #fcfcfd;
-  --tk-surface-3: #f9f9fb;
-  --tk-surface-4: #f0f0f3;
+  --tk-surface-2: #f9f9fb;
+  --tk-surface-3: #f0f0f3;
+  --tk-surface-4: #e8e8ec;
   --tk-text-1: #1c2024;
   --tk-text-2: #60646c;
   --tk-text-3: #60646c;
@@ -104,7 +104,7 @@
   --tk-fill-cyan-hover: color-mix(in srgb, #0797b9 88%, #1c2024);
   --tk-text-accent: #3a5bc7;
   --tk-text-ok: #0d3d38;
-  --tk-text-bad: #cb1d63;
+  --tk-text-bad: #621639;
   --tk-text-warn: #582d1d;
   --tk-text-purple: #8145b5;
   --tk-text-cyan: #0d3c48;
@@ -331,8 +331,8 @@
   --mantine-color-ok-outline: #0d3d38;
   --mantine-color-bad-filled: #e93d82;
   --mantine-color-bad-filled-hover: #df3478;
-  --mantine-color-bad-text: #cb1d63;
-  --mantine-color-bad-outline: #cb1d63;
+  --mantine-color-bad-text: #621639;
+  --mantine-color-bad-outline: #621639;
   --mantine-color-warn-filled: #ef5f00;
   --mantine-color-warn-filled-hover: color-mix(in srgb, #ef5f00 88%, #1c2024);
   --mantine-color-warn-text: #582d1d;

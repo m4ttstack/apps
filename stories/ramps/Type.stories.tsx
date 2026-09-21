@@ -30,7 +30,7 @@ const STEPS = [
     px: 13.26,
     weight: 400,
     line: 1.45,
-    bar: 5.5,
+    bar: 4.8,
     token: '--text-3',
   },
   {

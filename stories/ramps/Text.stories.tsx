@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Ratio, scheme, TwoSchemes } from './catalogue';
 
-const BAR = [7.0, 4.5, 5.2, 7.0] as const;
+const BAR = [7.0, 4.5, 4.8, 7.0] as const;
 const SERVES = [
   'every size',
   'display, title, body',

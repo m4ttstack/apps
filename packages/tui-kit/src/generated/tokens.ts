@@ -16,7 +16,7 @@ export const GENERATED_LIGHT_COLORS = {
   "red": {
     "500": "#e93d82",
     "hover": "#df3478",
-    "text": "#cb1d63",
+    "text": "#621639",
     "textSmall": "#621639"
   },
   "amber": {
@@ -39,9 +39,9 @@ export const GENERATED_LIGHT_COLORS = {
   },
   "ground": {
     "1": "#ffffff",
-    "2": "#fcfcfd",
-    "3": "#f9f9fb",
-    "4": "#f0f0f3"
+    "2": "#f9f9fb",
+    "3": "#f0f0f3",
+    "4": "#e8e8ec"
   },
   "ink": {
     "1": "#1c2024",
@@ -62,17 +62,17 @@ export const GENERATED_LIGHT_COLORS = {
     "okText": "#0d3d38",
     "warnText": "#582d1d",
     "badgeText": "#60646c",
-    "redText": "#cb1d63",
+    "redText": "#621639",
     "mutedOnCard": "#60646c"
   },
   "surface": {
-    "bg": "#f9f9fb",
-    "panel": "#fcfcfd",
+    "bg": "#f0f0f3",
+    "panel": "#f9f9fb",
     "card": "#ffffff",
-    "chrome": "#f0f0f3",
-    "inset": "#f9f9fb",
-    "overlay": "#fcfcfd",
-    "raised": "#f0f0f3"
+    "chrome": "#e8e8ec",
+    "inset": "#f0f0f3",
+    "overlay": "#f9f9fb",
+    "raised": "#e8e8ec"
   },
   "line": {
     "border": "#cdced6",

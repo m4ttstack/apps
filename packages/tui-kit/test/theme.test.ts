@@ -270,9 +270,9 @@ test("the surface ramps carry the Radix steps, ordered page < panel < card", () 
   expect(resolve("--bg", "dark")).toBe("#111113");
   expect(resolve("--panel", "dark")).toBe("#18191b");
   expect(resolve("--card", "dark")).toBe("#212225");
-  expect(resolve("--bg", "light")).toBe("#f9f9fb");
-  expect(resolve("--panel", "light")).toBe("#fcfcfd");
-  expect(resolve("--card", "light")).toBe("#ffffff");
+  expect(resolve("--bg", "light")).toBe(TOKENS.light.surface.bg);
+  expect(resolve("--panel", "light")).toBe(TOKENS.light.surface.panel);
+  expect(resolve("--card", "light")).toBe(TOKENS.light.surface.card);
 });
 
 // ── text conformance ─────────────────────────────────────────────────────
@@ -306,9 +306,9 @@ test("accentText and badText resolve to their AA-compliant literals in both sche
   expect(resolve("--accent-text", "light")).toBe("#3a5bc7");
   expect(resolve("--accent-text", "dark")).toBe("#9eb1ff");
 
-  expect(tuiTheme.tokens.colors.gray!.redText).toBe("#cb1d63");
+  expect(tuiTheme.tokens.colors.gray!.redText).toBe(TOKENS.light.text.redText);
   expect(tuiTheme.dark!.colors!.gray!.redText).toBe("#ff92ad");
-  expect(resolve("--red-text", "light")).toBe("#cb1d63");
+  expect(resolve("--red-text", "light")).toBe(TOKENS.light.text.redText);
   expect(resolve("--red-text", "dark")).toBe("#ff92ad");
 });
 

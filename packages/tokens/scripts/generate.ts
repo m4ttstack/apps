@@ -145,7 +145,7 @@ function generateTuiKitTokens(): string {
  * TOKENS -- these are prose, kept verbatim in the emitter template per the
  * marker contract (see the BEGIN/END markers in tokyo-theme.css).
  */
-const TOKYO_LIGHT_TOP_COMMENT = `  /* Light surfaces: white cards on Radix slate 1 to 3 (packages/tokens/src/radix.ts); contrast rides text and borders, not surface-to-surface fill. */`;
+const TOKYO_LIGHT_TOP_COMMENT = `  /* Light surfaces: white cards on Radix slate 2 to 4 (packages/tokens/src/radix.ts); contrast rides text and borders, not surface-to-surface fill. */`;
 const TOKYO_LIGHT_MUTED_TEXT_COMMENT = `  /* AA-compliant muted for TEXT (>=4.5:1 on bg 1-3). The raw muted token above
      stays tui-kit's exact hex for dots/borders; only the muted TEXT roles read
      the value below, which the scheme-vars contract lets an app remap. */`;

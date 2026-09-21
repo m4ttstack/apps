@@ -16,7 +16,19 @@ function Palette() {
               const steps = RADIX[HUE_SCALE[hue]][name];
               const { fill, text } = t.hueStep[hue];
               return (
-                <div key={hue} style={{ display: 'grid', gap: 6 }}>
+                <div
+                  key={hue}
+                  style={{
+                    display: 'grid',
+                    gap: 6,
+                    // The hue text samples below are painted directly on
+                    // this block, so it has to be a real surface, not the
+                    // story ground.
+                    background: t.surface.card,
+                    padding: 12,
+                    borderRadius: 6,
+                  }}
+                >
                   <code>
                     {hue} ({HUE_SCALE[hue]}): fill {fill}, text {text}, small 12
                   </code>

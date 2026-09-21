@@ -6,6 +6,17 @@ import { contrastRatio } from '@mattstack/tokens/color-math';
 export type SchemeName = 'light' | 'dark';
 export const SCHEMES: readonly SchemeName[] = ['light', 'dark'];
 
+/**
+ * Story chrome, not a token. The platform is cool throughout (slate,
+ * indigo, teal, crimson, cyan), so the ground the specimens sit on is a
+ * warm mid-tone that no scheme could contain: near-white light surfaces
+ * and near-black dark ones both keep an edge against it, and nobody can
+ * mistake it for a system value. Never emitted from packages/tokens.
+ */
+export const STORY_GROUND = '#8a7560';
+/** Label colour for text painted on STORY_GROUND (4.4:1 against it). */
+export const STORY_GROUND_INK = '#ffffff';
+
 export function scheme(name: SchemeName): ColorScheme {
   return TOKENS[name];
 }
@@ -79,12 +90,12 @@ export function SchemeColumn({
   return (
     <section
       style={{
-        background: t.surface.bg,
+        background: STORY_GROUND,
         color: t.text.fg,
-        padding: 20,
+        padding: 28,
         borderRadius: 10,
         display: 'grid',
-        gap: 12,
+        gap: 16,
         alignContent: 'start',
         fontFamily: TOKENS.font.sans,
       }}
@@ -95,6 +106,7 @@ export function SchemeColumn({
           fontSize: 14,
           letterSpacing: 1,
           textTransform: 'uppercase',
+          color: STORY_GROUND_INK,
         }}
       >
         {name}

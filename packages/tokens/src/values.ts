@@ -181,7 +181,7 @@ function buildScheme(spec: SchemeSpec): ColorScheme {
 const LIGHT_HUE_STEPS: Record<HueName, HueStep> = {
   accent: { fill: 9, text: 11 },
   ok: { fill: 10, text: 12 },
-  bad: { fill: 9, text: 11 },
+  bad: { fill: 9, text: 12 },
   warn: { fill: 10, text: 12 },
   purple: { fill: 9, text: 11 },
   cyan: { fill: 10, text: 12 },
@@ -199,7 +199,9 @@ const DARK_HUE_STEPS: Record<HueName, HueStep> = {
 export const TOKENS: Tokens = {
   light: buildScheme({
     scheme: 'light',
-    surfaceSteps: ['#ffffff', 1, 2, 3],
+    // Slate 2, 3, 4 rather than 1, 2, 3: on 1..3 the four light surfaces
+    // measure 16.39 to 14.41 against text-1 and read as one white.
+    surfaceSteps: ['#ffffff', 2, 3, 4],
     textSteps: [12, 11, 11, 12],
     lineSteps: [8, 7, 6],
     surfaceRole: {
