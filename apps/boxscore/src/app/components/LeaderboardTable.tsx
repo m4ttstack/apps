@@ -222,9 +222,7 @@ function Row({
             component="span"
             size="xs"
             ml={6}
-            // Pinned literal pending --text-warn-vivid (tokens package,
-            // not yet on this branch); swap when it lands.
-            style={{ color: 'light-dark(#cc4e00, #ffa057)' }}
+            style={{ color: 'var(--tk-text-warn-vivid)' }}
           >
             unresolved
           </Text>

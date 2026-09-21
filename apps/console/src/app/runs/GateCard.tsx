@@ -321,9 +321,7 @@ export function GateCard({ gate }: { gate: GateRow }) {
           <>
             <Text
               fz={12}
-              // Pinned literal pending --text-bad-vivid (tokens package,
-              // not yet on this branch); swap when it lands.
-              style={{ color: 'light-dark(#cb1d63, #ff92ad)' }}
+              style={{ color: 'var(--tk-text-bad-vivid)' }}
             >
               answered elsewhere
             </Text>

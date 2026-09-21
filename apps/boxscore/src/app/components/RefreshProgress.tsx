@@ -50,9 +50,7 @@ export function RefreshProgress({ progress, onCancel }: Props) {
           size="xs"
           style={{
             whiteSpace: 'nowrap',
-            // Pinned literal pending --text-warn-vivid (tokens package,
-            // not yet on this branch); swap when it lands.
-            color: 'light-dark(#cc4e00, #ffa057)',
+            color: 'var(--tk-text-warn-vivid)',
           }}
         >
           {stalled}
