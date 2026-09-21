@@ -184,7 +184,7 @@ export function Controls(props: Props) {
 export function ControlsMeta({ data }: { data: LeaderboardResponse }) {
   return (
     <Group gap="lg" wrap="nowrap">
-      <Text size="xs" c="dimmed" span>
+      <Text size="xs" span>
         Scope:{' '}
         <span style={{ color: 'var(--mantine-color-text)' }}>
           {data.scope.type === 'group'
@@ -192,13 +192,13 @@ export function ControlsMeta({ data }: { data: LeaderboardResponse }) {
             : `${data.scope.projectPaths?.length ?? 0} projects`}
         </span>
       </Text>
-      <Text size="xs" c="dimmed" span>
+      <Text size="xs" span>
         Window:{' '}
         <span style={{ color: 'var(--mantine-color-text)' }}>
           {fmtDate(data.window.start)} → {fmtDate(data.window.end)}
         </span>
       </Text>
-      <Text size="xs" c="dimmed" span>
+      <Text size="xs" span>
         {data.fromCache ? 'cached' : 'fresh'}
       </Text>
       {data.hasTrend && data.priorWindow && (

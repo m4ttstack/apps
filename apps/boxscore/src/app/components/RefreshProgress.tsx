@@ -35,7 +35,7 @@ export function RefreshProgress({ progress, onCancel }: Props) {
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        borderColor: stalled ? 'var(--mantine-color-warn-6)' : undefined,
+        borderColor: stalled ? 'var(--tk-fill-warn)' : undefined,
         backgroundColor: stalled
           ? 'var(--mantine-color-warn-light)'
           : undefined,
@@ -69,7 +69,6 @@ export function RefreshProgress({ progress, onCancel }: Props) {
       {determinate && (
         <Text
           size="xs"
-          c="dimmed"
           style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}
         >
           {progress.done}/{progress.total}

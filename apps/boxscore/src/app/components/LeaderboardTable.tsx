@@ -94,7 +94,7 @@ export function LeaderboardTable({ data, trend }: Props) {
                       {meta.label}
                     </Text>
                     {meta.hint && (
-                      <Text component="span" size="xs" c="dimmed">
+                      <Text component="span" size="xs">
                         {' '}
                         ({meta.hint})
                       </Text>
@@ -213,7 +213,7 @@ function Row({
           >
             {row.name ?? row.username}
           </Text>
-          <Text component="span" size="xs" c="dimmed" ml={4}>
+          <Text component="span" size="xs" ml={4}>
             @{row.username}
           </Text>
         </button>

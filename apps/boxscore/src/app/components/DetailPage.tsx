@@ -257,7 +257,7 @@ function EvidencePanel({
           <Text size="lg" fw={600}>
             {col.label}
           </Text>
-          <Text size="xs" c="dimmed" style={{ maxWidth: '42rem' }}>
+          <Text size="sm" c="dimmed" style={{ maxWidth: '42rem' }}>
             {col.description}
           </Text>
         </div>
