@@ -25,8 +25,22 @@ const RAMP_PUBLIC_NAMES = [
 const RAMP_WAIVER =
   'ramp name emitted ahead of the apps-wide migration; the storybook specimens and the ramp contrast gate read it, no kit recipe does yet.';
 
+const ON_FILL_WAIVER =
+  "on-fill label; Button's filled variant reads --color-<family>-onFill directly (intent-resolver.ts), not this bare alias -- Segmented's accent-only active state is the one recipe that reads it today, so the other five hues stay unconsumed here.";
+const TEXT_VIVID_WAIVER =
+  'vivid hue text, step 11 unconditionally; emitted ahead of its consumer -- no kit recipe reads it yet.';
+
 const WAIVED_TUI: Record<string, string> = {
   ...Object.fromEntries(RAMP_PUBLIC_NAMES.map(name => [name, RAMP_WAIVER])),
+  ...Object.fromEntries(
+    RAMP_HUES.filter(h => h !== 'accent').map(h => [
+      `--on-fill-${h}`,
+      ON_FILL_WAIVER,
+    ])
+  ),
+  ...Object.fromEntries(
+    RAMP_HUES.map(h => [`--text-${h}-vivid`, TEXT_VIVID_WAIVER])
+  ),
   '--border-control-on-card':
     "on-card contrast role read by apps/board's gate control edges (its --gate-control-edge alias); no kit recipe reads it yet.",
   '--border-soft-on-card':
@@ -143,8 +157,10 @@ const TK_RAMP_NAMES = [
   ...RAMP_HUES.flatMap(h => [
     `--tk-fill-${h}`,
     `--tk-fill-${h}-hover`,
+    `--tk-on-fill-${h}`,
     `--tk-text-${h}`,
     `--tk-text-${h}-small`,
+    `--tk-text-${h}-vivid`,
   ]),
 ];
 const TK_RAMP_WAIVER =

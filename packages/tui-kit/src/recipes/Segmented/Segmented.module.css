@@ -34,7 +34,9 @@
 
   .option[data-active] {
     background: var(--accent);
-    color: var(--bg);
+    /* --on-fill-accent, not --bg: --bg is the page ground, and dark
+       scheme's page-on-accent measures 3.62, under the 4.5 AA floor. */
+    color: var(--on-fill-accent);
     font-weight: 700;
   }
 

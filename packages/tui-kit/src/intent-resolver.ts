@@ -70,10 +70,9 @@ export const tuiIntentResolver: IntentResolver = ({ intent, variant }) => {
     const neutral = family === "gray";
     result = {
       ...result,
-      // slate 9 carries a white label at 3.3 in light and 5.1 in dark; the
-      // high-contrast text step reads 5.0 on it in light, so the neutral fill
-      // flips its label per scheme where the hue fills keep Radix's white.
-      color: neutral ? "light-dark(var(--text-1), #ffffff)" : "#ffffff",
+      // The neutral fill is the one case with no hue token: slate 9 carries a
+      // white label at 3.3 in light and 5.1 in dark, so it flips per scheme.
+      color: neutral ? "light-dark(var(--text-1), #ffffff)" : `var(--color-${family}-onFill)`,
       hover: neutral ? `color-mix(in srgb, ${tone} 88%, var(--fg))` : `var(--color-${family}-hover)`,
       border: "transparent",
     };

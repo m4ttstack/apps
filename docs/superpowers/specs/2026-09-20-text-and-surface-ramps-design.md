@@ -286,21 +286,33 @@ value, allowed at `display`, `title`, `body`), `--text-<hue>-small` (allowed
 at `meta`, `small`, `micro`; light crimson 11 measures 4.41 on the row
 surface, under the 4.5 body bar, so light `bad` takes step 12 at body as
 well and its two text tokens carry the same hex, as ok, warn and cyan
-already do). A fill is never a text colour, and the names
+already do), `--text-<hue>-vivid` (step 11 unconditionally; `--text-<hue>`
+promotes to 12 in light for four of the six hues, so no other token names
+the un-promoted step). A fill is never a text colour, and the names
 retire the `accent` versus `accentText` guesswork. In `values.ts` these are
 step numbers (`hueStep.<h>.fill`, `.text`) resolved against the vendored
 scale, so the invariants can assert the rule itself, not just the result.
 
 **Labels on fills.** Radix puts white text on step 9 for every saturated
-scale and accepts what that measures. We do the same: filled buttons carry
-a white label in both schemes, and the Button ledger records the cells
-under 4.5 (light: teal-10 3.46, orange-10 3.33, cyan-10 3.42, crimson-9
-3.85; dark: teal-9 3.07, orange-9 2.97, cyan-9 3.00, crimson-9 3.85).
-Indigo and purple clear 5 in both schemes (5.21 and 5.18). The neutral
-fill (`--muted`, slate 9) is the one exception to the white label: it
-measures 3.30 with white in light and 5.13 in dark, so its filled label is
-`light-dark(<text-1>, #ffffff)` (4.96 in light), which keeps it out of the
-ledger. Eight entries replaces the nineteen the ledger holds today.
+scale, but a white label only clears 4.5 on two of the six fills.
+`--on-fill-<hue>` measures both candidates, white and slate 12 light
+(`#1c2024`, already `text-1` in the light scheme), and picks whichever wins:
+
+| hue | light fill | white | dark label | dark fill | white | dark label | pick |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| accent | `#3e63dd` | 5.21 | 3.15 | `#3e63dd` | 5.21 | 3.15 | white |
+| purple | `#8e4ec6` | 5.18 | 3.16 | `#8e4ec6` | 5.18 | 3.16 | white |
+| ok | `#0d9b8a` | 3.46 | 4.74 | `#12a594` | 3.07 | 5.33 | dark |
+| warn | `#ef5f00` | 3.33 | 4.92 | `#f76b15` | 2.97 | 5.52 | dark |
+| cyan | `#0797b9` | 3.42 | 4.79 | `#00a2c7` | 3.00 | 5.46 | dark |
+| bad | `#e93d82` | 3.85 | 4.26 | `#e93d82` | 3.85 | 4.26 | dark |
+
+The pick is a property of the hue, not the scheme: it is the same in light
+and dark for every hue. Only `bad` stays under 4.5 even with its better
+pick, at 4.26, so the Button ledger drops from eight entries to one. The
+neutral fill (`--muted`, slate 9) carries no hue and keeps its own label,
+`light-dark(<text-1>, #ffffff)` (4.96 in light, 5.13 in dark), unrelated
+to `--on-fill-<hue>`.
 
 The status `dot` block in `values.ts` (`dot.ok/warn/bad`) retires: a dot is
 a fill. `--fill-ok` at 4.70 in dark clears the bar a 6px dot needs; in

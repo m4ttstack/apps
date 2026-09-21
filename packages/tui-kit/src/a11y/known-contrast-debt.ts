@@ -1,15 +1,15 @@
 /**
  * Ledger of Button (intent, variant, scheme) rest-state cells that measure
- * below WCAG AA (4.5:1). Every cell is a Radix step 9 or 10 solid fill
- * carrying the white label Radix's own contract specifies for that step:
- * the scale is designed for a white label on its solid steps, and the
- * mid-luminance hues (teal, orange, cyan, crimson) land between 3:1 and
- * 4.5:1 with it. Retuning those fills away from Radix is a design decision
+ * below WCAG AA (4.5:1). The filled label now reads `--on-fill-<hue>`,
+ * the better of white and the dark neutral (packages/tokens/src/values.ts),
+ * which clears 4.5 for every hue except crimson: white measures 3.85 there
+ * and the dark neutral 4.26, so crimson 9 is the floor no label choice
+ * clears. Retuning the fill step away from Radix is a design decision
  * reserved for a human.
  *
  * RATCHET CONTRACT (enforced by Button.matrix.test.tsx, not here): an
  * entry's `measuredRatio` may only be REMOVED (the cell was fixed and now
- * clears 4.5) or IMPROVED (a smaller regression than recorded) — never
+ * clears 4.5) or IMPROVED (a smaller regression than recorded), never
  * silently worsened, and never used to admit a NEW below-floor cell. Adding
  * a new entry to widen coverage requires the same human sign-off as fixing
  * one; this file is a record of known debt, not an allowlist mechanism.
@@ -28,14 +28,28 @@ export interface ContrastDebtEntry {
 }
 
 export const KNOWN_CONTRAST_DEBT: readonly ContrastDebtEntry[] = [
-  { variant: "filled", intent: "ok", scheme: "light", state: "rest", measuredRatio: 3.46, reason: "white label on teal 10, Radix's own label choice for the solid step" },
-  { variant: "filled", intent: "warn", scheme: "light", state: "rest", measuredRatio: 3.33, reason: "white label on orange 10, Radix's own label choice for the solid step" },
-  { variant: "filled", intent: "cyan", scheme: "light", state: "rest", measuredRatio: 3.42, reason: "white label on cyan 10, Radix's own label choice for the solid step" },
-  { variant: "filled", intent: "bad", scheme: "light", state: "rest", measuredRatio: 3.85, reason: "white label on crimson 9, Radix's own label choice for the solid step" },
-  { variant: "filled", intent: "ok", scheme: "dark", state: "rest", measuredRatio: 3.07, reason: "white label on teal 9, Radix's own label choice for the solid step" },
-  { variant: "filled", intent: "warn", scheme: "dark", state: "rest", measuredRatio: 2.97, reason: "white label on orange 9, Radix's own label choice for the solid step" },
-  { variant: "filled", intent: "cyan", scheme: "dark", state: "rest", measuredRatio: 3.0, reason: "white label on cyan 9, Radix's own label choice for the solid step" },
-  { variant: "filled", intent: "bad", scheme: "dark", state: "rest", measuredRatio: 3.85, reason: "white label on crimson 9, Radix's own label choice for the solid step" },
+  {
+    variant: "filled",
+    intent: "bad",
+    scheme: "light",
+    state: "rest",
+    measuredRatio: 4.26,
+    reason:
+      "Crimson 9 is the one hue no label clears 4.5 on: white measures 3.85 " +
+      "and the dark neutral 4.26. The dark neutral is the better of the two " +
+      "and the fill step is fixed by the spec, so this is the floor.",
+  },
+  {
+    variant: "filled",
+    intent: "bad",
+    scheme: "dark",
+    state: "rest",
+    measuredRatio: 4.26,
+    reason:
+      "Crimson 9 is the one hue no label clears 4.5 on: white measures 3.85 " +
+      "and the dark neutral 4.26. The dark neutral is the better of the two " +
+      "and the fill step is fixed by the spec, so this is the floor.",
+  },
 ];
 
 export function contrastDebtKey(

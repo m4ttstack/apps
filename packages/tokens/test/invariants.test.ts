@@ -233,6 +233,54 @@ describe('palette', () => {
   });
 });
 
+describe('on-fill and vivid text', () => {
+  it('on-fill labels clear 4.5 except the ledgered miss', () => {
+    const ledger: string[] = [];
+    for (const scheme of SCHEMES) {
+      for (const hue of HUES) {
+        const fill = TOKENS[scheme].hue[hue];
+        const label = TOKENS[scheme].hueOnFill[hue];
+        const ratio = contrastRatio(fill, label);
+        if (ratio < 4.5) ledger.push(`${scheme}/${hue}`);
+        expect(label === WHITE || label === TOKENS.light.textRamp[0]).toBe(
+          true
+        );
+      }
+    }
+    expect(ledger).toEqual(['light/bad', 'dark/bad']);
+  });
+
+  it('on-fill picks the better of white and the dark neutral', () => {
+    const dark = TOKENS.light.textRamp[0];
+    for (const scheme of SCHEMES) {
+      for (const hue of HUES) {
+        const fill = TOKENS[scheme].hue[hue];
+        const chosen = TOKENS[scheme].hueOnFill[hue];
+        const other = chosen === WHITE ? dark : WHITE;
+        expect(contrastRatio(fill, chosen)).toBeGreaterThanOrEqual(
+          contrastRatio(fill, other)
+        );
+      }
+    }
+  });
+
+  it('the on-fill pick is the same in both schemes', () => {
+    for (const hue of HUES) {
+      const light = TOKENS.light.hueOnFill[hue] === WHITE;
+      const dark = TOKENS.dark.hueOnFill[hue] === WHITE;
+      expect(light).toBe(dark);
+    }
+  });
+
+  it.each(SCHEMES)('%s: vivid text is step 11 for every hue', scheme => {
+    for (const hue of HUES) {
+      expect(TOKENS[scheme].hueTextVivid[hue]).toBe(
+        RADIX[HUE_SCALE[hue]][scheme][10]
+      );
+    }
+  });
+});
+
 describe('CSS_TEXT overrides', () => {
   it('every key resolves to an existing TOKENS path with the same color', () => {
     for (const [path, cssText] of Object.entries(CSS_TEXT)) {

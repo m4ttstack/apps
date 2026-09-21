@@ -56,8 +56,10 @@ function buildTuiKitColors(scheme: 'light' | 'dark') {
   const family = (hue: HueName) => ({
     '500': at(`hue.${hue}`, t.hue[hue]),
     hover: at(`hueHover.${hue}`, t.hueHover[hue]),
+    onFill: at(`hueOnFill.${hue}`, t.hueOnFill[hue]),
     text: at(`hueText.${hue}`, t.hueText[hue]),
     textSmall: at(`hueTextSmall.${hue}`, t.hueTextSmall[hue]),
+    textVivid: at(`hueTextVivid.${hue}`, t.hueTextVivid[hue]),
   });
   const ramp = (leaf: string, values: readonly string[]) =>
     Object.fromEntries(
@@ -267,10 +269,17 @@ function renderTokyoSchemeBlock(scheme: 'light' | 'dark'): string {
     ...HUES.map(
       h => `  --tk-fill-${h}-hover: ${at(`hueHover.${h}`, t.hueHover[h])};`
     ),
+    ...HUES.map(
+      h => `  --tk-on-fill-${h}: ${at(`hueOnFill.${h}`, t.hueOnFill[h])};`
+    ),
     ...HUES.map(h => `  --tk-text-${h}: ${at(`hueText.${h}`, t.hueText[h])};`),
     ...HUES.map(
       h =>
         `  --tk-text-${h}-small: ${at(`hueTextSmall.${h}`, t.hueTextSmall[h])};`
+    ),
+    ...HUES.map(
+      h =>
+        `  --tk-text-${h}-vivid: ${at(`hueTextVivid.${h}`, t.hueTextVivid[h])};`
     ),
     '',
     `  --tk-wash: ${d.wash};`,

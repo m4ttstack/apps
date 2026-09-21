@@ -2,9 +2,9 @@ import { describe, expect, test } from "vitest";
 import { retunedTextColor, tuiIntentResolver } from "../src/intent-resolver.ts";
 
 describe("hue text retune", () => {
-  test("filled paints a white label on hue fills and a scheme-aware label on the neutral fill", () => {
+  test("filled paints the hue's on-fill label and a scheme-aware label on the neutral fill", () => {
     const r = tuiIntentResolver({ intent: "ok", variant: "filled" });
-    expect(r.color).toBe("#ffffff");
+    expect(r.color).toBe("var(--color-green-onFill)");
     expect(r.hover).toBe("var(--color-green-hover)");
     const m = tuiIntentResolver({ intent: "muted", variant: "filled" });
     expect(m.color).toBe("light-dark(var(--text-1), #ffffff)");

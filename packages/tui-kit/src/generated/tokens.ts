@@ -4,38 +4,50 @@ export const GENERATED_LIGHT_COLORS = {
   "blue": {
     "500": "#3e63dd",
     "hover": "#3358d4",
+    "onFill": "#ffffff",
     "text": "#3a5bc7",
-    "textSmall": "#1f2d5c"
+    "textSmall": "#1f2d5c",
+    "textVivid": "#3a5bc7"
   },
   "green": {
     "500": "#0d9b8a",
     "hover": "color-mix(in srgb, #0d9b8a 88%, #1c2024)",
+    "onFill": "#1c2024",
     "text": "#0d3d38",
-    "textSmall": "#0d3d38"
+    "textSmall": "#0d3d38",
+    "textVivid": "#008573"
   },
   "red": {
     "500": "#e93d82",
     "hover": "#df3478",
+    "onFill": "#1c2024",
     "text": "#621639",
-    "textSmall": "#621639"
+    "textSmall": "#621639",
+    "textVivid": "#cb1d63"
   },
   "amber": {
     "500": "#ef5f00",
     "hover": "color-mix(in srgb, #ef5f00 88%, #1c2024)",
+    "onFill": "#1c2024",
     "text": "#582d1d",
-    "textSmall": "#582d1d"
+    "textSmall": "#582d1d",
+    "textVivid": "#cc4e00"
   },
   "purple": {
     "500": "#8e4ec6",
     "hover": "#8347b9",
+    "onFill": "#ffffff",
     "text": "#8145b5",
-    "textSmall": "#402060"
+    "textSmall": "#402060",
+    "textVivid": "#8145b5"
   },
   "cyan": {
     "500": "#0797b9",
     "hover": "color-mix(in srgb, #0797b9 88%, #1c2024)",
+    "onFill": "#1c2024",
     "text": "#0d3c48",
-    "textSmall": "#0d3c48"
+    "textSmall": "#0d3c48",
+    "textVivid": "#107d98"
   },
   "ground": {
     "1": "#ffffff",
@@ -94,38 +106,50 @@ export const GENERATED_DARK_COLORS = {
   "blue": {
     "500": "#3e63dd",
     "hover": "#5472e4",
+    "onFill": "#ffffff",
     "text": "#9eb1ff",
-    "textSmall": "#d6e1ff"
+    "textSmall": "#d6e1ff",
+    "textVivid": "#9eb1ff"
   },
   "green": {
     "500": "#12a594",
     "hover": "#0eb39e",
+    "onFill": "#1c2024",
     "text": "#0bd8b6",
-    "textSmall": "#adf0dd"
+    "textSmall": "#adf0dd",
+    "textVivid": "#0bd8b6"
   },
   "red": {
     "500": "#e93d82",
     "hover": "#ee518a",
+    "onFill": "#1c2024",
     "text": "#ff92ad",
-    "textSmall": "#fdd3e8"
+    "textSmall": "#fdd3e8",
+    "textVivid": "#ff92ad"
   },
   "amber": {
     "500": "#f76b15",
     "hover": "#ff801f",
+    "onFill": "#1c2024",
     "text": "#ffa057",
-    "textSmall": "#ffe0c2"
+    "textSmall": "#ffe0c2",
+    "textVivid": "#ffa057"
   },
   "purple": {
     "500": "#8e4ec6",
     "hover": "#9a5cd0",
+    "onFill": "#ffffff",
     "text": "#d19dff",
-    "textSmall": "#ecd9fa"
+    "textSmall": "#ecd9fa",
+    "textVivid": "#d19dff"
   },
   "cyan": {
     "500": "#00a2c7",
     "hover": "#23afd0",
+    "onFill": "#1c2024",
     "text": "#4ccce6",
-    "textSmall": "#b6ecf7"
+    "textSmall": "#b6ecf7",
+    "textVivid": "#4ccce6"
   },
   "ground": {
     "1": "#111113",
