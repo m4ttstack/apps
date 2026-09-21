@@ -7,6 +7,11 @@
  * has -- four latch threads on one MR, posted inside the same 70ms, because
  * each process's own dedupe read happened before any of them wrote.
  */
+import type { Database } from 'bun:sqlite';
+
+import { persistOrWarn } from './busy.ts';
+import { getKvValue, setKvValue } from './kv-blob.ts';
+
 export interface WriterLeaseRow {
   pid: number;
   rank: number;
@@ -68,6 +73,42 @@ export function renewWriterLease(io: WriterLeaseIo): boolean {
     beatAt: now,
   });
   return true;
+}
+
+/** The lease as it really lives: one kv row beside the rest of board state,
+    so it is scoped to exactly the thing being contended -- the state root --
+    rather than to a pid file someone has to clean up. */
+export function stateWriterLeaseIo(opts: {
+  pid: number;
+  rank: number;
+  db?: Database;
+}): WriterLeaseIo {
+  const db = opts.db;
+  return {
+    read: () =>
+      db
+        ? getKvValue<WriterLeaseRow | null>('writer', 'lease', null, db)
+        : getKvValue<WriterLeaseRow | null>('writer', 'lease', null),
+    write: row =>
+      persistOrWarn('writer lease write', () =>
+        db
+          ? setKvValue('writer', 'lease', row, db)
+          : setKvValue('writer', 'lease', row)
+      ),
+    // Same machine by construction: every board sharing a state root shares
+    // the filesystem it lives on, so a signal-0 probe is decisive.
+    alive: pid => {
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    now: () => Date.now(),
+    pid: opts.pid,
+    rank: opts.rank,
+  };
 }
 
 /**

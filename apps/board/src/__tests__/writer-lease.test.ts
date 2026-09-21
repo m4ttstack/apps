@@ -1,9 +1,14 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
+import { openStateDb } from '../state/db.ts';
 import {
   claimWriterLease,
   LEASE_STALE_MS,
   renewWriterLease,
+  stateWriterLeaseIo,
   writerRank,
   type WriterLeaseIo,
   type WriterLeaseRow,
@@ -112,6 +117,40 @@ describe('renewWriterLease', () => {
 
     expect(renewWriterLease(deps)).toBe(true);
     expect(deps.written?.pid).toBe(42);
+  });
+});
+
+describe('stateWriterLeaseIo', () => {
+  // The holder is this test process, so the real signal-0 probe reports it
+  // alive -- a made-up pid would read as dead and free the lease.
+  test('two processes on one state db: the live holder keeps the lease', () => {
+    const db = openStateDb(
+      join(mkdtempSync(join(tmpdir(), 'board-lease-')), 'state.db')
+    );
+    const holder = stateWriterLeaseIo({ pid: process.pid, rank: 0, db });
+    const other = stateWriterLeaseIo({ pid: process.pid + 1, rank: 0, db });
+
+    expect(claimWriterLease(holder)).toBe(true);
+    expect(claimWriterLease(other)).toBe(false);
+    expect(other.read()?.pid).toBe(process.pid);
+    expect(renewWriterLease(holder)).toBe(true);
+    db.close();
+  });
+
+  test('the row survives the round trip through kv', () => {
+    const db = openStateDb(
+      join(mkdtempSync(join(tmpdir(), 'board-lease-')), 'state.db')
+    );
+    const deps = stateWriterLeaseIo({ pid: 303, rank: 1, db });
+
+    claimWriterLease(deps);
+
+    const row = deps.read();
+    expect(row?.pid).toBe(303);
+    expect(row?.rank).toBe(1);
+    expect(row?.beatAt).toBeGreaterThan(0);
+    expect(deps.alive(process.pid)).toBe(true);
+    db.close();
   });
 });
 

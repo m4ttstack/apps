@@ -243,11 +243,16 @@ import {
 } from './slack.ts';
 import {
   boardStateRoot,
+  claimWriterLease,
   dismissByHandle,
   getKvValue,
   getStateDb,
+  LEASE_BEAT_MS,
   persistOrWarn,
+  renewWriterLease,
   setKvValue,
+  stateWriterLeaseIo,
+  writerRank,
 } from './state/index.ts';
 import styleCss from './style.css' with { type: 'text' };
 import {
@@ -313,6 +318,23 @@ getStateDb('server');
 let config = FIXTURE_DIR
   ? parseConfig(readFileSync(fixtureFile('config.json'), 'utf8'))
   : loadConfig();
+
+// Who owns this state root's autonomous side. Claimed here, above the peer
+// relay and every boot block, because each of those is an effect that must
+// happen once per state root and not once per process sharing it.
+const writerLeaseIo = stateWriterLeaseIo({
+  pid: process.pid,
+  rank: writerRank(process.env),
+});
+// `let`: a higher-ranked board can take the lease mid-run, and this process
+// then stands its own write side down rather than doubling every effect.
+let writer = !FIXTURE_DIR && claimWriterLease(writerLeaseIo);
+if (!FIXTURE_DIR && !writer) {
+  console.error(
+    `board: pid ${writerLeaseIo.read()?.pid} already owns ${boardStateRoot()}; ` +
+      'running read-only (no agent-status feed, no sweeps, no peer publish)'
+  );
+}
 
 // Board secrets: env-first, then a daemon round trip -- resolved at most
 // once per process (memoizeAsync), lazily on first use, not at import, so
@@ -417,9 +439,12 @@ const peering = makePeering({
   deps: peerDeps,
 });
 // Fire-and-forget: the daemon round trip must not hold up Bun.serve below.
+// Writer only: the runtime's tick publishes this board's state and writes
+// back what it polls, both of which belong to one process per state root.
+// /peer/join's own start path is a human joining a switchboard and stays.
 void (async () => {
   const token = await getSwitchboardToken();
-  if (config.switchboard.url && token)
+  if (writer && config.switchboard.url && token)
     peering.start(config.switchboard.url, token);
 })();
 
@@ -3604,8 +3629,9 @@ async function runGateSweep(): Promise<void> {
   }
 }
 
-if (!FIXTURE_DIR) {
-  setInterval(() => {
+let sweepTimer: ReturnType<typeof setInterval> | undefined;
+if (writer) {
+  sweepTimer = setInterval(() => {
     void runGateSweep().catch(err =>
       console.error(
         `gate sweep failed: ${err instanceof Error ? err.message : err}`
@@ -3613,13 +3639,28 @@ if (!FIXTURE_DIR) {
     );
     wakeAgentStatusFeed();
   }, GATE_SWEEP_MS);
+
+  // Proving this process is still here, and noticing when it has been
+  // displaced. Standing down stops the loops but leaves the read side up:
+  // the UI a dev opened on this port keeps working.
+  const leaseTimer = setInterval(() => {
+    if (renewWriterLease(writerLeaseIo)) return;
+    writer = false;
+    clearInterval(leaseTimer);
+    clearInterval(sweepTimer);
+    console.error(
+      `board: writer lease taken by pid ${writerLeaseIo.read()?.pid}; standing down to read-only`
+    );
+  }, LEASE_BEAT_MS);
 }
 
 // One-shot migration: review/respond states that predate rt agent adoption
 // still carry a bare Claude sessionId with no agentId on file, so a resume
 // would fall back to the dead `claude --resume` path instead of the
 // facility's agent-pane resume. Best-effort and silent on a clean install.
-if (!FIXTURE_DIR) {
+// Writer only: it rewrites shared state files, and two processes racing the
+// same rewrite is the class this lease exists to stop.
+if (writer) {
   try {
     migrateLegacySessions(
       'review',
@@ -3657,7 +3698,9 @@ const stopRelay = FIXTURE_DIR
           // Resume hangs off the event itself (not the board's own answer
           // endpoint) so a gate answered from any surface -- console, in-pane,
           // this board -- resumes the parked session the same way.
-          if (frame.topic.startsWith('gate/answered/')) {
+          // Writer only, both of these: a resume and a status effect are
+          // owed once per transition, not once per board listening to it.
+          if (writer && frame.topic.startsWith('gate/answered/')) {
             void handleAnsweredEvent(gateFrame, gateResumeIo()).catch(err =>
               console.error(
                 `gate answered resume failed: ${err instanceof Error ? err.message : err}`
@@ -3666,7 +3709,7 @@ const stopRelay = FIXTURE_DIR
           }
           // The push is a wake-up, never the delivery: the journal is read
           // from the cursor so a frame that raced a reconnect is not lost.
-          if (isAgentStatusTopic(frame.topic)) wakeAgentStatusFeed();
+          if (writer && isAgentStatusTopic(frame.topic)) wakeAgentStatusFeed();
         }
       }
       if (!RELAY_TYPES.has(type)) return;
@@ -3700,6 +3743,11 @@ if (!FIXTURE_DIR) {
       `gate boot reconcile (attention) failed: ${err instanceof Error ? err.message : err}`
     )
   );
+}
+
+// Writer only, unlike the two cache reconciles above: those hydrate what the
+// UI reads, while these two act on what they find.
+if (writer) {
   // Independent of the cache reconcile above (reads the facility directly),
   // so it needs no ordering relative to it: catches an answered-parked gate
   // the board missed the live event for while it was down.
@@ -3726,7 +3774,9 @@ function readEventBridges(): EventBridgeRule[] {
 function writeEventBridges(next: EventBridgeRule[]): void {
   setSetting('rt.notify.eventBridges', next, 'user');
 }
-if (!FIXTURE_DIR) {
+// Writer only: the rule carries this process's own url, so a second board
+// would point every gate notification at its port instead.
+if (writer) {
   void (async () => {
     try {
       const boardUrl = await deckAppUrl('board', `http://localhost:${port}`);
