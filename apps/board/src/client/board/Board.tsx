@@ -8,6 +8,7 @@ import { inferRoster } from '../../data.ts';
 import type { GateRow } from '../../gates/store.ts';
 import { sectionStatus } from '../../sections.ts';
 import {
+  menuActsOnSelection,
   postableOf,
   selectionOf,
   tabChangeClearsSelection,
@@ -44,11 +45,13 @@ import type {
 } from '../types.ts';
 import {
   dispatchRowAction,
+  runBulk,
   runOne,
   type LaunchOpts,
   type RowHandlers,
   type RunnerDeps,
 } from './action-runner.ts';
+import { ActionMenu } from './ActionMenu.tsx';
 import { AppLauncher } from './AppLauncher.tsx';
 import { AppMark } from './AppMark.tsx';
 import { ConfigModal } from './ConfigModal.tsx';
@@ -76,11 +79,12 @@ import {
 import { NEED_LABEL, NEED_ORDER, needOf } from './needs-me.ts';
 import { overlay } from './optimistic.ts';
 import { RespondModal, ReviewModal } from './ReviewModal.tsx';
-import type {
-  ActionEnv,
-  LaunchFlow,
-  RowAction,
-  RunOpts,
+import {
+  bulkActions,
+  type ActionEnv,
+  type LaunchFlow,
+  type RowAction,
+  type RunOpts,
 } from './row-actions.ts';
 import { RowMenu } from './RowMenu.tsx';
 import { RowView } from './RowView.tsx';
@@ -1023,6 +1027,10 @@ export function Board() {
     peers: data.peers,
     allMrs: data.mrs,
   };
+  const bulkEntries =
+    rowMenu && menuActsOnSelection(rowMenu.mr, selected, selectedMrs.length)
+      ? bulkActions(selectedMrs, actionEnv)
+      : null;
   const openSettings = () => {
     setMenuOpen(false);
     setShowSettings(true);
@@ -1159,6 +1167,10 @@ export function Board() {
             templates={data.slackTemplates}
             onClear={clearSelection}
             posting={postingSummary}
+            onActions={(x, y) => {
+              const first = selectedMrs[0];
+              if (first) setRowMenu({ x, y, mr: first });
+            }}
             slackPost={
               data.slackEnabled && data.local && postableSelected.length > 0
                 ? {
@@ -1321,14 +1333,27 @@ export function Board() {
         />
       )}
 
-      {rowMenu && (
-        <RowMenu
-          menu={rowMenu}
-          env={actionEnv}
-          onRun={runRowAction}
-          onClose={() => setRowMenu(null)}
-        />
-      )}
+      {rowMenu &&
+        (bulkEntries ? (
+          <ActionMenu
+            x={rowMenu.x}
+            y={rowMenu.y}
+            subject={`${selectedMrs.length} selected`}
+            entries={bulkEntries}
+            onClose={() => setRowMenu(null)}
+            onRun={(key, opts) => {
+              const entry = bulkEntries.find(e => e.key === key);
+              return entry ? runBulk(entry, opts, runner) : undefined;
+            }}
+          />
+        ) : (
+          <RowMenu
+            menu={rowMenu}
+            env={actionEnv}
+            onRun={runRowAction}
+            onClose={() => setRowMenu(null)}
+          />
+        ))}
 
       {reviewModal && (
         <ReviewModal mr={reviewModal} onClose={() => setReviewModal(null)} />
