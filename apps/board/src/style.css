@@ -2726,16 +2726,18 @@ body {
 /* Footer, pinned below the scrolling body: the queue stands (pips and
    count) on the left, the active gate's step nav on the right. One row,
    fixed height, never wraps -- the next-gate title lives on the count's
-   own tooltip instead of a row that would wrap. min-height holds the row
-   at the nav's own 34px control-row height (.tui-gate-actions) plus the
-   footer's own vertical padding, so an answered gate (no nav mounted) and
-   a form gate (nav mounted) stand at the same height. */
+   own tooltip instead of a row that would wrap. min-height is a rem value
+   so it tracks the root font size: it must clear the tallest step nav's
+   own control-row height plus this rule's own vertical padding, so a face
+   with no nav mounted (nothing in .tui-triage-nav) and a face whose nav
+   fills that height both land on the same fixed row height -- gate to
+   gate, the footer never wobbles. */
 .tui-triage-footer {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 10px 16px;
-  min-height: 53px;
+  min-height: 3.2rem;
   border-top: 1px solid var(--border-soft);
   padding: 0.85rem 0 0.35rem;
 }
