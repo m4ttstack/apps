@@ -21,10 +21,11 @@ import {
 /**
  * Sign-off catalog for the triage-queue modal (the gate-kit design pass's
  * ratified direction): the kit Modal hosting GateForm, with queue chrome
- * around it -- pips in the head, gate-level actions on the gate strip,
- * next-gate peek in the footer. The Modal recipe is fixed-position, so each
- * story renders inside a tall stage that the overlay covers; drafts seed via
- * the same `gateDraftKey()` localStorage write `useGateDraft` reads.
+ * around it -- the head is one row (title, gate-level actions, close), the
+ * step nav stays inline in GateForm's own body, and the footer carries only
+ * queue-scope chrome (pips, gate count). The Modal recipe is fixed-position,
+ * so each story renders inside a tall stage that the overlay covers; drafts
+ * seed via the same `gateDraftKey()` localStorage write `useGateDraft` reads.
  */
 function BoardStage({
   scheme,

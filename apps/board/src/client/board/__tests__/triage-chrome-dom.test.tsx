@@ -1,8 +1,7 @@
-/** The queue modal's chrome: the step nav portals into the footer slot and
-    never renders inside the scrolling body, the footer nav still drives the
-    form and its native reset/submit through the form="" attribute, and the
-    head is one row -- title, compact (size="sm") focus pane / skip gate,
-    then close. */
+/** The queue modal's chrome: the step nav renders inline in the gate body
+    (never in the footer), the footer carries queue-scope chrome only
+    (pips, gate count, no step nav), and the head is one row -- title,
+    compact (size="sm") focus pane / skip gate, then close. */
 
 import React from 'react';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
@@ -102,23 +101,23 @@ async function click(el: Element | null) {
   });
 }
 
-const footerButton = (text: string) =>
-  [...document.body.querySelectorAll('.tui-triage-footer button')].find(
+const navButton = (text: string) =>
+  [...document.body.querySelectorAll('.tui-gate-actions button')].find(
     b => b.textContent?.trim() === text && !b.hasAttribute('hidden')
   ) ?? null;
 
-test('the step nav renders in the footer, never in the scrolling body', async () => {
+test('the step nav renders in the gate body, never in the footer', async () => {
   await renderModal(stepped());
-  expect($('.tui-triage-footer .tui-gate-actions')).not.toBeNull();
-  expect($('.tui-triage-body .tui-gate-actions')).toBeNull();
+  expect($('.tui-triage-body .tui-gate-actions')).not.toBeNull();
+  expect($('.tui-triage-footer .tui-gate-actions')).toBeNull();
 });
 
-test('the footer nav still drives the form: pick, next, pick, submit posts both answers', async () => {
+test('the nav still drives the form: pick, next, pick, submit posts both answers', async () => {
   await renderModal(stepped());
   await click($('input[value="keep"]'));
-  await click(footerButton('next'));
+  await click(navButton('next'));
   await click($('input[value="yes"]'));
-  await click(footerButton('submit'));
+  await click(navButton('submit'));
   const answer = posts.find(p => p.url === '/gate/answer');
   expect(answer?.body).toMatchObject({
     gateId: 'g-steps',
@@ -126,10 +125,10 @@ test('the footer nav still drives the form: pick, next, pick, submit posts both 
   });
 });
 
-test('reset in the footer clears the picks', async () => {
+test('reset in the gate body clears the picks', async () => {
   await renderModal(stepped());
   await click($('input[value="keep"]'));
-  await click(footerButton('reset'));
+  await click(navButton('reset'));
   expect(($('input[value="keep"]') as HTMLInputElement).checked).toBe(false);
 });
 

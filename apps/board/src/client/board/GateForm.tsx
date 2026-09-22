@@ -1,5 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useMemo, useState } from 'react';
 
 import type {
   AnswerOutcome,
@@ -226,8 +225,8 @@ export type GateFormState = ReturnType<typeof useGateForm>;
     item, Previous / Next, Submit on the last). The code-changes item of a
     respond-plan gate joins the sequence only once a `fix:` value is picked,
     which in step mode means a new last step appears and Submit moves to it.
-    `showFocusAction` keeps the footer's focus-pane button out of hosts that
-    surface it elsewhere (the triage modal's gate strip). */
+    `showFocusAction` keeps the nav's own focus-pane button out of hosts
+    that surface it elsewhere (the triage modal's head row). */
 function GateForm({
   gate,
   mr,
@@ -235,7 +234,6 @@ function GateForm({
   onFocusPane,
   showFocusAction = true,
   showContextFallback = true,
-  actionsSlot,
 }: {
   gate: GateRow;
   /** Absent for a non-MR gate (queueExtras); the focus-pane-via-domain branch
@@ -248,10 +246,6 @@ function GateForm({
       pane above the form; a bare host with no such pane wants this on so
       the context is not lost. */
   showContextFallback?: boolean;
-  /** Where the step nav renders. Undefined keeps it inline under the
-      questions. An element (the queue modal's footer) takes it out of the
-      scrolling body; null holds it back until that element has mounted. */
-  actionsSlot?: HTMLElement | null;
 }) {
   const {
     selections,
@@ -298,123 +292,9 @@ function GateForm({
     () => gate.questions.filter(q => /^thread-/.test(q.id)).map(q => q.id),
     [gate.questions]
   );
-  const formId = useId();
-  // A portal takes this outside the <form>, so the two native controls
-  // (reset, submit) reach it only through the HTML form="" attribute.
-  const actions = (
-    <div className="tui-gate-actions">
-      <Questionnaire.Previous
-        disabled={busy}
-        render={props => (
-          <Button {...props} variant="light" intent="muted" size="lg" />
-        )}
-      >
-        previous
-      </Questionnaire.Previous>
-      {stepped && (
-        <Button
-          type="reset"
-          form={formId}
-          variant="subtle"
-          intent="muted"
-          size="lg"
-          disabled={busy}
-          onClick={resetAll}
-        >
-          reset
-        </Button>
-      )}
-      <div className="tui-gate-actions-end">
-        {failed && (
-          <span className="tui-gate-error">
-            submit failed... nothing was sent, try again
-          </span>
-        )}
-        {focusError && <span className="tui-gate-error">{focusError}</span>}
-        {showFocusAction &&
-          (gate.status === 'parked' ? (
-            gate.domain &&
-            mr && (
-              <Button
-                type="button"
-                variant="subtle"
-                intent="muted"
-                size="lg"
-                title="resume this gate's flow in a fresh pane"
-                onClick={() => onFocusPane(mr, gate.domain!)}
-              >
-                focus pane
-              </Button>
-            )
-          ) : (
-            <Button
-              type="button"
-              variant="subtle"
-              intent="muted"
-              size="lg"
-              disabled={!originFocusable || focusBusy}
-              title={
-                originFocusable
-                  ? 'jump into the pane behind this gate'
-                  : 'no origin on this gate'
-              }
-              onClick={() => void focusGate()}
-            >
-              focus pane
-            </Button>
-          ))}
-        {/* While a skippable multi has nothing picked, the skip control IS
-            the primary button ("next · none"), and next/submit render null
-            -- skipping submits an explicit []. The primitive hides skip on
-            required items, so required steps keep plain next/submit. */}
-        <Questionnaire.Skip
-          disabled={busy}
-          render={(props, state) =>
-            state.visible && state.status !== 'answered' ? (
-              <Button {...props} variant="filled" intent="accent" size="lg" />
-            ) : null
-          }
-        >
-          {lastStep ? 'submit · none' : 'next · none'}
-        </Questionnaire.Skip>
-        <Questionnaire.Next
-          render={(props, state) =>
-            activeSkippable && state.status !== 'answered' ? null : (
-              <Button
-                {...props}
-                variant="filled"
-                intent="accent"
-                size="lg"
-                disabled={busy || state.status !== 'answered'}
-              />
-            )
-          }
-        >
-          next
-        </Questionnaire.Next>
-        <Questionnaire.Submit
-          form={formId}
-          render={(props, state) =>
-            activeSkippable && state.status !== 'answered' ? null : (
-              <Button
-                {...props}
-                variant="filled"
-                intent="accent"
-                size="lg"
-                disabled={busy || state.status !== 'answered'}
-              />
-            )
-          }
-        >
-          {busy ? 'submitting…' : 'submit'}
-        </Questionnaire.Submit>
-      </div>
-    </div>
-  );
   return (
     <Questionnaire.Root
       className="tui-gate-form"
-      id={formId}
       items={items}
       shortcuts="numbers"
       item={activeStep}
@@ -436,164 +316,273 @@ function GateForm({
           </Markdown>
         </div>
       )}
-      {display.map(q => {
-        const current = selections[q.name];
-        const picked = new Set(Array.isArray(current) ? current : []);
-        const qctx = questionCtx.get(q.name) ?? null;
-        const threadCtx = qctx?.shape === 'thread@1' ? qctx : null;
-        const repliesCtx = qctx?.shape === 'replies@1' ? qctx : null;
-        const threadOrd = threadCtx ? threadIds.indexOf(q.name) : -1;
-        return (
-          <Questionnaire.Item
-            key={q.name}
-            name={q.name}
-            required={q.required}
-            multiple={q.multiple}
-            className="tui-gate-question"
-            data-gate-ctx={
-              threadCtx ? 'thread' : repliesCtx ? 'replies' : undefined
+      {/* Questionnaire.Root renders no wrapper of its own around its
+          children (it spreads them straight onto the <form>), so this div
+          is what the scroll region below targets -- the active question's
+          own height is what can outgrow the form, not the fixed nav. */}
+      <div className="tui-gate-items">
+        {display.map(q => {
+          const current = selections[q.name];
+          const picked = new Set(Array.isArray(current) ? current : []);
+          const qctx = questionCtx.get(q.name) ?? null;
+          const threadCtx = qctx?.shape === 'thread@1' ? qctx : null;
+          const repliesCtx = qctx?.shape === 'replies@1' ? qctx : null;
+          const threadOrd = threadCtx ? threadIds.indexOf(q.name) : -1;
+          return (
+            <Questionnaire.Item
+              key={q.name}
+              name={q.name}
+              required={q.required}
+              multiple={q.multiple}
+              className="tui-gate-question"
+              data-gate-ctx={
+                threadCtx ? 'thread' : repliesCtx ? 'replies' : undefined
+              }
+            >
+              <div className="tui-gate-question-head">
+                <Questionnaire.Title className="tui-gate-question-label">
+                  {q.prompt}
+                </Questionnaire.Title>
+                {threadCtx && <SeverityPill severity={threadCtx.severity} />}
+                {threadOrd >= 0 && (
+                  <span className="tui-gate-question-ord">
+                    thread {threadOrd + 1} of {threadIds.length}
+                  </span>
+                )}
+                {stepped && (
+                  <Questionnaire.Progress
+                    className="tui-gate-progress"
+                    render={(props, state) => (
+                      <span {...props}>
+                        <span className="tui-gate-qdots">
+                          {Array.from({ length: state.total }, (_, i) => (
+                            <i
+                              key={i}
+                              className="tui-gate-qdot"
+                              data-state={
+                                i + 1 < state.current
+                                  ? 'done'
+                                  : i + 1 === state.current
+                                    ? 'active'
+                                    : 'todo'
+                              }
+                            />
+                          ))}
+                        </span>
+                        {!threadCtx &&
+                          `Question ${state.current} of ${state.total}`}
+                      </span>
+                    )}
+                  />
+                )}
+              </div>
+              {threadCtx ? (
+                <ThreadCard ctx={threadCtx} />
+              ) : (
+                q.context &&
+                qctx === null && (
+                  <div className="tui-gate-question-context">
+                    <Markdown unstyled linkTargetBlank>
+                      {q.context}
+                    </Markdown>
+                  </div>
+                )
+              )}
+              <Questionnaire.Choices className="tui-gate-choices">
+                {q.choices.map(choice => {
+                  const recommended = choice.recommended === true;
+                  const entry = repliesCtx?.replies.find(
+                    r => r.thread === choice.value
+                  );
+                  const recommendedChip = recommended && (
+                    <Chip
+                      intent="ok"
+                      variant="outline"
+                      uppercase
+                      data-gate="recommended"
+                      className="tui-gate-recommended"
+                    >
+                      recommended
+                    </Chip>
+                  );
+                  return (
+                    <Questionnaire.Choice
+                      key={choice.value}
+                      value={choice.value}
+                      data-recommended={recommended ? 'true' : undefined}
+                      checked={
+                        q.multiple
+                          ? picked.has(choice.value)
+                          : current === choice.value
+                      }
+                      onChange={event =>
+                        q.multiple
+                          ? toggleMulti(
+                              q.name,
+                              choice.value,
+                              event.currentTarget.checked
+                            )
+                          : setSingle(q.name, choice.value)
+                      }
+                      className="tui-gate-choice"
+                    >
+                      <Questionnaire.ChoiceInput
+                        render={props => (
+                          <input {...props} className="tui-gate-choice-input" />
+                        )}
+                      />
+                      <Questionnaire.ChoiceLabel className="tui-gate-choice-label">
+                        {entry ? (
+                          <ReplyChoiceBody entry={entry}>
+                            {recommendedChip}
+                          </ReplyChoiceBody>
+                        ) : (
+                          <>
+                            <span className="tui-gate-choice-label-row">
+                              <span title={choice.description}>
+                                {choice.label}
+                              </span>
+                              {recommendedChip}
+                            </span>
+                            {choice.subtitle && (
+                              <span className="tui-gate-choice-subtitle">
+                                {choice.subtitle}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </Questionnaire.ChoiceLabel>
+                      <Questionnaire.ChoiceShortcut className="tui-gate-key" />
+                    </Questionnaire.Choice>
+                  );
+                })}
+              </Questionnaire.Choices>
+              <Questionnaire.Error className="tui-gate-invalid" />
+              <input
+                type="text"
+                className="tui-gate-note"
+                name={noteFieldName(q.name)}
+                aria-label={`Note for ${q.prompt}`}
+                placeholder="Add a note"
+                value={notes[q.name] ?? ''}
+                onChange={event => setNote(q.name, event.currentTarget.value)}
+                onKeyDown={event => {
+                  // Plain Enter in a text input is implicit form submission;
+                  // Cmd/Ctrl+Enter stays the primitive's validate-and-advance.
+                  if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey)
+                    event.preventDefault();
+                }}
+              />
+            </Questionnaire.Item>
+          );
+        })}
+      </div>
+      <div className="tui-gate-actions">
+        <Questionnaire.Previous
+          disabled={busy}
+          render={props => (
+            <Button {...props} variant="light" intent="muted" size="lg" />
+          )}
+        >
+          previous
+        </Questionnaire.Previous>
+        {stepped && (
+          <Button
+            type="reset"
+            variant="subtle"
+            intent="muted"
+            size="lg"
+            disabled={busy}
+            onClick={resetAll}
+          >
+            reset
+          </Button>
+        )}
+        <div className="tui-gate-actions-end">
+          {failed && (
+            <span className="tui-gate-error">
+              submit failed... nothing was sent, try again
+            </span>
+          )}
+          {focusError && <span className="tui-gate-error">{focusError}</span>}
+          {showFocusAction &&
+            (gate.status === 'parked' ? (
+              gate.domain &&
+              mr && (
+                <Button
+                  type="button"
+                  variant="subtle"
+                  intent="muted"
+                  size="lg"
+                  title="resume this gate's flow in a fresh pane"
+                  onClick={() => onFocusPane(mr, gate.domain!)}
+                >
+                  focus pane
+                </Button>
+              )
+            ) : (
+              <Button
+                type="button"
+                variant="subtle"
+                intent="muted"
+                size="lg"
+                disabled={!originFocusable || focusBusy}
+                title={
+                  originFocusable
+                    ? 'jump into the pane behind this gate'
+                    : 'no origin on this gate'
+                }
+                onClick={() => void focusGate()}
+              >
+                focus pane
+              </Button>
+            ))}
+          {/* While a skippable multi has nothing picked, the skip control IS
+              the primary button ("next · none"), and next/submit render null
+              -- skipping submits an explicit []. The primitive hides skip on
+              required items, so required steps keep plain next/submit. */}
+          <Questionnaire.Skip
+            disabled={busy}
+            render={(props, state) =>
+              state.visible && state.status !== 'answered' ? (
+                <Button {...props} variant="filled" intent="accent" size="lg" />
+              ) : null
             }
           >
-            <div className="tui-gate-question-head">
-              <Questionnaire.Title className="tui-gate-question-label">
-                {q.prompt}
-              </Questionnaire.Title>
-              {threadCtx && <SeverityPill severity={threadCtx.severity} />}
-              {threadOrd >= 0 && (
-                <span className="tui-gate-question-ord">
-                  thread {threadOrd + 1} of {threadIds.length}
-                </span>
-              )}
-              {stepped && (
-                <Questionnaire.Progress
-                  className="tui-gate-progress"
-                  render={(props, state) => (
-                    <span {...props}>
-                      <span className="tui-gate-qdots">
-                        {Array.from({ length: state.total }, (_, i) => (
-                          <i
-                            key={i}
-                            className="tui-gate-qdot"
-                            data-state={
-                              i + 1 < state.current
-                                ? 'done'
-                                : i + 1 === state.current
-                                  ? 'active'
-                                  : 'todo'
-                            }
-                          />
-                        ))}
-                      </span>
-                      {!threadCtx &&
-                        `Question ${state.current} of ${state.total}`}
-                    </span>
-                  )}
+            {lastStep ? 'submit · none' : 'next · none'}
+          </Questionnaire.Skip>
+          <Questionnaire.Next
+            render={(props, state) =>
+              activeSkippable && state.status !== 'answered' ? null : (
+                <Button
+                  {...props}
+                  variant="filled"
+                  intent="accent"
+                  size="lg"
+                  disabled={busy || state.status !== 'answered'}
                 />
-              )}
-            </div>
-            {threadCtx ? (
-              <ThreadCard ctx={threadCtx} />
-            ) : (
-              q.context &&
-              qctx === null && (
-                <div className="tui-gate-question-context">
-                  <Markdown unstyled linkTargetBlank>
-                    {q.context}
-                  </Markdown>
-                </div>
               )
-            )}
-            <Questionnaire.Choices className="tui-gate-choices">
-              {q.choices.map(choice => {
-                const recommended = choice.recommended === true;
-                const entry = repliesCtx?.replies.find(
-                  r => r.thread === choice.value
-                );
-                const recommendedChip = recommended && (
-                  <Chip
-                    intent="ok"
-                    variant="outline"
-                    uppercase
-                    data-gate="recommended"
-                    className="tui-gate-recommended"
-                  >
-                    recommended
-                  </Chip>
-                );
-                return (
-                  <Questionnaire.Choice
-                    key={choice.value}
-                    value={choice.value}
-                    data-recommended={recommended ? 'true' : undefined}
-                    checked={
-                      q.multiple
-                        ? picked.has(choice.value)
-                        : current === choice.value
-                    }
-                    onChange={event =>
-                      q.multiple
-                        ? toggleMulti(
-                            q.name,
-                            choice.value,
-                            event.currentTarget.checked
-                          )
-                        : setSingle(q.name, choice.value)
-                    }
-                    className="tui-gate-choice"
-                  >
-                    <Questionnaire.ChoiceInput
-                      render={props => (
-                        <input {...props} className="tui-gate-choice-input" />
-                      )}
-                    />
-                    <Questionnaire.ChoiceLabel className="tui-gate-choice-label">
-                      {entry ? (
-                        <ReplyChoiceBody entry={entry}>
-                          {recommendedChip}
-                        </ReplyChoiceBody>
-                      ) : (
-                        <>
-                          <span className="tui-gate-choice-label-row">
-                            <span title={choice.description}>
-                              {choice.label}
-                            </span>
-                            {recommendedChip}
-                          </span>
-                          {choice.subtitle && (
-                            <span className="tui-gate-choice-subtitle">
-                              {choice.subtitle}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </Questionnaire.ChoiceLabel>
-                    <Questionnaire.ChoiceShortcut className="tui-gate-key" />
-                  </Questionnaire.Choice>
-                );
-              })}
-            </Questionnaire.Choices>
-            <Questionnaire.Error className="tui-gate-invalid" />
-            <input
-              type="text"
-              className="tui-gate-note"
-              name={noteFieldName(q.name)}
-              aria-label={`Note for ${q.prompt}`}
-              placeholder="Add a note"
-              value={notes[q.name] ?? ''}
-              onChange={event => setNote(q.name, event.currentTarget.value)}
-              onKeyDown={event => {
-                // Plain Enter in a text input is implicit form submission;
-                // Cmd/Ctrl+Enter stays the primitive's validate-and-advance.
-                if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey)
-                  event.preventDefault();
-              }}
-            />
-          </Questionnaire.Item>
-        );
-      })}
-      {actionsSlot === undefined
-        ? actions
-        : actionsSlot && createPortal(actions, actionsSlot)}
+            }
+          >
+            next
+          </Questionnaire.Next>
+          <Questionnaire.Submit
+            render={(props, state) =>
+              activeSkippable && state.status !== 'answered' ? null : (
+                <Button
+                  {...props}
+                  variant="filled"
+                  intent="accent"
+                  size="lg"
+                  disabled={busy || state.status !== 'answered'}
+                />
+              )
+            }
+          >
+            {busy ? 'submitting…' : 'submit'}
+          </Questionnaire.Submit>
+        </div>
+      </div>
     </Questionnaire.Root>
   );
 }

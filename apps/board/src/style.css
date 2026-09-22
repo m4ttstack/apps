@@ -2032,12 +2032,23 @@ body {
   line-height: 1.35;
   color: var(--text-1);
 }
+/* The form itself never scrolls or gets clipped by an ancestor: the
+   question area below is the one flexible child, shrinking to whatever
+   height the modal leaves it and scrolling internally past that, so the
+   nav (outside this flex item, fixed) always stays on screen. */
 .tui-gate-form {
   display: flex;
   flex-direction: column;
   gap: var(--gate-gap-inner);
   min-width: 0;
   max-width: 36rem;
+  min-height: 0;
+}
+.tui-gate-items {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .tui-gate-progress {
   flex-shrink: 0;
@@ -2182,11 +2193,6 @@ body {
   background: var(--surface-inset);
   pointer-events: none;
 }
-.tui-triage-modal [data-part='scrollpane-head'] {
-  display: flex;
-  align-items: baseline;
-}
-/* A thread question's ordinal among the gate's other threads. */
 .tui-gate-question-ord {
   flex-shrink: 0;
   font: 600 var(--gate-font-micro) / 1.4 var(--font-sans);
@@ -2195,8 +2201,13 @@ body {
   color: var(--text-4);
 }
 /* A question's own `context` field, rendered with its card above its
-   choices. It is the material the choice is made on, so it reads in ink. */
+   choices. It is the material the choice is made on, so it reads in ink.
+   The form around it is fixed height, so a long context scrolls inside
+   its own box rather than pushing the choices and nav below it. */
 .tui-gate-question-context {
+  max-height: 10rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
   font-size: var(--gate-font-meta);
   line-height: 1.45;
   color: var(--text-1);
@@ -2324,6 +2335,15 @@ body {
   border-radius: 8px;
   background: color-mix(in srgb, var(--fill-ok) 12%, transparent);
 }
+/* The claim and the reply text are the card's two free-form prose blocks;
+   the verdict and points around them stay fixed-format and short, so only
+   these scroll internally when a reviewer's writing runs long. */
+.tui-thread-claim,
+.tui-thread-reply-text {
+  max-height: 10rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
 .tui-thread-reply[data-kind='direction'] {
   background: color-mix(in srgb, var(--fg) 5%, transparent);
 }
@@ -2358,6 +2378,8 @@ body {
 .tui-reply-choice-text [data-part='markdown'] > * + * {
   margin-top: 6px;
 }
+/* The recommended choice is marked at rest so the eye lands on it before
+   the pointer does. */
 .tui-gate-choice[data-recommended]:not([data-checked]) {
   border-color: color-mix(in srgb, var(--fill-accent) 55%, var(--border));
   background: color-mix(in srgb, var(--fill-accent) 7%, transparent);
@@ -2387,6 +2409,7 @@ body {
   outline-offset: 1px;
 }
 .tui-gate-actions {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2505,26 +2528,31 @@ body {
   opacity: 0.55;
 }
 /* Context sits ABOVE the form, the way a real pane reads: transcript on
-   top, prompt below. The pane is as tall as its text up to the ScrollPane's
-   46vh cap and scrolls on its own past that. It never shrinks: the kit
-   pane's own `min-height: 0` would let a flexed pane collapse to its header
-   at laptop heights, so when the pane plus the form outgrow the modal's cap
-   the body scrolls to the form under the pinned head and footer instead.
-   `min-height: 0` lets the body shrink to the cap; `overflow-y: auto` is
-   what turns the overflow into that scroll instead of a clipped form. */
+   top, prompt below. Nothing here scrolls the body itself, and the nav is
+   never compressed or pushed below the fold: a container that can outgrow
+   its box owns its own scroll instead, and both the pane above and the
+   form's own question area below (`.tui-gate-items`, see `.tui-gate-form`)
+   compete for whatever height the modal leaves, each shrinking on its own
+   terms and scrolling internally past that. */
 .tui-triage-body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: var(--gate-gap);
   min-height: 0;
-  overflow-y: auto;
 }
+/* The floor is the pane's header band plus a few lines of prose, so a
+   shrunk pane still reads as a pane, never just its own title. */
 .tui-triage-body > [data-part='scrollpane'] {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-height: 9rem;
 }
+/* No floor of its own: the nav below `.tui-gate-items` is what must never
+   be pushed off screen, and it is protected structurally (a fixed sibling
+   after the one flexible child), not by a minimum height on the form. */
 .tui-triage-body > .tui-triage-form-col {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-height: 0;
 }
 .tui-triage-form-col {
   min-width: 0;
@@ -2723,15 +2751,12 @@ body {
   color: var(--text-4);
   align-self: center;
 }
-/* Footer, pinned below the scrolling body: the queue stands (pips and
-   count) on the left, the active gate's step nav on the right. One row,
+/* Footer: queue-scope chrome only (pips, gate count) -- step-level nav is
+   this-gate scope and stays with GateForm's own body, not here. One row,
    fixed height, never wraps -- the next-gate title lives on the count's
    own tooltip instead of a row that would wrap. min-height is a rem value
-   so it tracks the root font size: it must clear the tallest step nav's
-   own control-row height plus this rule's own vertical padding, so a face
-   with no nav mounted (nothing in .tui-triage-nav) and a face whose nav
-   fills that height both land on the same fixed row height -- gate to
-   gate, the footer never wobbles. */
+   so it tracks the root font size, holding the row at the same height on
+   every gate regardless of the queue-scope content's own natural size. */
 .tui-triage-footer {
   display: flex;
   flex-wrap: nowrap;
@@ -2745,13 +2770,6 @@ body {
   display: inline-flex;
   align-items: center;
   gap: var(--gate-gap-row);
-}
-.tui-triage-nav {
-  margin-left: auto;
-}
-.tui-triage-nav .tui-gate-actions {
-  padding: 0;
-  min-height: 0;
 }
 .tui-triage-done {
   display: flex;

@@ -1,10 +1,11 @@
-/** Real-layout check for the decision queue's context pane, run in headless
-    chromium against the fixture server: happy-dom does no layout, and the
-    law this guards (the pane is as tall as its text up to its 46vh cap and
-    never shrinks below that; the body, never the modal, scrolls when the
-    pane plus the form outgrow the modal's cap) only exists once CSS flex
-    sizing runs. Boots on a free port so a concurrent `capture` run on 7941
-    is untouched. */
+/** Real-layout check for the decision queue's context pane and question
+    area, run in headless chromium against the fixture server: happy-dom
+    does no layout, and the laws this guards only exist once CSS flex
+    sizing runs. The nav (`.tui-gate-actions`, in the gate body, not the
+    footer) must stay fully on screen and the modal must never scroll;
+    whatever doesn't fit -- the context pane, or the active question's own
+    area -- shrinks and scrolls internally instead. Boots on a free port so
+    a concurrent `capture` run on 7941 is untouched. */
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -13,12 +14,17 @@ import { chromium, type Browser, type Page } from 'playwright';
 
 const ROOT = join(import.meta.dir, '..');
 const ROOMY = { width: 1000, height: 1100 };
-/** A laptop-height window: the form alone nearly fills the modal's cap,
-    which is where a shrinkable pane collapses to its header. */
+/** A laptop-height window: tight enough that the context pane and the
+    active question's own area both have to shrink and scroll internally
+    to keep the nav on screen. */
 const SHORT = { width: 1000, height: 812 };
 /** The ScrollPane cap DecisionQueueModal passes, as a share of the
     viewport height. */
 const PANE_CAP = 0.46;
+/** `.tui-triage-body > [data-part='scrollpane']`'s `min-height: 9rem` in
+    `style.css`, in px at this repo's 17px root -- the floor the pane never
+    shrinks below, whether or not it is also scrolling. */
+const PANE_FLOOR_PX = 9 * 17;
 
 /** The slice of the page's DOM the measurements touch; this tsconfig has no
     `dom` lib, so the evaluate callbacks reach it through a cast. */
@@ -115,27 +121,37 @@ type Layout = {
   footerBottom: number;
   paneRootHeight: number;
   paneScrolls: boolean;
+  navBottom: number;
+  itemsScrolls: boolean;
+  itemsHeight: number;
 };
 
 function measure(page: Page): Promise<Layout> {
   return page.evaluate(() => {
     const { document } = globalThis as unknown as PageGlobals;
     const modal = document.querySelector('.tui-triage-modal')!;
+    // A header-card gate (structured plan@1/post@1 context) has no
+    // ScrollPane at all -- only a prose-context gate does.
     const root = document.querySelector(
       '.tui-triage-modal [data-part="scrollpane"]'
-    )!;
+    );
     const pane = document.querySelector(
       '.tui-triage-modal [data-part="scrollpane-body"]'
-    )!;
+    );
     const footer = document.querySelector('.tui-triage-footer')!;
     const body = document.querySelector('.tui-triage-body')!;
+    const nav = document.querySelector('.tui-gate-actions')!;
+    const items = document.querySelector('.tui-gate-items')!;
     return {
       modalScrolls: modal.scrollHeight > modal.clientHeight,
       bodyScrolls: body.scrollHeight > body.clientHeight,
       modalBottom: modal.getBoundingClientRect().bottom,
       footerBottom: footer.getBoundingClientRect().bottom,
-      paneRootHeight: root.getBoundingClientRect().height,
-      paneScrolls: pane.scrollHeight > pane.clientHeight,
+      paneRootHeight: root ? root.getBoundingClientRect().height : 0,
+      paneScrolls: pane ? pane.scrollHeight > pane.clientHeight : false,
+      navBottom: nav.getBoundingClientRect().bottom,
+      itemsScrolls: items.scrollHeight > items.clientHeight,
+      itemsHeight: items.getBoundingClientRect().height,
     };
   });
 }
@@ -143,46 +159,79 @@ function measure(page: Page): Promise<Layout> {
 function expectPaneLaw(m: Layout, viewportHeight: number): void {
   const cap = viewportHeight * PANE_CAP;
   expect(m.paneRootHeight).toBeLessThanOrEqual(cap + 1);
-  // Never shrunk: either all of the text shows, or the pane stands at its cap.
-  if (m.paneScrolls) expect(m.paneRootHeight).toBeGreaterThanOrEqual(cap - 1);
+  // The pane and the question area now share the squeeze, so a scrolling
+  // pane no longer implies it sits at the cap -- only that it never goes
+  // below its own floor, however much of the deficit the question area
+  // ends up absorbing instead.
+  expect(m.paneRootHeight).toBeGreaterThanOrEqual(PANE_FLOOR_PX - 1);
   expect(m.modalScrolls).toBe(false);
   expect(m.footerBottom).toBeLessThanOrEqual(m.modalBottom);
 }
 
+/** The nav is protected structurally (a fixed sibling after the one
+    flexible child of `.tui-gate-form`), so this holds on every gate, not
+    only the long-context one `openDecisionQueue` walks to. */
+function expectNavOnScreen(m: Layout, viewportHeight: number): void {
+  expect(m.navBottom).toBeLessThanOrEqual(viewportHeight);
+  expect(m.modalScrolls).toBe(false);
+  expect(m.bodyScrolls).toBe(false);
+}
+
 test('roomy: the pane is as tall as its text up to its cap, and the modal never scrolls', async () => {
   const page = await openDecisionQueue(ROOMY);
-  expectPaneLaw(await measure(page), ROOMY.height);
+  const m = await measure(page);
+  expectPaneLaw(m, ROOMY.height);
+  expectNavOnScreen(m, ROOMY.height);
   await page.context().close();
 }, 30_000);
 
-test('short: the pane keeps its height and the body scrolls to the form under the pinned footer', async () => {
+test('short: the nav stays on screen without the body scrolling, even with long context', async () => {
   const page = await openDecisionQueue(SHORT);
   const m = await measure(page);
   expectPaneLaw(m, SHORT.height);
-  expect(m.bodyScrolls).toBe(true);
+  expectNavOnScreen(m, SHORT.height);
   await page.context().close();
 }, 30_000);
 
-type Scrollable = { scrollTop: number; scrollHeight: number };
-
-test('short: the step nav is pinned in the footer, on screen, and stays put while the body scrolls', async () => {
+test('short: the context pane and the question area scroll internally instead of the body', async () => {
   const page = await openDecisionQueue(SHORT);
-  const nav = page.locator('.tui-triage-footer .tui-gate-actions');
-  await nav.waitFor();
-  expect(await page.locator('.tui-triage-body .tui-gate-actions').count()).toBe(
-    0
-  );
-  const before = (await nav.boundingBox())!;
-  expect(before.y + before.height).toBeLessThanOrEqual(SHORT.height);
-  await page.evaluate(() => {
+  const m = await measure(page);
+  // This is the fixture's deliberately long gate: both the context pane
+  // and the active question's own area outgrow the space the modal leaves
+  // them at this height, so both scroll in place rather than the body.
+  expect(m.paneScrolls).toBe(true);
+  expect(m.itemsScrolls).toBe(true);
+  expect(m.itemsHeight).toBeGreaterThan(0);
+  await page.context().close();
+}, 30_000);
+
+test('short: the footer is one row, never wraps, and holds no step nav', async () => {
+  const page = await openDecisionQueue(SHORT);
+  const footer = page.locator('.tui-triage-footer');
+  const wraps = await page.evaluate(() => {
     const { document } = globalThis as unknown as PageGlobals;
-    const body = document.querySelector(
-      '.tui-triage-body'
-    ) as unknown as Scrollable;
-    body.scrollTop = body.scrollHeight;
+    const el = document.querySelector('.tui-triage-footer')!;
+    return el.scrollHeight > el.clientHeight + 1;
   });
-  const after = (await nav.boundingBox())!;
-  expect(after.y).toBe(before.y);
+  expect(wraps).toBe(false);
+  expect(await footer.locator('.tui-gate-actions').count()).toBe(0);
+  await page.context().close();
+}, 30_000);
+
+test('short: a header-card gate with no context pane still keeps its nav on screen', async () => {
+  const page = await openDecisionQueue(SHORT);
+  // openDecisionQueue stops at the first prose-context gate; a header-card
+  // gate (structured plan@1/post@1 context) has no ScrollPane at all, so
+  // the question area is the only thing that can give. Skip forward until
+  // one shows up, or the queue runs out.
+  const head = page.locator('.tui-respond-head');
+  for (let i = 0; i < 10 && !(await head.count()); i++) {
+    await page.getByRole('button', { name: 'skip gate' }).click();
+    await page.waitForTimeout(120);
+  }
+  expect(await head.count()).toBeGreaterThan(0);
+  const m = await measure(page);
+  expectNavOnScreen(m, SHORT.height);
   await page.context().close();
 }, 30_000);
 

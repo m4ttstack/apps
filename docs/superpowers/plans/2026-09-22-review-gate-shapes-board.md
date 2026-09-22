@@ -1744,6 +1744,8 @@ git commit -m "board: delete gate-context.ts; non-structured contexts render as 
 
 ### Task 6: The queue modal's chrome: one-row head, step nav pinned to the footer
 
+**Superseded.** A later ruling moved the step nav back inline in the gate body (this-gate scope, not the queue-scope footer) and fixed the original defect instead with bounded, internally scrolling context containers plus a scrolling question area inside the form. The one-row head and the footer's queue-only content (pips, gate count) still stand as this task shipped them.
+
 Scope addition from Matt (derived decisions 14-16). Defect: on a short viewport the form's step nav (previous / reset / next) lives inside the scrolling body and scrolls out of reach below the fold; only the pips footer stays visible. And the top spends two bands (title row, then the focus pane / skip gate row) before any content.
 
 **Files:**

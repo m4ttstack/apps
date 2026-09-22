@@ -1,4 +1,4 @@
-/** DOM-level test for the review-post routing predicate (task 3): a
+/** DOM-level test for the review-post routing predicate: a
     structured review-post gate whose context and every findings chunk
     join one-to-one opens the review sheet; any mismatch, or a legacy
     prose-context gate, falls through to the generic decision-queue

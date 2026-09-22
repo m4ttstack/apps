@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import type { GateDomain } from '@mattstack/gate-kit';
 import { Button, Chip, Markdown, Modal, ScrollPane } from '@mattstack/tui-kit';
@@ -97,9 +97,10 @@ function GateStateChips({ gate }: { gate: GateRow }) {
 /** The queue-hosted face of one gate: `GateForm` inside the kit Modal, with
     queue chrome around it -- the only place a gate's form actually mounts,
     since a row now shows a chip that opens this modal rather than the form
-    itself. Actions keep their level: gate-level (focus pane, skip gate) ride
-    the head row beside close; step-level (previous / next / submit) ride
-    the footer, pinned below the scrolling body; the two never mix. The host
+    itself. Actions keep their scope: gate-level (focus pane, skip gate) ride
+    the head row beside close; the footer is queue-scope only (pips, gate
+    count); step-level (previous / reset / next / submit) stay with
+    `GateForm`'s own body, in scope with the questions they act on. The host
     owns the queue itself (which gates join, the order, advancing on answer
     or skip); this component renders exactly one active gate of it. */
 function DecisionQueueModal({
@@ -135,7 +136,6 @@ function DecisionQueueModal({
   onLostChange?: (lost: boolean) => void;
 }) {
   const form = useGateForm(gate, onAnswered);
-  const [navSlot, setNavSlot] = useState<HTMLDivElement | null>(null);
   const paneGone = gate.executor === 'gone';
   const headerCtx = useMemo((): PlanCtx | PostCtx | null => {
     const ctx = parseGateCtx(gate.context);
@@ -362,7 +362,6 @@ function DecisionQueueModal({
               onFocusPane={onFocusPane}
               showFocusAction={false}
               showContextFallback={false}
-              actionsSlot={navSlot}
             />
           );
         // The modal exists to give context room: unlike the row card's
@@ -397,7 +396,6 @@ function DecisionQueueModal({
             gate {position} of {states.length}
           </span>
         </span>
-        <div className="tui-triage-nav" ref={setNavSlot} />
       </div>
     </Modal>
   );
