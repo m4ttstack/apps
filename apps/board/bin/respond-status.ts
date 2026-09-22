@@ -29,13 +29,14 @@ interface Parsed {
   session?: string;
   posted?: string;
   threads?: string;
+  held?: string;
 }
 
 /** Same shape as review-status: positional <path> <status> [message] plus
     optional flags in either `--flag value` or `--flag=value` form. Backward
     compatible with existing invocations. */
 function parseArgs(argv: string[]): Parsed {
-  const NAMES = ['session', 'posted', 'threads'];
+  const NAMES = ['session', 'posted', 'threads', 'held'];
   const flags: Record<string, string | undefined> = {};
   const rest: string[] = [];
   for (let i = 0; i < argv.length; i++) {
@@ -55,6 +56,7 @@ function parseArgs(argv: string[]): Parsed {
     session: flags.session,
     posted: flags.posted,
     threads: flags.threads,
+    held: flags.held,
   };
 }
 
@@ -73,21 +75,26 @@ if (
   !VALID.includes(parsed.status as RespondStatus)
 ) {
   console.error(
-    `usage: respond-status <statePath> <${VALID.join('|')}> [message] [--posted <n>] [--threads <n>] [--session <id>]`
+    `usage: respond-status <statePath> <${VALID.join('|')}> [message] [--posted <n>] [--threads <n>] [--held <n>] [--session <id>]`
   );
   process.exit(1);
 }
 
 const posted = parseCount(parsed.posted);
 const threads = parseCount(parsed.threads);
-if (posted === null || threads === null) {
-  console.error('--posted and --threads must be non-negative integers');
+const held = parseCount(parsed.held);
+if (posted === null || threads === null || held === null) {
+  console.error('--posted, --threads and --held must be non-negative integers');
   process.exit(1);
 }
 // A numerator with no denominator is uninterpretable, so it fails rather than
 // deriving to "unknown" and quietly losing the count the run bothered to report.
 if (posted !== undefined && threads === undefined) {
   console.error('--posted requires --threads');
+  process.exit(1);
+}
+if (held !== undefined && threads === undefined) {
+  console.error('--held requires --threads');
   process.exit(1);
 }
 
@@ -107,6 +114,7 @@ const merged = updateByHandle(
     ...(parsed.message ? { message: parsed.message } : {}),
     ...(posted !== undefined ? { posted } : {}),
     ...(threads !== undefined ? { threads } : {}),
+    ...(held !== undefined ? { held } : {}),
     ...(sessionId ? { sessionId } : {}),
   },
   Date.now(),
@@ -127,7 +135,7 @@ await emitAgentStatus(
     iid: merged.iid,
     kind: 'respond',
     status: parsed.status,
-    outcome: respondOutcome(merged.posted, merged.threads),
+    outcome: respondOutcome(merged.posted, merged.threads, merged.held),
   },
   boardRootFromStatePath(parsed.path)
 );
