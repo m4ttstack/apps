@@ -19,7 +19,7 @@
 - Matt bans the two-word phrase that today's `RowMenu` comment `THE KEY IS ...` uses. Never write it; `ActionMenu`'s replacement comment in Task 4 is already reworded.
 - Comments state only constraints the code cannot show. No narration, no reviewer-facing justification, no task numbers or process history in source.
 - Test data uses invented names only (`pat`, `kim`, `jo`, `matt`, `gitlab.example.com`); the purity gate scans the whole tree.
-- The one-row menu must not change. After Task 1, never edit an assertion or inline snapshot in `src/client/board/__tests__/row-menu-pins-dom.test.tsx` or `row-menu-ask-dom.test.tsx`, and never run `bun test -u` or `--update-snapshots`. Only `renderRowMenu` inside `row-menu-harness.tsx` may change (Task 4). A pin that fails is a regression to fix in the code.
+- The one-row menu must not change. After Task 1, never edit an assertion or inline snapshot in `src/client/board/__tests__/row-menu-pins-dom.test.tsx` or `row-menu-ask-dom.test.tsx`, and never run `bun test -u` or `--update-snapshots`. In `row-menu-harness.tsx`, only `renderRowMenu`, its imports and the `window.open` stub may change, and only in Task 4. A pin that fails is a regression to fix in the code.
 - Single-row toasts stay word for word with today's `Board.tsx` handlers.
 - UI validation is mandatory for any task that changes what renders: serve it, screenshot both themes in Fast Browser, and say plainly what looks wrong.
 - Commit after each task. Message style: `board: <imperative summary>`, ending with the line `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`.
@@ -859,10 +859,8 @@ Expected: FAIL, `Cannot find module '../row-actions.ts'`.
 `src/client/board/row-actions.ts`:
 
 ```ts
-/** What the row menu offers, as data. One MR's actions come from
-    rowActions; the bulk menu groups several MRs' lists (bulkActions), so the
-    one-row and bulk menus can never disagree about what an MR can take.
-    DOM-free, so both menus and their tests share it. */
+/** What the row menu offers, as data: one MR's actions come from
+    rowActions. DOM-free, so the menu and its tests share it. */
 import type { BoardMR } from '../../data.ts';
 import type { MrAction } from '../../mr-action.ts';
 import { hasStackDescendants } from '../../view.ts';
@@ -1617,6 +1615,29 @@ test('runMany launches quietly and reloads once', async () => {
   ]);
 });
 
+test('runMany keeps at most four requests in flight', async () => {
+  let live = 0;
+  let peak = 0;
+  const deps: RunnerDeps = {
+    post: async () => {
+      live++;
+      peak = Math.max(peak, live);
+      await new Promise(resolve => setTimeout(resolve, 1));
+      live--;
+      return ok();
+    },
+    launch: async () => ok(),
+    addToast: () => {},
+    reload: () => {},
+  };
+  await runMany(
+    { kind: 'mr', action: 'rebase' },
+    [1, 2, 3, 4, 5, 6].map(mr),
+    deps
+  );
+  expect(peak).toBe(4);
+});
+
 test('runMany find-thread counts what it found', async () => {
   const { deps, events } = fakeDeps(p =>
     p.iid === 1 ? ok({ status: 'found' }) : ok({ status: 'notfound' })
@@ -2076,7 +2097,7 @@ export function dispatchRowAction(
 - [ ] **Step 6: Run the runner tests, typecheck, full suite**
 
 Run: `cd apps/board && bun test src/client/board/__tests__/action-runner.test.ts`
-Expected: PASS (16 tests).
+Expected: PASS (17 tests).
 Run from the root: `bun run board:typecheck && bun run board:test`
 Expected: clean and PASS. `Board.tsx` still compiles: its `handle*` wrappers return the new promise into `void`-typed props, which TypeScript allows.
 
@@ -2172,7 +2193,7 @@ function renderRowMenu(
 }
 ```
 
-`window.open` no longer records anything through the menu (the `open` effect now comes from `onRun`), so delete the `window.open = ...` assignment in `openMenu`. Leave `BoardMR` imported only if still used; the type-only import of `MenuEnv` merges into the `menu-fixtures.ts` import above.
+`window.open` no longer records anything through the menu (the `open` effect now comes from `onRun`), so delete the `window.open = ...` assignment in `openMenu`. Delete the `import type { BoardMR } from '../../../data.ts';` line (nothing uses it after the swap); the type-only import of `MenuEnv` merges into the `menu-fixtures.ts` import above.
 
 Run: `cd apps/board && bun run typecheck`
 Expected: FAIL. `RowMenu` does not accept `env` / `onRun` yet.
@@ -2377,13 +2398,18 @@ function ActionMenu({
     );
   }
 
+  // Armed against the exact wording: when a reload changes what a confirm
+  // covers ("really merge 2?" becomes "3?"), the item disarms instead of
+  // firing on a set nobody confirmed.
+  const armKey = (e: MenuEntry) => `${e.key}|${e.confirm}`;
   const click = (e: MenuEntry) => (ev: React.MouseEvent) => {
+    if (e.blocked) return;
     if (e.pick) {
       setPicking(e);
       return;
     }
-    if (e.confirm && armed !== e.key) {
-      setArmed(e.key);
+    if (e.confirm && armed !== armKey(e)) {
+      setArmed(armKey(e));
       return;
     }
     if (e.notable && ev.altKey) {
@@ -2431,7 +2457,7 @@ function ActionMenu({
                 key={e.key}
                 label={entryLabel(
                   e,
-                  armed === e.key && e.confirm ? e.confirm : e.label
+                  e.confirm && armed === armKey(e) ? e.confirm : e.label
                 )}
                 hint={hintOf(e)}
                 trailing={trailingOf(e)}
@@ -2536,7 +2562,7 @@ import type {
 } from './row-actions.ts';
 ```
 
-After the edits below, remove imports that are left unused (expected: the `MrAction` type import, and `getSlackMarks` from the `./format.ts` import). Check with `grep -n "MrAction\|getSlackMarks" apps/board/src/client/board/Board.tsx`.
+After the edits below, remove the imports they leave unused: the `MrAction` type import, `getSlackMarks` from the `./format.ts` import, and `hasStackDescendants` from the `../../view.ts` import. The board's tsconfig has `noUnusedLocals: false`, so no gate catches these; check with `grep -n "MrAction\|getSlackMarks\|hasStackDescendants" apps/board/src/client/board/Board.tsx` (only the import lines should have matched, and they should now be gone). Prettier sorts the new imports into place in Step 6.
 
 b. Replace the block that starts at the comment `// Six near-identical "launch a pane" actions collapse onto useLaunchAction:` and ends at the closing `);` of `handleResumeRespond` with the block below. It keeps the six `useLaunchAction` instances exactly as they are, puts each flow's payload in one `launch` callback, rebuilds the handlers the status line and the decision queue use on top of it, and drops `handleRebaseLocal` and `handleResumeReview` (only the old `RowMenu` props used them).
 
@@ -2786,7 +2812,9 @@ Expected: PASS, with `git diff --stat -- apps/board/src/client/board/__tests__/r
 
 - [ ] **Step 6: Full suite and the one-row visual check**
 
-Run from the root: `bun run board:test && bun run format:check && bash scripts/repo-purity.sh`
+Format first, since `format:check` fails on unsorted imports:
+`bunx prettier --write apps/board/src/client/board/ActionMenu.tsx apps/board/src/client/board/RowMenu.tsx apps/board/src/client/board/Board.tsx apps/board/src/client/board/__tests__/row-menu-harness.tsx`
+Then run from the root: `bun run board:test && bun run format:check && bash scripts/repo-purity.sh`
 Expected: all PASS.
 
 Then serve the fixture board and look at the one-row menu. From `apps/board`: `bun run build:client`, then `BOARD_FIXTURE=tests/fixture PORT=7941 bun run src/server.ts` (background). Through the `fast-browser:browser-driver` agent (or the Fast Browser tools directly), open `http://localhost:7941`, right-click the first row, and screenshot the menu in light and dark (the board keeps its theme in localStorage `mrs-theme`: set it to `light` or `dark`, reload, then restore the old value). Compare against `tests/baselines/rowmenu-light.png` and `tests/baselines/rowmenu-dark.png`. Also run `bun run capture && bun run capture:compare` from `apps/board`; the `rowmenu-*` shots must match. Say plainly if anything moved.
@@ -2940,7 +2968,16 @@ In `src/view.ts`, change `function stackParents<M extends BoardMR>(mrs: M[]): Ma
 
 - [ ] **Step 3: Add `bulkActions` to `row-actions.ts`**
 
-Change the `view.ts` import in `row-actions.ts` to `import { hasStackDescendants, stackParents } from '../../view.ts';` and append:
+Change the `view.ts` import in `row-actions.ts` to `import { hasStackDescendants, stackParents } from '../../view.ts';`, replace the file's header comment with:
+
+```ts
+/** What the row menu offers, as data. One MR's actions come from
+    rowActions; the bulk menu groups several MRs' lists (bulkActions), so the
+    one-row and bulk menus can never disagree about what an MR can take.
+    DOM-free, so both menus and their tests share it. */
+```
+
+and append:
 
 ```ts
 /** Launches past this many ask for a second click. */
@@ -3377,6 +3414,55 @@ test('a checked child of an open MR blocks bulk merge with the reason', async ()
   const merge = items().find(i => i.textContent?.includes('blocked'));
   expect(merge?.textContent).toContain('!103 sits on !101, which is still open');
   expect(merge?.hasAttribute('disabled')).toBe(true);
+  await React.act(async () => merge?.click());
+  await settle();
+  expect(posts.filter(p => p.url === '/mr/action')).toEqual([]);
+});
+
+test('the actions button with one checked row opens that row menu', async () => {
+  await check(102);
+  const button = [
+    ...container.querySelectorAll<HTMLElement>('.tui-selbar button'),
+  ].find(b => b.textContent?.includes('actions'));
+  if (!button) throw new Error('no actions button');
+  await React.act(async () => button.click());
+  expect(menu()?.getAttribute('aria-label')).toBe('actions for !102');
+});
+
+test('an armed confirm disarms when its wording changes under it', async () => {
+  const { ActionMenu } = await import('../ActionMenu.tsx');
+  const fired: string[] = [];
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  const r = createRoot(host);
+  const draw = (confirm: string) =>
+    React.act(async () =>
+      r.render(
+        React.createElement(ActionMenu, {
+          x: 0,
+          y: 0,
+          subject: '2 selected',
+          entries: [
+            { key: 'merge', section: 'gitlab', label: 'merge', glyph: null, confirm },
+          ],
+          onRun: (key: string) => {
+            fired.push(key);
+          },
+          onClose: () => {},
+        })
+      )
+    );
+  await draw('really merge 2?');
+  await click('merge');
+  expect(items().map(i => i.textContent)).toEqual(['really merge 2?']);
+  await draw('really merge 3?');
+  expect(items().map(i => i.textContent)).toEqual(['merge']);
+  await click('merge');
+  expect(fired).toEqual([]);
+  await click('really merge 3?');
+  expect(fired).toEqual(['merge']);
+  await React.act(async () => r.unmount());
+  host.remove();
 });
 
 test('request review from… asks the picked person on each MR', async () => {
@@ -3506,8 +3592,10 @@ d. Replace the `{rowMenu && ( <RowMenu ... /> )}` element from Task 4 with:
 - [ ] **Step 8: Run the bulk tests, then everything**
 
 Run: `cd apps/board && bun test src/client/board/__tests__/bulk-menu-dom.test.tsx`
-Expected: PASS (8 tests).
-Run from the root: `bun run board:typecheck && bun run board:test && bun run format:check && bash scripts/repo-purity.sh`
+Expected: PASS (10 tests).
+Format first, since `format:check` fails on long lines and unsorted imports:
+`bunx prettier --write apps/board/src/selection.ts apps/board/src/__tests__/selection.test.ts apps/board/src/client/board/icons.tsx apps/board/src/client/board/SelectionBar.tsx apps/board/src/style.css apps/board/src/client/board/Board.tsx apps/board/src/client/board/__tests__/bulk-menu-dom.test.tsx`
+Then run from the root: `bun run board:typecheck && bun run board:test && bun run format:check && bash scripts/repo-purity.sh`
 Expected: all PASS, with the Task 1 pins untouched.
 
 - [ ] **Step 9: Format and commit**
@@ -3542,7 +3630,7 @@ Through the `fast-browser:browser-driver` agent (spelled exactly that way; drive
 5. Close the menu; screenshot the selection bar with the actions button, then click it: the menu anchored under the button.
 6. Right-click an unchecked row: the one-row menu, unchanged.
 
-Save shots under the worktree (for example `apps/board/tests/.captures/bulk-*.png`, which is git-ignored with the other captures; confirm with `git check-ignore`).
+Save shots under `apps/board/tests/.captures/` (git-ignored), for example `bulk-menu-light.png`.
 
 - [ ] **Step 3: Compare against B11 and report plainly**
 
@@ -3550,7 +3638,9 @@ Put each shot next to B11's export (export from `docs/design/board/board.pen`, o
 
 - [ ] **Step 4: Confirm the rest of the board did not move**
 
-From `apps/board`: `bun run capture && bun run capture:compare`. Expected: every existing shot matches its baseline. If one differs, find out why before going on.
+From `apps/board`: `bun run capture && bun run capture:compare`. Expected: every shot matches its baseline except `selection-light` and `selection-dark`, which change on purpose (`tests/capture.ts` shoots the selection bar, and it now has the actions button). If any other shot differs, find out why before going on.
+
+Look at the two new selection shots in `tests/.captures/` next to their old baselines: the only change must be the actions button between `post` and `clear`, the same height and spacing as its neighbors. Then re-baseline just those two by copying them (not `capture:baseline`, which rewrites every baseline): `cp tests/.captures/selection-light.png tests/.captures/selection-dark.png tests/baselines/`. Confirm with `git status --short tests/baselines` that only those two changed, re-run `bun run capture:compare` (all match), and commit them as `board: re-baseline the selection bar captures for the actions button`.
 
 - [ ] **Step 5: Final gates**
 
