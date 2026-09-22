@@ -2476,17 +2476,16 @@ body {
   opacity: 0.7;
 }
 /* ── gate triage modal ────────────────────────────────────────────── */
+/* Must agree with .tui-triage-modal's max-height margin below, or a tall
+   modal overflows this centered, padded box. */
+.tui-triage-overlay {
+  align-items: center;
+  padding: var(--spacing-rem140) var(--spacing-rem100);
+}
 /* The frame is the kit Modal recipe; this class both widens it (app CSS
    outranks the recipe's @layer rule) and scopes the gate contrast vars.
-   max-height overrides the recipe's own 80vh ceiling (`--sb-modal-max-h`,
-   packages/tui-kit/src/recipes/Modal/Modal.tsx) the same way: the recipe
-   sets that custom property inline, so a stylesheet can never out-cascade
-   the property itself -- only the `max-height` DECLARATION that consumes
-   it, which this unlayered rule always wins regardless. --spacing-rem140
-   (1.4rem) is the nearest token to a 24px margin at this app's 17px root
-   size (23.8px); doubled, it leaves ~24px top and ~24px bottom instead of
-   the recipe's flat 80vh. The modal still sizes to its content -- this
-   only raises how tall it's allowed to grow. */
+   max-height overrides the recipe's own 80vh cap the same way; the margin
+   must match .tui-triage-overlay's own padding above. */
 .tui-triage-modal {
   max-width: 760px;
   max-height: calc(100vh - 2 * var(--spacing-rem140));
@@ -2789,17 +2788,11 @@ body {
   color: var(--text-4);
   align-self: center;
 }
-/* Footer: queue-scope chrome only (previous gate, pips, gate count, next
-   gate) -- step-level nav is this-gate scope and stays with GateForm's own
-   body, not here. A 3-column grid rather than flex: the outer two columns
-   are equal (1fr each), so `.tui-triage-where` in the middle column sits on
-   the footer's true center regardless of how wide either chevron's own
-   disabled/enabled state makes it, instead of merely being flanked by two
-   controls of unequal width. One row, fixed height, never wraps -- grid has
-   no wrap to fight, and the next-gate title lives on the count's own
-   tooltip instead of a row that would wrap. min-height is a rem value so it
-   tracks the root font size, holding the row at the same height on every
-   gate regardless of the queue-scope content's own natural size. */
+/* Footer: queue-scope chrome (previous gate, pips, gate count, next gate)
+   -- step-level nav stays with GateForm's own body, not here. A 3-column
+   grid keeps `.tui-triage-where` on the true center regardless of either
+   chevron's own width. One row, fixed height, never wraps; min-height is
+   a rem value so it tracks the root font size across every gate. */
 .tui-triage-footer {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -2816,22 +2809,8 @@ body {
   align-items: center;
   gap: var(--gate-gap-row);
 }
-/* The footer's own previous/next controls: a bare chevron glyph, never the
-   in-gate step nav's text `Button`s (GateForm's "previous"/"next"), so the
-   two nav scopes can never be mistaken for one. */
-.tui-triage-queue-nav {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-1);
-  font: inherit;
-  cursor: pointer;
-}
+/* Grid placement only -- base/hover/disabled styling is shared with
+   .tui-review-queue-chevron below so the two surfaces cannot drift. */
 .tui-triage-queue-nav:first-child {
   grid-column: 1;
   justify-self: start;
@@ -2839,15 +2818,6 @@ body {
 .tui-triage-queue-nav:last-child {
   grid-column: 3;
   justify-self: end;
-}
-.tui-triage-queue-nav:hover:not(:disabled) {
-  border-color: var(--fill-accent);
-  color: var(--text-accent-small);
-}
-.tui-triage-queue-nav:disabled {
-  color: var(--text-3);
-  cursor: default;
-  opacity: 0.5;
 }
 .tui-triage-done {
   display: flex;
@@ -3779,7 +3749,10 @@ body {
   align-items: center;
   gap: 8px;
 }
-.tui-review-queue-chevron {
+/* Shared with .tui-triage-queue-nav (the modal footer's own previous/next
+   controls): one chevron look for every gate-queue nav in the app. */
+.tui-review-queue-chevron,
+.tui-triage-queue-nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3791,11 +3764,13 @@ body {
   color: var(--text-1);
   cursor: pointer;
 }
-.tui-review-queue-chevron:hover:not(:disabled) {
+.tui-review-queue-chevron:hover:not(:disabled),
+.tui-triage-queue-nav:hover:not(:disabled) {
   border-color: var(--fill-accent);
   color: var(--text-accent-small);
 }
-.tui-review-queue-chevron:disabled {
+.tui-review-queue-chevron:disabled,
+.tui-triage-queue-nav:disabled {
   color: var(--text-3);
   cursor: default;
   opacity: 0.5;

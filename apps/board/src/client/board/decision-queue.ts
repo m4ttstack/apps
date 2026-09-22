@@ -61,9 +61,38 @@ function entryFor(
 
 function stateFor(session: QueueSession, gateId: string): TriageGateState {
   if (session.answered.includes(gateId)) return 'done';
-  if (session.skipped.includes(gateId)) return 'skipped';
+  // `back` can return to a gate already marked skipped -- rank active
+  // above skipped so the strip never loses its "you are here" pip.
   if (session.activeId === gateId) return 'active';
+  if (session.skipped.includes(gateId)) return 'skipped';
   return 'todo';
+}
+
+/** Adds `gateId` to `skipped` if it is not there already. `back` can return
+    to a gate that was already skipped, and forward from there re-skips it
+    -- without this guard that would push a second copy and inflate
+    `skippedCount` past the queue's own length. */
+export function markSkipped(session: QueueSession, gateId: string): string[] {
+  return session.skipped.includes(gateId)
+    ? session.skipped
+    : [...session.skipped, gateId];
+}
+
+/** Adds `gateId` to `answered` if it is not there already, and drops it
+    from `skipped`. A gate is answered or skipped, never both: answering
+    one reached by backing into a previously-skipped gate must not leave a
+    stale copy in `skipped` double-counting it. */
+export function markAnswered(
+  session: QueueSession,
+  gateId: string
+): Pick<QueueSession, 'answered' | 'skipped'> {
+  const answered = session.answered.includes(gateId)
+    ? session.answered
+    : [...session.answered, gateId];
+  const skipped = session.skipped.includes(gateId)
+    ? session.skipped.filter(id => id !== gateId)
+    : session.skipped;
+  return { answered, skipped };
 }
 
 export function queueView(
@@ -167,10 +196,11 @@ export function reconcile(
     (heldId === null || heldId !== session.activeId) &&
     answeredIds?.has(session.activeId)
   ) {
-    const answered = session.answered.includes(session.activeId)
-      ? session.answered
-      : [...session.answered, session.activeId];
-    const next = { ...session, order, answered };
+    const next = {
+      ...session,
+      order,
+      ...markAnswered(session, session.activeId),
+    };
     return {
       ...next,
       activeId: advanceOrWrap(next, entries, session.activeId),
@@ -231,8 +261,7 @@ export function useDecisionQueue(
   const skip = useCallback(() => {
     setSession(s => {
       if (s.activeId === null) return s;
-      const skipped = [...s.skipped, s.activeId];
-      const next = { ...s, skipped };
+      const next = { ...s, skipped: markSkipped(s, s.activeId) };
       return { ...next, activeId: advanceOrWrap(next, entries, s.activeId) };
     });
   }, [entries]);
@@ -241,10 +270,7 @@ export function useDecisionQueue(
     (gateId: string) => {
       setHeldId(h => (h === gateId ? null : h));
       setSession(s => {
-        const answered = s.answered.includes(gateId)
-          ? s.answered
-          : [...s.answered, gateId];
-        const next = { ...s, answered };
+        const next = { ...s, ...markAnswered(s, gateId) };
         return { ...next, activeId: advanceOrWrap(next, entries, gateId) };
       });
     },

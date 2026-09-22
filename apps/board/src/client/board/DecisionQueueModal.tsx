@@ -186,6 +186,7 @@ function DecisionQueueModal({
   return (
     <Modal
       className="tui-triage-modal"
+      overlayClassName="tui-triage-overlay"
       title={
         <>
           <span className="tui-triage-title">decision queue</span>
@@ -430,6 +431,7 @@ function DecisionQueueComplete({
   return (
     <Modal
       className="tui-triage-modal"
+      overlayClassName="tui-triage-overlay"
       title="decision queue"
       ariaLabel="decision queue complete"
       onClose={onClose}

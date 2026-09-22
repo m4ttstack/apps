@@ -263,6 +263,10 @@ function expectPaneLaw(m: Layout, viewportHeight: number): void {
   expect(m.paneRootHeight).toBeGreaterThanOrEqual(m.paneFloorPx - 1);
   expect(m.modalScrolls).toBe(false);
   expect(m.footerBottom).toBeLessThanOrEqual(m.modalBottom);
+  // Relative-to-itself checks above don't catch the modal itself sitting
+  // past the bottom of the window -- assert against the viewport directly.
+  expect(m.modalBottom).toBeLessThanOrEqual(viewportHeight + 0.5);
+  expect(m.footerBottom).toBeLessThanOrEqual(viewportHeight + 0.5);
 }
 
 /** The nav is protected structurally (a fixed sibling after the one
@@ -393,24 +397,134 @@ test('the head is one row: title, focus pane, and close share a line -- no skip 
   await page.context().close();
 }, 30_000);
 
-test('the footer centers the pips+count group between the previous- and next-gate controls', async () => {
-  const page = await openDecisionQueue(ROOMY);
+async function centerDrift(page: Page): Promise<number> {
   const footer = (await page.locator('.tui-triage-footer').boundingBox())!;
   const where = (await page.locator('.tui-triage-where').boundingBox())!;
-  const footerCenter = footer.x + footer.width / 2;
-  const whereCenter = where.x + where.width / 2;
-  // Genuinely centered in the footer, not merely flanked by two controls of
-  // unequal width (the previous control is disabled on this, the queue's
-  // first gate, so a merely-flanked layout would drift off-center here).
-  expect(Math.abs(whereCenter - footerCenter)).toBeLessThanOrEqual(2);
+  return Math.abs(where.x + where.width / 2 - (footer.x + footer.width / 2));
+}
+
+test('the footer centers the pips+count group between the previous- and next-gate controls', async () => {
+  // The fixture's own gate 1 is a review-post gate (the sheet, not this
+  // modal), so `openDecisionQueue` -- which walks forward to the first
+  // prose-context gate -- never lands this modal's footer on the queue's
+  // true first position; the previous control is enabled here. Checked
+  // again one gate further so this isn't just one position's coincidence.
+  const page = await openDecisionQueue(ROOMY);
+
   const prev = page.locator('[aria-label="previous gate"]');
   const next = page.locator('[aria-label="next gate"]');
   expect(await prev.count()).toBe(1);
   expect(await next.count()).toBe(1);
   expect(await prev.first().getAttribute('title')).toBe('previous gate');
   expect(await next.first().getAttribute('title')).toBe('next gate');
+  expect(await prev.first().isDisabled()).toBe(false);
+  expect(await centerDrift(page)).toBeLessThanOrEqual(2);
+
+  await next.first().click();
+  await page.waitForTimeout(120);
+  expect(await centerDrift(page)).toBeLessThanOrEqual(2);
+
   await page.context().close();
 }, 30_000);
+
+test("the review sheet nav centers its pips+count too, with the previous control genuinely disabled at the queue's true first gate", async () => {
+  const ctx = await browser.newContext({ viewport: ROOMY });
+  await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
+    route.abort()
+  );
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/?member=all`);
+  await page.waitForSelector('.tui-row');
+  await page.click('.tui-dq-open');
+  await page.waitForSelector('.tui-review-sheet');
+
+  const prev = page.locator('[aria-label="previous gate"]');
+  expect(await prev.first().isDisabled()).toBe(true);
+  await page.context().close();
+}, 30_000);
+
+/** Walks every gate in the queue (modal and sheet both) via "next gate",
+    from a fresh session, recording each one's bottom edge against the
+    viewport and, for modal-backed gates, the footer's own geometry. Exists
+    because expectPaneLaw/expectNavOnScreen only ever see the ONE gate
+    their caller navigated to -- the regression this guards (the raised
+    ceiling pushing a modal off the bottom) showed up on gates those
+    per-gate helpers never visited. */
+async function walkEveryGate(viewport: {
+  width: number;
+  height: number;
+}): Promise<
+  Array<{
+    kind: 'modal' | 'sheet';
+    bottom: number;
+    footerBottom: number | null;
+    footerHeight: number | null;
+  }>
+> {
+  const ctx = await browser.newContext({ viewport });
+  await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
+    route.abort()
+  );
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/?member=all`);
+  await page.waitForSelector('.tui-row');
+  await page.click('.tui-dq-open');
+  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
+
+  const results: Array<{
+    kind: 'modal' | 'sheet';
+    bottom: number;
+    footerBottom: number | null;
+    footerHeight: number | null;
+  }> = [];
+  for (let i = 0; i < 8; i++) {
+    if (await page.locator('.tui-triage-done').count()) break;
+    const m = await page.evaluate(() => {
+      const { document } = globalThis as unknown as PageGlobals;
+      const modal = document.querySelector('.tui-triage-modal');
+      const footer = document.querySelector('.tui-triage-footer');
+      const sheet = document.querySelector('.tui-review-sheet');
+      const el = modal ?? sheet;
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      const fr = footer ? footer.getBoundingClientRect() : null;
+      return {
+        kind: modal ? ('modal' as const) : ('sheet' as const),
+        bottom: r.bottom,
+        footerBottom: fr ? fr.bottom : null,
+        footerHeight: fr ? fr.height : null,
+      };
+    });
+    if (m) results.push(m);
+    const next = page.getByRole('button', { name: 'next gate' });
+    if (!(await next.count())) break;
+    await next.click();
+    await page.waitForTimeout(150);
+  }
+  await page.context().close();
+  return results;
+}
+
+test('every actionable gate stays on screen at 1440x900 and 1000x812', async () => {
+  for (const viewport of [LAPTOP, SHORT]) {
+    const results = await walkEveryGate(viewport);
+    expect(results.length).toBeGreaterThan(0);
+    for (const m of results) {
+      expect(m.bottom).toBeLessThanOrEqual(viewport.height + 0.5);
+      if (m.footerBottom !== null) {
+        expect(m.footerBottom).toBeLessThanOrEqual(viewport.height + 0.5);
+      }
+    }
+    // The footer's own height stays constant across every modal-backed
+    // gate the walk visited, regardless of that gate's content.
+    const footerHeights = results
+      .map(m => m.footerHeight)
+      .filter((h): h is number => h !== null);
+    for (const h of footerHeights) {
+      expect(Math.abs(h - footerHeights[0]!)).toBeLessThanOrEqual(0.5);
+    }
+  }
+}, 60_000);
 
 test('short: the review sheet keeps its verdict and submit on screen', async () => {
   const ctx = await browser.newContext({ viewport: SHORT });
