@@ -287,5 +287,9 @@ export type CommentNote = {
   at: string;
   body: string;
 };
-export type CommentThread = { status: ThreadStatus; notes: CommentNote[] };
+export type CommentThread = {
+  discussionId: string;
+  status: ThreadStatus;
+  notes: CommentNote[];
+};
 export type GeneralComment = CommentNote;
