@@ -6,10 +6,9 @@
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { afterAll, afterEach, beforeAll } from 'bun:test';
 
-import type { BoardMR } from '../../../data.ts';
-import { hasStackDescendants } from '../../../view.ts';
-import type { BoardMRWithReview, RowContext } from '../../types.ts';
-import type { MenuEnv } from './menu-fixtures.ts';
+import type { BoardMRWithReview } from '../../types.ts';
+import type { ActionRequest, RunOpts } from '../row-actions.ts';
+import { actionEnvOf, type MenuEnv } from './menu-fixtures.ts';
 
 export interface Effect {
   effect: string;
@@ -53,68 +52,54 @@ function record(effect: string, mr: { iid: number }, note?: string): void {
   );
 }
 
+function effectOf(req: ActionRequest, opts: RunOpts): string {
+  switch (req.kind) {
+    case 'launch':
+      return `launch:${req.flow}${req.intent === 'focus' ? ':focus' : ''}`;
+    case 'mr':
+      return `mr:${req.action}`;
+    case 'draft':
+      return `draft:${req.draft}`;
+    case 'react':
+      return `react:${req.emoji}:${req.remove}`;
+    case 'ask':
+      return `ask:${req.ask}:${opts.pick ?? req.reviewer}`;
+    case 'open':
+      return `open:${req.url}`;
+    case 'view-report':
+      return `view-report:${req.lane}`;
+    case 'dismiss':
+      return `dismiss:${req.lane}`;
+    case 'stand-down':
+      return `stand-down:${req.on}`;
+    default:
+      return req.kind;
+  }
+}
+
 function renderRowMenu(
   mr: BoardMRWithReview,
   env: MenuEnv,
   reactionsReply: string[] | null
 ) {
-  const self = env.self;
-  const own = self !== null && mr.author.username === self;
-  const ctx = {
-    local: env.local ?? true,
-    self,
-    slackTemplates: {},
-    slackEnabled: env.slackEnabled ?? false,
-    onOpenReview: (m: BoardMR) => record('view-report:review', m),
-    onOpenRespond: (m: BoardMR) => record('view-report:respond', m),
-    onResumeRespond: (m: BoardMR, note?: string) =>
-      record('launch:resume-respond', m, note),
-    onDismissLane: (m: BoardMR, lane: string) => record(`dismiss:${lane}`, m),
-    onStandDown: (m: BoardMR, on: boolean) => record(`stand-down:${on}`, m),
-    onEditNote: () => record('note', mr),
-  } as unknown as RowContext;
-  const launch =
-    (flow: string) =>
-    (m: BoardMR, note?: string, intent?: 'launch' | 'focus') =>
-      record(
-        intent === 'focus' ? `launch:${flow}:focus` : `launch:${flow}`,
-        m,
-        note
-      );
   return (
     <RowMenu
       menu={{ x: 10, y: 10, mr }}
-      ctx={ctx}
+      env={actionEnvOf(env, mr)}
       onClose={() => {
         harness.closed = true;
       }}
-      onLaunch={launch('review')}
-      onReReview={launch('re-review')}
-      onResumeReview={launch('resume-review')}
-      onRespond={launch('respond')}
-      canRespond={own}
-      onDoctor={launch('doctor')}
-      canDoctor={!!(mr.blockers?.pipelineFailing || mr.blockers?.hasConflicts)}
-      onRebaseLocal={launch('rebase-local')}
-      onCopy={m => record('copy', m)}
-      onResolveSlack={m => record('find-thread', m)}
-      onReactSlack={async (m, emoji, remove) => {
-        record(`react:${emoji}:${remove}`, m);
-        return reactionsReply;
+      onRun={(action, m, opts) => {
+        record(effectOf(action.request, opts), m, opts.note);
+        return action.request.kind === 'react'
+          ? Promise.resolve({
+              ok: true,
+              status: 200,
+              body: reactionsReply ? { reactions: reactionsReply } : null,
+              text: '',
+            })
+          : undefined;
       }}
-      onPostSlack={m => record('post-slack', m)}
-      canStandDown={own}
-      mrHasStackDescendants={hasStackDescendants(mr, env.allMrs ?? [mr])}
-      onDraftState={(m, draft) => record(`draft:${draft}`, m)}
-      canDraftState={own}
-      onMrAction={(m, action) => record(`mr:${action}`, m)}
-      onNudge={(m, reviewer) => record(`ask:re-review:${reviewer}`, m)}
-      canNudge={own}
-      roster={env.roster ?? []}
-      onRequestReview={(m, reviewer) => record(`ask:review:${reviewer}`, m)}
-      canAskRespond={self !== null && !own}
-      onAskRespond={(m, reviewer) => record(`ask:respond:${reviewer}`, m)}
-      peers={env.peers}
     />
   );
 }
@@ -127,10 +112,6 @@ export async function openMenu(
   await closeMenu();
   harness.effects = [];
   harness.closed = false;
-  window.open = ((url?: string | URL) => {
-    record(`open:${String(url)}`, mr);
-    return null;
-  }) as typeof window.open;
   const el = document.createElement('div');
   document.body.appendChild(el);
   const r = createRoot(el);
