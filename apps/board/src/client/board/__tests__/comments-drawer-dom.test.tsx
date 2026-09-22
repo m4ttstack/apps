@@ -110,6 +110,8 @@ let servedData: Record<string, unknown> = BOARD_DATA;
 let servedDiscussions: Record<string, unknown> = DISCUSSIONS;
 let posts: Array<{ url: string; body: Record<string, unknown> }> = [];
 let writeAnswer: (url: string, body: Record<string, unknown>) => Response;
+let readAnswer: () => Response | Promise<Response>;
+let reads = 0;
 const json = (v: unknown, status = 200) =>
   new Response(JSON.stringify(v), { status });
 
@@ -122,7 +124,10 @@ beforeAll(async () => {
       posts.push({ url, body });
       return writeAnswer(url, body);
     }
-    if (url.startsWith('/discussions')) return json(servedDiscussions);
+    if (url.startsWith('/discussions')) {
+      reads++;
+      return readAnswer();
+    }
     return new Response('{}', { status: 200 });
   }) as typeof fetch;
   window.open = (() => null) as typeof window.open;
@@ -138,6 +143,8 @@ beforeEach(() => {
   servedDiscussions = DISCUSSIONS;
   posts = [];
   writeAnswer = () => json(DISCUSSIONS);
+  readAnswer = () => json(servedDiscussions);
+  reads = 0;
 });
 
 afterEach(async () => {
@@ -521,5 +528,69 @@ describe('long notes', () => {
       section.querySelector('.tui-cd-note-clamp')!.getAttribute('data-clamped')
     ).toBe('true');
     buttonIn(section, 'show more');
+  });
+});
+
+// ── reads while the drawer is open ──────────────────────────────────────────
+
+describe('drawer reads', () => {
+  // Rendered on its own so each test hands the drawer the MR object a board
+  // poll would: a fresh object every time, with or without changed facts.
+  let Drawer: typeof import('../CommentsDrawer.tsx').CommentsDrawer;
+  beforeAll(async () => {
+    ({ CommentsDrawer: Drawer } = await import('../CommentsDrawer.tsx'));
+  });
+  const MR = BOARD_DATA.mrs[0]!;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  async function show(mr: Record<string, unknown>) {
+    await React.act(async () => {
+      root.render(
+        React.createElement(Drawer, {
+          mr: mr as never,
+          local: true,
+          onClose: () => {},
+        })
+      );
+    });
+    await settle();
+  }
+
+  test('a board poll that re-sends the same MR does not read the threads again', async () => {
+    await show({ ...MR });
+    await show({ ...MR });
+    expect(reads).toBe(1);
+  });
+
+  test('a read that started before a reply cannot roll the thread back', async () => {
+    await show({ ...MR });
+    let release!: (r: Response) => void;
+    readAnswer = () => new Promise<Response>(r => (release = r));
+    await show({
+      ...MR,
+      threadSummary: { awaiting: 0, replied: 1, resolved: 0 },
+    });
+    expect(reads).toBe(2);
+    writeAnswer = () => json({ threads: [replied, threadB], comments: [] });
+    await press(thread('dA'), 'reply');
+    await type(replyBox('dA')!, 'renamed in the next push');
+    await press(thread('dA'), 'send');
+    await React.act(async () => release(json(DISCUSSIONS)));
+    await settle();
+    expect(thread('dA').textContent).toContain('renamed in the next push');
+  });
+
+  test('a failed background read keeps the loaded threads on screen', async () => {
+    await show({ ...MR });
+    readAnswer = () => new Response('boom', { status: 502 });
+    await show({ ...MR, updatedAt: '2026-08-20T00:00:00Z' });
+    expect(reads).toBe(2);
+    expect(thread('dA').textContent).toContain('rename this');
+    expect(document.body.textContent).not.toContain("couldn't load comments");
   });
 });

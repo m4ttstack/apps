@@ -447,13 +447,33 @@ function CommentsDrawer({
       threads: inPlace(prev?.threads, d.threads),
       comments: d.comments,
     }));
-  const writes = useThreadWrites(mr, apply);
+  // A read started before a write landed would roll that write back.
+  const writeSeq = useRef(0);
+  const writes = useThreadWrites(mr, d => {
+    writeSeq.current++;
+    apply(d);
+  });
+  // Board polls hand over a fresh MR object every time; only a change to what
+  // the threads could have become is worth another read.
+  const s = mr.threadSummary;
+  const freshness = `${mr.updatedAt}|${s?.awaiting}|${s?.replied}|${s?.resolved}|${mr.generalComments ?? 0}`;
   useEffect(() => {
+    const seq = writeSeq.current;
+    let live = true;
     getDiscussions(mr.rtRepo ?? '', mr.iid, mr.author.username)
-      .then(apply)
-      .catch(() => setFailed(true));
+      .then(d => {
+        if (!live || seq !== writeSeq.current) return;
+        setFailed(false);
+        apply(d);
+      })
+      .catch(() => {
+        if (live) setFailed(true);
+      });
+    return () => {
+      live = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mr]);
+  }, [mr.rtRepo, mr.iid, mr.author.username, freshness]);
   const canWrite = local && !!mr.rtRepo;
   return (
     <SideDrawer
@@ -479,10 +499,10 @@ function CommentsDrawer({
         open in gitlab ↗
       </a>
       <div className="tui-cd-body">
-        {failed ? (
-          <p className="tui-comments-empty">couldn't load comments</p>
-        ) : !data ? (
-          <p className="tui-comments-empty">loading…</p>
+        {!data ? (
+          <p className="tui-comments-empty">
+            {failed ? "couldn't load comments" : 'loading…'}
+          </p>
         ) : data.threads.length === 0 && data.comments.length === 0 ? (
           <p className="tui-comments-empty">no comments</p>
         ) : (
