@@ -35,8 +35,10 @@ function SelectionBar({
       reads slack-ref files that are only written once a message lands, so it
       does not catch a second click that starts before the first returns. */
   posting?: boolean;
-  /** Opens the row menu for the selection, anchored under the button. */
-  onActions: (x: number, y: number) => void;
+  /** Opens the row menu for the selection, anchored under the button.
+      Undefined on a remote board, where nothing on the bulk menu applies:
+      the actions button itself does not render. */
+  onActions?: (x: number, y: number) => void;
 }) {
   const count = selectedMrs.length;
   // Once you type, the line is yours: re-substituting {count} on every check
@@ -97,17 +99,19 @@ function SelectionBar({
             <SlackLogo /> {posting ? 'posting…' : `post ${slackPost.count}`}
           </button>
         )}
-        <button
-          className="tui-copy"
-          onClick={e => {
-            const r = e.currentTarget.getBoundingClientRect();
-            onActions(r.left, r.bottom + 4);
-          }}
-          title="act on the selection"
-          aria-haspopup="menu"
-        >
-          <MenuGlyph kind="checks" /> actions <MenuGlyph kind="chevron" />
-        </button>
+        {onActions && (
+          <button
+            className="tui-copy"
+            onClick={e => {
+              const r = e.currentTarget.getBoundingClientRect();
+              onActions(r.left, r.bottom + 4);
+            }}
+            title="act on the selection"
+            aria-haspopup="menu"
+          >
+            <MenuGlyph kind="checks" /> actions <MenuGlyph kind="chevron" />
+          </button>
+        )}
         <button
           className="tui-copy"
           onClick={onClear}

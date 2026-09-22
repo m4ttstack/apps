@@ -1027,8 +1027,13 @@ export function Board() {
     peers: data.peers,
     allMrs: data.mrs,
   };
+  // Every bulk-capable action sits inside an env.local block, so bulkActions
+  // is always empty on a remote board; gating on data.local as well keeps
+  // that explicit rather than relying on the actions all happening to agree.
   const bulkEntries =
-    rowMenu && menuActsOnSelection(rowMenu.mr, selected, selectedMrs.length)
+    data.local &&
+    rowMenu &&
+    menuActsOnSelection(rowMenu.mr, selected, selectedMrs.length)
       ? bulkActions(selectedMrs, actionEnv)
       : null;
   const openSettings = () => {
@@ -1167,10 +1172,14 @@ export function Board() {
             templates={data.slackTemplates}
             onClear={clearSelection}
             posting={postingSummary}
-            onActions={(x, y) => {
-              const first = selectedMrs[0];
-              if (first) setRowMenu({ x, y, mr: first });
-            }}
+            onActions={
+              data.local
+                ? (x, y) => {
+                    const first = selectedMrs[0];
+                    if (first) setRowMenu({ x, y, mr: first });
+                  }
+                : undefined
+            }
             slackPost={
               data.slackEnabled && data.local && postableSelected.length > 0
                 ? {
@@ -1334,7 +1343,7 @@ export function Board() {
       )}
 
       {rowMenu &&
-        (bulkEntries ? (
+        (bulkEntries && bulkEntries.length > 0 ? (
           <ActionMenu
             x={rowMenu.x}
             y={rowMenu.y}

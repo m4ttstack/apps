@@ -89,6 +89,9 @@ const realFetch = globalThis.fetch;
 let posts: Array<{ url: string; body: Record<string, unknown> }> = [];
 let root: ReturnType<typeof import('react-dom/client').createRoot>;
 let container: HTMLDivElement;
+// Reset to BOARD_DATA in beforeEach; a test that needs a different shape
+// (a remote board, say) overrides it before calling renderBoard().
+let servedData: typeof BOARD_DATA = BOARD_DATA;
 
 beforeAll(async () => {
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -96,7 +99,7 @@ beforeAll(async () => {
     if (init?.method === 'POST')
       posts.push({ url, body: JSON.parse(String(init.body)) });
     if (url.startsWith('/data.json'))
-      return new Response(JSON.stringify(BOARD_DATA), { status: 200 });
+      return new Response(JSON.stringify(servedData), { status: 200 });
     return new Response('{}', { status: 200 });
   }) as typeof fetch;
   window.open = (() => null) as typeof window.open;
@@ -105,10 +108,14 @@ beforeAll(async () => {
   ({ Board } = await import('../Board.tsx'));
 });
 
-beforeEach(async () => {
+beforeEach(() => {
   posts = [];
+  servedData = BOARD_DATA;
   localStorage.clear();
   history.replaceState(null, '', '/');
+});
+
+async function renderBoard() {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -116,7 +123,7 @@ beforeEach(async () => {
     root.render(React.createElement(Board));
   });
   await settle();
-});
+}
 
 afterEach(async () => {
   await React.act(async () => root.unmount());
@@ -178,6 +185,7 @@ async function click(text: string) {
 }
 
 test('right-click on a checked row, two checked, opens the menu for the selection', async () => {
+  await renderBoard();
   await check(101);
   await check(102);
   await rightClick(101);
@@ -188,6 +196,7 @@ test('right-click on a checked row, two checked, opens the menu for the selectio
 });
 
 test('right-click on an unchecked row opens its own menu', async () => {
+  await renderBoard();
   await check(101);
   await check(102);
   await rightClick(103);
@@ -195,12 +204,14 @@ test('right-click on an unchecked row opens its own menu', async () => {
 });
 
 test('right-click on the only checked row opens its own menu', async () => {
+  await renderBoard();
   await check(101);
   await rightClick(101);
   expect(menu()?.getAttribute('aria-label')).toBe('actions for !101');
 });
 
 test('the actions button opens the same menu', async () => {
+  await renderBoard();
   await check(101);
   await check(102);
   const button = [
@@ -212,6 +223,7 @@ test('the actions button opens the same menu', async () => {
 });
 
 test('a bulk rebase posts once per MR and speaks once', async () => {
+  await renderBoard();
   await check(101);
   await check(102);
   await rightClick(101);
@@ -227,7 +239,24 @@ test('a bulk rebase posts once per MR and speaks once', async () => {
   expect(document.body.textContent).toContain('rebase started on 2');
 });
 
+test('a bulk rebase keeps the selection checked', async () => {
+  await renderBoard();
+  await check(101);
+  await check(102);
+  await rightClick(101);
+  await click('rebase on target');
+  const bar = container.querySelector('.tui-selbar');
+  expect(bar?.textContent).toContain('2 selected');
+  const boxes = [101, 102].map(iid =>
+    row(iid).querySelector<HTMLInputElement>('[role="checkbox"]')!
+  );
+  expect(boxes.every(b => b.getAttribute('aria-checked') === 'true')).toBe(
+    true
+  );
+});
+
 test('bulk merge arms on the first click and merges on the second', async () => {
+  await renderBoard();
   await check(101);
   await check(102);
   await rightClick(101);
@@ -240,6 +269,7 @@ test('bulk merge arms on the first click and merges on the second', async () => 
 });
 
 test('a checked child of an open MR blocks bulk merge with the reason', async () => {
+  await renderBoard();
   await check(101);
   await check(103);
   await rightClick(101);
@@ -254,6 +284,7 @@ test('a checked child of an open MR blocks bulk merge with the reason', async ()
 });
 
 test('the actions button with one checked row opens that row menu', async () => {
+  await renderBoard();
   await check(102);
   const button = [
     ...container.querySelectorAll<HTMLElement>('.tui-selbar button'),
@@ -264,6 +295,7 @@ test('the actions button with one checked row opens that row menu', async () => 
 });
 
 test('an armed confirm disarms when its wording changes under it', async () => {
+  await renderBoard();
   const { ActionMenu } = await import('../ActionMenu.tsx');
   const fired: string[] = [];
   const host = document.createElement('div');
@@ -306,6 +338,7 @@ test('an armed confirm disarms when its wording changes under it', async () => {
 });
 
 test('request review from… asks the picked person on each MR', async () => {
+  await renderBoard();
   await check(101);
   await check(102);
   await rightClick(101);
@@ -319,4 +352,17 @@ test('request review from… asks the picked person on each MR', async () => {
     [101, 'kim'],
     [102, 'kim'],
   ]);
+});
+
+test('a remote board opens the row menu on a checked row and has no actions button', async () => {
+  servedData = { ...BOARD_DATA, local: false };
+  await renderBoard();
+  await check(101);
+  await check(102);
+  await rightClick(101);
+  expect(menu()?.getAttribute('aria-label')).toBe('actions for !101');
+  const button = [
+    ...container.querySelectorAll<HTMLElement>('.tui-selbar button'),
+  ].find(b => b.textContent?.includes('actions'));
+  expect(button).toBeUndefined();
 });
