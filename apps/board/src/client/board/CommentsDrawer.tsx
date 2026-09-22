@@ -7,51 +7,13 @@ import type { CommentNote, CommentThread, GeneralComment } from '../types.ts';
 import { ago, cleanTitle, THREAD_ICON, THREAD_LABEL } from './format.ts';
 import { MessageGlyph } from './icons.tsx';
 
-/** A button that opens the comments drawer. `stopPropagation` keeps the
-    click off the row's own handler, which would open the MR in GitLab. */
-function CommentsTrigger({
-  mr,
-  className,
-  title,
-  fresh = false,
-  onOpen,
-  children,
-}: {
-  mr: BoardMR;
-  className: string;
-  title: string;
-  fresh?: boolean;
-  onOpen?: () => void;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button
-        type="button"
-        className={className}
-        data-new={fresh ? 'true' : undefined}
-        title={title}
-        onClick={e => {
-          e.stopPropagation();
-          onOpen?.();
-          setOpen(true);
-        }}
-      >
-        {children}
-      </button>
-      {open && <CommentsDrawer mr={mr} onClose={() => setOpen(false)} />}
-    </>
-  );
-}
-
 /** The facts line's threads token, the drawer's entry. A status outranks
     the count and takes its place, with the total in the tooltip: `awaitYou`
     (the seat's own MR threads waiting on them) reads "N threads waiting",
     `replied` (the author answered the seat's threads on someone else's MR)
-    reads "author replied". */
+    reads "author replied". `stopPropagation` keeps the click off the row's
+    own handler, which would open the MR in GitLab. */
 function ThreadsLink({
-  mr,
   count,
   fresh,
   grew,
@@ -59,7 +21,6 @@ function ThreadsLink({
   replied,
   onOpen,
 }: {
-  mr: BoardMR;
   count: number;
   fresh: boolean;
   grew: number;
@@ -78,12 +39,13 @@ function ThreadsLink({
         ? `${total}, the author answered yours`
         : 'open the comments drawer';
   return (
-    <CommentsTrigger
-      mr={mr}
+    <button
+      type="button"
       className="tui-threads"
+      data-new={lit ? 'true' : undefined}
       title={title}
-      fresh={lit}
-      onOpen={() => {
+      onClick={e => {
+        e.stopPropagation();
         setOpenedAt(count);
         onOpen();
       }}
@@ -98,7 +60,7 @@ function ThreadsLink({
       ) : (
         <span className="tui-threads-count">{total}</span>
       )}
-    </CommentsTrigger>
+    </button>
   );
 }
 
@@ -165,20 +127,10 @@ function CommentsDrawer({ mr, onClose }: { mr: BoardMR; onClose: () => void }) {
   }, [mr]);
   return (
     <SideDrawer
-      // `side="right"` replaces .tui-cd-overlay/.tui-cd: the recipe carries
-      // the 460px measure, the left border + drawer shadow, and the overlay's
-      // flex-end alignment and cursor/white-space resets this drawer needs
-      // because it renders inside a clickable, nowrap row.
       side="right"
+      className="tui-cd-panel"
       ariaLabel="comment threads"
       onClose={onClose}
-      onOverlayClick={e => {
-        // The drawer renders inside the row (whose onClick opens the MR); React
-        // events bubble by component tree, so stop here or clicking the overlay
-        // would also open the MR.
-        e.stopPropagation();
-        onClose();
-      }}
     >
       <div className="tui-cd-head">
         <div className="tui-cd-title">

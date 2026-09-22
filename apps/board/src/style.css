@@ -1124,6 +1124,12 @@ body {
   color: var(--text-warn-small);
 }
 
+.tui-cd-panel {
+  color: var(--text-3);
+  font-size: 0.76rem;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
 .tui-cd-head {
   display: flex;
   justify-content: space-between;
