@@ -35,7 +35,10 @@ export function tabChangeClearsSelection(
 }
 
 /** Whether a right-click on this row opens the menu for the whole
-    selection. One checked row keeps the richer one-row menu. */
+    selection. One checked row keeps the richer one-row menu.
+    `selectedCount` is passed separately from `selected.size` because the
+    set can hold urls of MRs that have left the board; the count is the
+    checked MRs still on it. */
 export function menuActsOnSelection(
   mr: { webUrl?: string | null },
   selected: ReadonlySet<string>,
