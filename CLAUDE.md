@@ -14,7 +14,12 @@
    `packages/server/src`, or consuming either package: import walls, theme
    and icon extension points, the boot family, and the consumer
    requirements a new app must not skip.
-5. `docs/bundle-cutover-brief.md` -- anything release- or bundle-shaped:
+5. `docs/ui-authoring.md` -- MANDATORY before writing UI colour or type
+   anywhere in this repo: the Radix step model, the role tokens, the
+   contrast bars and their ledger, and the type rules. Each app's own
+   `apps/<name>/AGENTS.md` points back here and carries that app's
+   specifics.
+6. `docs/bundle-cutover-brief.md` -- anything release- or bundle-shaped:
    how the mac-app bundle pipeline reads each app's
    `apps/<name>/mattstack.deck.json` recipe, app-prefixed release tags,
    and why old app repos stay unarchived until a shipped bundle release
