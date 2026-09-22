@@ -105,12 +105,12 @@ remembered in the conversation.
    - **If a domain skill resolved** (explicit `--skill`, else the `review`
      slot per "Resolving the domain skill"): invoke that skill with the MR url and the
      `--report <path>`, telling it that this wrapper owns the gate, so it
-     opens nothing: it hands back instead, including the absolute path of
-     the fitted `review-post` open file when it builds one. It owns the
-     actual review (resolving the MR/ticket, producing the draft, and
-     writing the report), then reports back to you the severity levels
-     present in its findings, plus that open file's path when it built
-     one. It never presents posting
+     opens nothing: it hands back instead, including the absolute paths of
+     the fitted `review-post` open file and of the `gate-ctx.sh` that
+     fitted it, when it builds one. It owns the actual review (resolving
+     the MR/ticket, producing the draft, and writing the report), then
+     reports back to you the severity levels present in its findings,
+     plus those two paths when it built one. It never presents posting
      gates or decides disposition; this wrapper owns the single event gate
      (step 4, "Gate protocol") and hands the domain skill `{findings, outcome}`
      (or the tier-fallback `{tiers, outcome}` shape; see step 4) to execute
@@ -335,9 +335,9 @@ remembered in the conversation.
      option, since "post nothing" is every `findings-N` question
      answered as an explicit empty array, which the daemon records.
      A gate opened from a fitted file never shows its JSON in the form:
-     run the `gate-ctx.sh` the domain skill fitted it with in `prose` mode
-     on the source file beside it (the open file's name with `.open.json`
-     swapped for `.source.json`: `sh <gate-ctx.sh> prose <
+     run the `gate-ctx.sh` whose path the domain skill handed back with the open file,
+     in `prose` mode on the source file beside it (the open file's name
+     with `.open.json` swapped for `.source.json`: `sh <gate-ctx.sh> prose <
      <dir>/review-post.source.json`), print its `.context` as one pane line
      before the form call, and make each `findings-N` question's form text
      its label, a newline, then its prose `context`. Options keep the
