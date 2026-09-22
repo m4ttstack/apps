@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `board:review` opens the emitter's handed-back structured `review-post` open, and the board renders review gates only from `review@1`/`findings@1` structured context, with both regex parsers (`gate-context.ts`, `finding-option.ts`) deleted.
+**Goal:** `board:review` opens the emitter's handed-back structured `review-post` open, and the board renders review gates only from `review@1`/`findings@1` structured context, with both regex parsers (`gate-context.ts`, `finding-option.ts`) deleted; plus a scope addition, the queue modal's one-row head and a step nav pinned to its footer.
 
 **Architecture:** The wrapper skill vendors `board:respond`'s `open-gate.sh` and gains the same hand-back branch, pane-form prose flatten, and degraded-mode rule. On the renderer side, `parseGateCtx` (string-only) grows two union members; a new `review-gate.ts` owns the one-to-one join against options and is the routing predicate; `ReviewGateSheet` reads rows and header from the joined shapes; every other surface renders a non-structured context as plain markdown and never pours structured JSON out raw.
 
@@ -42,6 +42,10 @@
 11. **Vendored `open-gate.sh`.** `board:review` gets a byte-identical copy of `board:respond`'s script (the vendoring convention `resolve-args.sh` already follows), header comment generalized in both copies, and a test pins the identity.
 12. **Source-file derivation for the pane form:** the fitted open file's name with `.open.json` swapped for `.source.json`, the pairing `receive-review` already uses (`respond-plan.open.json` / `respond-plan.source.json`).
 13. **Fixture and captures.** `!1271`'s review-post gate becomes the structured one (round 2 re-review, five findings across two chunks, every disposition) and gets a new `reviewsheet-{light,dark}` shot. `!1235`'s legacy review-post gate (prose context, tier options) is the prose-fallback shot, `queue-{light,dark}`. `queuegroups-*` is dropped with the grouping.
+14. **Scope addition (Matt, via the shepherd, 2026-09-22): the queue modal's chrome.** (a) The step nav (previous / reset / next / submit, plus its error lines) leaves the scrolling body and pins into the modal's fixed footer beside the pips, for every face GateForm renders in the queue (respond faces, legacy and unrouted review-post gates, everything questionnaire-shaped). (b) The two top bands (title row, then the focus pane / skip gate row) fold into ONE head row: "decision queue" left; focus pane, skip gate, the parked/escalated chips, and close right; the action buttons drop from `size="lg"` to `size="sm"`.
+15. **How the nav leaves the form.** `GateForm` takes an optional `actionsSlot` and renders its actions row through `createPortal` into it. React context survives a portal, so Previous / Next / Skip (context callbacks) keep working; the two native buttons that need the `<form>` (submit, reset) carry `form={formId}`, and `Questionnaire.Root` gets `id={formId}`. `actionsSlot` undefined means an inline row (bare hosts, stories, tests); `null` means the host's footer has not mounted yet, so nothing renders for that one pass.
+16. **Footer layout.** One wrapping flex row: pips + "gate N of M" left, the next-gate peek in the middle (flexes, wraps, muted), the nav right. Faces with no step nav (answered chip, delivery card, attention card, the lost face) keep their one action inline: it is part of their message, and the ruling names the step nav.
+17. **The review sheet already complies**: its head is one row and its verdict block sits below the rail's scroll region. Task 7 adds a real-layout guard that its submit stays on screen at the short viewport.
 
 ## File map
 
@@ -69,6 +73,10 @@
 | `apps/board/src/client/board/__tests__/respond-header-dom.test.tsx` | Modify | drop the `.tui-triage-overview` assertion |
 | `apps/board/src/client/board/__tests__/gate-form-context-fallback-dom.test.tsx` | Modify | comment; `review@1` fallback case |
 | `apps/board/src/style.css` | Modify | new row/meta CSS; dead CSS removed |
+| `apps/board/src/client/board/GateForm.tsx` (again, Task 6) | Modify | `actionsSlot` prop: the step nav portals into the host's footer; form id for the portaled submit/reset |
+| `apps/board/src/client/board/DecisionQueueModal.tsx` (again, Task 6) | Modify | one-row head (title + compact actions + close); footer nav slot |
+| `apps/board/src/client/board/__tests__/triage-chrome-dom.test.tsx` | Create | nav lives in the footer and still drives the form; one-row head |
+| `apps/board/tests/decision-queue-context-layout.test.ts` | Modify | real-layout laws: nav pinned on a short viewport, head one row; the sheet's submit on screen (Task 7) |
 | `apps/board/tests/fixture/data.json`, `tests/fixture/README.md` | Modify | structured `!1271` gate |
 | `apps/board/tests/capture.ts`, `tests/baselines/*.png` | Modify | `reviewsheet-*`, retargeted `queue-*`, `queuegroups-*` dropped, all re-pinned |
 
@@ -76,7 +84,7 @@
 
 ### Task 0: Baseline (controller, already done)
 
-Recorded before planning: `bun install` (no changes), `bun run tui-kit:build`, `bun run board:typecheck` exit 0, `bun run board:test` 1909 pass / 1 skip / 0 fail. Capture baselines are known stale on main (every view predates the theme work), which Task 6 addresses by re-pinning.
+Recorded before planning: `bun install` (no changes), `bun run tui-kit:build`, `bun run board:typecheck` exit 0, `bun run board:test` 1909 pass / 1 skip / 0 fail. Capture baselines are known stale on main (every view predates the theme work), which Task 7 addresses by re-pinning.
 
 ---
 
@@ -1717,7 +1725,7 @@ In `apps/board/src/style.css`, delete the rules for these selectors and the comm
 for c in tui-gate-groups tui-gate-group- 'tui-gate-group[ {]' data-sectioned "tui-gate-context[ {'\"]" tui-gate-quote tui-gate-verdict tui-gate-recommends tui-gate-lead tui-gate-adjudication tui-triage-overview; do echo "== $c"; rg -n "$c" apps/board/src apps/board/tests; done
 ```
 
-Expected: no hits, except `data-sectioned` and `.tui-gate-groups` in `apps/board/tests/capture.ts` (Task 6 rewrites those scenes). Keep `.tui-gate-question-ord` (the thread ordinal still uses it).
+Expected: no hits, except `data-sectioned` and `.tui-gate-groups` in `apps/board/tests/capture.ts` (Task 7 rewrites those scenes). Keep `.tui-gate-question-ord` (the thread ordinal still uses it).
 
 - [ ] **Step 7: Run to verify**
 
@@ -1734,7 +1742,328 @@ git commit -m "board: delete gate-context.ts; non-structured contexts render as 
 
 ---
 
-### Task 6: Fixture, captures, and re-pinned baselines
+### Task 6: The queue modal's chrome: one-row head, step nav pinned to the footer
+
+Scope addition from Matt (derived decisions 14-16). Defect: on a short viewport the form's step nav (previous / reset / next) lives inside the scrolling body and scrolls out of reach below the fold; only the pips footer stays visible. And the top spends two bands (title row, then the focus pane / skip gate row) before any content.
+
+**Files:**
+- Modify: `apps/board/src/client/board/GateForm.tsx`
+- Modify: `apps/board/src/client/board/DecisionQueueModal.tsx`
+- Modify: `apps/board/src/style.css` (`.tui-triage-modal [data-part='modal-title']` through `.tui-triage-queue-row` ~2615-2645; the footer block ~2940-2965)
+- Create: `apps/board/src/client/board/__tests__/triage-chrome-dom.test.tsx`
+- Modify: `apps/board/tests/decision-queue-context-layout.test.ts`
+
+**Interfaces:**
+- Consumes: Task 5's GateForm and DecisionQueueModal.
+- Produces: `GateForm`'s new optional prop `actionsSlot?: HTMLElement | null`; DOM hooks `.tui-triage-title`, `.tui-triage-where`, `.tui-triage-nav` (the footer slot), with `.tui-triage-head-actions` now inside `[data-part='modal-head']`.
+
+Background you need: `Questionnaire.Previous` / `Next` / `Skip` are `type="button"` and call context callbacks (`goPrevious`, `goNext`, `skipCurrent`), and Skip on the last step calls `form.requestSubmit()` on the form it holds by ref; all of that survives a React portal. `Questionnaire.Submit` is a native `type="submit"` button and the reset control a native `type="reset"` one: outside the `<form>`'s DOM they only reach it through the HTML `form="<id>"` attribute. `Questionnaire.Root` and `Questionnaire.Submit` pass extra props through to their elements. Check that the kit `Button` forwards a `form` prop to its `<button>` (read `packages/tui-kit/src/recipes/Button/Button.tsx`); the Step 1 tests fail loudly if it does not.
+
+- [ ] **Step 1: Write the failing DOM tests**
+
+Create `apps/board/src/client/board/__tests__/triage-chrome-dom.test.tsx` with the direct-mount harness from `respond-header-dom.test.tsx` (GlobalRegistrator, `beforeEach`/`afterEach`, `renderModal`, `$`), plus a fetch stub in `beforeEach` that records posts:
+
+```tsx
+let posts: Array<{ url: string; body: unknown }>;
+// in beforeEach, after localStorage.clear():
+posts = [];
+(globalThis as { fetch: unknown }).fetch = async (
+  input: RequestInfo | URL,
+  init?: { body?: string }
+) => {
+  const url = typeof input === 'string' ? input : input.toString();
+  posts.push({ url, body: init?.body ? JSON.parse(init.body) : null });
+  return new Response(JSON.stringify({ ok: true }), { status: 200 });
+};
+
+function stepped(): GateRow {
+  return {
+    gateId: 'g-steps',
+    subject: 'mr:https://gitlab.example.com/demo/app/-/merge_requests/51',
+    kind: 'clarify',
+    label: 'clarify !51',
+    status: 'open',
+    openedAt: Date.now() - 60_000,
+    context: 'Two questions for the author.',
+    origin: { paneId: 'pane-51', worktree: '/work/demo' },
+    questions: [
+      { id: 'first', label: 'Keep the flag?', multi: false, options: ['keep', 'drop'] },
+      { id: 'second', label: 'Ship behind it?', multi: false, options: ['yes', 'no'] },
+    ],
+  };
+}
+
+async function click(el: Element | null) {
+  if (!el) throw new Error('nothing to click');
+  await React.act(async () => {
+    (el as HTMLElement).click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+}
+
+const footerButton = (text: string) =>
+  [...document.body.querySelectorAll('.tui-triage-footer button')].find(
+    b => b.textContent?.trim() === text && !b.hasAttribute('hidden')
+  ) ?? null;
+
+test('the step nav renders in the footer, never in the scrolling body', async () => {
+  await renderModal(stepped());
+  expect($('.tui-triage-footer .tui-gate-actions')).not.toBeNull();
+  expect($('.tui-triage-body .tui-gate-actions')).toBeNull();
+});
+
+test('the footer nav still drives the form: pick, next, pick, submit posts both answers', async () => {
+  await renderModal(stepped());
+  await click($('input[value="keep"]'));
+  await click(footerButton('next'));
+  await click($('input[value="yes"]'));
+  await click(footerButton('submit'));
+  const answer = posts.find(p => p.url === '/gate/answer');
+  expect(answer?.body).toMatchObject({
+    gateId: 'g-steps',
+    answers: { first: 'keep', second: 'yes' },
+  });
+});
+
+test('reset in the footer clears the picks', async () => {
+  await renderModal(stepped());
+  await click($('input[value="keep"]'));
+  await click(footerButton('reset'));
+  expect(($('input[value="keep"]') as HTMLInputElement).checked).toBe(false);
+});
+
+test('the head is one row: title, compact focus pane and skip gate, then close', async () => {
+  await renderModal(stepped());
+  const head = $('[data-part="modal-head"]')!;
+  expect(head.querySelector('.tui-triage-title')?.textContent).toBe('decision queue');
+  const actions = [...head.querySelectorAll('.tui-triage-head-actions button')];
+  expect(actions.map(b => b.textContent?.trim())).toEqual(['focus pane', 'skip gate']);
+  for (const b of actions) expect(b.getAttribute('data-size')).toBe('sm');
+  expect($('.tui-triage-queue-row')).toBeNull();
+});
+```
+
+(If the answer body's shape differs only by keys this form always adds, match what `gate-form-skip-dom.test.tsx` asserts for the same flow rather than loosening the test.)
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `cd apps/board && bun test src/client/board/__tests__/triage-chrome-dom.test.tsx`
+Expected: FAIL: the actions render inside `.tui-triage-body`, there is no `.tui-triage-title`, and the head carries only the title and close.
+
+- [ ] **Step 3: GateForm renders its nav into a slot**
+
+In `GateForm.tsx`: import `createPortal` from `react-dom` and `useId` from `react`. Add the prop:
+
+```ts
+  /** Where the step nav renders. Undefined keeps it inline under the
+      questions. An element (the queue modal's footer) takes it out of the
+      scrolling body; null holds it back until that element has mounted. */
+  actionsSlot?: HTMLElement | null;
+```
+
+Inside the component, `const formId = useId();`. Move the whole `<div className="tui-gate-actions">...</div>` element into a `const actions = (...)` above the `return`, unchanged except: the reset `Button` gets `form={formId}`, and `Questionnaire.Submit` gets `form={formId}`. `Questionnaire.Root` gets `id={formId}`. Where the actions row used to be, render:
+
+```tsx
+      {actionsSlot === undefined
+        ? actions
+        : actionsSlot && createPortal(actions, actionsSlot)}
+```
+
+A portal outside the `<form>` is why the two native buttons carry `form`: add that as the comment on the `const actions` line, one sentence.
+
+- [ ] **Step 4: DecisionQueueModal: one-row head, footer slot**
+
+In `DecisionQueueModal.tsx`:
+
+- `const [navSlot, setNavSlot] = useState<HTMLDivElement | null>(null);` (keep `useState` in the React import).
+- The Modal's `title` becomes the head row, and the `<div className="tui-triage-queue-row">` wrapper is deleted:
+
+```tsx
+      title={
+        <>
+          <span className="tui-triage-title">decision queue</span>
+          <span className="tui-triage-head-actions">
+            {/* A parked gate has no pane: the board closed it on park, and the
+                recorded answer is what brings it back (resumeParkedGate). The
+                button stays so the head never rearranges, disabled with the
+                reason, as it is when the reconciler reports the pane gone. */}
+            {gate.status === 'parked' ? (
+              <Button
+                type="button"
+                variant="light"
+                intent="accent"
+                size="sm"
+                disabled
+                title="parked: answering this gate resumes its pane"
+              >
+                focus pane
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="light"
+                intent="accent"
+                size="sm"
+                disabled={!form.originFocusable || form.focusBusy || paneGone}
+                title={
+                  paneGone
+                    ? 'pane is gone'
+                    : form.originFocusable
+                      ? 'jump into the pane behind this gate'
+                      : 'no origin on this gate'
+                }
+                onClick={() => void form.focusGate()}
+              >
+                focus pane
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="light"
+              intent="muted"
+              size="sm"
+              onClick={onSkip}
+            >
+              skip gate
+            </Button>
+            {headerCtx && <GateStateChips gate={gate} />}
+          </span>
+        </>
+      }
+```
+
+  (The existing JSX, moved; only `size` changes, from `lg` to `sm`.)
+- The GateForm face gets `actionsSlot={navSlot}`.
+- The footer becomes:
+
+```tsx
+      <div className="tui-triage-footer">
+        <span className="tui-triage-where">
+          <span className="tui-triage-pips">
+            {states.map((state, i) => (
+              <i key={i} className="tui-triage-pip" data-state={state} />
+            ))}
+          </span>
+          <span className="tui-triage-pos">
+            gate {position} of {states.length}
+          </span>
+        </span>
+        <div className="tui-triage-peek">
+          {nextPeek && (
+            <>
+              <span className="tui-triage-peek-k">next:</span>
+              <span>{nextPeek}</span>
+            </>
+          )}
+        </div>
+        <div className="tui-triage-nav" ref={setNavSlot} />
+      </div>
+```
+
+- Update the component's doc comment: gate-level actions (focus pane, skip gate) ride the head row beside close; step-level actions (previous / next / submit) ride the footer, pinned below the scrolling body; the two never mix.
+
+- [ ] **Step 5: CSS**
+
+In `apps/board/src/style.css`:
+
+- Replace the comment above `.tui-triage-modal [data-part='modal-title']` with: `/* The head is one row: the recipe's title span is stretched so the gate's own actions and chips ride its right edge, beside close. Everything inside the actions resets the title's voice. */`
+- `.tui-triage-head-actions` gains `margin-left: auto; letter-spacing: normal; text-transform: none;` (check the recipe title's computed styles in the browser at Task 8 and reset whatever else leaks, such as the display font size).
+- Delete `.tui-triage-queue-row` and replace the comment above `.tui-triage-modal [data-part='modal-head']` with `/* Breathing room between the one-row head and the body. */`.
+- The footer block becomes:
+
+```css
+/* Footer, pinned below the scrolling body: where the queue stands (pips
+   and count) on the left, the next-gate peek in the middle, and the active
+   gate's step nav on the right, so the nav never scrolls out of reach. */
+.tui-triage-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  border-top: 1px solid var(--border-soft);
+  padding: 0.85rem 0 0.35rem;
+}
+.tui-triage-where {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gate-gap-row);
+}
+.tui-triage-nav {
+  margin-left: auto;
+}
+.tui-triage-nav .tui-gate-actions {
+  padding: 0;
+  min-height: 0;
+}
+```
+
+  Delete `.tui-triage-footer .tui-triage-pos { justify-self: end; }`. The `.tui-triage-peek` rule gains `flex: 1 1 12rem;` (keep its other declarations and its wrap comment).
+
+- [ ] **Step 6: Run the DOM suites**
+
+Run: `cd apps/board && bun test src/client/board/__tests__/ && bun run typecheck`
+Expected: PASS, the new file included. `gate-form-skip-dom.test.tsx` mounts GateForm bare (no slot), so its nav stays inline and it passes unchanged; `respond-header-dom.test.tsx`'s `.tui-triage-head-actions [data-gate=...]` assertions still hold (the class moved into the head).
+
+- [ ] **Step 7: Write the real-layout tests**
+
+Append to `apps/board/tests/decision-queue-context-layout.test.ts`:
+
+```ts
+type Scrollable = { scrollTop: number; scrollHeight: number };
+
+test('short: the step nav is pinned in the footer, on screen, and stays put while the body scrolls', async () => {
+  const page = await openDecisionQueue(SHORT);
+  const nav = page.locator('.tui-triage-footer .tui-gate-actions');
+  await nav.waitFor();
+  expect(await page.locator('.tui-triage-body .tui-gate-actions').count()).toBe(0);
+  const before = (await nav.boundingBox())!;
+  expect(before.y + before.height).toBeLessThanOrEqual(SHORT.height);
+  await page.evaluate(() => {
+    const { document } = globalThis as unknown as PageGlobals;
+    const body = document.querySelector('.tui-triage-body') as unknown as Scrollable;
+    body.scrollTop = body.scrollHeight;
+  });
+  const after = (await nav.boundingBox())!;
+  expect(after.y).toBe(before.y);
+  await page.context().close();
+}, 30_000);
+
+test('the head is one row: title, focus pane, skip gate, and close share a line', async () => {
+  const page = await openDecisionQueue(ROOMY);
+  const middle = async (selector: string) => {
+    const box = (await page.locator(selector).first().boundingBox())!;
+    return box.y + box.height / 2;
+  };
+  const title = await middle('.tui-triage-title');
+  for (const selector of [
+    '.tui-triage-head-actions button:has-text("focus pane")',
+    '.tui-triage-head-actions button:has-text("skip gate")',
+    '.tui-triage-modal [data-part="modal-close"]',
+  ])
+    expect(Math.abs((await middle(selector)) - title)).toBeLessThanOrEqual(4);
+  expect(await page.locator('.tui-triage-queue-row').count()).toBe(0);
+  await page.context().close();
+}, 30_000);
+```
+
+The two existing pane-law tests must keep passing untouched. If `short:`'s `bodyScrolls` stops being true because the actions row left the body, that is a real change in what the test measures: report it and pick a shorter viewport for that one assertion rather than deleting it.
+
+- [ ] **Step 8: Run the layout tests**
+
+Run: `cd apps/board && bun test tests/decision-queue-context-layout.test.ts`
+Expected: PASS, four tests.
+
+- [ ] **Step 9: Commit**
+
+```bash
+bunx prettier --write apps/board/src/client/board/GateForm.tsx apps/board/src/client/board/DecisionQueueModal.tsx apps/board/src/client/board/__tests__/triage-chrome-dom.test.tsx apps/board/tests/decision-queue-context-layout.test.ts apps/board/src/style.css
+git add apps/board/src/client/board/GateForm.tsx apps/board/src/client/board/DecisionQueueModal.tsx apps/board/src/client/board/__tests__/triage-chrome-dom.test.tsx apps/board/tests/decision-queue-context-layout.test.ts apps/board/src/style.css
+git commit -m "board: queue modal head in one row, step nav pinned to the footer"
+```
+
+---
+
+### Task 7: Fixture, captures, and re-pinned baselines
 
 **Files:**
 - Modify: `apps/board/tests/fixture/data.json` (the `gate-review-post-1271` gate)
@@ -1743,8 +2072,9 @@ git commit -m "board: delete gate-context.ts; non-structured contexts render as 
 - Modify: `apps/board/tests/baselines/*.png`; delete `queuegroups-{light,dark}.png`; add `reviewsheet-{light,dark}.png`
 
 **Interfaces:**
-- Consumes: Task 4's sheet (`.tui-review-sheet`), Task 5's plain pane.
-- Produces: captures `reviewsheet-*` (structured) and `queue-*` (prose fallback).
+- Consumes: Task 4's sheet (`.tui-review-sheet`), Task 5's plain pane, Task 6's one-row head and footer nav (every queue capture re-pins with them).
+- Produces: captures `reviewsheet-*` (structured) and `queue-*` (prose fallback); a real-layout guard on the sheet's submit.
+- Also modifies: `apps/board/tests/decision-queue-context-layout.test.ts`.
 
 - [ ] **Step 1: Record the compare state before touching anything**
 
@@ -1854,6 +2184,36 @@ Replace the block from the comment `// decision queue: the loop below skips gate
 
 In the `queueplan`/`queuepost` loop that follows, change its `await page.waitForSelector('.tui-triage-body');` to `await page.waitForSelector('.tui-triage-body, .tui-review-sheet');` for the same reason.
 
+- [ ] **Step 3b: The layout test survives a sheet-first queue, and guards the sheet's submit**
+
+In `apps/board/tests/decision-queue-context-layout.test.ts`, `openDecisionQueue`'s `await page.waitForSelector('.tui-triage-body');` becomes `await page.waitForSelector('.tui-triage-body, .tui-review-sheet');` (its skip loop already walks past the sheet: the sheet has its own "skip gate" button). Then append:
+
+```ts
+test('short: the review sheet keeps its verdict and submit on screen', async () => {
+  const ctx = await browser.newContext({ viewport: SHORT });
+  await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
+    route.abort()
+  );
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/?member=all`);
+  await page.waitForSelector('.tui-row');
+  await page.click('.tui-dq-open');
+  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
+  const sheet = page.locator('.tui-review-sheet');
+  for (let i = 0; i < 10 && !(await sheet.count()); i++) {
+    await page.getByRole('button', { name: 'skip gate' }).click();
+    await page.waitForTimeout(120);
+  }
+  await sheet.waitFor();
+  const submit = (await page.locator('.tui-review-submit').boundingBox())!;
+  expect(submit.y + submit.height).toBeLessThanOrEqual(SHORT.height);
+  await page.context().close();
+}, 30_000);
+```
+
+Run: `cd apps/board && bun test tests/decision-queue-context-layout.test.ts`
+Expected: PASS, five tests.
+
 - [ ] **Step 4: Re-pin and look**
 
 ```bash
@@ -1862,7 +2222,7 @@ bun run capture:baseline
 git status --short tests/baselines
 ```
 
-Open with the Read tool, at minimum: `reviewsheet-light.png`, `reviewsheet-dark.png`, `queue-light.png`, `queue-dark.png`, and `rows-light.png` (the `!1271` row). Confirm: the sheet shows five rows in Important then Minor groups, full bodies in ink, the three disposition pills, the meta line `pat · round 2 · 2 addressed, 1 still open`, no raw JSON anywhere; the queue shot shows the `!1235` context as plain text lines with the `[Important]` / `[Minor]` prefixes intact and no group heads. Write in your report plainly anything that looks wrong; fix what is this task's to fix.
+Open with the Read tool, at minimum: `reviewsheet-light.png`, `reviewsheet-dark.png`, `queue-light.png`, `queue-dark.png`, `queueplan-light.png`, `queueplan-dark.png`, and `rows-light.png` (the `!1271` row). In every queue shot the head is one row (title left; compact focus pane, skip gate, close right) and the step nav sits in the footer to the right of the pips. Confirm: the sheet shows five rows in Important then Minor groups, full bodies in ink, the three disposition pills, the meta line `pat · round 2 · 2 addressed, 1 still open`, no raw JSON anywhere; the queue shot shows the `!1235` context as plain text lines with the `[Important]` / `[Minor]` prefixes intact and no group heads. Write in your report plainly anything that looks wrong; fix what is this task's to fix.
 
 - [ ] **Step 5: Compare against the new pins**
 
@@ -1883,7 +2243,7 @@ git commit -m "board: structured review-post fixture gate; reviewsheet capture; 
 
 ---
 
-### Task 7: Look at it, then the full gates (controller, not a subagent)
+### Task 8: Look at it, then the full gates (controller, not a subagent)
 
 - [ ] **Step 1: Boot the fixture board**
 
@@ -1895,11 +2255,11 @@ cd apps/board && BOARD_FIXTURE=$(pwd)/tests/fixture PORT=7941 bun run src/server
 
 - [ ] **Step 2: Fast Browser screenshots, both schemes**
 
-For each theme (`localStorage.setItem('mrs-theme', 'light' | 'dark')`, reload): open the decision queue, reach the `!1271` review sheet, screenshot; reach the `!1235` legacy review-post gate (the prose fallback), screenshot.
+For each theme (`localStorage.setItem('mrs-theme', 'light' | 'dark')`, reload): open the decision queue, reach the `!1271` review sheet, screenshot; reach the `!1235` legacy review-post gate (the prose fallback), screenshot; reach the `!1235` respond-plan gate (stepped), screenshot. Repeat the prose-fallback and respond-plan shots at a short window (1000x812).
 
 - [ ] **Step 3: Look, and say plainly what is wrong**
 
-Check: row hierarchy (title, then accent file, then body in ink, then muted fix), pill hues and legibility in dark, the meta line, rail pills from the counts, no raw JSON, no clipped text, the tally and "more below" still honest with taller rows, the prose fallback reading as plain markdown. Fix anything wrong (TDD where it is behaviour, CSS where it is looks), re-pin the affected captures, commit each fix.
+Check: row hierarchy (title, then accent file, then body in ink, then muted fix), pill hues and legibility in dark, the meta line, rail pills from the counts, no raw JSON, no clipped text, the tally and "more below" still honest with taller rows, the prose fallback reading as plain markdown. Chrome: the head is one row and its compact buttons read as header chips, not pills; at the short window the step nav stays in the footer on screen while the body scrolls; the footer does not crowd (if it overflows, move an item out rather than shrinking shared padding). Fix anything wrong (TDD where it is behaviour, CSS where it is looks), re-pin the affected captures, commit each fix.
 
 - [ ] **Step 4: Full verification**
 
