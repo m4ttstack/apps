@@ -1142,7 +1142,7 @@ body {
   z-index: 1;
 }
 .tui-cd-title {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.92rem;
   line-height: 1.4;
   min-width: 0;
@@ -1297,7 +1297,7 @@ body {
   margin-bottom: 0.25rem;
 }
 .tui-cd-note-author {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.72rem;
 }
 /* MR author (responding to feedback) vs reviewers/commenters (giving it). */
