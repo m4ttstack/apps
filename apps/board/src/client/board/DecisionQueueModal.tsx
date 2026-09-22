@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import type { GateDomain } from '@mattstack/gate-kit';
 import { Button, Chip, Markdown, Modal, ScrollPane } from '@mattstack/tui-kit';
@@ -7,13 +7,6 @@ import { extractTicketId, ticketUrl } from '../../ticket.ts';
 import type { BoardMRWithReview, ExecutorState } from '../types.ts';
 import { AttentionCard } from './AttentionCard.tsx';
 import { ago, cleanTitle } from './format.ts';
-import {
-  parseGateContext,
-  parseLabelledLines,
-  sectionFor,
-  type ParsedGateContext,
-  type ParsedLabelledLines,
-} from './gate-context.ts';
 import { parseGateCtx, type PlanCtx, type PostCtx } from './gate-ctx.ts';
 import {
   AnsweredChip,
@@ -22,7 +15,7 @@ import {
   type GateFormState,
 } from './GateForm.tsx';
 import { RespondGateHeader } from './RespondGateHeader.tsx';
-import { isReviewSheetGate } from './review-gate.ts';
+import { isReviewSheetGate, paneContext } from './review-gate.ts';
 import { ReviewGateSheet } from './ReviewGateSheet.tsx';
 import {
   DELIVERY_STUCK_MESSAGE,
@@ -81,88 +74,6 @@ function DeliveryStatusCard({
     skip action, which advances without answering and leaves the gate (and
     its draft) untouched. */
 export type TriageGateState = 'done' | 'active' | 'todo' | 'skipped';
-
-function plural(verb: string): string {
-  if (/[^aeiou]y$/.test(verb)) return `${verb.slice(0, -1)}ies`;
-  if (/(s|x|z|ch|sh)$/.test(verb)) return `${verb}es`;
-  return `${verb}s`;
-}
-
-/** A context the asker wrote as `[Label] text` lines: one small heading
-    per label with its count, the findings beneath it as bullets, the
-    prefixes gone. The preamble (a "Findings: ..." tally, say) leads. */
-function GroupedContext({ parsed }: { parsed: ParsedLabelledLines }) {
-  return (
-    <div className="tui-gate-groups">
-      {parsed.preamble && (
-        <div className="tui-gate-groups-preamble">
-          <Markdown unstyled linkTargetBlank>
-            {parsed.preamble}
-          </Markdown>
-        </div>
-      )}
-      {parsed.groups.map(group => (
-        <section key={group.label} className="tui-gate-group">
-          <h4 className="tui-gate-group-head">
-            <span className="tui-gate-group-label">{group.label}</span>
-            <span className="tui-gate-group-count">{group.items.length}</span>
-          </h4>
-          <ul className="tui-gate-group-items">
-            {group.items.map((item, i) => (
-              <li key={i}>
-                {/* A finding is prose the agent wrote: it can carry a link
-                    or a backticked symbol, which the pane rendered before
-                    the grouping existed and still has to. */}
-                <Markdown unstyled linkTargetBlank>
-                  {item}
-                </Markdown>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-    </div>
-  );
-}
-
-/** One line standing in for a context the form has split onto its
-    questions: the preamble, a tally of the sections' recommendations, and
-    the disclosure that brings the full pane back. */
-function OverviewStrip({
-  parsed,
-  open,
-  onToggle,
-}: {
-  parsed: ParsedGateContext;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  const tally = new Map<string, number>();
-  for (const s of parsed.sections.values())
-    if (s.recommendation)
-      tally.set(s.recommendation, (tally.get(s.recommendation) ?? 0) + 1);
-  const recommends = [...tally.entries()]
-    .map(([verb, n]) => `${n} ${n === 1 ? verb : plural(verb)}`)
-    .join(', ');
-  return (
-    <div className="tui-triage-overview">
-      <span className="tui-triage-overview-title">Decision context</span>
-      <span className="tui-triage-overview-text">
-        {[parsed.preamble, recommends && `recommends ${recommends}`]
-          .filter(Boolean)
-          .join(' · ')}
-      </span>
-      <button
-        type="button"
-        className="tui-triage-overview-toggle"
-        aria-expanded={open}
-        onClick={onToggle}
-      >
-        {open ? 'less ▴' : 'full text ▾'}
-      </button>
-    </div>
-  );
-}
 
 /** The gate's own state chips; they ride the MR strip, or the action strip
     when the header card has taken the strip's place. */
@@ -229,36 +140,7 @@ function DecisionQueueModal({
     const ctx = parseGateCtx(gate.context);
     return ctx?.shape === 'plan@1' || ctx?.shape === 'post@1' ? ctx : null;
   }, [gate.context]);
-  // A structured gate context is never prose: the header card is its only
-  // reading, so neither the B7 strip, the B9 groups nor the pane sees it.
-  const proseContext = headerCtx ? undefined : gate.context;
-  // Only a context the questions actually pick up collapses to the strip;
-  // sections that match no question (a per-option split, say) stay in the
-  // pane where they can be read.
-  const sectioned = useMemo(() => {
-    const parsed = parseGateContext(proseContext);
-    return parsed &&
-      gate.questions.some(q => sectionFor(parsed, { id: q.id, label: q.label }))
-      ? parsed
-      : null;
-  }, [proseContext, gate.questions]);
-  const [fullContext, setFullContext] = useState(false);
-  // The grouped pane is a parse of the text, not the text: the toggle in
-  // its head brings the asker's own words back, so nothing the parse
-  // dropped is ever out of reach.
-  const [rawContext, setRawContext] = useState(false);
-  useEffect(() => {
-    setFullContext(false);
-    setRawContext(false);
-  }, [gate.gateId]);
-  // B9: a context that is nothing but `[Label] text` lines is a list the
-  // asker grouped by hand; the pane renders the groups instead of making
-  // every line carry its own prefix. Only when no question already owns
-  // the context (B7), which is the richer reading of the same blob.
-  const grouped = useMemo(
-    () => (sectioned ? null : parseLabelledLines(proseContext)),
-    [sectioned, proseContext]
-  );
+  const proseContext = useMemo(() => paneContext(gate.context), [gate.context]);
   const answered = gate.status === 'answered';
   const actionable = gate.status === 'open' || gate.status === 'parked';
   const deliveryStuck = answered && gate.delivery?.outcome === 'stuck';
@@ -480,53 +362,17 @@ function DecisionQueueModal({
             />
           );
         // The modal exists to give context room: unlike the row card's
-        // collapsed disclosure, context renders open, above the form. A
-        // context the form has already split onto its questions (B7)
-        // collapses to a one-line strip instead; the disclosure brings the
-        // pane back.
+        // collapsed disclosure, context renders open, above the form.
         return (
           <div
             className="tui-triage-body"
             data-respond={headerCtx ? 'true' : undefined}
           >
-            {proseContext && sectioned && (
-              <OverviewStrip
-                parsed={sectioned}
-                open={fullContext}
-                onToggle={() => setFullContext(v => !v)}
-              />
-            )}
-            {proseContext && (!sectioned || fullContext) && (
-              <ScrollPane
-                title={
-                  grouped ? (
-                    <>
-                      Decision context
-                      <span className="tui-gate-groups-total">
-                        {grouped.total} findings
-                      </span>
-                      <button
-                        type="button"
-                        className="tui-gate-groups-raw"
-                        aria-pressed={rawContext}
-                        onClick={() => setRawContext(v => !v)}
-                      >
-                        {rawContext ? 'grouped' : 'as written'}
-                      </button>
-                    </>
-                  ) : (
-                    'Decision context'
-                  )
-                }
-                maxHeight="46vh"
-              >
-                {grouped && !rawContext ? (
-                  <GroupedContext parsed={grouped} />
-                ) : (
-                  <Markdown unstyled linkTargetBlank>
-                    {proseContext}
-                  </Markdown>
-                )}
+            {proseContext && (
+              <ScrollPane title="Decision context" maxHeight="46vh">
+                <Markdown unstyled linkTargetBlank>
+                  {proseContext}
+                </Markdown>
               </ScrollPane>
             )}
             <div className="tui-triage-form-col">{face}</div>

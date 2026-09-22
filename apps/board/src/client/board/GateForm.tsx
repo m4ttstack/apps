@@ -20,13 +20,9 @@ import { Button, Chip, Markdown } from '@mattstack/tui-kit';
 import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview } from '../types.ts';
 import { Disclosure, DisclosureHead } from './Disclosure.tsx';
-import {
-  parseGateContext,
-  sectionFor,
-  type ContextSection,
-} from './gate-context.ts';
 import { parseGateCtx, type GateCtx } from './gate-ctx.ts';
 import { ReplyChoiceBody, SeverityPill, ThreadCard } from './RespondCards.tsx';
+import { paneContext } from './review-gate.ts';
 
 function SummaryDetail({ detail }: { detail: GateSummaryDetailRow[] }) {
   return (
@@ -231,57 +227,6 @@ export type GateFormState = ReturnType<typeof useGateForm>;
     which in step mode means a new last step appears and Submit moves to it.
     `showFocusAction` keeps the footer's focus-pane button out of hosts that
     surface it elsewhere (the triage modal's gate strip). */
-/** The question's own slice of the gate context (B7): the reviewer's
-    quote, the verdict with its recommendation, and the adjudication; a
-    section with none of those shows its body as one paragraph. */
-function QuestionContext({ section }: { section: ContextSection }) {
-  const { quote, verdict, recommendation, adjudication, remainder, body } =
-    section;
-  // Everything the section said, in the order it said it: the lead-in the
-  // asker wrote between the quote and the verdict, then the adjudication;
-  // a section with neither shows its whole body. Nothing is left out.
-  const lead = remainder ?? (quote || adjudication ? undefined : body);
-  return (
-    <div className="tui-gate-context">
-      {quote && (
-        <blockquote className="tui-gate-quote">
-          <span className="tui-gate-quote-who">{quote.who}</span>
-          <p className="tui-gate-quote-text">{quote.text}</p>
-        </blockquote>
-      )}
-      {(verdict || recommendation) && (
-        <div className="tui-gate-verdict">
-          {verdict && <span className="tui-gate-verdict-word">{verdict}</span>}
-          {recommendation && (
-            <Chip
-              intent="accent"
-              variant="outline"
-              uppercase
-              className="tui-gate-recommends"
-            >
-              recommends {recommendation}
-            </Chip>
-          )}
-        </div>
-      )}
-      {lead && (
-        <div className="tui-gate-lead">
-          <Markdown unstyled linkTargetBlank>
-            {lead}
-          </Markdown>
-        </div>
-      )}
-      {adjudication && (
-        <div className="tui-gate-adjudication">
-          <Markdown unstyled linkTargetBlank>
-            {adjudication}
-          </Markdown>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function GateForm({
   gate,
   mr,
@@ -297,9 +242,9 @@ function GateForm({
   form: GateFormState;
   onFocusPane: (mr: BoardMRWithReview, domain: GateDomain) => void;
   showFocusAction?: boolean;
-  /** DecisionQueueModal already renders an unsectioned context in its own
-      "Decision context" ScrollPane, above the form; a bare host with no such
-      pane wants this on so a prose context doesn't render as nothing. */
+  /** DecisionQueueModal renders the gate context in its own Decision context
+      pane above the form; a bare host with no such pane wants this on so
+      the context is not lost. */
   showContextFallback?: boolean;
 }) {
   const {
@@ -330,25 +275,6 @@ function GateForm({
     activeDisplay !== undefined && !activeDisplay.required;
   const lastStep =
     display.length > 0 && activeStep === display[display.length - 1]!.name;
-  const context = useMemo(() => parseGateContext(gate.context), [gate.context]);
-  const threadKeys = useMemo(
-    () =>
-      context
-        ? [...context.sections.keys()].filter(k => /^thread-\d+$/.test(k))
-        : [],
-    [context]
-  );
-  // Mirrors DecisionQueueModal's own fallback: a context no question ends
-  // up sectioning (plain prose, or sections under keys/labels no question
-  // matches) still needs to reach the reader somewhere, raw.
-  const sectioned = useMemo(
-    () =>
-      context !== null &&
-      gate.questions.some(q =>
-        sectionFor(context, { id: q.id, label: q.label })
-      ),
-    [context, gate.questions]
-  );
   const questionCtx = useMemo(
     () =>
       new Map<string, GateCtx | null>(
@@ -356,7 +282,10 @@ function GateForm({
       ),
     [gate.questions]
   );
-  const gateCtx = useMemo(() => parseGateCtx(gate.context), [gate.context]);
+  const fallbackContext = useMemo(
+    () => paneContext(gate.context),
+    [gate.context]
+  );
   // A thread's "N of M" counts the gate's thread-* questions, which the
   // gate contract keeps positional.
   const threadIds = useMemo(
@@ -380,10 +309,10 @@ function GateForm({
         );
       }}
     >
-      {showContextFallback && gate.context && !sectioned && !gateCtx && (
+      {showContextFallback && fallbackContext && (
         <div className="tui-gate-context-raw">
           <Markdown unstyled linkTargetBlank>
-            {gate.context}
+            {fallbackContext}
           </Markdown>
         </div>
       )}
@@ -394,11 +323,6 @@ function GateForm({
         const threadCtx = qctx?.shape === 'thread@1' ? qctx : null;
         const repliesCtx = qctx?.shape === 'replies@1' ? qctx : null;
         const threadOrd = threadCtx ? threadIds.indexOf(q.name) : -1;
-        const section =
-          threadCtx || repliesCtx
-            ? undefined
-            : sectionFor(context, { id: q.name, label: q.prompt });
-        const threadAt = section ? threadKeys.indexOf(section.key) : -1;
         return (
           <Questionnaire.Item
             key={q.name}
@@ -406,17 +330,11 @@ function GateForm({
             required={q.required}
             multiple={q.multiple}
             className="tui-gate-question"
-            data-sectioned={section ? 'true' : undefined}
             data-gate-ctx={
               threadCtx ? 'thread' : repliesCtx ? 'replies' : undefined
             }
           >
             <div className="tui-gate-question-head">
-              {threadAt >= 0 && (
-                <span className="tui-gate-question-ord">
-                  thread {threadAt + 1} of {threadKeys.length}
-                </span>
-              )}
               <Questionnaire.Title className="tui-gate-question-label">
                 {q.prompt}
               </Questionnaire.Title>
@@ -446,8 +364,7 @@ function GateForm({
                           />
                         ))}
                       </span>
-                      {!section &&
-                        !threadCtx &&
+                      {!threadCtx &&
                         `Question ${state.current} of ${state.total}`}
                     </span>
                   )}
@@ -458,7 +375,7 @@ function GateForm({
               <ThreadCard ctx={threadCtx} />
             ) : (
               q.context &&
-              !repliesCtx && (
+              qctx === null && (
                 <div className="tui-gate-question-context">
                   <Markdown unstyled linkTargetBlank>
                     {q.context}
@@ -466,13 +383,9 @@ function GateForm({
                 </div>
               )
             )}
-            {section && <QuestionContext section={section} />}
             <Questionnaire.Choices className="tui-gate-choices">
               {q.choices.map(choice => {
-                const recommended =
-                  choice.recommended === true ||
-                  (section?.recommendation !== undefined &&
-                    choice.label.toLowerCase() === section.recommendation);
+                const recommended = choice.recommended === true;
                 const entry = repliesCtx?.replies.find(
                   r => r.thread === choice.value
                 );

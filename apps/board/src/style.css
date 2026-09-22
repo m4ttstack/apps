@@ -2182,137 +2182,17 @@ body {
   background: var(--surface-inset);
   pointer-events: none;
 }
-/* B9: a context the asker wrote as `[Label] text` lines. The label becomes
-   a small uppercase heading with its count and the findings sit beneath it
-   as bullets, so the severity is stated once per group instead of leading
-   every line. Groups after the first take a soft rule; the bullet is drawn
-   by the marker box so a wrapped line hangs under its own text, not under
-   the dot. */
-.tui-gate-groups {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gate-gap-inner);
-  min-width: 0;
-}
-.tui-gate-groups-total {
-  margin-left: 8px;
-  font-weight: 500;
-  font-size: var(--gate-font-meta);
-  color: var(--text-3);
-}
-.tui-gate-groups-preamble {
-  margin: 0;
-  font-size: var(--gate-font-meta);
-  color: var(--text-3);
-}
-.tui-gate-groups-preamble [data-part='markdown'] > * {
-  margin: 0;
-}
-/* The head's way back to the asker's own words. Quiet text, the pane's
-   own accent, no box: it is a view switch, not an action. */
-.tui-gate-groups-raw {
-  margin-left: auto;
-  border: 0;
-  padding: 0;
-  background: none;
-  font: 500 var(--gate-font-meta) / 1.4 var(--font-sans);
-  color: var(--text-accent-small);
-  cursor: pointer;
-}
-.tui-gate-groups-raw:hover {
-  text-decoration: underline;
-}
 .tui-triage-modal [data-part='scrollpane-head'] {
   display: flex;
   align-items: baseline;
 }
-.tui-gate-group + .tui-gate-group {
-  padding-top: var(--gate-gap-inner);
-  border-top: 1px solid var(--border-soft);
-}
-.tui-gate-group-head {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  margin: 0 0 6px;
-  font: 600 var(--gate-font-micro) / 1.4 var(--font-sans);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.tui-gate-group-label {
-  color: var(--orange);
-}
-/* Every group past the first reads as the quieter tail of the list: the
-   asker's own order puts what matters first, so only it takes the tone. */
-.tui-gate-group + .tui-gate-group .tui-gate-group-label {
-  color: var(--text-4);
-}
-/* The preamble is a <p> before the groups, so the first group is not the
-   pane's first child; keyed on type instead, the tone lands with or
-   without one. */
-.tui-gate-groups
-  .tui-gate-group:first-of-type
-  .tui-gate-group-items
-  li::marker {
-  color: var(--orange);
-}
-.tui-gate-group-count {
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--text-4);
-}
-.tui-gate-group-items {
-  margin: 0;
-  padding: 0 0 0 15px;
-  list-style: disc;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: var(--gate-font-meta);
-  line-height: 1.45;
-  color: var(--text-1);
-}
-.tui-gate-group-items li {
-  padding-left: 3px;
-  overflow-wrap: anywhere;
-}
-/* A finding renders through the markdown recipe so links and code stay
-   live; it is one line inside a list item, so its block margins go. */
-.tui-gate-group-items li [data-part='markdown'] > * {
-  margin: 0;
-}
-.tui-gate-group-items li [data-part='markdown'] code {
-  font-family: var(--font-mono);
-  font-size: 0.92em;
-}
-.tui-gate-group-items li::marker {
-  color: var(--text-4);
-  font-size: 0.85em;
-}
-
-/* B7: a question that owns a slice of the gate context. The head leads with
-   its ordinal among the threads and sets the file:line in mono; the slice
-   sits between the head and the choices: the reviewer's words as a quote
-   with a left rule, the verdict with the recommendation chip, then the
-   adjudication. The recommended choice is marked at rest so the eye lands
-   on it before the pointer does. */
+/* A thread question's ordinal among the gate's other threads. */
 .tui-gate-question-ord {
   flex-shrink: 0;
   font: 600 var(--gate-font-micro) / 1.4 var(--font-sans);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-4);
-}
-.tui-gate-question[data-sectioned] .tui-gate-question-label {
-  font-family: var(--font-mono);
-  margin-right: auto;
-}
-.tui-gate-context {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gate-gap-row);
-  min-width: 0;
 }
 /* A question's own `context` field, rendered with its card above its
    choices. It is the material the choice is made on, so it reads in ink. */
@@ -2478,58 +2358,6 @@ body {
 .tui-reply-choice-text [data-part='markdown'] > * + * {
   margin-top: 6px;
 }
-.tui-gate-quote {
-  margin: 0;
-  padding: 2px 0 2px 12px;
-  border-left: 2px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.tui-gate-quote-who {
-  font: 600 var(--gate-font-meta) / 1.4 var(--font-sans);
-  color: var(--text-3);
-}
-.tui-gate-quote-text {
-  margin: 0;
-  font-size: var(--gate-font-meta);
-  line-height: 1.45;
-  color: var(--text-3);
-  overflow-wrap: anywhere;
-}
-.tui-gate-verdict {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.tui-gate-verdict-word {
-  font: 600 var(--gate-font-meta) / 1.4 var(--font-sans);
-  color: var(--text-1);
-}
-.tui-gate-lead,
-.tui-gate-adjudication {
-  margin: 0;
-  font-size: var(--gate-font-meta);
-  line-height: 1.45;
-  color: var(--text-1);
-  overflow-wrap: anywhere;
-}
-.tui-gate-lead {
-  color: var(--text-3);
-}
-.tui-gate-lead [data-part='markdown'] > *,
-.tui-gate-adjudication [data-part='markdown'] > * {
-  margin: 0;
-}
-.tui-gate-lead [data-part='markdown'] > * + *,
-.tui-gate-adjudication [data-part='markdown'] > * + * {
-  margin-top: 6px;
-}
-.tui-gate-adjudication [data-part='markdown'] ul,
-.tui-gate-adjudication [data-part='markdown'] ol {
-  padding-left: 18px;
-}
 .tui-gate-choice[data-recommended]:not([data-checked]) {
   border-color: color-mix(in srgb, var(--fill-accent) 55%, var(--border));
   background: color-mix(in srgb, var(--fill-accent) 7%, transparent);
@@ -2678,44 +2506,6 @@ body {
 .tui-triage-pip[data-state='skipped'] {
   background: var(--fill-warn);
   opacity: 0.55;
-}
-/* B7's stand-in for the context pane: one line with the preamble and a
-   tally of the sections' recommendations, the disclosure at its end. Same
-   card ground and soft edge as the strip above it. */
-.tui-triage-overview {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  min-width: 0;
-  padding: 8px 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--gate-radius-control);
-  background: var(--card);
-  font-size: var(--gate-font-meta);
-  line-height: 1.4;
-}
-.tui-triage-overview-title {
-  flex-shrink: 0;
-  font-weight: 600;
-  color: var(--text-accent-small);
-}
-.tui-triage-overview-text {
-  flex: 1;
-  min-width: 0;
-  color: var(--text-3);
-  overflow-wrap: anywhere;
-}
-.tui-triage-overview-toggle {
-  flex-shrink: 0;
-  border: 0;
-  padding: 0;
-  background: none;
-  font: inherit;
-  color: var(--text-accent-small);
-  cursor: pointer;
-}
-.tui-triage-overview-toggle:hover {
-  text-decoration: underline;
 }
 /* Context sits ABOVE the form, the way a real pane reads: transcript on
    top, prompt below. The pane is as tall as its text up to the ScrollPane's

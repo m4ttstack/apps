@@ -143,7 +143,6 @@ test('a plan@1 gate renders the header card in place of the MR strip and the con
   expect($('.tui-triage-strip')).toBeNull();
   expect($('.tui-triage-modal [data-part="scrollpane"]')).toBeNull();
   expect($('.tui-triage-body[data-respond]')).not.toBeNull();
-  expect($('.tui-triage-overview')).toBeNull();
   const text = document.body.textContent ?? '';
   expect(text).not.toContain('gate-ctx');
   expect(text).not.toContain('pane-87');
