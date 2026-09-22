@@ -142,7 +142,7 @@ test('a plan@1 gate renders the header card in place of the MR strip and the con
   expect(meta).toContain('feature/demo-12-retry');
   expect(meta).toContain('Alex Doe');
   expect($('.tui-triage-strip')).toBeNull();
-  expect($('.tui-triage-modal [data-part="scrollpane"]')).toBeNull();
+  expect($('.tui-triage-sheet [data-part="scrollpane"]')).toBeNull();
   expect($('.tui-triage-body[data-respond]')).not.toBeNull();
   const text = document.body.textContent ?? '';
   expect(text).not.toContain('gate-ctx');
@@ -201,8 +201,8 @@ test('a post@1 gate heads with "Posting replies to"', async () => {
 
 test('parked and escalated chips move onto the action strip', async () => {
   await renderModal(gate({ status: 'parked', escalatedAt: 5 }), MR);
-  expect($('.tui-triage-head-actions [data-gate="parked"]')).not.toBeNull();
-  expect($('.tui-triage-head-actions [data-gate="escalated"]')).not.toBeNull();
+  expect($('.tui-gate-sheet-actions [data-gate="parked"]')).not.toBeNull();
+  expect($('.tui-gate-sheet-actions [data-gate="escalated"]')).not.toBeNull();
 });
 
 test('a prose gate keeps its parked chip in the MR strip', async () => {
@@ -211,7 +211,7 @@ test('a prose gate keeps its parked chip in the MR strip', async () => {
     MR
   );
   expect($('.tui-triage-strip [data-gate="parked"]')).not.toBeNull();
-  expect($('.tui-triage-head-actions [data-gate="parked"]')).toBeNull();
+  expect($('.tui-gate-sheet-actions [data-gate="parked"]')).toBeNull();
 });
 
 test('with no MR row the object line falls back to the subject reference', async () => {
@@ -231,7 +231,7 @@ test('a prose respond gate keeps the MR strip and the context pane', async () =>
   expect($('.tui-respond-head')).toBeNull();
   expect($('.tui-triage-strip')).not.toBeNull();
   expect(
-    $('.tui-triage-modal [data-part="scrollpane"]')!.textContent
+    $('.tui-triage-sheet [data-part="scrollpane"]')!.textContent
   ).toContain('Two threads from renee, both valid.');
   expect($('.tui-triage-body[data-respond]')).toBeNull();
 });
@@ -243,7 +243,7 @@ test('a malformed plan context keeps the MR strip and the context pane', async (
   );
   expect($('.tui-respond-head')).toBeNull();
   expect($('.tui-triage-strip')).not.toBeNull();
-  expect($('.tui-triage-modal [data-part="scrollpane"]')).not.toBeNull();
+  expect($('.tui-triage-sheet [data-part="scrollpane"]')).not.toBeNull();
 });
 
 test('a respond gate whose contexts were dropped still renders its questions and options', async () => {
@@ -269,6 +269,54 @@ test('a respond gate whose contexts were dropped still renders its questions and
   const text = document.body.textContent ?? '';
   expect(text).toContain('queue/enqueue.ts:88');
   expect(text).toContain('reply');
+});
+
+const linkLabels = () =>
+  [...document.body.querySelectorAll('.tui-mr-link')].map(a => [
+    a.getAttribute('aria-label'),
+    a.getAttribute('href'),
+  ]);
+
+test('the header card links the MR on its forge and its ticket on Linear', async () => {
+  const mr = {
+    ...MR,
+    webUrl: 'https://gitlab.example.com/demo/app/-/merge_requests/87',
+  } as BoardMRWithReview;
+  await renderModal(gate({}), mr);
+  expect($('.tui-respond-head .tui-mr-links')).not.toBeNull();
+  expect(linkLabels()).toEqual([
+    [
+      'open !87 in GitLab',
+      'https://gitlab.example.com/demo/app/-/merge_requests/87',
+    ],
+    ['open DEMO-12 in Linear', 'https://linear.app/issue/DEMO-12'],
+  ]);
+});
+
+test('a GitHub MR links GitHub, and no ticket means no Linear link', async () => {
+  const mr = {
+    ...MR,
+    title: 'add retry to the fetch queue',
+    sourceBranch: 'retry-queue',
+    webUrl: 'https://github.com/demo/app/pull/87',
+  } as BoardMRWithReview;
+  await renderModal(gate({}), mr);
+  expect(linkLabels()).toEqual([
+    ['open !87 in GitHub', 'https://github.com/demo/app/pull/87'],
+  ]);
+});
+
+test('a prose gate carries the same links on its MR strip', async () => {
+  const mr = {
+    ...MR,
+    webUrl: 'https://gitlab.example.com/demo/app/-/merge_requests/87',
+  } as BoardMRWithReview;
+  await renderModal(gate({ context: 'Two threads from renee.' }), mr);
+  expect($('.tui-triage-strip .tui-mr-links')).not.toBeNull();
+  expect(linkLabels().map(([label]) => label)).toEqual([
+    'open !87 in GitLab',
+    'open DEMO-12 in Linear',
+  ]);
 });
 
 test('a bare GateForm host never pours a structured gate context out raw', async () => {

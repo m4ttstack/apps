@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Invadr } from 'invadrs/react';
 
 import {
@@ -19,25 +13,20 @@ import {
   type GateOption,
   type GateQuestion,
 } from '@mattstack/gate-kit';
-import {
-  Button,
-  Chip,
-  Markdown,
-  useBodyScrollLock,
-  useEscapeClose,
-} from '@mattstack/tui-kit';
+import { Button, Chip, Markdown } from '@mattstack/tui-kit';
 import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview } from '../types.ts';
-import type { TriageGateState } from './DecisionQueueModal.tsx';
 import { Disclosure, DisclosureHead } from './Disclosure.tsx';
 import { ago, cleanTitle } from './format.ts';
 import type { Disposition, FindingEntry, FindingSeverity } from './gate-ctx.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
+import { GateSheet, type GateSheetQueue } from './GateSheet.tsx';
 import {
   CircleCheckFilledIcon,
   PencilLineIcon,
   SearchCheckIcon,
 } from './icons.tsx';
+import { MrLinks } from './MrLinks.tsx';
 import {
   readinessProse,
   readReviewGate,
@@ -66,15 +55,6 @@ function sanitizeReport(j: unknown): ReviewReportJson | null {
   const out: ReviewReportJson = { ...(raw as ReviewReportJson) };
   if (typeof raw['depth'] !== 'string') delete out.depth;
   return out;
-}
-
-export interface ReviewGateSheetQueue {
-  /** 0-based position of the active gate in the queue. */
-  index: number;
-  total: number;
-  states: TriageGateState[];
-  onPrev: () => void;
-  onNext: () => void;
 }
 
 /** The engine's own emission and hand-edits of report.json both land here
@@ -224,46 +204,10 @@ function ReviewGateSheet({
   gate: GateRow;
   mr?: BoardMRWithReview;
   form: GateFormState;
-  queue: ReviewGateSheetQueue;
+  queue: GateSheetQueue;
   onClose: () => void;
   onFocusPane: (mr: BoardMRWithReview, domain: GateDomain) => void;
 }) {
-  useEscapeClose(onClose);
-  useBodyScrollLock();
-
-  // Dialog focus contract: take focus on mount, keep Tab cycling inside
-  // (aria-modal alone does not fence keyboard focus), and hand focus back
-  // to whatever opened the sheet when it unmounts.
-  const sheetRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const opener =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    sheetRef.current?.focus();
-    return () => opener?.focus();
-  }, []);
-  const trapTab = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== 'Tab') return;
-    const root = sheetRef.current;
-    if (!root) return;
-    const focusable = Array.from(
-      root.querySelectorAll<HTMLElement>(
-        'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
-      )
-    ).filter(el => !el.hasAttribute('disabled'));
-    if (focusable.length === 0) return;
-    const first = focusable[0]!;
-    const last = focusable[focusable.length - 1]!;
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  };
-
   const { questions, groups } = useMemo(
     () => collapseChunks(gate.questions),
     [gate.questions]
@@ -419,82 +363,33 @@ function ReviewGateSheet({
   const meta = reviewMeta(review);
 
   return (
-    <div
-      className="tui-review-sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="tui-review-sheet-title"
-      tabIndex={-1}
-      ref={sheetRef}
-      onKeyDown={trapTab}
-    >
-      <header className="tui-review-sheet-head">
-        <span className="tui-review-sheet-title" id="tui-review-sheet-title">
-          decision queue
-        </span>
-        <span className="tui-review-sheet-head-actions">
-          <Button
-            type="button"
-            variant="light"
-            intent="accent"
-            size="lg"
-            disabled={
-              parked
-                ? !(gate.domain && mr)
-                : !form.originFocusable || form.focusBusy
-            }
-            onClick={() =>
-              parked
-                ? gate.domain && mr && onFocusPane(mr, gate.domain)
-                : void form.focusGate()
-            }
-          >
-            focus pane
-          </Button>
-        </span>
-        <span className="tui-review-sheet-spacer" />
-        <nav className="tui-review-queue-nav" aria-label="gate queue">
-          <button
-            type="button"
-            className="tui-review-queue-chevron"
-            onClick={queue.onPrev}
-            disabled={queue.index <= 0}
-            title="previous gate"
-            aria-label="previous gate"
-          >
-            ‹
-          </button>
-          <span className="tui-review-queue-pips">
-            {queue.states.map((s, i) => (
-              <i key={i} className="tui-review-queue-pip" data-state={s} />
-            ))}
-          </span>
-          <span className="tui-review-queue-pos">
-            gate {queue.index + 1} of {queue.total}
-          </span>
-          <button
-            type="button"
-            className="tui-review-queue-chevron"
-            onClick={queue.onNext}
-            title="next gate"
-            aria-label="next gate"
-          >
-            ›
-          </button>
-        </nav>
-        <span className="tui-review-head-sep" aria-hidden="true" />
-        <span className="tui-review-gate-tag">
-          review gate{mr ? ` !${mr.iid}` : ''}
-        </span>
-        <button
+    <GateSheet
+      variant="review"
+      ariaLabel="review gate"
+      actions={
+        <Button
           type="button"
-          className="tui-review-close"
-          onClick={onClose}
-          aria-label="close"
+          variant="light"
+          intent="accent"
+          size="sm"
+          disabled={
+            parked
+              ? !(gate.domain && mr)
+              : !form.originFocusable || form.focusBusy
+          }
+          onClick={() =>
+            parked
+              ? gate.domain && mr && onFocusPane(mr, gate.domain)
+              : void form.focusGate()
+          }
         >
-          ✕
-        </button>
-      </header>
+          focus pane
+        </Button>
+      }
+      queue={queue}
+      tag={`review gate${mr ? ` !${mr.iid}` : ''}`}
+      onClose={onClose}
+    >
       <div className="tui-review-sheet-body">
         <section className="tui-review-sheet-main" ref={mainRef}>
           {mr && (
@@ -529,6 +424,7 @@ function ReviewGateSheet({
                   )}
                 </div>
               </div>
+              <MrLinks mr={mr} />
             </div>
           )}
 
@@ -894,7 +790,7 @@ function ReviewGateSheet({
           )}
         </aside>
       </div>
-    </div>
+    </GateSheet>
   );
 }
 

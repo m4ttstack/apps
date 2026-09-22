@@ -1,7 +1,7 @@
-/** The queue modal's chrome: the step nav renders inline in the gate body
-    (never in the footer), the footer carries queue-scope chrome only
-    (previous gate, pips, gate count, next gate; no step nav), and the head
-    is one row -- title, compact (size="sm") focus pane, then close. */
+/** The queue sheet's chrome: the step nav renders inline in the gate body,
+    and the head is one row -- title, compact (size="sm") focus pane, then
+    the queue nav (previous gate, pips, gate count, next gate), the tag and
+    close. */
 
 import React from 'react';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
@@ -118,10 +118,10 @@ const navButton = (text: string) =>
     b => b.textContent?.trim() === text && !b.hasAttribute('hidden')
   ) ?? null;
 
-test('the step nav renders in the gate body, never in the footer', async () => {
+test('the step nav renders in the gate body, never in the head', async () => {
   await renderModal(stepped());
   expect($('.tui-triage-body .tui-gate-actions')).not.toBeNull();
-  expect($('.tui-triage-footer .tui-gate-actions')).toBeNull();
+  expect($('.tui-gate-sheet-head .tui-gate-actions')).toBeNull();
 });
 
 test('the nav still drives the form: pick, next, pick, submit posts both answers', async () => {
@@ -146,30 +146,34 @@ test('reset in the gate body clears the picks', async () => {
 
 test('the head is one row: title, compact focus pane, then close -- no skip chip', async () => {
   await renderModal(stepped());
-  const head = $('[data-part="modal-head"]')!;
-  expect(head.querySelector('.tui-triage-title')?.textContent).toBe(
+  const head = $('.tui-gate-sheet-head')!;
+  expect(head.querySelector('.tui-gate-sheet-title')?.textContent).toBe(
     'decision queue'
   );
-  const actions = [...head.querySelectorAll('.tui-triage-head-actions button')];
+  const actions = [...head.querySelectorAll('.tui-gate-sheet-actions button')];
   expect(actions.map(b => b.textContent?.trim())).toEqual(['focus pane']);
   for (const b of actions) expect(b.getAttribute('data-size')).toBe('sm');
-  expect($('.tui-triage-queue-row')).toBeNull();
+  expect(
+    [...head.querySelectorAll('button')].some(
+      b => b.textContent?.trim() === 'skip gate'
+    )
+  ).toBe(false);
 });
 
-test('the footer holds a previous-gate control, the centered pips+count group, and a next-gate control', async () => {
+test('the head queue nav holds a previous-gate control, the pips, the count, and a next-gate control', async () => {
   await renderModal(stepped(), undefined, {
     position: 2,
     states: ['done', 'active', 'todo'],
   });
-  const footer = $('.tui-triage-footer')!;
-  const children = [...footer.children];
-  expect(children).toHaveLength(3);
+  const nav = $('.tui-gate-sheet-head .tui-gate-queue-nav')!;
+  const children = [...nav.children];
+  expect(children).toHaveLength(4);
 
   const prev = children[0] as HTMLButtonElement;
-  const where = children[1]!;
-  const next = children[2] as HTMLButtonElement;
+  const next = children[3] as HTMLButtonElement;
 
-  expect(where.className).toContain('tui-triage-where');
+  expect(children[1]!.className).toContain('tui-gate-queue-pips');
+  expect(children[2]!.textContent).toBe('gate 2 of 3');
   expect(prev.getAttribute('aria-label')).toBe('previous gate');
   expect(prev.getAttribute('title')).toBe('previous gate');
   expect(next.getAttribute('aria-label')).toBe('next gate');
@@ -213,10 +217,10 @@ test('the previous-gate control calls onBack, the next-gate control calls onSkip
   expect(posts.length).toBe(posts0);
 });
 
-test('the footer never renders a peek row; the next-gate title rides the count tooltip', async () => {
+test('there is no peek row; the next-gate title rides the count tooltip', async () => {
   await renderModal(stepped(), '!52 · add retry to the fetch queue');
   expect($('.tui-triage-peek')).toBeNull();
-  expect($('.tui-triage-pos')?.getAttribute('title')).toBe(
+  expect($('.tui-gate-queue-pos')?.getAttribute('title')).toBe(
     'next: !52 · add retry to the fetch queue'
   );
 });

@@ -221,7 +221,7 @@ try {
     await page.click('.tui-dq-open');
     await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
     const legacy = page.locator(
-      '.tui-triage-modal [data-part="scrollpane-body"]',
+      '.tui-triage-sheet [data-part="scrollpane-body"]',
       { hasText: '[Important] Dropped guard' }
     );
     for (let i = 0; i < 10 && !(await legacy.count()); i++) {

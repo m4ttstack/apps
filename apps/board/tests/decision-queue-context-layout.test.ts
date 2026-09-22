@@ -1,14 +1,9 @@
-/** Real-layout check for the decision queue's context pane and question
-    area, run in headless chromium against the fixture server: happy-dom
-    does no layout, and the laws this guards only exist once CSS flex
-    sizing runs. The nav (`.tui-gate-actions`, in the gate body, not the
-    footer) must stay fully on screen and the modal must never scroll. The
-    pane and the question area are not equal: the pane (reference material)
-    shrinks first and scrolls internally past its floor; the question area
-    (what the reviewer acts on) keeps its natural height and only gives up
-    any of it, scrolling in turn, once the pane is already at that floor and
-    still isn't enough. Boots on a free port so a concurrent `capture` run
-    on 7941 is untouched. */
+/** Real-layout check for the decision queue's full-screen sheet, run in
+    headless chromium against the fixture server: happy-dom does no layout.
+    Every gate face fills the window, the sheet itself never scrolls, and
+    the control that moves the decision forward (the gate body's step nav,
+    or the review sheet's submit) always stays on screen. Boots on a free
+    port so a concurrent `capture` run on 7941 is untouched. */
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -16,35 +11,13 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { chromium, type Browser, type Page } from 'playwright';
 
 const ROOT = join(import.meta.dir, '..');
-const ROOMY = { width: 1000, height: 1100 };
-/** A laptop-height window: tight enough that the context pane and the
-    active question's own area both have to shrink and scroll internally
-    to keep the nav on screen. */
-const SHORT = { width: 1000, height: 812 };
-/** Shorter than SHORT: with the modal's ceiling raised from 80vh to
-    100vh minus a small fixed margin, SHORT alone no longer forces the
-    items-scroll fallback on the fixture's deliberately long gate (764px of
-    modal room fits its 279px item column without a scroll). This viewport
-    still does, and exists solely to prove the fallback mechanism -- kept
-    on purpose as the fallback for windows still too short even after the
-    taller ceiling -- still fires when a window is short enough to need
-    it. */
-const VERY_SHORT = { width: 1000, height: 700 };
-/** Below the question-context media query's breakpoint: the tight cap
-    still applies here, one px shy of where it relaxes. */
-const JUST_BELOW_BREAKPOINT = { width: 1000, height: 970 };
-/** Above the breakpoint: the roomy cap applies and a thread card's reply
-    box reaches its full, natural height. */
-const JUST_ABOVE_BREAKPOINT = { width: 1000, height: 990 };
-/** A common laptop window. Below the question-context media query's
-    breakpoint (980px), so the tight cap still governs here. */
+/** A common laptop window. */
 const LAPTOP = { width: 1440, height: 900 };
-/** A 14-inch MacBook Pro window at its default scaled resolution. Past the
-    breakpoint, so the roomy cap governs here. */
-const TALL_LAPTOP = { width: 1512, height: 982 };
-/** The ScrollPane cap DecisionQueueModal passes, as a share of the
-    viewport height. */
-const PANE_CAP = 0.46;
+/** A short laptop window. */
+const SHORT = { width: 1000, height: 812 };
+/** Shorter than any real laptop window: only here should the question
+    area's own scroll fallback fire. */
+const VERY_SHORT = { width: 1000, height: 700 };
 
 /** The slice of the page's DOM the measurements touch; this tsconfig has no
     `dom` lib, so the evaluate callbacks reach it through a cast. */
@@ -108,10 +81,7 @@ afterAll(async () => {
   server?.kill();
 });
 
-/** Opens the queue and skips forward to the first gate whose context pane
-    renders prose; the queue order is the fixture's row order, so this does
-    not assume which position that gate holds. */
-async function openDecisionQueue(viewport: {
+async function openQueue(viewport: {
   width: number;
   height: number;
 }): Promise<Page> {
@@ -123,460 +93,187 @@ async function openDecisionQueue(viewport: {
   await page.goto(`${BASE}/?member=all`);
   await page.waitForSelector('.tui-row');
   await page.click('.tui-dq-open');
-  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
-  const prose = page.locator(
-    '.tui-triage-modal [data-part="scrollpane-body"] [data-part="markdown"] p'
-  );
-  for (let i = 0; i < 10 && !(await prose.count()); i++) {
-    await page.getByRole('button', { name: 'next gate' }).click();
-    await page.waitForTimeout(120);
-  }
-  await prose.first().waitFor();
+  await page.waitForSelector('.tui-gate-sheet');
   return page;
 }
 
-/** Opens the queue and skips forward to the first gate with a thread card
-    (a structured claim/points/verdict/reply, not plain prose), the only
-    kind of gate a drafted reply box can appear on. */
-async function openDecisionQueueAtThreadGate(viewport: {
-  width: number;
-  height: number;
-}): Promise<Page> {
-  const ctx = await browser.newContext({ viewport });
-  await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
-    route.abort()
-  );
-  const page = await ctx.newPage();
-  await page.goto(`${BASE}/?member=all`);
-  await page.waitForSelector('.tui-row');
-  await page.click('.tui-dq-open');
-  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
-  const threadCard = page.locator('.tui-thread-card');
-  for (let i = 0; i < 10 && !(await threadCard.count()); i++) {
+/** Steps forward with the head's next-gate control until `selector`
+    matches, so no test assumes which queue position a gate holds. */
+async function nextUntil(page: Page, selector: string): Promise<void> {
+  const target = page.locator(selector);
+  for (let i = 0; i < 10 && !(await target.count()); i++) {
     await page.getByRole('button', { name: 'next gate' }).click();
     await page.waitForTimeout(120);
   }
-  await threadCard.first().waitFor();
-  return page;
+  await target.first().waitFor();
 }
 
 type Layout = {
-  modalScrolls: boolean;
-  bodyScrolls: boolean;
-  modalBottom: number;
-  footerBottom: number;
+  kind: 'review' | 'triage';
+  sheetTop: number;
+  sheetBottom: number;
+  sheetScrolls: boolean;
+  /** The step nav (triage) or the submit (review): the one control that
+      moves the decision forward. */
+  forwardBottom: number;
+  itemsScrolls: boolean;
   paneRootHeight: number;
   paneFloorPx: number;
   paneScrolls: boolean;
-  navBottom: number;
-  itemsScrolls: boolean;
-  itemsHeight: number;
-  /** One entry per choice of the ACTIVE question, in order: whether its
-      whole box lies inside `.tui-gate-items`'s visible (unscrolled)
-      viewport, not merely present in the DOM. */
+  /** Per choice of the ACTIVE question: whether its whole box lies inside
+      `.tui-gate-items`'s visible (unscrolled) viewport. */
   choicesVisible: boolean[];
-  /** Whether the active question has a thread card, and if so, whether its
-      reply box lies fully inside the card's own visible (unscrolled) area.
-      `null` when the active question has no thread card at all. */
+  /** Whether the active question's drafted reply lies fully inside its
+      thread card's visible area; null without a thread card. */
   replyBoxVisibleInCard: boolean | null;
 };
 
 function measure(page: Page): Promise<Layout> {
   return page.evaluate(() => {
     const { document } = globalThis as unknown as PageGlobals;
-    const modal = document.querySelector('.tui-triage-modal')!;
-    // A header-card gate (structured plan@1/post@1 context) has no
-    // ScrollPane at all -- only a prose-context gate does.
+    const sheet = document.querySelector('.tui-gate-sheet')!;
+    const review = document.querySelector('.tui-review-sheet');
+    const forward = review
+      ? document.querySelector('.tui-review-submit')
+      : document.querySelector('.tui-gate-actions');
+    const items = document.querySelector('.tui-gate-items');
     const root = document.querySelector(
-      '.tui-triage-modal [data-part="scrollpane"]'
+      '.tui-triage-sheet [data-part="scrollpane"]'
     );
     const pane = document.querySelector(
-      '.tui-triage-modal [data-part="scrollpane-body"]'
+      '.tui-triage-sheet [data-part="scrollpane-body"]'
     );
-    const footer = document.querySelector('.tui-triage-footer')!;
-    const body = document.querySelector('.tui-triage-body')!;
-    const nav = document.querySelector('.tui-gate-actions')!;
-    const items = document.querySelector('.tui-gate-items')!;
-    const activeQuestion = document.querySelector(
-      '.tui-gate-question[data-active]'
-    );
-    const itemsRect = items.getBoundingClientRect();
-    const itemsVisibleBottom = itemsRect.top + items.clientHeight;
-    const choices = activeQuestion
-      ? [...activeQuestion.querySelectorAll('.tui-gate-choice')]
-      : [];
-    const choicesVisible = choices.map(c => {
-      const r = c.getBoundingClientRect();
-      return (
-        r.top >= itemsRect.top - 0.5 && r.bottom <= itemsVisibleBottom + 0.5
+    const active = document.querySelector('.tui-gate-question[data-active]');
+    let choicesVisible: boolean[] = [];
+    if (items && active) {
+      const r = items.getBoundingClientRect();
+      const bottom = r.top + items.clientHeight;
+      choicesVisible = [...active.querySelectorAll('.tui-gate-choice')].map(
+        c => {
+          const b = c.getBoundingClientRect();
+          return b.top >= r.top - 0.5 && b.bottom <= bottom + 0.5;
+        }
       );
-    });
-    const threadCard = activeQuestion
-      ? activeQuestion.querySelectorAll('.tui-thread-card')[0]
-      : null;
-    const replyBox = activeQuestion
-      ? activeQuestion.querySelectorAll('.tui-thread-reply')[0]
+    }
+    const card = active ? active.querySelectorAll('.tui-thread-card')[0] : null;
+    const reply = active
+      ? active.querySelectorAll('.tui-thread-reply')[0]
       : null;
     let replyBoxVisibleInCard: boolean | null = null;
-    if (threadCard && replyBox) {
-      const cardRect = threadCard.getBoundingClientRect();
-      const cardVisibleBottom = cardRect.top + threadCard.clientHeight;
-      const r = replyBox.getBoundingClientRect();
+    if (card && reply) {
+      const c = card.getBoundingClientRect();
+      const r = reply.getBoundingClientRect();
       replyBoxVisibleInCard =
-        r.top >= cardRect.top - 0.5 && r.bottom <= cardVisibleBottom + 0.5;
+        r.top >= c.top - 0.5 && r.bottom <= c.top + card.clientHeight + 0.5;
     }
-    // Read live rather than duplicating the CSS literal here, so the test
-    // and the stylesheet cannot silently diverge.
     const win = globalThis as unknown as {
       getComputedStyle(el: unknown): { minHeight: string };
     };
-    const paneFloorPx = root
-      ? parseFloat(win.getComputedStyle(root).minHeight)
-      : 0;
+    const sheetRect = sheet.getBoundingClientRect();
     return {
-      modalScrolls: modal.scrollHeight > modal.clientHeight,
-      bodyScrolls: body.scrollHeight > body.clientHeight,
-      modalBottom: modal.getBoundingClientRect().bottom,
-      footerBottom: footer.getBoundingClientRect().bottom,
+      kind: review ? ('review' as const) : ('triage' as const),
+      sheetTop: sheetRect.top,
+      sheetBottom: sheetRect.bottom,
+      sheetScrolls: sheet.scrollHeight > sheet.clientHeight + 1,
+      forwardBottom: forward ? forward.getBoundingClientRect().bottom : 0,
+      // +1: Blink's 1/64px layout units round apart by a fraction.
+      itemsScrolls: items ? items.scrollHeight > items.clientHeight + 1 : false,
       paneRootHeight: root ? root.getBoundingClientRect().height : 0,
-      paneFloorPx,
+      paneFloorPx: root ? parseFloat(win.getComputedStyle(root).minHeight) : 0,
       paneScrolls: pane ? pane.scrollHeight > pane.clientHeight : false,
-      navBottom: nav.getBoundingClientRect().bottom,
-      // +1: Blink's internal layout units are 1/64px, so two elements that
-      // are visually identical in height can differ by a fractional pixel
-      // once rounded to the integer `clientHeight`/`scrollHeight` pair.
-      itemsScrolls: items.scrollHeight > items.clientHeight + 1,
-      itemsHeight: items.getBoundingClientRect().height,
       choicesVisible,
       replyBoxVisibleInCard,
     };
   });
 }
 
-function expectPaneLaw(m: Layout, viewportHeight: number): void {
-  const cap = viewportHeight * PANE_CAP;
-  expect(m.paneRootHeight).toBeLessThanOrEqual(cap + 1);
-  // The pane and the question area now share the squeeze, so a scrolling
-  // pane no longer implies it sits at the cap -- only that it never goes
-  // below its own floor, however much of the deficit the question area
-  // ends up absorbing instead.
-  expect(m.paneRootHeight).toBeGreaterThanOrEqual(m.paneFloorPx - 1);
-  expect(m.modalScrolls).toBe(false);
-  expect(m.footerBottom).toBeLessThanOrEqual(m.modalBottom);
-  // Relative-to-itself checks above don't catch the modal itself sitting
-  // past the bottom of the window -- assert against the viewport directly.
-  expect(m.modalBottom).toBeLessThanOrEqual(viewportHeight + 0.5);
-  expect(m.footerBottom).toBeLessThanOrEqual(viewportHeight + 0.5);
+function expectSheetLaw(m: Layout, viewport: { height: number }): void {
+  expect(m.sheetTop).toBe(0);
+  expect(Math.abs(m.sheetBottom - viewport.height)).toBeLessThanOrEqual(0.5);
+  expect(m.sheetScrolls).toBe(false);
+  expect(m.forwardBottom).toBeGreaterThan(0);
+  expect(m.forwardBottom).toBeLessThanOrEqual(viewport.height);
 }
 
-/** The nav is protected structurally (a fixed sibling after the one
-    flexible child of `.tui-gate-form`), so this holds on every gate, not
-    only the long-context one `openDecisionQueue` walks to. */
-function expectNavOnScreen(m: Layout, viewportHeight: number): void {
-  expect(m.navBottom).toBeLessThanOrEqual(viewportHeight);
-  expect(m.modalScrolls).toBe(false);
-  expect(m.bodyScrolls).toBe(false);
-}
-
-test('roomy: the pane is as tall as its text up to its cap, and the modal never scrolls', async () => {
-  const page = await openDecisionQueue(ROOMY);
-  const m = await measure(page);
-  expectPaneLaw(m, ROOMY.height);
-  expectNavOnScreen(m, ROOMY.height);
-  await page.context().close();
-}, 30_000);
-
-test('short: the nav stays on screen without the body scrolling, even with long context', async () => {
-  const page = await openDecisionQueue(SHORT);
-  const m = await measure(page);
-  expectPaneLaw(m, SHORT.height);
-  expectNavOnScreen(m, SHORT.height);
-  await page.context().close();
-}, 30_000);
-
-test('very short: if the question area scrolls, the pane is already at its floor', async () => {
-  const page = await openDecisionQueue(VERY_SHORT);
-  const m = await measure(page);
-  // This is the fixture's deliberately long gate, long enough to name the
-  // yield order rather than report two coincidental facts: the pane gives
-  // up its own room first, and only once it is already at its floor does
-  // the question area give up any of its own height in turn.
-  expect(m.paneScrolls).toBe(true);
-  if (m.itemsScrolls) {
-    expect(m.paneRootHeight).toBeLessThanOrEqual(m.paneFloorPx + 1);
-  }
-  expect(m.itemsScrolls).toBe(true);
-  expect(m.itemsHeight).toBeGreaterThan(0);
-  await page.context().close();
-}, 30_000);
-
-test('short: every choice of the active question is fully visible, not merely present', async () => {
-  const page = await openDecisionQueue(SHORT);
-  const m = await measure(page);
-  expect(m.choicesVisible.length).toBeGreaterThan(0);
-  expect(m.choicesVisible.every(visible => visible)).toBe(true);
-  await page.context().close();
-}, 30_000);
-
-test('short: the pane yields before the question area -- a shorter-context gate needs no items scroll', async () => {
-  const page = await openDecisionQueue(SHORT);
-  // openDecisionQueue lands on the queue's first prose-context gate, whose
-  // own text is long enough that even a fully-yielded pane isn't room
-  // enough (the previous test). The next prose gate is shorter: with the
-  // pane taking priority to shrink first, the question area should need
-  // none of its own scroll -- the regression this guards is the pane and
-  // the question area shrinking together instead of in that order, which
-  // would scroll this gate's question area too.
-  await page.getByRole('button', { name: 'next gate' }).click();
-  await page.waitForTimeout(150);
-  await page.waitForSelector(
-    '.tui-triage-modal [data-part="scrollpane-body"] [data-part="markdown"] p'
-  );
-  const m = await measure(page);
-  expect(m.itemsScrolls).toBe(false);
-  expect(m.choicesVisible.every(visible => visible)).toBe(true);
-  expectNavOnScreen(m, SHORT.height);
-  await page.context().close();
-}, 30_000);
-
-test('short: the footer is one row, never wraps, and holds no step nav', async () => {
-  const page = await openDecisionQueue(SHORT);
-  const footer = page.locator('.tui-triage-footer');
-  const wraps = await page.evaluate(() => {
-    const { document } = globalThis as unknown as PageGlobals;
-    const el = document.querySelector('.tui-triage-footer')!;
-    return el.scrollHeight > el.clientHeight + 1;
-  });
-  expect(wraps).toBe(false);
-  expect(await footer.locator('.tui-gate-actions').count()).toBe(0);
-  await page.context().close();
-}, 30_000);
-
-test('short: a header-card gate with no context pane still keeps its nav on screen', async () => {
-  const page = await openDecisionQueue(SHORT);
-  // openDecisionQueue stops at the first prose-context gate; a header-card
-  // gate (structured plan@1/post@1 context) has no ScrollPane at all, so
-  // the question area is the only thing that can give. Skip forward until
-  // one shows up, or the queue runs out.
-  const head = page.locator('.tui-respond-head');
-  for (let i = 0; i < 10 && !(await head.count()); i++) {
-    await page.getByRole('button', { name: 'next gate' }).click();
-    await page.waitForTimeout(120);
-  }
-  expect(await head.count()).toBeGreaterThan(0);
-  const m = await measure(page);
-  expectNavOnScreen(m, SHORT.height);
-  // The fixture's own header-card gate has no floor left to give at this
-  // height even with its thread card fully shrunk: the first two choices
-  // (reply, fix) still show in full, the third (skip) needs the items
-  // backstop scroll to see the rest of its description. That is the named,
-  // reported extreme case, not a regression to chase away here.
-  expect(m.choicesVisible.length).toBeGreaterThanOrEqual(2);
-  expect(m.choicesVisible.slice(0, 2).every(visible => visible)).toBe(true);
-  await page.context().close();
-}, 30_000);
-
-test('the head is one row: title, focus pane, and close share a line -- no skip chip', async () => {
-  const page = await openDecisionQueue(ROOMY);
-  const middle = async (selector: string) => {
-    const box = (await page.locator(selector).first().boundingBox())!;
-    return box.y + box.height / 2;
-  };
-  const title = await middle('.tui-triage-title');
-  for (const selector of [
-    '.tui-triage-head-actions button:has-text("focus pane")',
-    '.tui-triage-modal [data-part="modal-close"]',
-  ])
-    expect(Math.abs((await middle(selector)) - title)).toBeLessThanOrEqual(4);
-  expect(await page.locator('.tui-triage-queue-row').count()).toBe(0);
-  expect(
-    await page
-      .locator('.tui-triage-head-actions button:has-text("skip gate")')
-      .count()
-  ).toBe(0);
-  await page.context().close();
-}, 30_000);
-
-async function centerDrift(page: Page): Promise<number> {
-  const footer = (await page.locator('.tui-triage-footer').boundingBox())!;
-  const where = (await page.locator('.tui-triage-where').boundingBox())!;
-  return Math.abs(where.x + where.width / 2 - (footer.x + footer.width / 2));
-}
-
-test('the footer centers the pips+count group between the previous- and next-gate controls', async () => {
-  // The fixture's own gate 1 is a review-post gate (the sheet, not this
-  // modal), so `openDecisionQueue` -- which walks forward to the first
-  // prose-context gate -- never lands this modal's footer on the queue's
-  // true first position; the previous control is enabled here. Checked
-  // again one gate further so this isn't just one position's coincidence.
-  const page = await openDecisionQueue(ROOMY);
-
-  const prev = page.locator('[aria-label="previous gate"]');
-  const next = page.locator('[aria-label="next gate"]');
-  expect(await prev.count()).toBe(1);
-  expect(await next.count()).toBe(1);
-  expect(await prev.first().getAttribute('title')).toBe('previous gate');
-  expect(await next.first().getAttribute('title')).toBe('next gate');
-  expect(await prev.first().isDisabled()).toBe(false);
-  expect(await centerDrift(page)).toBeLessThanOrEqual(2);
-
-  await next.first().click();
-  await page.waitForTimeout(120);
-  expect(await centerDrift(page)).toBeLessThanOrEqual(2);
-
-  await page.context().close();
-}, 30_000);
-
-test("the review sheet nav centers its pips+count too, with the previous control genuinely disabled at the queue's true first gate", async () => {
-  const ctx = await browser.newContext({ viewport: ROOMY });
-  await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
-    route.abort()
-  );
-  const page = await ctx.newPage();
-  await page.goto(`${BASE}/?member=all`);
-  await page.waitForSelector('.tui-row');
-  await page.click('.tui-dq-open');
-  await page.waitForSelector('.tui-review-sheet');
-
-  const prev = page.locator('[aria-label="previous gate"]');
-  expect(await prev.first().isDisabled()).toBe(true);
-  await page.context().close();
-}, 30_000);
-
-/** Walks every gate in the queue (modal and sheet both) via "next gate",
-    from a fresh session, recording each one's bottom edge against the
-    viewport and, for modal-backed gates, the footer's own geometry. Exists
-    because expectPaneLaw/expectNavOnScreen only ever see the ONE gate
-    their caller navigated to -- the regression this guards (the raised
-    ceiling pushing a modal off the bottom) showed up on gates those
-    per-gate helpers never visited. */
-async function walkEveryGate(viewport: {
-  width: number;
-  height: number;
-}): Promise<
-  Array<{
-    kind: 'modal' | 'sheet';
-    bottom: number;
-    footerBottom: number | null;
-    footerHeight: number | null;
-  }>
-> {
-  const ctx = await browser.newContext({ viewport });
-  await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
-    route.abort()
-  );
-  const page = await ctx.newPage();
-  await page.goto(`${BASE}/?member=all`);
-  await page.waitForSelector('.tui-row');
-  await page.click('.tui-dq-open');
-  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
-
-  const results: Array<{
-    kind: 'modal' | 'sheet';
-    bottom: number;
-    footerBottom: number | null;
-    footerHeight: number | null;
-  }> = [];
-  for (let i = 0; i < 8; i++) {
-    if (await page.locator('.tui-triage-done').count()) break;
-    const m = await page.evaluate(() => {
-      const { document } = globalThis as unknown as PageGlobals;
-      const modal = document.querySelector('.tui-triage-modal');
-      const footer = document.querySelector('.tui-triage-footer');
-      const sheet = document.querySelector('.tui-review-sheet');
-      const el = modal ?? sheet;
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      const fr = footer ? footer.getBoundingClientRect() : null;
-      return {
-        kind: modal ? ('modal' as const) : ('sheet' as const),
-        bottom: r.bottom,
-        footerBottom: fr ? fr.bottom : null,
-        footerHeight: fr ? fr.height : null,
-      };
-    });
-    if (m) results.push(m);
-    const next = page.getByRole('button', { name: 'next gate' });
-    if (!(await next.count())) break;
-    await next.click();
-    await page.waitForTimeout(150);
-  }
-  await page.context().close();
-  return results;
-}
-
-test('every actionable gate stays on screen at 1440x900 and 1000x812', async () => {
+test('every gate fills the window, never scrolls, and keeps its forward control on screen', async () => {
   for (const viewport of [LAPTOP, SHORT]) {
-    const results = await walkEveryGate(viewport);
-    expect(results.length).toBeGreaterThan(0);
-    for (const m of results) {
-      expect(m.bottom).toBeLessThanOrEqual(viewport.height + 0.5);
-      if (m.footerBottom !== null) {
-        expect(m.footerBottom).toBeLessThanOrEqual(viewport.height + 0.5);
-      }
+    const page = await openQueue(viewport);
+    const kinds = new Set<string>();
+    for (let i = 0; i < 8; i++) {
+      if (await page.locator('.tui-triage-done').count()) break;
+      const m = await measure(page);
+      kinds.add(m.kind);
+      expectSheetLaw(m, viewport);
+      await page.getByRole('button', { name: 'next gate' }).click();
+      await page.waitForTimeout(150);
     }
-    // The footer's own height stays constant across every modal-backed
-    // gate the walk visited, regardless of that gate's content.
-    const footerHeights = results
-      .map(m => m.footerHeight)
-      .filter((h): h is number => h !== null);
-    for (const h of footerHeights) {
-      expect(Math.abs(h - footerHeights[0]!)).toBeLessThanOrEqual(0.5);
-    }
+    expect([...kinds].sort()).toEqual(['review', 'triage']);
+    await page.context().close();
   }
 }, 60_000);
 
-test('short: the review sheet keeps its verdict and submit on screen', async () => {
-  const ctx = await browser.newContext({ viewport: SHORT });
-  await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
-    route.abort()
-  );
-  const page = await ctx.newPage();
-  await page.goto(`${BASE}/?member=all`);
-  await page.waitForSelector('.tui-row');
-  await page.click('.tui-dq-open');
-  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
-  const sheet = page.locator('.tui-review-sheet');
-  for (let i = 0; i < 10 && !(await sheet.count()); i++) {
-    await page.getByRole('button', { name: 'next gate' }).click();
-    await page.waitForTimeout(120);
-  }
-  await sheet.waitFor();
-  const submit = (await page.locator('.tui-review-submit').boundingBox())!;
-  expect(submit.y + submit.height).toBeLessThanOrEqual(SHORT.height);
-  await page.context().close();
-}, 30_000);
-
-test('below the breakpoint: the thread card keeps every choice visible over showing its full reply box', async () => {
-  const page = await openDecisionQueueAtThreadGate(LAPTOP);
+test('laptop: a respond thread gate shows its whole drafted reply and every choice, no scroll', async () => {
+  const page = await openQueue(LAPTOP);
+  await nextUntil(page, '.tui-thread-card');
   const m = await measure(page);
-  expect(m.choicesVisible.length).toBeGreaterThan(0);
-  expect(m.choicesVisible.every(visible => visible)).toBe(true);
-  expect(m.replyBoxVisibleInCard).toBe(false);
-  expectNavOnScreen(m, LAPTOP.height);
-  await page.context().close();
-}, 30_000);
-
-test('above the breakpoint: the thread card shows its full reply box and every choice stays visible', async () => {
-  const page = await openDecisionQueueAtThreadGate(TALL_LAPTOP);
-  const m = await measure(page);
-  expect(m.choicesVisible.length).toBeGreaterThan(0);
-  expect(m.choicesVisible.every(visible => visible)).toBe(true);
   expect(m.replyBoxVisibleInCard).toBe(true);
-  expectNavOnScreen(m, TALL_LAPTOP.height);
+  expect(m.choicesVisible.length).toBeGreaterThan(0);
+  expect(m.choicesVisible.every(Boolean)).toBe(true);
+  expect(m.itemsScrolls).toBe(false);
+  expectSheetLaw(m, LAPTOP);
   await page.context().close();
 }, 30_000);
 
-test('the breakpoint transition is not itself a cut-choice zone', async () => {
-  const below = await openDecisionQueueAtThreadGate(JUST_BELOW_BREAKPOINT);
-  const mBelow = await measure(below);
-  expect(mBelow.choicesVisible.every(visible => visible)).toBe(true);
-  expect(mBelow.replyBoxVisibleInCard).toBe(false);
-  await below.context().close();
+test('very short: the question area scrolls as the fallback, the step nav stays on screen', async () => {
+  const page = await openQueue(VERY_SHORT);
+  await nextUntil(page, '.tui-triage-sheet [data-part="scrollpane-body"] p');
+  const m = await measure(page);
+  expectSheetLaw(m, VERY_SHORT);
+  // The pane is reference material and yields first: if the question area
+  // had to scroll, the pane is already at its floor.
+  if (m.itemsScrolls) {
+    expect(m.paneRootHeight).toBeLessThanOrEqual(m.paneFloorPx + 1);
+  }
+  await page.context().close();
+}, 30_000);
 
-  const above = await openDecisionQueueAtThreadGate(JUST_ABOVE_BREAKPOINT);
-  const mAbove = await measure(above);
-  expect(mAbove.choicesVisible.every(visible => visible)).toBe(true);
-  expect(mAbove.replyBoxVisibleInCard).toBe(true);
-  await above.context().close();
+test('the head is one row: title, focus pane, queue nav and close share a line -- no skip chip', async () => {
+  const page = await openQueue(LAPTOP);
+  for (let pass = 0; pass < 2; pass++) {
+    const middle = async (selector: string) => {
+      const box = (await page.locator(selector).first().boundingBox())!;
+      return box.y + box.height / 2;
+    };
+    const title = await middle('.tui-gate-sheet-title');
+    for (const selector of [
+      '.tui-gate-sheet-actions button:has-text("focus pane")',
+      '.tui-gate-queue-pos',
+      '.tui-gate-sheet-close',
+    ])
+      expect(Math.abs((await middle(selector)) - title)).toBeLessThanOrEqual(4);
+    expect(
+      await page
+        .locator('.tui-gate-sheet-head button:has-text("skip gate")')
+        .count()
+    ).toBe(0);
+    // Once on the review sheet (gate 1), once on a triage gate.
+    await nextUntil(page, '.tui-triage-sheet');
+  }
+  await page.context().close();
+}, 30_000);
+
+test('queue nav: previous is disabled at the first gate and walks back from the next', async () => {
+  const page = await openQueue(LAPTOP);
+  const prev = page.locator('[aria-label="previous gate"]');
+  const pos = page.locator('.tui-gate-queue-pos');
+  expect(await prev.isDisabled()).toBe(true);
+  expect(await pos.textContent()).toMatch(/^gate 1 of \d+$/);
+  await page.getByRole('button', { name: 'next gate' }).click();
+  await page.waitForTimeout(150);
+  expect(await pos.textContent()).toMatch(/^gate 2 of \d+$/);
+  expect(await prev.isDisabled()).toBe(false);
+  await prev.click();
+  await page.waitForTimeout(150);
+  expect(await pos.textContent()).toMatch(/^gate 1 of \d+$/);
+  await page.context().close();
 }, 30_000);

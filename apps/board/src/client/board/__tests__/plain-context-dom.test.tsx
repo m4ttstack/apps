@@ -80,7 +80,7 @@ async function renderModal(row: GateRow) {
 const $ = (selector: string) => document.body.querySelector(selector);
 
 const paneText = () =>
-  $('.tui-triage-modal [data-part="scrollpane-body"]')?.textContent ?? '';
+  $('.tui-triage-sheet [data-part="scrollpane-body"]')?.textContent ?? '';
 
 test('section markers render verbatim in the pane: nothing is lifted onto a question', async () => {
   await renderModal(

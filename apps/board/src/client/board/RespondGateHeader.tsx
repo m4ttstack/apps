@@ -4,6 +4,7 @@ import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview } from '../types.ts';
 import { ago, cleanTitle } from './format.ts';
 import type { PlanCtx, PostCtx } from './gate-ctx.ts';
+import { MrLinks } from './MrLinks.tsx';
 
 export interface HeaderChip {
   key: string;
@@ -108,6 +109,7 @@ export function RespondGateHeader({
           </p>
           <p className="tui-respond-meta">{meta.join(' · ')}</p>
         </div>
+        {mr && <MrLinks mr={mr} />}
       </div>
       <div className="tui-respond-chips">
         {headerChips(ctx).map(chip => (

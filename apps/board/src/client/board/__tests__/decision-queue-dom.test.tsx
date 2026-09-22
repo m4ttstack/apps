@@ -599,7 +599,7 @@ test('the queue counts gates on rows an author filter hides, visible rows first'
     );
     expect(dialog?.textContent).toContain('second mr title');
     expect(
-      dialog?.querySelector('.tui-triage-pos')?.getAttribute('title')
+      dialog?.querySelector('.tui-gate-queue-pos')?.getAttribute('title')
     ).toMatch(/next:\s*!1/);
     expect(dialog?.textContent).toContain('gate 1 of 2');
   } finally {

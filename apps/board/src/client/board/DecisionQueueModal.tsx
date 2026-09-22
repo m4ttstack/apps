@@ -1,9 +1,8 @@
 import { useEffect, useMemo } from 'react';
 
 import type { GateDomain } from '@mattstack/gate-kit';
-import { Button, Chip, Markdown, Modal, ScrollPane } from '@mattstack/tui-kit';
+import { Button, Chip, Markdown, ScrollPane } from '@mattstack/tui-kit';
 import type { GateRow } from '../../gates/store.ts';
-import { extractTicketId, ticketUrl } from '../../ticket.ts';
 import type { BoardMRWithReview, ExecutorState } from '../types.ts';
 import { AttentionCard } from './AttentionCard.tsx';
 import { ago, cleanTitle } from './format.ts';
@@ -14,6 +13,8 @@ import {
   useGateForm,
   type GateFormState,
 } from './GateForm.tsx';
+import { GateSheet, type GateSheetQueue } from './GateSheet.tsx';
+import { MrLinks } from './MrLinks.tsx';
 import { RespondGateHeader } from './RespondGateHeader.tsx';
 import { isReviewSheetGate, paneContext } from './review-gate.ts';
 import { ReviewGateSheet } from './ReviewGateSheet.tsx';
@@ -94,18 +95,12 @@ function GateStateChips({ gate }: { gate: GateRow }) {
   );
 }
 
-/** The queue-hosted face of one gate: `GateForm` inside the kit Modal, with
-    queue chrome around it -- the only place a gate's form actually mounts,
-    since a row now shows a chip that opens this modal rather than the form
-    itself. Actions keep their scope: gate-level (focus pane) rides the head
-    row beside close, with room to spare now that it's the head's only
-    action; the footer is queue-scope nav (previous gate, pips, gate count,
-    next gate -- next carries the old skip-gate chip's semantics: mark
-    skipped, advance); step-level (previous / reset / next / submit) stay
-    with `GateForm`'s own body, in scope with the questions they act on. The
-    host owns the queue itself (which gates join, the order, advancing on
-    answer, skip, or back); this component renders exactly one active gate
-    of it. */
+/** The queue-hosted face of one gate, the only place a gate's form mounts.
+    Every face renders in the full-screen `GateSheet`; a review-post gate
+    routes to `ReviewGateSheet`, everything else to `GateForm` below.
+    Gate-level actions (focus pane) ride the head, queue nav (previous gate,
+    pips, count, next gate) sits in the head's right, and step-level nav
+    stays with `GateForm`'s own body. The host owns the queue itself. */
 function DecisionQueueModal({
   gate,
   mr,
@@ -164,19 +159,22 @@ function DecisionQueueModal({
   // `actionable` also keeps a stuck/unassigned-delivery review-post gate on
   // DeliveryStatusCard: the sheet has no face for retrying a stored answer,
   // only for building a fresh one.
+  const queue: GateSheetQueue = {
+    index: position - 1,
+    total: states.length,
+    states,
+    onPrev: onBack,
+    onNext: onSkip,
+    nextPeek,
+  };
+
   if (isReviewSheet && actionable) {
     return (
       <ReviewGateSheet
         gate={gate}
         mr={mr}
         form={form}
-        queue={{
-          index: position - 1,
-          total: states.length,
-          states,
-          onPrev: onBack,
-          onNext: onSkip,
-        }}
+        queue={queue}
         onClose={onClose}
         onFocusPane={onFocusPane}
       />
@@ -184,237 +182,188 @@ function DecisionQueueModal({
   }
 
   return (
-    <Modal
-      className="tui-triage-modal"
-      overlayClassName="tui-triage-overlay"
-      title={
+    <GateSheet
+      variant="triage"
+      ariaLabel="decision queue"
+      queue={queue}
+      tag={gate.label}
+      onClose={onClose}
+      actions={
         <>
-          <span className="tui-triage-title">decision queue</span>
-          <span className="tui-triage-head-actions">
-            {/* A parked gate has no pane: the board closed it on park, and the
+          {/* A parked gate has no pane: the board closed it on park, and the
                 recorded answer is what brings it back (resumeParkedGate). The
                 button stays so the head never rearranges, disabled with the
                 reason, as it is when the reconciler reports the pane gone. */}
-            {gate.status === 'parked' ? (
-              <Button
-                type="button"
-                variant="light"
-                intent="accent"
-                size="sm"
-                disabled
-                title="parked: answering this gate resumes its pane"
-              >
-                focus pane
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="light"
-                intent="accent"
-                size="sm"
-                disabled={!form.originFocusable || form.focusBusy || paneGone}
-                title={
-                  paneGone
-                    ? 'pane is gone'
-                    : form.originFocusable
-                      ? 'jump into the pane behind this gate'
-                      : 'no origin on this gate'
-                }
-                onClick={() => void form.focusGate()}
-              >
-                focus pane
-              </Button>
-            )}
-            {headerCtx && <GateStateChips gate={gate} />}
-          </span>
+          {gate.status === 'parked' ? (
+            <Button
+              type="button"
+              variant="light"
+              intent="accent"
+              size="sm"
+              disabled
+              title="parked: answering this gate resumes its pane"
+            >
+              focus pane
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="light"
+              intent="accent"
+              size="sm"
+              disabled={!form.originFocusable || form.focusBusy || paneGone}
+              title={
+                paneGone
+                  ? 'pane is gone'
+                  : form.originFocusable
+                    ? 'jump into the pane behind this gate'
+                    : 'no origin on this gate'
+              }
+              onClick={() => void form.focusGate()}
+            >
+              focus pane
+            </Button>
+          )}
+          {headerCtx && <GateStateChips gate={gate} />}
         </>
       }
-      ariaLabel="decision queue"
-      onClose={onClose}
-      closeGlyph="✕"
     >
-      {headerCtx ? (
-        <RespondGateHeader gate={gate} mr={mr} ctx={headerCtx} />
-      ) : (
-        <div className="tui-triage-strip">
-          <div className="tui-triage-row-1">
-            {mr ? (
-              <>
-                <span className="tui-title">{cleanTitle(mr.title)}</span>
-                {mr.sourceBranch &&
-                  extractTicketId(mr.sourceBranch, mr.title) && (
-                    <a
-                      className="tui-ticket"
-                      href={ticketUrl(
-                        extractTicketId(mr.sourceBranch, mr.title)!
-                      )}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={`open ${extractTicketId(mr.sourceBranch, mr.title)} in Linear`}
-                    >
-                      {extractTicketId(mr.sourceBranch, mr.title)}
-                    </a>
+      <div className="tui-triage-sheet-body">
+        {headerCtx ? (
+          <RespondGateHeader gate={gate} mr={mr} ctx={headerCtx} />
+        ) : (
+          <div className="tui-triage-strip">
+            <div className="tui-triage-row-1">
+              {mr ? (
+                <>
+                  <span className="tui-title">{cleanTitle(mr.title)}</span>
+                </>
+              ) : (
+                <span className="tui-title">{gate.label}</span>
+              )}
+              <GateStateChips gate={gate} />
+              {mr && <MrLinks mr={mr} />}
+            </div>
+            <div className="tui-row-2">
+              {mr ? (
+                <>
+                  {mr.author && (
+                    <span className="tui-author-tag">
+                      {mr.author.name || mr.author.username}
+                    </span>
                   )}
-                <span className="tui-triage-kind">{gate.label}</span>
-              </>
-            ) : (
-              <span className="tui-title">{gate.label}</span>
-            )}
-            <GateStateChips gate={gate} />
-          </div>
-          <div className="tui-row-2">
-            {mr ? (
-              <>
-                {mr.author && (
-                  <span className="tui-author-tag">
-                    {mr.author.name || mr.author.username}
-                  </span>
-                )}
-                <span className="tui-mr-iid">!{mr.iid}</span>
-                <span className="tui-row-sep">|</span>
-                {mr.sourceBranch && (
-                  <span className="tui-branch">{mr.sourceBranch}</span>
-                )}
-              </>
-            ) : (
-              <span className="tui-subject">{gate.subject}</span>
-            )}
-            <span className="tui-row-sep">·</span>
-            <span>
-              {ago(new Date(gate.openedAt).toISOString(), Date.now())}
-            </span>
-            {gate.origin && (
-              // Panes pass the worktree as a full path; the strip shows only
-              // its basename (the full value stays on hover).
-              <span title={gate.origin.worktree}>
-                {[
-                  gate.origin.worktree?.split('/').filter(Boolean).pop(),
-                  gate.origin.paneId,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
+                  <span className="tui-mr-iid">!{mr.iid}</span>
+                  <span className="tui-row-sep">|</span>
+                  {mr.sourceBranch && (
+                    <span className="tui-branch">{mr.sourceBranch}</span>
+                  )}
+                </>
+              ) : (
+                <span className="tui-subject">{gate.subject}</span>
+              )}
+              <span className="tui-row-sep">·</span>
+              <span>
+                {ago(new Date(gate.openedAt).toISOString(), Date.now())}
               </span>
-            )}
+              {gate.origin && (
+                // Panes pass the worktree as a full path; the strip shows only
+                // its basename (the full value stays on hover).
+                <span title={gate.origin.worktree}>
+                  {[
+                    gate.origin.worktree?.split('/').filter(Boolean).pop(),
+                    gate.origin.paneId,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      {(() => {
-        const face =
-          deliveryStuck || executionUnassigned ? (
-            <DeliveryStatusCard
-              kind={deliveryStuck ? 'stuck' : 'unassigned'}
-              gate={gate}
-              form={form}
-            />
-          ) : answered || !actionable ? (
-            <AnsweredChip
-              row={{
-                subject: gate.subject,
-                kind: gate.kind,
-                status: gate.status,
-                questions: gate.questions,
-                answer: gate.answers
-                  ? {
-                      answers: gate.answers,
-                      by: gate.answeredBy,
-                      answeredAt: gate.answeredAt,
-                    }
-                  : null,
-              }}
-            />
-          ) : form.lost ? (
-            <>
-              <div className="tui-gate-error">answered elsewhere</div>
+        )}
+        {(() => {
+          const face =
+            deliveryStuck || executionUnassigned ? (
+              <DeliveryStatusCard
+                kind={deliveryStuck ? 'stuck' : 'unassigned'}
+                gate={gate}
+                form={form}
+              />
+            ) : answered || !actionable ? (
               <AnsweredChip
-                startOpen
                 row={{
                   subject: gate.subject,
                   kind: gate.kind,
-                  status: 'answered',
+                  status: gate.status,
                   questions: gate.questions,
-                  answer: { answers: form.lost.answers, by: form.lost.by },
+                  answer: gate.answers
+                    ? {
+                        answers: gate.answers,
+                        by: gate.answeredBy,
+                        answeredAt: gate.answeredAt,
+                      }
+                    : null,
                 }}
               />
-              <Button
-                type="button"
-                variant="filled"
-                intent="accent"
-                size="lg"
-                onClick={onContinue}
-              >
-                continue
-              </Button>
-            </>
-          ) : gate.kind === 'pane-attention' ? (
-            <AttentionCard
-              gate={gate}
-              form={form}
-              mr={mr}
-              onFocusPane={onFocusPane}
-            />
-          ) : (
-            <GateForm
-              gate={gate}
-              mr={mr}
-              form={form}
-              onFocusPane={onFocusPane}
-              showFocusAction={false}
-              showContextFallback={false}
-            />
+            ) : form.lost ? (
+              <>
+                <div className="tui-gate-error">answered elsewhere</div>
+                <AnsweredChip
+                  startOpen
+                  row={{
+                    subject: gate.subject,
+                    kind: gate.kind,
+                    status: 'answered',
+                    questions: gate.questions,
+                    answer: { answers: form.lost.answers, by: form.lost.by },
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="filled"
+                  intent="accent"
+                  size="lg"
+                  onClick={onContinue}
+                >
+                  continue
+                </Button>
+              </>
+            ) : gate.kind === 'pane-attention' ? (
+              <AttentionCard
+                gate={gate}
+                form={form}
+                mr={mr}
+                onFocusPane={onFocusPane}
+              />
+            ) : (
+              <GateForm
+                gate={gate}
+                mr={mr}
+                form={form}
+                onFocusPane={onFocusPane}
+                showFocusAction={false}
+                showContextFallback={false}
+              />
+            );
+          // The modal exists to give context room: unlike the row card's
+          // collapsed disclosure, context renders open, above the form.
+          return (
+            <div
+              className="tui-triage-body"
+              data-respond={headerCtx ? 'true' : undefined}
+            >
+              {proseContext && (
+                <ScrollPane title="Decision context" maxHeight="46vh">
+                  <Markdown unstyled linkTargetBlank>
+                    {proseContext}
+                  </Markdown>
+                </ScrollPane>
+              )}
+              <div className="tui-triage-form-col">{face}</div>
+            </div>
           );
-        // The modal exists to give context room: unlike the row card's
-        // collapsed disclosure, context renders open, above the form.
-        return (
-          <div
-            className="tui-triage-body"
-            data-respond={headerCtx ? 'true' : undefined}
-          >
-            {proseContext && (
-              <ScrollPane title="Decision context" maxHeight="46vh">
-                <Markdown unstyled linkTargetBlank>
-                  {proseContext}
-                </Markdown>
-              </ScrollPane>
-            )}
-            <div className="tui-triage-form-col">{face}</div>
-          </div>
-        );
-      })()}
-      <div className="tui-triage-footer">
-        <button
-          type="button"
-          className="tui-triage-queue-nav"
-          onClick={onBack}
-          disabled={position <= 1}
-          title="previous gate"
-          aria-label="previous gate"
-        >
-          ‹
-        </button>
-        <span className="tui-triage-where">
-          <span className="tui-triage-pips">
-            {states.map((state, i) => (
-              <i key={i} className="tui-triage-pip" data-state={state} />
-            ))}
-          </span>
-          <span
-            className="tui-triage-pos"
-            title={nextPeek ? `next: ${nextPeek}` : undefined}
-          >
-            gate {position} of {states.length}
-          </span>
-        </span>
-        <button
-          type="button"
-          className="tui-triage-queue-nav"
-          onClick={onSkip}
-          title="next gate"
-          aria-label="next gate"
-        >
-          ›
-        </button>
+        })()}
       </div>
-    </Modal>
+    </GateSheet>
   );
 }
 
@@ -429,31 +378,32 @@ function DecisionQueueComplete({
   onClose: () => void;
 }) {
   return (
-    <Modal
-      className="tui-triage-modal"
-      overlayClassName="tui-triage-overlay"
-      title="decision queue"
+    <GateSheet
+      variant="triage"
       ariaLabel="decision queue complete"
       onClose={onClose}
-      closeGlyph="✕"
     >
-      <div className="tui-triage-done">
-        <span className="tui-triage-done-line">no gates left in the queue</span>
-        <span className="tui-triage-done-counts">
-          {answered} answered{skipped > 0 && ` · ${skipped} skipped`}
-        </span>
-        <Button
-          type="button"
-          className="tui-triage-done-action"
-          variant="filled"
-          intent="accent"
-          size="lg"
-          onClick={onClose}
-        >
-          done
-        </Button>
+      <div className="tui-triage-sheet-body">
+        <div className="tui-triage-done">
+          <span className="tui-triage-done-line">
+            no gates left in the queue
+          </span>
+          <span className="tui-triage-done-counts">
+            {answered} answered{skipped > 0 && ` · ${skipped} skipped`}
+          </span>
+          <Button
+            type="button"
+            className="tui-triage-done-action"
+            variant="filled"
+            intent="accent"
+            size="lg"
+            onClick={onClose}
+          >
+            done
+          </Button>
+        </div>
       </div>
-    </Modal>
+    </GateSheet>
   );
 }
 
