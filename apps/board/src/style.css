@@ -1997,38 +1997,26 @@ body {
    the fieldset's min-content default, which otherwise refuses to shrink.
    The primitive hides every non-active item with the `hidden` attribute,
    and an author `display` rule beats the UA [hidden] rule, hence the
-   explicit override. The fieldset itself still correctly receives a
-   flex-shrunk height from `.tui-gate-items`; it just cannot pass that
-   height down to ITS OWN children (see `GateQuestionCard` in GateForm.tsx
-   for why), which is what `.tui-gate-question-body` works around. */
+   explicit override. Its context (prose or a thread card, see
+   `.tui-gate-question-context` / `.tui-thread-card`) carries its own
+   viewport-relative cap and scrolls internally past it; the head, the
+   choices, the note and the error line are what the reviewer acts on, so
+   `flex-shrink: 0` on each of those keeps them at natural size. The card
+   is not itself shrunk by `.tui-gate-items`: its natural (now-bounded)
+   height is what `.tui-gate-items` scrolls past when it does not fit. */
 .tui-gate-question {
-  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
+  gap: var(--gate-gap-inner);
   border: 1px solid var(--border);
   border-radius: var(--gate-radius-card);
   background: var(--card);
   margin: 0;
   padding: var(--gate-pad-card);
   min-inline-size: 0;
-  min-height: 0;
 }
 .tui-gate-question[hidden] {
   display: none;
-}
-/* The actual flex column that distributes space one level down from
-   `.tui-gate-items`: `GateQuestionCard` syncs this div's `height` to the
-   fieldset's own (a ResizeObserver on the fieldset), a real CSS value its
-   own children can flex-shrink against. Its context (prose or a thread
-   card, see `.tui-gate-question-context` / `.tui-thread-card`) is what
-   shrinks and scrolls internally; the head, the choices, the note and the
-   error line are what the reviewer acts on, so `flex-shrink: 0` on each of
-   those keeps them at natural size regardless of how little room is left. */
-.tui-gate-question-body {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gate-gap-inner);
 }
 /* Bleeds through the card padding to the frame, a shade under the ground,
    sealed with a soft rule. */
@@ -2063,18 +2051,11 @@ body {
   max-width: 36rem;
   min-height: 0;
 }
-/* A flex column, not just a scroll box: only the active question ever has
-   layout (every other one is `[hidden]`), and it has to be a flex ITEM of
-   something for its own internal flex column (see `.tui-gate-question`) to
-   receive a real height to shrink against, rather than rendering at its
-   natural size and leaving everything to this scroll as a backstop. */
 .tui-gate-items {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
-  display: flex;
-  flex-direction: column;
 }
 .tui-gate-progress {
   flex-shrink: 0;
@@ -2230,13 +2211,10 @@ body {
 /* A question's own `context` field, rendered with its card above its
    choices. It is the material the choice is made on, so it reads in ink.
    The choices below it never shrink (`.tui-gate-choices`'s `flex-shrink:
-   0`), so this is the one flexible child of `.tui-gate-question`'s own flex
-   column: it gives up height before the choices do, down to a floor, and
-   scrolls internally past that rather than pushing the choices out of the
-   question card's own box. */
+   0`), so a viewport-relative cap keeps this from pushing them out of the
+   question card's own box, scrolling internally past the cap instead. */
 .tui-gate-question-context {
-  flex: 0 1 auto;
-  min-height: 4rem;
+  max-height: 12vh;
   overflow-y: auto;
   scrollbar-width: thin;
   font-size: var(--gate-font-meta);
@@ -2295,14 +2273,14 @@ body {
   text-transform: none;
   color: var(--text-2);
 }
-/* The whole card is the one flexible child of `.tui-gate-question`'s flex
-   column, same role as `.tui-gate-question-context`: the claim, points,
-   verdict and reply box inside it keep their own natural size (nothing
-   further shrinks), and the card scrolls as a unit once it hits its floor,
-   rather than the choices below it losing any ground. */
+/* Same role as `.tui-gate-question-context`, for a structured thread's
+   claim / points / verdict / reply instead of plain prose: the claim,
+   points, verdict and reply box inside it keep their own natural size
+   (nothing further shrinks), and the whole card scrolls as a unit once it
+   hits its own viewport-relative cap, rather than the choices below it
+   losing any ground. */
 .tui-thread-card {
-  flex: 0 1 auto;
-  min-height: 4rem;
+  max-height: 12vh;
   overflow-y: auto;
   scrollbar-width: thin;
   display: flex;
