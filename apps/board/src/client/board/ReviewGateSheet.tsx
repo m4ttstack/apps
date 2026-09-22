@@ -619,11 +619,11 @@ function ReviewGateSheet({
                 </div>
 
                 {checks.length > 0 && (
-                  <div className="tui-review-checks-card">
-                    <span className="tui-review-checks-title">checks</span>
-                    <div className="tui-review-checks-list">
+                  <div className="tui-sheet-card">
+                    <span className="tui-sheet-card-title">checks</span>
+                    <div className="tui-sheet-card-list">
                       {checks.map((c, i) => (
-                        <div className="tui-review-check-row" key={i}>
+                        <div className="tui-sheet-card-row" key={i}>
                           <Chip
                             intent={
                               c.tag === 'FAIL'
@@ -634,13 +634,11 @@ function ReviewGateSheet({
                             }
                             variant="outline"
                             uppercase
-                            className="tui-review-check-chip"
+                            className="tui-sheet-card-chip"
                           >
                             {c.tag}
                           </Chip>
-                          <span className="tui-review-check-text">
-                            {c.text}
-                          </span>
+                          <span className="tui-sheet-card-text">{c.text}</span>
                         </div>
                       ))}
                     </div>

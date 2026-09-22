@@ -1,9 +1,10 @@
 /** An open gate whose gate-level context parses as plan@1 or post@1 opens
-    the two-column respond sheet: the MR card and every thread in the main
-    column, the reviewer and the chips in the rail's decision context, the
-    parked and escalated chips on the head's action strip, and neither the
-    MR strip nor the "Decision context" pane. Prose and malformed contexts
-    keep today's strip and pane. */
+    the two-column respond sheet: the header card (reviewer, MR object line,
+    chips, links) and every thread in the main column, what the submit will
+    do and the MR's status in the rail, the parked and escalated chips on
+    the head's action strip, and neither the MR strip nor the "Decision
+    context" pane. Prose and malformed contexts keep today's strip and
+    pane. */
 
 import React from 'react';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
@@ -34,6 +35,10 @@ const MR = {
   targetBranch: 'main',
   createdAt: new Date(Date.now() - 86_400_000).toISOString(),
   author: { username: 'alex', name: 'Alex Doe' },
+  pipelineState: 'passed',
+  behindTarget: null,
+  blockers: { any: false, hasConflicts: false },
+  reviews: { isApproved: false, given: 0, required: 1 },
 } as unknown as BoardMRWithReview;
 
 const PLAN = JSON.stringify({
@@ -124,22 +129,28 @@ async function renderModal(row: GateRow, mr?: BoardMRWithReview) {
 
 const $ = (selector: string) => document.body.querySelector(selector);
 
-test('an open plan@1 gate opens the respond sheet: MR card and threads left, decision context right', async () => {
+test('an open plan@1 gate opens the respond sheet: header card and threads left, responses and MR status right', async () => {
   await renderModal(gate({}), MR);
   expect($('.tui-respond-sheet')).not.toBeNull();
-  const lead = $('.tui-sheet-rail .tui-sheet-context-lead')!;
-  expect(lead.textContent).toBe("Responding to renee's review");
-  expect(lead.querySelector('strong')!.textContent).toBe('renee');
-  const card = $('.tui-sheet-main .tui-mr-card')!;
-  expect(card.querySelector('.tui-mr-card-title')!.textContent).toContain(
+  const head = $('.tui-sheet-main .tui-respond-head[data-shape="plan@1"]')!;
+  expect(head.querySelector('.tui-respond-headline')!.textContent).toBe(
+    "Responding to renee's review"
+  );
+  expect(head.querySelector('.tui-respond-headline strong')!.textContent).toBe(
+    'renee'
+  );
+  expect(head.querySelector('.tui-respond-object-ref')!.textContent).toBe(
+    '!87'
+  );
+  expect(head.querySelector('.tui-respond-object')!.textContent).toContain(
     'add retry to the fetch queue'
   );
-  expect(card.querySelector('.tui-mr-card-author')!.textContent).toBe(
-    'Alex Doe'
-  );
-  expect(card.querySelector('.tui-mr-card-meta')!.textContent).toContain(
-    'feature/demo-12-retry'
-  );
+  const meta = head.querySelector('.tui-respond-meta')!.textContent!;
+  expect(meta).toContain('feature/demo-12-retry');
+  expect(meta).toContain('Alex Doe');
+  expect($('.tui-sheet-rail [data-card="responses"]')).not.toBeNull();
+  expect($('.tui-sheet-rail [data-card="mr-status"]')).not.toBeNull();
+  expect($('.tui-mr-card')).toBeNull();
   expect(
     document.body.querySelectorAll(
       '.tui-sheet-main .tui-respond-list > .tui-gate-question'
@@ -200,7 +211,7 @@ test('the chips row renders the derived chips in order', async () => {
 test('a post@1 gate heads with "Posting replies to"', async () => {
   await renderModal(gate({ kind: 'respond-post', context: POST }), MR);
   expect($('.tui-respond-sheet')).not.toBeNull();
-  expect($('.tui-sheet-context-lead')!.textContent).toBe(
+  expect($('.tui-respond-headline')!.textContent).toBe(
     "Posting replies to renee's review"
   );
 });
@@ -280,13 +291,13 @@ const linkLabels = () =>
     a.getAttribute('href'),
   ]);
 
-test('the MR card links the MR on its forge and its ticket on Linear', async () => {
+test('the header card links the MR on its forge and its ticket on Linear', async () => {
   const mr = {
     ...MR,
     webUrl: 'https://gitlab.example.com/demo/app/-/merge_requests/87',
   } as BoardMRWithReview;
   await renderModal(gate({}), mr);
-  expect($('.tui-mr-card .tui-mr-links')).not.toBeNull();
+  expect($('.tui-respond-head .tui-mr-links')).not.toBeNull();
   expect(linkLabels()).toEqual([
     [
       'open !87 in GitLab',

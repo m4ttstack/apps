@@ -3834,6 +3834,25 @@ body {
   max-height: none;
   overflow: visible;
 }
+/* The rail's secondary action: sending the plan back is rarer and heavier
+   than submitting it, so it reads as a link under the primary button. */
+.tui-sheet-revise {
+  align-self: center;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--gate-font-meta);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.tui-sheet-revise:hover {
+  color: var(--text-accent-small);
+  text-decoration: underline;
+}
+.tui-sheet-revise-reason {
+  min-height: 88px;
+  resize: vertical;
+}
 .tui-respond-replies,
 .tui-sheet-dock-question {
   display: flex;
@@ -4144,7 +4163,7 @@ body {
   flex-wrap: wrap;
   margin-top: 2px;
 }
-.tui-review-checks-card {
+.tui-sheet-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -4153,29 +4172,29 @@ body {
   border-radius: 10px;
   background: var(--card);
 }
-.tui-review-checks-title {
+.tui-sheet-card-title {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-4);
 }
-.tui-review-checks-list {
+.tui-sheet-card-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.tui-review-check-row {
+.tui-sheet-card-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
 }
-.tui-review-check-chip {
+.tui-sheet-card-chip {
   flex-shrink: 0;
   width: 46px;
   justify-content: center;
   text-align: center;
 }
-.tui-review-check-text {
+.tui-sheet-card-text {
   color: var(--text-1);
   font-size: var(--gate-font-meta);
   line-height: 1.4;

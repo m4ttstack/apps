@@ -1,8 +1,9 @@
 /** The respond sheet decides every thread at once and builds the wire
-    answer itself, so what it posts must match what the step form posted:
-    every thread's pick, code-changes only once a fix is picked (else the
-    gate's own sentinel), a trimmed note as `{ value, note }`, and a replies
-    gate's checklist plus its disposition. */
+    answer itself: every thread's pick, code-changes implied (`approve` with
+    any fix, else the gate's own sentinel), `revise` only from the send-back
+    action with its reason as the note, a trimmed thread note as
+    `{ value, note }`, and a replies gate's checklist plus its
+    disposition. */
 
 import React from 'react';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
@@ -30,6 +31,10 @@ const MR = {
   targetBranch: 'main',
   createdAt: new Date(Date.now() - 86_400_000).toISOString(),
   author: { username: 'alex', name: 'Alex Doe' },
+  pipelineState: 'passed',
+  behindTarget: null,
+  blockers: { any: false, hasConflicts: false },
+  reviews: { isApproved: false, given: 0, required: 1 },
 } as unknown as BoardMRWithReview;
 
 const thread = (summary: string) =>
@@ -229,15 +234,13 @@ test('with no fix picked, code-changes stays out of the rail and posts its senti
   });
 });
 
-test('a fix brings code-changes into the rail and holds submit until it is answered', async () => {
+test('a fix implies approve: no code-changes question, submit is live', async () => {
   await render(planGate());
   await pick('fix:t1');
   await pick('reply:t2');
-  expect($('.tui-sheet-dock-prompt')!.textContent).toBe(
-    'Approve the proposed code changes?'
-  );
-  expect(submit().disabled).toBe(true);
-  await pick('approve');
+  expect($('.tui-sheet-dock-question')).toBeNull();
+  expect($('input[value="approve"]')).toBeNull();
+  expect(submit().disabled).toBe(false);
   expect(submit().textContent).toBe('submit · 1 fix · 1 reply');
   await clickSubmit();
   expect(answer()).toEqual({
@@ -250,10 +253,9 @@ test('a fix brings code-changes into the rail and holds submit until it is answe
   });
 });
 
-test('a code-changes pick left over after the fix is withdrawn yields to the sentinel', async () => {
+test('withdrawing the only fix drops code-changes back to the sentinel', async () => {
   await render(planGate());
   await pick('fix:t1');
-  await pick('approve');
   await pick('reply:t1');
   await pick('reply:t2');
   await clickSubmit();
@@ -293,4 +295,61 @@ test('a replies gate posts its checklist and disposition', async () => {
     gateId: 'g-post',
     answers: { replies: ['r2'], disposition: 'resolve-addressed' },
   });
+});
+
+async function click(el: Element | null) {
+  if (!el) throw new Error('nothing to click');
+  await React.act(async () => {
+    (el as HTMLElement).click();
+  });
+}
+
+async function typeArea(label: string, text: string) {
+  const area = $(`textarea[aria-label="${label}"]`) as HTMLTextAreaElement;
+  await React.act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      'value'
+    )!.set!;
+    setter.call(area, text);
+    area.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+
+test('sending the plan back needs a reason and posts revise with it', async () => {
+  await render(planGate());
+  await pick('fix:t1');
+  await click($('.tui-sheet-revise'));
+  expect(submit().textContent).toBe('send back for revision');
+  expect(submit().disabled).toBe(true);
+  await typeArea(
+    'What should the new plan change?',
+    '  split the fix into its own MR  '
+  );
+  expect(submit().disabled).toBe(false);
+  await clickSubmit();
+  expect(answer()).toEqual({
+    gateId: 'g-plan',
+    answers: {
+      'thread-1': 'fix:t1',
+      'thread-2': 'reply:t2',
+      'code-changes': {
+        value: 'revise',
+        note: 'split the fix into its own MR',
+      },
+    },
+  });
+});
+
+test('cancel leaves send-back mode and restores the submit', async () => {
+  await render(planGate());
+  await click($('.tui-sheet-revise'));
+  await click($('.tui-sheet-reset'));
+  expect($('textarea')).toBeNull();
+  expect(submit().textContent).toBe('submit');
+});
+
+test('a replies gate offers no send-back action', async () => {
+  await render(postGate());
+  expect($('.tui-sheet-revise')).toBeNull();
 });

@@ -1,8 +1,11 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 import {
+  CODE_CHANGES_QUESTION_ID,
   effectiveSelections,
   gateAnswerPayload,
+  optionDisplayFor,
+  optionValue,
   type GateAnswers,
   type GateSelections,
 } from '@mattstack/gate-kit';
@@ -12,9 +15,8 @@ import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview } from '../types.ts';
 import { parseGateCtx, type PlanCtx, type PostCtx } from './gate-ctx.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
-import { MrCard } from './MrCard.tsx';
 import { ReplyChoiceBody, SeverityPill, ThreadCard } from './RespondCards.tsx';
-import { headerChips, subjectRef } from './RespondGateHeader.tsx';
+import { RespondGateHeader, subjectRef } from './RespondGateHeader.tsx';
 
 /** The wire answer from the sheet's own selections, built the way
     `answersFromForm` builds it from a form: only a displayed single-select
@@ -161,9 +163,174 @@ function ProseContext({
 
 const VERB_ORDER = ['fix', 'reply', 'skip'] as const;
 
-/** A respond gate in the full-screen sheet: the MR and every thread (or
-    reply) in the main column, each decided on its own card; the decision
-    context and the gate-level question dock in the rail with the submit. */
+const VERB_INTENT = {
+  fix: 'accent',
+  reply: 'ok',
+  skip: 'muted',
+} as const;
+
+/** A respond-plan answer that sends the plan back: every thread keeps its
+    pick (the recommended option where none was made; the domain skill
+    ignores thread picks on a revise, but the gate requires every one), and
+    code-changes carries `revise` with the operator's reason as its note. */
+function reviseAnswers(
+  gate: GateRow,
+  selections: GateSelections,
+  notes: Record<string, string>,
+  reason: string
+): { answers: GateAnswers } | null {
+  const sel: GateSelections = {};
+  for (const q of gate.questions) {
+    if (q.id === CODE_CHANGES_QUESTION_ID) continue;
+    const v = selections[q.id];
+    if (q.multi) sel[q.id] = Array.isArray(v) ? v : [];
+    else if (typeof v === 'string' && v) sel[q.id] = v;
+    else {
+      const fallback =
+        q.options.find(o => optionDisplayFor(o).recommended) ?? q.options[0];
+      if (fallback) sel[q.id] = optionValue(fallback);
+    }
+  }
+  sel[CODE_CHANGES_QUESTION_ID] = 'revise';
+  const payload = gateAnswerPayload(gate.questions, sel);
+  if (!payload) return null;
+  const answers: GateAnswers = {};
+  for (const [id, value] of Object.entries(payload.answers)) {
+    const note = (
+      id === CODE_CHANGES_QUESTION_ID ? reason : (notes[id] ?? '')
+    ).trim();
+    answers[id] = note ? { value, note } : value;
+  }
+  return { answers };
+}
+
+/** One line per thread (or reply) with what the submit will do with it,
+    filled in as picks are made. */
+function ResponsesCard({
+  mainQs,
+  form,
+}: {
+  mainQs: GateItemDisplay[];
+  form: GateFormState;
+}) {
+  const rows = mainQs.flatMap(q => {
+    const v = form.selections[q.name];
+    if (q.multiple) {
+      const picked = new Set(Array.isArray(v) ? v : []);
+      return q.choices.map(c => ({
+        key: `${q.name}:${c.value}`,
+        text: c.label,
+        chip: picked.has(c.value) ? 'post' : 'hold',
+        intent: picked.has(c.value) ? ('ok' as const) : ('muted' as const),
+      }));
+    }
+    const verb =
+      typeof v === 'string'
+        ? VERB_ORDER.find(verb => v.startsWith(`${verb}:`))
+        : undefined;
+    return [
+      {
+        key: q.name,
+        text: q.prompt,
+        chip: verb ?? '…',
+        intent: verb ? VERB_INTENT[verb] : ('muted' as const),
+      },
+    ];
+  });
+  return (
+    <div className="tui-sheet-card" data-card="responses">
+      <span className="tui-sheet-card-title">your responses</span>
+      <div className="tui-sheet-card-list">
+        {rows.map(r => (
+          <div className="tui-sheet-card-row" key={r.key}>
+            <Chip
+              intent={r.intent}
+              variant="outline"
+              uppercase
+              className="tui-sheet-card-chip"
+            >
+              {r.chip}
+            </Chip>
+            <span className="tui-sheet-card-text">{r.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The MR's merge blockers as the board row reads them, so the rail and the
+    row's status pill never disagree. */
+function MrStatusCard({ mr }: { mr: BoardMRWithReview }) {
+  const b = mr.blockers;
+  const ci =
+    mr.pipelineState === 'passed'
+      ? { chip: 'pass', intent: 'ok' as const, text: 'pipeline passing' }
+      : mr.pipelineState === 'failed'
+        ? { chip: 'fail', intent: 'bad' as const, text: 'pipeline failing' }
+        : mr.pipelineState === 'running'
+          ? { chip: 'run', intent: 'warn' as const, text: 'pipeline running' }
+          : { chip: 'n/a', intent: 'muted' as const, text: 'no pipeline' };
+  const rows = [
+    { key: 'ci', ...ci },
+    {
+      key: 'approvals',
+      chip: mr.reviews.isApproved ? 'ok' : 'wait',
+      intent: mr.reviews.isApproved ? ('ok' as const) : ('warn' as const),
+      text: `${mr.reviews.given} of ${mr.reviews.required} approvals`,
+    },
+    b.hasConflicts
+      ? {
+          key: 'conflicts',
+          chip: 'fail',
+          intent: 'bad' as const,
+          text: 'merge conflicts with target branch',
+        }
+      : {
+          key: 'conflicts',
+          chip: 'ok',
+          intent: 'ok' as const,
+          text: 'no merge conflicts',
+        },
+    ...(mr.behindTarget
+      ? [
+          {
+            key: 'behind',
+            chip: 'info',
+            intent: 'muted' as const,
+            text: `${mr.behindTarget} commits behind ${mr.targetBranch}`,
+          },
+        ]
+      : []),
+  ];
+  return (
+    <div className="tui-sheet-card" data-card="mr-status">
+      <span className="tui-sheet-card-title">mr status</span>
+      <div className="tui-sheet-card-list">
+        {rows.map(r => (
+          <div className="tui-sheet-card-row" key={r.key}>
+            <Chip
+              intent={r.intent}
+              variant="outline"
+              uppercase
+              className="tui-sheet-card-chip"
+            >
+              {r.chip}
+            </Chip>
+            <span className="tui-sheet-card-text">{r.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A respond gate in the full-screen sheet: the respond header and every
+    thread (or reply) in the main column, each decided on its own card; the
+    rail shows what the submit will do, the MR's status, and docks the
+    submit. On a respond-plan gate the code-changes question never shows:
+    any fix pick implies `approve`, none implies the gate's sentinel, and
+    `revise` is its own action with a required reason. */
 function RespondSheetBody({
   gate,
   mr,
@@ -175,6 +342,8 @@ function RespondSheetBody({
   ctx: PlanCtx | PostCtx;
   form: GateFormState;
 }) {
+  const [revising, setRevising] = useState(false);
+  const [reason, setReason] = useState('');
   const questionCtx = useMemo(
     () => new Map(gate.questions.map(q => [q.id, parseGateCtx(q.context)])),
     [gate.questions]
@@ -191,12 +360,35 @@ function RespondSheetBody({
       q.multiple
     );
   };
-  const mainQs = form.display.filter(perItem);
-  const dockQs = form.display.filter(q => !perItem(q));
-  const shown = new Set(form.display.map(q => q.name));
-  const payload = sheetAnswers(gate, shown, form.selections, form.notes);
-
   const plan = ctx.shape === 'plan@1';
+  const codeChanges = gate.questions.find(
+    q => q.id === CODE_CHANGES_QUESTION_ID
+  );
+  const ccValues = new Set((codeChanges?.options ?? []).map(optionValue));
+  const impliedCodeChanges =
+    plan && ccValues.has('approve') && ccValues.has('revise');
+  const mainQs = form.display.filter(perItem);
+  const dockQs = form.display.filter(
+    q =>
+      !perItem(q) &&
+      !(impliedCodeChanges && q.name === CODE_CHANGES_QUESTION_ID)
+  );
+  const anyFix = mainQs.some(q => {
+    const v = form.selections[q.name];
+    return typeof v === 'string' && v.startsWith('fix:');
+  });
+  const submitSelections: GateSelections = { ...form.selections };
+  if (impliedCodeChanges) {
+    if (anyFix) submitSelections[CODE_CHANGES_QUESTION_ID] = 'approve';
+    else delete submitSelections[CODE_CHANGES_QUESTION_ID];
+  }
+  const shown = new Set(form.display.map(q => q.name));
+  const payload = revising
+    ? reason.trim()
+      ? reviseAnswers(gate, form.selections, form.notes, reason)
+      : null
+    : sheetAnswers(gate, shown, submitSelections, form.notes);
+
   const threadsDecided = mainQs.filter(
     q => !q.multiple && typeof form.selections[q.name] === 'string'
   ).length;
@@ -219,14 +411,16 @@ function RespondSheetBody({
     .find(Boolean);
   const submitLabel = form.busy
     ? 'submitting…'
-    : plan
-      ? ['submit', ...tally].join(' · ')
-      : [`post ${repliesPicked}`, dockPick].filter(Boolean).join(' · ');
+    : revising
+      ? 'send back for revision'
+      : plan
+        ? ['submit', ...tally].join(' · ')
+        : [`post ${repliesPicked}`, dockPick].filter(Boolean).join(' · ');
 
   return (
     <div className="tui-sheet-body">
       <section className="tui-sheet-main">
-        {mr && <MrCard mr={mr} />}
+        <RespondGateHeader gate={gate} mr={mr} ctx={ctx} />
         <div className="tui-sheet-list-head">
           <span className="tui-sheet-list-title">
             {repliesQ
@@ -312,54 +506,49 @@ function RespondSheetBody({
         ) : (
           <>
             <div className="tui-sheet-rail-scroll">
-              <div className="tui-sheet-context-card">
-                <span className="tui-sheet-context-label">
-                  decision context
-                </span>
-                <p className="tui-sheet-context-lead">
-                  {plan ? 'Responding to ' : 'Posting replies to '}
-                  <strong>{ctx.reviewer}</strong>
-                  {"'s review"}
-                </p>
-                <div className="tui-respond-chips">
-                  {headerChips(ctx).map(chip => (
-                    <span
-                      key={chip.key}
-                      className="tui-respond-chip"
-                      data-hue={chip.hue}
-                      data-chip={chip.key}
-                    >
-                      {chip.text}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <ResponsesCard mainQs={mainQs} form={form} />
+              {mr && <MrStatusCard mr={mr} />}
             </div>
             <div className="tui-sheet-dock">
               <div className="tui-sheet-dock-head">
                 <h3 className="tui-sheet-dock-heading">
-                  {plan ? 'Responses' : 'Replies'}
+                  {revising ? 'Send back' : plan ? 'Responses' : 'Replies'}
                   {` on ${mr ? `!${mr.iid}` : subjectRef(gate.subject)}`}
                 </h3>
                 <button
                   type="button"
                   className="tui-sheet-reset"
-                  onClick={form.resetAll}
+                  onClick={() => {
+                    if (revising) {
+                      setRevising(false);
+                      setReason('');
+                    } else form.resetAll();
+                  }}
                 >
-                  reset
+                  {revising ? 'cancel' : 'reset'}
                 </button>
               </div>
-              {dockQs.map(q => (
-                <div key={q.name} className="tui-sheet-dock-question">
-                  <span className="tui-sheet-dock-prompt">{q.prompt}</span>
-                  <ProseContext
-                    q={q}
-                    structured={questionCtx.get(q.name) != null}
-                  />
-                  <Choices q={q} form={form} />
-                  <Note q={q} form={form} />
-                </div>
-              ))}
+              {revising ? (
+                <textarea
+                  className="tui-gate-note tui-sheet-revise-reason"
+                  aria-label="What should the new plan change?"
+                  placeholder="What should the new plan change?"
+                  value={reason}
+                  onChange={e => setReason(e.currentTarget.value)}
+                />
+              ) : (
+                dockQs.map(q => (
+                  <div key={q.name} className="tui-sheet-dock-question">
+                    <span className="tui-sheet-dock-prompt">{q.prompt}</span>
+                    <ProseContext
+                      q={q}
+                      structured={questionCtx.get(q.name) != null}
+                    />
+                    <Choices q={q} form={form} />
+                    <Note q={q} form={form} />
+                  </div>
+                ))
+              )}
               <Button
                 type="button"
                 variant="filled"
@@ -371,6 +560,15 @@ function RespondSheetBody({
               >
                 {submitLabel}
               </Button>
+              {impliedCodeChanges && !revising && (
+                <button
+                  type="button"
+                  className="tui-sheet-revise"
+                  onClick={() => setRevising(true)}
+                >
+                  send the plan back for revision
+                </button>
+              )}
               {form.failed && (
                 <span className="tui-gate-error">
                   submit failed... nothing was sent, try again
