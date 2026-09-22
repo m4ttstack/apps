@@ -30,6 +30,9 @@ interface Parsed {
   posted?: string;
   threads?: string;
   held?: string;
+  /** A recognized flag that arrived with no operand; a trailing `--held`
+      must fail loudly rather than silently dropping the count. */
+  missingOperand?: string;
 }
 
 /** Same shape as review-status: positional <path> <status> [message] plus
@@ -39,11 +42,16 @@ function parseArgs(argv: string[]): Parsed {
   const NAMES = ['session', 'posted', 'threads', 'held'];
   const flags: Record<string, string | undefined> = {};
   const rest: string[] = [];
+  let missingOperand: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     const name = NAMES.find(n => a === `--${n}` || a.startsWith(`--${n}=`));
     if (!name) {
       rest.push(a);
+      continue;
+    }
+    if (a === `--${name}` && argv[i + 1] === undefined) {
+      missingOperand = name;
       continue;
     }
     flags[name] = a === `--${name}` ? argv[++i] : a.slice(name.length + 3);
@@ -57,6 +65,7 @@ function parseArgs(argv: string[]): Parsed {
     posted: flags.posted,
     threads: flags.threads,
     held: flags.held,
+    missingOperand,
   };
 }
 
@@ -77,6 +86,11 @@ if (
   console.error(
     `usage: respond-status <statePath> <${VALID.join('|')}> [message] [--posted <n>] [--threads <n>] [--held <n>] [--session <id>]`
   );
+  process.exit(1);
+}
+
+if (parsed.missingOperand !== undefined) {
+  console.error(`--${parsed.missingOperand} requires a value`);
   process.exit(1);
 }
 

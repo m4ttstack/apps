@@ -133,6 +133,15 @@ describe('respond-status CLI', () => {
     expect(await run(handle, 'done', '--held', '1')).toBe(1);
   });
 
+  test('rejects a count flag with no operand instead of dropping it', async () => {
+    const url = nextUrl();
+    const handle = seedHandle(url);
+    expect(
+      await run(handle, 'done', '--posted', '1', '--threads', '2', '--held')
+    ).toBe(1);
+    expect(readRespondStates(db).get(url)?.status).toBe('queued');
+  });
+
   test('rejects a held count that is not a non-negative integer', async () => {
     expect(
       await run(
