@@ -22,7 +22,8 @@ import {
   type GateFormState,
 } from './GateForm.tsx';
 import { RespondGateHeader } from './RespondGateHeader.tsx';
-import { isReviewSheetGate, ReviewGateSheet } from './ReviewGateSheet.tsx';
+import { isReviewSheetGate } from './review-gate.ts';
+import { ReviewGateSheet } from './ReviewGateSheet.tsx';
 import {
   DELIVERY_STUCK_MESSAGE,
   EXECUTION_UNASSIGNED_MESSAGE,

@@ -15,7 +15,7 @@ import { gateDraftKey } from '@mattstack/gate-kit/react';
 import type { GateRow } from '../../../gates/store.ts';
 import type { BoardMRWithReview } from '../../types.ts';
 import { useGateForm } from '../GateForm.tsx';
-import { isReviewSheetGate, ReviewGateSheet } from '../ReviewGateSheet.tsx';
+import { ReviewGateSheet } from '../ReviewGateSheet.tsx';
 
 GlobalRegistrator.register({ url: 'http://localhost/' });
 
@@ -88,19 +88,6 @@ const GATE: GateRow = {
         { value: 'approve', label: 'approve (recommended)' },
         { value: 'comment', label: 'comment' },
       ],
-    },
-  ],
-};
-
-const TIER_GATE: GateRow = {
-  ...GATE,
-  gateId: 'g-tier',
-  questions: [
-    {
-      id: 'tiers',
-      label: 'Post which findings?',
-      multi: true,
-      options: [{ value: 'Minor', label: 'Minor (4)' }],
     },
   ],
 };
@@ -301,12 +288,6 @@ const CLEAN_GATE: GateRow = {
   questions: [GATE.questions[2]!],
 };
 
-const RESPOND_GATE: GateRow = {
-  ...GATE,
-  gateId: 'g-respond',
-  kind: 'respond-plan',
-};
-
 test('the previous-gate chevron is disabled even when queue.index > 0, since backward queue traversal does not exist', async () => {
   await render(); // QUEUE.index is 1
 
@@ -325,13 +306,6 @@ test('a clean review labels the submit with the outcome alone, never post 0', as
       b.textContent?.includes('post 0')
     )
   ).toBe(false);
-});
-
-test('isReviewSheetGate is true for a finding-shaped gate and an outcome-only gate, false for a tier-option gate or a respond-plan gate', () => {
-  expect(isReviewSheetGate(GATE)).toBe(true);
-  expect(isReviewSheetGate(CLEAN_GATE)).toBe(true);
-  expect(isReviewSheetGate(TIER_GATE)).toBe(false);
-  expect(isReviewSheetGate(RESPOND_GATE)).toBe(false);
 });
 
 test('a note on the outcome question posts as {value, note}, not silently dropped', async () => {

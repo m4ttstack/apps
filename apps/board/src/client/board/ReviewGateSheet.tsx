@@ -96,20 +96,6 @@ export interface ReviewGateSheetQueue {
   onNext: () => void;
 }
 
-/** True when a gate is the review-post shape this sheet renders: at least
-    one question option parses as a finding (`[Tier] title`), or the gate
-    carries no multi question at all (a clean review, outcome only). A gate
-    whose only multi question is the legacy per-tier checkbox ("Minor (4)")
-    falls through to the generic decision-queue modal instead. */
-export function isReviewSheetGate(gate: GateRow): boolean {
-  if (gate.kind !== 'review-post') return false;
-  const hasFindingOption = gate.questions.some(q =>
-    q.options.some(o => parseFindingOption(o) !== null)
-  );
-  if (hasFindingOption) return true;
-  return !gate.questions.some(q => q.multi);
-}
-
 /** The engine's own emission and hand-edits of report.json both land here
     unvalidated, so every optional field is guarded at its actual shape
     (not just presence) before it reaches JSX: an entry a React child can't
