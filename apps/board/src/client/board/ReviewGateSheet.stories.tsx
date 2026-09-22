@@ -418,7 +418,7 @@ const reReviewGate: GateRow = {
     'gate-ctx': 'review@1',
     reviewer: 'renee',
     readiness: 'with-fixes',
-    summary: 'One critical injection risk; everything else is polish.',
+    summary: 'Two important findings carried over; the rest is polish.',
     findings: { important: 2, minor: 1 },
     round: 2,
     re_review: true,

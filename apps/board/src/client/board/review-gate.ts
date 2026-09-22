@@ -28,8 +28,13 @@ export interface ReviewGate {
 
 type ReviewGateInput = Pick<GateRow, 'kind' | 'context' | 'questions'>;
 
+/** The sheet looks up its findings question by the collapsed id `findings`
+    (`ReviewGateSheet.tsx`), which is what a chunked `findings-N` set becomes
+    post-`collapseChunks` and also what an unchunked single question is named
+    outright, so both forms must join here or the sheet finds a question the
+    join never validated. */
 export function isFindingsQuestion(q: { id: string }): boolean {
-  return q.id.startsWith('findings-');
+  return q.id === 'findings' || q.id.startsWith('findings-');
 }
 
 /** The review sheet's whole input, or null when the gate is not a

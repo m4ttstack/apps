@@ -118,7 +118,8 @@ function str(v: unknown): string {
 
 function optStr(v: unknown): string | undefined {
   if (v === undefined) return undefined;
-  return typeof v === 'string' ? v : reject();
+  if (typeof v !== 'string') reject();
+  return v.trim() === '' ? undefined : v;
 }
 
 function count(v: unknown): number {

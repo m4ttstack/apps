@@ -608,6 +608,7 @@ function ReviewGateSheet({
                               data-type="checkbox"
                               data-checked={checked ? '' : undefined}
                               checked={checked}
+                              aria-labelledby={`tui-review-finding-title-${f.id}`}
                               onChange={e =>
                                 findingsName &&
                                 form.toggleMulti(
@@ -619,7 +620,10 @@ function ReviewGateSheet({
                             />
                             <span className="tui-review-finding-body">
                               <span className="tui-review-finding-line1">
-                                <span className="tui-review-finding-title">
+                                <span
+                                  className="tui-review-finding-title"
+                                  id={`tui-review-finding-title-${f.id}`}
+                                >
                                   {f.title}
                                 </span>
                                 {f.disposition && (

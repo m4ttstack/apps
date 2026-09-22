@@ -281,6 +281,22 @@ describe('valid shapes', () => {
   test('leading whitespace before the object is fine', () => {
     expect(parseGateCtx(`\n  ${j(PLAN)}`)?.shape).toBe('plan@1');
   });
+
+  test('a whitespace-only optional string is absent, not preserved', () => {
+    expect(parseGateCtx(j({ ...PLAN, adjudication: '   ' }))).toEqual({
+      shape: 'plan@1',
+      reviewer: 'renee',
+      round: 1,
+      threads: { total: 2, blocking: 1 },
+    });
+    const { file: _file, ...findingWithNoFile } = FINDING;
+    expect(
+      parseGateCtx(j({ ...FINDINGS, findings: [{ ...FINDING, file: '  ' }] }))
+    ).toEqual({
+      shape: 'findings@1',
+      findings: [findingWithNoFile],
+    });
+  });
 });
 
 describe('unknown extra keys are accepted and dropped', () => {

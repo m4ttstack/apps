@@ -98,6 +98,24 @@ describe('readReviewGate', () => {
       true
     );
   });
+
+  test('an unchunked question named exactly "findings" still joins', () => {
+    const g = gate({
+      questions: [
+        {
+          id: 'findings',
+          label: 'Post which findings to !9?',
+          multi: true,
+          context: findingsCtx(entry('f1', 'important')),
+          options: [option('f1')],
+        },
+        gate().questions[2]!,
+      ],
+    });
+    const read = readReviewGate(g);
+    expect([...read!.findings.keys()]).toEqual(['f1']);
+    expect(isReviewSheetGate(g)).toBe(true);
+  });
 });
 
 describe('everything else stays in the generic modal', () => {
@@ -152,6 +170,10 @@ describe('everything else stays in the generic modal', () => {
         context: findingsCtx(entry('f1', 'minor')),
         options: [option('f1')],
       }),
+    ],
+    [
+      'duplicate option values within one chunk',
+      withQuestion(0, { options: [option('f1'), option('f1')] }),
     ],
   ];
   for (const [name, row] of cases)

@@ -505,6 +505,7 @@ const RE_REVIEW_GATE: GateRow = {
   gateId: 'g-re-review',
   context: j({
     ...REVIEW,
+    summary: 'One important finding carried over; the rest are cleanups.',
     findings: { critical: 0, important: 1, minor: 2 },
     round: 2,
     re_review: true,
@@ -562,6 +563,17 @@ test('a row reads title, accent file:line, the full body, and the fix line, in t
   expect(row.querySelector('.tui-review-finding-fix')!.textContent).toBe(
     'parameterize the query'
   );
+});
+
+test("a finding row's checkbox is labelled by the title alone, not the whole row", async () => {
+  await render();
+  const row = container.querySelector('.tui-review-finding-row')!;
+  const checkbox = row.querySelector('input[type="checkbox"]')!;
+  const labelledBy = checkbox.getAttribute('aria-labelledby');
+  expect(labelledBy).toBeTruthy();
+  const label = document.getElementById(labelledBy!);
+  expect(label).toBe(row.querySelector('.tui-review-finding-title'));
+  expect(label!.textContent).toBe('SQL built from unsanitized input');
 });
 
 /** findings-1's first option is a minor finding, not the critical one GATE
@@ -638,7 +650,7 @@ test('the decision card reads readiness, summary, counts, and the re-review line
   ).toBe('Ready to merge: with fixes');
   expect(
     container.querySelector('.tui-review-decision-reasoning')!.textContent
-  ).toContain('One critical injection path; the rest are cleanups.');
+  ).toContain('One important finding carried over; the rest are cleanups.');
   expect(
     container.querySelector('.tui-review-decision-meta')!.textContent
   ).toBe('renee · round 2 · 3 addressed, 1 still open');
