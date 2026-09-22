@@ -1,6 +1,11 @@
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 
-import { useBodyScrollLock, useEscapeClose } from '@mattstack/tui-kit';
+import {
+  Button,
+  Icon,
+  useBodyScrollLock,
+  useEscapeClose,
+} from '@mattstack/tui-kit';
 import type { TriageGateState } from './DecisionQueueModal.tsx';
 
 export interface GateSheetQueue {
@@ -80,57 +85,64 @@ function GateSheet({
       onKeyDown={trapTab}
     >
       <header className="tui-gate-sheet-head">
-        <span className="tui-gate-sheet-title">decision queue</span>
-        {actions && <span className="tui-gate-sheet-actions">{actions}</span>}
-        <span className="tui-gate-sheet-spacer" />
-        {queue && (
+        <span className="tui-gate-sheet-lead">
+          <span className="tui-gate-sheet-title">decision queue</span>
+          {actions && <span className="tui-gate-sheet-actions">{actions}</span>}
+        </span>
+        {queue ? (
           <nav className="tui-gate-queue-nav" aria-label="gate queue">
-            <button
+            <Button
               type="button"
-              className="tui-gate-queue-chevron"
+              iconOnly
+              variant="default"
+              size="sm"
               onClick={queue.onPrev}
               disabled={queue.index <= 0}
               title="previous gate"
               aria-label="previous gate"
             >
-              ‹
-            </button>
-            <span className="tui-gate-queue-pips">
-              {queue.states.map((s, i) => (
-                <i key={i} className="tui-gate-queue-pip" data-state={s} />
-              ))}
+              <Icon d="m15 18-6-6 6-6" />
+            </Button>
+            <span className="tui-gate-queue-where">
+              <span
+                className="tui-gate-queue-pos"
+                title={queue.nextPeek ? `next: ${queue.nextPeek}` : undefined}
+              >
+                {queue.index + 1} of {queue.total}
+              </span>
+              <span className="tui-gate-queue-pips">
+                {queue.states.map((s, i) => (
+                  <i key={i} className="tui-gate-queue-pip" data-state={s} />
+                ))}
+              </span>
             </span>
-            <span
-              className="tui-gate-queue-pos"
-              title={queue.nextPeek ? `next: ${queue.nextPeek}` : undefined}
-            >
-              gate {queue.index + 1} of {queue.total}
-            </span>
-            <button
+            <Button
               type="button"
-              className="tui-gate-queue-chevron"
+              iconOnly
+              variant="default"
+              size="sm"
               onClick={queue.onNext}
+              disabled={queue.index >= queue.total - 1}
               title="next gate"
               aria-label="next gate"
             >
-              ›
-            </button>
+              <Icon d="m9 18 6-6-6-6" />
+            </Button>
           </nav>
+        ) : (
+          <span />
         )}
-        {tag && (
-          <>
-            <span className="tui-gate-sheet-sep" aria-hidden="true" />
-            <span className="tui-gate-sheet-tag">{tag}</span>
-          </>
-        )}
-        <button
-          type="button"
-          className="tui-gate-sheet-close"
-          onClick={onClose}
-          aria-label="close"
-        >
-          ✕
-        </button>
+        <span className="tui-gate-sheet-trail">
+          {tag && <span className="tui-gate-sheet-tag">{tag}</span>}
+          <button
+            type="button"
+            className="tui-gate-sheet-close"
+            onClick={onClose}
+            aria-label="close"
+          >
+            ✕
+          </button>
+        </span>
       </header>
       {children}
     </div>

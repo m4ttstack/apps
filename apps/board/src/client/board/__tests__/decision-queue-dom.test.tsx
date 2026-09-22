@@ -601,7 +601,7 @@ test('the queue counts gates on rows an author filter hides, visible rows first'
     expect(
       dialog?.querySelector('.tui-gate-queue-pos')?.getAttribute('title')
     ).toMatch(/next:\s*!1/);
-    expect(dialog?.textContent).toContain('gate 1 of 2');
+    expect(dialog?.textContent).toContain('1 of 2');
   } finally {
     localStorage.removeItem('mrs-view-state');
     await React.act(async () => {

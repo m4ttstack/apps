@@ -160,20 +160,24 @@ test('the head is one row: title, compact focus pane, then close -- no skip chip
   ).toBe(false);
 });
 
-test('the head queue nav holds a previous-gate control, the pips, the count, and a next-gate control', async () => {
+test('the head queue nav holds a previous-gate control, the count stacked over the pips, and a next-gate control', async () => {
   await renderModal(stepped(), undefined, {
     position: 2,
     states: ['done', 'active', 'todo'],
   });
   const nav = $('.tui-gate-sheet-head .tui-gate-queue-nav')!;
   const children = [...nav.children];
-  expect(children).toHaveLength(4);
+  expect(children).toHaveLength(3);
 
   const prev = children[0] as HTMLButtonElement;
-  const next = children[3] as HTMLButtonElement;
+  const where = children[1]!;
+  const next = children[2] as HTMLButtonElement;
 
-  expect(children[1]!.className).toContain('tui-gate-queue-pips');
-  expect(children[2]!.textContent).toBe('gate 2 of 3');
+  expect(where.className).toContain('tui-gate-queue-where');
+  const [count, pips] = [...where.children];
+  expect(count!.textContent).toBe('2 of 3');
+  expect(pips!.className).toContain('tui-gate-queue-pips');
+  expect(pips!.children).toHaveLength(3);
   expect(prev.getAttribute('aria-label')).toBe('previous gate');
   expect(prev.getAttribute('title')).toBe('previous gate');
   expect(next.getAttribute('aria-label')).toBe('next gate');
@@ -196,6 +200,24 @@ test('the previous-gate control is disabled on the first gate and enabled past i
   expect(
     ($('[aria-label="previous gate"]') as HTMLButtonElement).disabled
   ).toBe(false);
+});
+
+test('the next-gate control is disabled on the last gate, so navigating never lands on the done face', async () => {
+  await renderModal(stepped(), undefined, {
+    position: 3,
+    states: ['done', 'skipped', 'active'],
+  });
+  expect(($('[aria-label="next gate"]') as HTMLButtonElement).disabled).toBe(
+    true
+  );
+
+  await renderModal(stepped(), undefined, {
+    position: 2,
+    states: ['done', 'active', 'todo'],
+  });
+  expect(($('[aria-label="next gate"]') as HTMLButtonElement).disabled).toBe(
+    false
+  );
 });
 
 test('the previous-gate control calls onBack, the next-gate control calls onSkip', async () => {

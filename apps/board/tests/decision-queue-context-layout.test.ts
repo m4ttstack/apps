@@ -200,13 +200,15 @@ test('every gate fills the window, never scrolls, and keeps its forward control 
     const page = await openQueue(viewport);
     const kinds = new Set<string>();
     for (let i = 0; i < 8; i++) {
-      if (await page.locator('.tui-triage-done').count()) break;
       const m = await measure(page);
       kinds.add(m.kind);
       expectSheetLaw(m, viewport);
-      await page.getByRole('button', { name: 'next gate' }).click();
+      const next = page.getByRole('button', { name: 'next gate' });
+      if (await next.isDisabled()) break;
+      await next.click();
       await page.waitForTimeout(150);
     }
+    expect(await page.locator('.tui-triage-done').count()).toBe(0);
     expect([...kinds].sort()).toEqual(['review', 'triage']);
     await page.context().close();
   }
@@ -247,7 +249,7 @@ test('the head is one row: title, focus pane, queue nav and close share a line -
     const title = await middle('.tui-gate-sheet-title');
     for (const selector of [
       '.tui-gate-sheet-actions button:has-text("focus pane")',
-      '.tui-gate-queue-pos',
+      '.tui-gate-queue-nav',
       '.tui-gate-sheet-close',
     ])
       expect(Math.abs((await middle(selector)) - title)).toBeLessThanOrEqual(4);
@@ -267,13 +269,13 @@ test('queue nav: previous is disabled at the first gate and walks back from the 
   const prev = page.locator('[aria-label="previous gate"]');
   const pos = page.locator('.tui-gate-queue-pos');
   expect(await prev.isDisabled()).toBe(true);
-  expect(await pos.textContent()).toMatch(/^gate 1 of \d+$/);
+  expect(await pos.textContent()).toMatch(/^1 of \d+$/);
   await page.getByRole('button', { name: 'next gate' }).click();
   await page.waitForTimeout(150);
-  expect(await pos.textContent()).toMatch(/^gate 2 of \d+$/);
+  expect(await pos.textContent()).toMatch(/^2 of \d+$/);
   expect(await prev.isDisabled()).toBe(false);
   await prev.click();
   await page.waitForTimeout(150);
-  expect(await pos.textContent()).toMatch(/^gate 1 of \d+$/);
+  expect(await pos.textContent()).toMatch(/^1 of \d+$/);
   await page.context().close();
 }, 30_000);

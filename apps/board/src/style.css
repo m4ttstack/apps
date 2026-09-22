@@ -2623,8 +2623,8 @@ body {
   flex-direction: column;
   padding: var(--gate-pad-chrome);
   border: 1px solid var(--border-soft);
-  border-radius: var(--gate-radius-btn);
-  background: var(--chrome);
+  border-radius: 10px;
+  background: var(--panel);
 }
 /* The strip separates its facts with this glyph; rows carry no separators. */
 .tui-triage-strip .tui-row-sep {
@@ -3560,12 +3560,26 @@ body {
   flex-direction: column;
 }
 .tui-gate-sheet-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
   flex-shrink: 0;
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
+}
+.tui-gate-sheet-lead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.tui-gate-sheet-trail {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 .tui-gate-sheet-title {
   font-weight: 700;
@@ -3580,34 +3594,10 @@ body {
 .tui-gate-sheet-actions [data-part='button'] {
   font-weight: 500;
 }
-.tui-gate-sheet-spacer {
-  flex: 1;
-}
 .tui-gate-queue-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-.tui-gate-queue-chevron {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-1);
-  cursor: pointer;
-}
-.tui-gate-queue-chevron:hover:not(:disabled) {
-  border-color: var(--fill-accent);
-  color: var(--text-accent-small);
-}
-.tui-gate-queue-chevron:disabled {
-  color: var(--text-3);
-  cursor: default;
-  opacity: 0.5;
+  gap: 10px;
 }
 .tui-gate-queue-pips {
   display: inline-flex;
@@ -3633,20 +3623,28 @@ body {
   background: transparent;
   border: 1px solid var(--border);
 }
+/* Fixed width and tabular digits: the count never changes the nav's
+   width, so the chevrons stay put under the pointer from gate to gate. */
+.tui-gate-queue-where {
+  min-width: 8ch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
 .tui-gate-queue-pos {
+  line-height: 1.2;
   font-size: var(--gate-font-meta);
-  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
   white-space: nowrap;
 }
-.tui-gate-sheet-sep {
-  height: 18px;
-  border-left: 1px solid var(--border);
-}
 .tui-gate-sheet-tag {
-  font-size: 11px;
+  font-size: var(--gate-font-meta);
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-4);
+  color: var(--text-2);
 }
 .tui-gate-sheet-close {
   display: inline-flex;
