@@ -484,9 +484,22 @@ const BULK_RANK = [
 ];
 
 function bulkRank(key: string): number {
-  const base =
-    key.startsWith('react-') || key.startsWith('unreact-') ? 'react' : key;
-  const i = BULK_RANK.indexOf(base);
+  const emoji = key.startsWith('react-')
+    ? key.slice('react-'.length)
+    : key.startsWith('unreact-')
+      ? key.slice('unreact-'.length)
+      : null;
+  if (emoji !== null) {
+    const marks = getSlackMarks();
+    const rung = marks.findIndex(m => m.emoji === emoji);
+    // Ladder position lands as a fraction so every mark still sorts between
+    // the react slot and find-thread.
+    return (
+      BULK_RANK.indexOf('react') +
+      (rung === -1 ? marks.length : rung) / (marks.length + 1)
+    );
+  }
+  const i = BULK_RANK.indexOf(key);
   return i === -1 ? BULK_RANK.length : i;
 }
 

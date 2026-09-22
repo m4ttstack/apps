@@ -230,6 +230,21 @@ test('mark wins over unmark until every checked thread has the mark', () => {
   expect(both.find(x => x.key === 'unreact-eyes')?.hint).toBe('2 of 2');
 });
 
+test('bulk slack marks follow the ladder, not first-seen order', () => {
+  const found = (iid: number, reactions: string[]) =>
+    mrx(iid, { slack: { status: 'found', reactions, posted: true } });
+  const h = found(209, ['eyes']);
+  const i = found(210, []);
+  const slackKeys = bulkActions([h, i], env3([h, i]))
+    .filter(e => e.section === 'slack')
+    .map(e => e.key);
+  expect(slackKeys).toEqual([
+    'react-eyes',
+    'react-speech_balloon',
+    'react-white_check_mark',
+  ]);
+});
+
 test('request review from… lists each person with the MRs they can be asked on', () => {
   const entry = bulkActions([a, b, c], env3([a, b, c])).find(
     e => e.key === 'request-review'
