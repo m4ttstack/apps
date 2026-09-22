@@ -1,8 +1,10 @@
-/** What the row menu offers, as data: one MR's actions come from
-    rowActions. DOM-free, so the menu and its tests share it. */
+/** What the row menu offers, as data. One MR's actions come from
+    rowActions; the bulk menu groups several MRs' lists (bulkActions), so the
+    one-row and bulk menus can never disagree about what an MR can take.
+    DOM-free, so both menus and their tests share it. */
 import type { BoardMR } from '../../data.ts';
 import type { MrAction } from '../../mr-action.ts';
-import { hasStackDescendants } from '../../view.ts';
+import { hasStackDescendants, stackParents } from '../../view.ts';
 import type { BoardMRWithReview } from '../types.ts';
 import {
   doctorItemLabel,
@@ -453,4 +455,130 @@ export function rowActions(
   );
 
   return [...agent, ...gitlab, ...slack];
+}
+
+/** Launches past this many ask for a second click. */
+export const LAUNCH_CONFIRM_OVER = 3;
+
+export interface BulkEntry extends MenuEntry {
+  request: ActionRequest;
+  targets: BoardMRWithReview[];
+  /** request review from…: who can be asked on which of the targets. */
+  pickTargets?: Map<string, BoardMRWithReview[]>;
+}
+
+const SECTION_RANK: Record<Section, number> = { agent: 0, gitlab: 1, slack: 2 };
+const BULK_RANK = [
+  'review',
+  're-review',
+  'doctor',
+  'request-review',
+  'rebase',
+  'setAutoMerge',
+  'cancelAutoMerge',
+  'mark-ready',
+  'mark-draft',
+  'merge',
+  'react',
+  'find-thread',
+];
+
+function bulkRank(key: string): number {
+  const base =
+    key.startsWith('react-') || key.startsWith('unreact-') ? 'react' : key;
+  const i = BULK_RANK.indexOf(base);
+  return i === -1 ? BULK_RANK.length : i;
+}
+
+const BULK_CONFIRM: Record<string, (n: number) => string | undefined> = {
+  merge: n => `really merge ${n}?`,
+  review: n =>
+    n > LAUNCH_CONFIRM_OVER ? `really start ${n} reviews?` : undefined,
+  're-review': n =>
+    n > LAUNCH_CONFIRM_OVER ? `really start ${n} re-reviews?` : undefined,
+  doctor: n =>
+    n > LAUNCH_CONFIRM_OVER ? `really call doctor on ${n}?` : undefined,
+};
+
+/** Merging a child before its parent lands it in the parent's branch, not
+    the target, so a checked child of an open MR stops the whole merge. */
+function mergeBlock(checked: BoardMR[], allMrs: BoardMR[]): string | undefined {
+  const parentByUrl = new Map(
+    [...stackParents(allMrs)].map(([child, parent]) => [child.webUrl, parent])
+  );
+  for (const mr of checked) {
+    const parent = parentByUrl.get(mr.webUrl);
+    if (parent) return `!${mr.iid} sits on !${parent.iid}, which is still open`;
+  }
+  return undefined;
+}
+
+/** The bulk menu: each checked MR's rowActions, keeping the bulk-capable
+    ones, grouped by key. Eligibility comes only from rowActions; what is
+    added here exists only for a group (counts, confirms, the stack block,
+    mark over unmark, the merged picker). */
+export function bulkActions(
+  mrs: BoardMRWithReview[],
+  env: ActionEnv
+): BulkEntry[] {
+  const groups = new Map<
+    string,
+    {
+      first: RowAction;
+      targets: BoardMRWithReview[];
+      picks: Map<string, BoardMRWithReview[]>;
+    }
+  >();
+  for (const mr of mrs) {
+    for (const action of rowActions(mr, env)) {
+      if (!action.bulk) continue;
+      let g = groups.get(action.key);
+      if (!g) {
+        g = { first: action, targets: [], picks: new Map() };
+        groups.set(action.key, g);
+      }
+      g.targets.push(mr);
+      for (const o of action.pick?.options ?? [])
+        g.picks.set(o.value, [...(g.picks.get(o.value) ?? []), mr]);
+    }
+  }
+  for (const key of [...groups.keys()])
+    if (
+      key.startsWith('unreact-') &&
+      groups.has(`react-${key.slice('unreact-'.length)}`)
+    )
+      groups.delete(key);
+
+  const of = (n: number) => `${n} of ${mrs.length}`;
+  const entries = [...groups].map(([key, g]): BulkEntry => {
+    const n = g.targets.length;
+    const entry: BulkEntry = {
+      key,
+      section: g.first.section,
+      label: g.first.bulk ?? g.first.label,
+      glyph: g.first.glyph,
+      lane: g.first.lane,
+      request: g.first.request,
+      targets: g.targets,
+      hint: of(n),
+      confirm: BULK_CONFIRM[key]?.(n),
+      blocked: key === 'merge' ? mergeBlock(mrs, env.allMrs) : undefined,
+    };
+    if (g.first.pick) {
+      entry.pick = {
+        ...g.first.pick,
+        options: [...g.picks].map(([value, t]) => ({
+          value,
+          hint: of(t.length),
+        })),
+      };
+      entry.pickTargets = g.picks;
+    }
+    return entry;
+  });
+  return entries.sort(
+    (x, y) =>
+      SECTION_RANK[x.section] - SECTION_RANK[y.section] ||
+      bulkRank(x.key) - bulkRank(y.key)
+  );
 }
