@@ -2369,9 +2369,11 @@ body {
 .tui-reply-choice-text [data-part='markdown'] > * + * {
   margin-top: 6px;
 }
-/* The recommended choice is marked at rest so the eye lands on it before
-   the pointer does. */
-.tui-gate-choice[data-recommended]:not([data-checked]) {
+/* The recommended choice is marked only while its question has no pick,
+   so the eye lands on it before the pointer does; once anything is picked,
+   the pick is the only highlighted choice. */
+.tui-gate-question:not(:has([data-checked]))
+  .tui-gate-choice[data-recommended] {
   border-color: color-mix(in srgb, var(--fill-accent) 55%, var(--border));
   background: color-mix(in srgb, var(--fill-accent) 7%, transparent);
 }

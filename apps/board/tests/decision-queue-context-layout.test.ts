@@ -279,3 +279,36 @@ test('queue nav: previous is disabled at the first gate and walks back from the 
   expect(await pos.textContent()).toMatch(/^1 of \d+$/);
   await page.context().close();
 }, 30_000);
+
+test('the recommended choice is highlighted only until something in its question is picked', async () => {
+  const page = await openQueue(LAPTOP);
+  await nextUntil(page, '.tui-thread-card');
+  const tinted = () =>
+    page.evaluate(() => {
+      const { document } = globalThis as unknown as {
+        document: { querySelectorAll(s: string): ArrayLike<unknown> };
+      };
+      const win = globalThis as unknown as {
+        getComputedStyle(el: unknown): { backgroundColor: string };
+      };
+      return Array.from(
+        document.querySelectorAll(
+          '.tui-gate-question[data-active] .tui-gate-choice[data-recommended]'
+        )
+      ).map(
+        c => win.getComputedStyle(c).backgroundColor !== 'rgba(0, 0, 0, 0)'
+      );
+    });
+  expect(await tinted()).toEqual([true]);
+  await page
+    .locator(
+      '.tui-gate-question[data-active] .tui-gate-choice:not([data-recommended])'
+    )
+    .first()
+    .click();
+  // The choice background transitions, so wait out the fade before reading.
+  for (let i = 0; i < 20 && (await tinted())[0]; i++)
+    await page.waitForTimeout(50);
+  expect(await tinted()).toEqual([false]);
+  await page.context().close();
+}, 30_000);
