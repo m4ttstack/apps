@@ -1,8 +1,8 @@
-/** A gate whose gate-level context parses as plan@1 or post@1 heads the
-    decision-queue modal with the header card: the reviewer leads, the MR
-    is the object line, the chips come from the context, the parked and
-    escalated chips move onto the action strip, and neither the MR strip
-    nor the "Decision context" pane renders. Prose and malformed contexts
+/** An open gate whose gate-level context parses as plan@1 or post@1 opens
+    the two-column respond sheet: the MR card and every thread in the main
+    column, the reviewer and the chips in the rail's decision context, the
+    parked and escalated chips on the head's action strip, and neither the
+    MR strip nor the "Decision context" pane. Prose and malformed contexts
     keep today's strip and pane. */
 
 import React from 'react';
@@ -31,6 +31,8 @@ const MR = {
   iid: 87,
   title: 'DEMO-12: add retry to the fetch queue',
   sourceBranch: 'feature/demo-12-retry',
+  targetBranch: 'main',
+  createdAt: new Date(Date.now() - 86_400_000).toISOString(),
   author: { username: 'alex', name: 'Alex Doe' },
 } as unknown as BoardMRWithReview;
 
@@ -122,28 +124,30 @@ async function renderModal(row: GateRow, mr?: BoardMRWithReview) {
 
 const $ = (selector: string) => document.body.querySelector(selector);
 
-test('a plan@1 gate renders the header card in place of the MR strip and the context pane', async () => {
+test('an open plan@1 gate opens the respond sheet: MR card and threads left, decision context right', async () => {
   await renderModal(gate({}), MR);
-  const head = $('.tui-respond-head[data-shape="plan@1"]')!;
-  expect(head).not.toBeNull();
-  expect(head.querySelector('.tui-respond-headline')!.textContent).toBe(
-    "Responding to renee's review"
-  );
-  expect(head.querySelector('.tui-respond-headline strong')!.textContent).toBe(
-    'renee'
-  );
-  expect(head.querySelector('.tui-respond-object-ref')!.textContent).toBe(
-    '!87'
-  );
-  expect(head.querySelector('.tui-respond-object')!.textContent).toContain(
+  expect($('.tui-respond-sheet')).not.toBeNull();
+  const lead = $('.tui-sheet-rail .tui-sheet-context-lead')!;
+  expect(lead.textContent).toBe("Responding to renee's review");
+  expect(lead.querySelector('strong')!.textContent).toBe('renee');
+  const card = $('.tui-sheet-main .tui-mr-card')!;
+  expect(card.querySelector('.tui-mr-card-title')!.textContent).toContain(
     'add retry to the fetch queue'
   );
-  const meta = head.querySelector('.tui-respond-meta')!.textContent!;
-  expect(meta).toContain('feature/demo-12-retry');
-  expect(meta).toContain('Alex Doe');
+  expect(card.querySelector('.tui-mr-card-author')!.textContent).toBe(
+    'Alex Doe'
+  );
+  expect(card.querySelector('.tui-mr-card-meta')!.textContent).toContain(
+    'feature/demo-12-retry'
+  );
+  expect(
+    document.body.querySelectorAll(
+      '.tui-sheet-main .tui-respond-list > .tui-gate-question'
+    )
+  ).toHaveLength(1);
+  expect($('.tui-sheet-main .tui-thread-card')).not.toBeNull();
   expect($('.tui-triage-strip')).toBeNull();
-  expect($('.tui-triage-sheet [data-part="scrollpane"]')).toBeNull();
-  expect($('.tui-triage-body[data-respond]')).not.toBeNull();
+  expect($('.tui-triage-sheet')).toBeNull();
   const text = document.body.textContent ?? '';
   expect(text).not.toContain('gate-ctx');
   expect(text).not.toContain('pane-87');
@@ -169,11 +173,13 @@ test("a structured header with a prose question still renders that question's co
     }),
     MR
   );
-  expect($('.tui-respond-head')).not.toBeNull();
+  expect($('.tui-respond-sheet')).not.toBeNull();
   expect($('.tui-thread-card')).toBeNull();
-  expect($('.tui-gate-question-context')!.textContent).toContain(
-    'Two threads on this file were left unresolved.'
-  );
+  expect(
+    $('.tui-respond-list > .tui-gate-question .tui-gate-question-context')!
+      .textContent
+  ).toContain('Two threads on this file were left unresolved.');
+  expect($('.tui-sheet-dock .tui-gate-question-context')).toBeNull();
 });
 
 test('the chips row renders the derived chips in order', async () => {
@@ -193,8 +199,8 @@ test('the chips row renders the derived chips in order', async () => {
 
 test('a post@1 gate heads with "Posting replies to"', async () => {
   await renderModal(gate({ kind: 'respond-post', context: POST }), MR);
-  expect($('.tui-respond-head[data-shape="post@1"]')).not.toBeNull();
-  expect($('.tui-respond-headline')!.textContent).toBe(
+  expect($('.tui-respond-sheet')).not.toBeNull();
+  expect($('.tui-sheet-context-lead')!.textContent).toBe(
     "Posting replies to renee's review"
   );
 });
@@ -214,13 +220,10 @@ test('a prose gate keeps its parked chip in the MR strip', async () => {
   expect($('.tui-gate-sheet-actions [data-gate="parked"]')).toBeNull();
 });
 
-test('with no MR row the object line falls back to the subject reference', async () => {
+test('with no MR row there is no MR card and the rail names the subject reference', async () => {
   await renderModal(gate({}));
-  const object = $('.tui-respond-object')!;
-  expect(object.querySelector('.tui-respond-object-ref')!.textContent).toBe(
-    '!87'
-  );
-  expect(object.querySelector('.tui-respond-object-title')).toBeNull();
+  expect($('.tui-mr-card')).toBeNull();
+  expect($('.tui-sheet-dock-heading')!.textContent).toBe('Responses on !87');
 });
 
 test('a prose respond gate keeps the MR strip and the context pane', async () => {
@@ -277,13 +280,13 @@ const linkLabels = () =>
     a.getAttribute('href'),
   ]);
 
-test('the header card links the MR on its forge and its ticket on Linear', async () => {
+test('the MR card links the MR on its forge and its ticket on Linear', async () => {
   const mr = {
     ...MR,
     webUrl: 'https://gitlab.example.com/demo/app/-/merge_requests/87',
   } as BoardMRWithReview;
   await renderModal(gate({}), mr);
-  expect($('.tui-respond-head .tui-mr-links')).not.toBeNull();
+  expect($('.tui-mr-card .tui-mr-links')).not.toBeNull();
   expect(linkLabels()).toEqual([
     [
       'open !87 in GitLab',

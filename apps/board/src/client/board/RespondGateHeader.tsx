@@ -60,7 +60,7 @@ export function headerChips(ctx: PlanCtx | PostCtx): HeaderChip[] {
 
 /** `!<n>` from an `mr:<url>` subject: the object line's stand-in when the
     board has no row for the MR, so the card never waits on the join. */
-function subjectRef(subject: string): string {
+export function subjectRef(subject: string): string {
   const m = subject.startsWith('mr:') ? /(\d+)\/?$/.exec(subject) : null;
   return m ? `!${m[1]}` : subject;
 }

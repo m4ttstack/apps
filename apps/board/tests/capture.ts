@@ -219,7 +219,7 @@ try {
     // queue. The first gate may be the review sheet, so either face counts
     // as open.
     await page.click('.tui-dq-open');
-    await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
+    await page.waitForSelector('.tui-gate-sheet');
     const legacy = page.locator(
       '.tui-triage-sheet [data-part="scrollpane-body"]',
       { hasText: '[Important] Dropped guard' }
@@ -233,7 +233,7 @@ try {
     await page.keyboard.press('Escape');
     // The structured review-post gate: the full-screen review sheet.
     await page.click('.tui-dq-open');
-    await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
+    await page.waitForSelector('.tui-gate-sheet');
     const sheet = page.locator('.tui-review-sheet');
     for (let i = 0; i < 10 && !(await sheet.count()); i++) {
       await page.getByRole('button', { name: 'next gate' }).click();
@@ -242,22 +242,22 @@ try {
     await sheet.waitFor();
     await shoot(page, `reviewsheet-${theme}`);
     await page.keyboard.press('Escape');
-    // Structured respond gates: the header card in place of the MR strip,
-    // then the thread card (respond-plan) and the replies card (respond-post).
-    // Each shot reopens the queue, which starts a fresh session at the first
+    // Structured respond gates in the two-column respond sheet: every thread
+    // card (respond-plan), then the replies checklist (respond-post). Each
+    // shot reopens the queue, which starts a fresh session at the first
     // gate, and skips forward to its gate.
-    for (const [shape, name] of [
-      ['plan@1', 'queueplan'],
-      ['post@1', 'queuepost'],
+    for (const [marker, name] of [
+      ['.tui-thread-card', 'queueplan'],
+      ['[data-gate-ctx="replies"]', 'queuepost'],
     ] as const) {
       await page.click('.tui-dq-open');
-      await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
-      const head = page.locator(`.tui-respond-head[data-shape="${shape}"]`);
+      await page.waitForSelector('.tui-gate-sheet');
+      const head = page.locator(`.tui-respond-sheet ${marker}`);
       for (let i = 0; i < 10 && !(await head.count()); i++) {
         await page.getByRole('button', { name: 'next gate' }).click();
         await page.waitForTimeout(120);
       }
-      await head.waitFor();
+      await head.first().waitFor();
       await shoot(page, `${name}-${theme}`);
       await page.keyboard.press('Escape');
     }

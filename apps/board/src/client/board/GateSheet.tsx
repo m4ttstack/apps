@@ -31,7 +31,7 @@ function GateSheet({
   onClose,
   children,
 }: {
-  variant: 'review' | 'triage';
+  variant: 'review' | 'respond' | 'triage';
   ariaLabel: string;
   actions?: ReactNode;
   queue?: GateSheetQueue;

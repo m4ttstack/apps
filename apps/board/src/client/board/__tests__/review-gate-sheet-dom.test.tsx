@@ -293,7 +293,7 @@ test('collapses findings-1/findings-2 into one six-row list with a full tally', 
   const rows = container.querySelectorAll('.tui-review-finding-row');
   expect(rows.length).toBe(6);
 
-  const tally = container.querySelector('.tui-review-find-tally');
+  const tally = container.querySelector('.tui-sheet-list-tally');
   expect(tally?.textContent).toContain('6 of 6 selected');
 });
 
@@ -311,7 +311,7 @@ test('tier group headers show their counts', async () => {
 test('unchecking a finding updates the tally and the submit label', async () => {
   await render();
 
-  const submitBefore = container.querySelector('.tui-review-submit');
+  const submitBefore = container.querySelector('.tui-sheet-submit');
   expect(submitBefore?.textContent).toBe('post 6 · approve');
 
   const first = container.querySelector(
@@ -320,10 +320,10 @@ test('unchecking a finding updates the tally and the submit label', async () => 
   expect(first.checked).toBe(true);
   await click(first);
 
-  const tally = container.querySelector('.tui-review-find-tally');
+  const tally = container.querySelector('.tui-sheet-list-tally');
   expect(tally?.textContent).toContain('5 of 6 selected');
 
-  const submitAfter = container.querySelector('.tui-review-submit');
+  const submitAfter = container.querySelector('.tui-sheet-submit');
   expect(submitAfter?.textContent).toBe('post 5 · approve');
 });
 
@@ -331,12 +331,12 @@ test('the verdict renders as gate choices with the recommended badge', async () 
   await render();
 
   const choices = container.querySelectorAll(
-    '.tui-review-sheet-rail .tui-gate-choice'
+    '.tui-sheet-rail .tui-gate-choice'
   );
   expect(choices.length).toBe(2);
 
   const radios = [
-    ...container.querySelectorAll('.tui-review-sheet-rail input[type=radio]'),
+    ...container.querySelectorAll('.tui-sheet-rail input[type=radio]'),
   ] as HTMLInputElement[];
   expect(radios.map(r => r.value).sort()).toEqual(['approve', 'comment']);
   expect(radios.find(r => r.value === 'approve')?.checked).toBe(true);
@@ -412,7 +412,7 @@ test('a note on the outcome question posts as {value, note}, not silently droppe
   await render();
 
   const note = container.querySelector(
-    '.tui-review-verdict .tui-gate-note'
+    '.tui-sheet-dock .tui-gate-note'
   ) as HTMLInputElement;
   expect(note.value).toBe('Merge once CI settles.');
 
@@ -454,19 +454,19 @@ test('reset re-seeds every finding checked and the recommended outcome, never a 
   ) as HTMLInputElement;
   await click(comment);
 
-  expect(container.querySelector('.tui-review-submit')?.textContent).toBe(
+  expect(container.querySelector('.tui-sheet-submit')?.textContent).toBe(
     'post 5 · comment'
   );
 
   await click(buttonByText('reset'));
 
   expect(
-    container.querySelector('.tui-review-find-tally')?.textContent
+    container.querySelector('.tui-sheet-list-tally')?.textContent
   ).toContain('6 of 6 selected');
-  expect(container.querySelector('.tui-review-submit')?.textContent).toBe(
+  expect(container.querySelector('.tui-sheet-submit')?.textContent).toBe(
     'post 6 · approve'
   );
-  expect(container.querySelector('.tui-review-submit')?.textContent).not.toBe(
+  expect(container.querySelector('.tui-sheet-submit')?.textContent).not.toBe(
     'post 6 · '
   );
 });
@@ -681,18 +681,18 @@ test('a disposition renders as a small state pill on its row', async () => {
 
 test('the decision card reads readiness, summary, counts, and the re-review line from review@1', async () => {
   await render(RE_REVIEW_GATE);
+  expect(container.querySelector('.tui-sheet-context-lead')!.textContent).toBe(
+    'Ready to merge: with fixes'
+  );
   expect(
-    container.querySelector('.tui-review-decision-lead')!.textContent
-  ).toBe('Ready to merge: with fixes');
-  expect(
-    container.querySelector('.tui-review-decision-reasoning')!.textContent
+    container.querySelector('.tui-sheet-context-reasoning')!.textContent
   ).toContain('One important finding carried over; the rest are cleanups.');
-  expect(
-    container.querySelector('.tui-review-decision-meta')!.textContent
-  ).toBe('renee · round 2 · 3 addressed, 1 still open');
+  expect(container.querySelector('.tui-sheet-context-meta')!.textContent).toBe(
+    'renee · round 2 · 3 addressed, 1 still open'
+  );
   const railPills = [
     ...container.querySelectorAll(
-      '.tui-review-decision-card .tui-review-tier-pill'
+      '.tui-sheet-context-card .tui-review-tier-pill'
     ),
   ].map(p => p.textContent);
   expect(railPills).toEqual(['Important (1)', 'Minor (2)']);
@@ -700,9 +700,9 @@ test('the decision card reads readiness, summary, counts, and the re-review line
 
 test('a first-round review has no meta line beyond the reviewer', async () => {
   await render();
-  expect(
-    container.querySelector('.tui-review-decision-meta')!.textContent
-  ).toBe('renee');
+  expect(container.querySelector('.tui-sheet-context-meta')!.textContent).toBe(
+    'renee'
+  );
 });
 
 test("report.json's summary never reaches the decision card", async () => {
@@ -724,9 +724,9 @@ test("report.json's summary never reaches the decision card", async () => {
   await React.act(async () => {
     await new Promise(resolve => setTimeout(resolve, 0));
   });
-  expect(
-    container.querySelector('.tui-review-decision-lead')!.textContent
-  ).toBe('Ready to merge: with fixes');
+  expect(container.querySelector('.tui-sheet-context-lead')!.textContent).toBe(
+    'Ready to merge: with fixes'
+  );
   expect(container.textContent).not.toContain('from the report file');
   expect(container.textContent).toContain('verify. suite green');
 });

@@ -26,7 +26,7 @@ import {
   PencilLineIcon,
   SearchCheckIcon,
 } from './icons.tsx';
-import { MrLinks } from './MrLinks.tsx';
+import { MrCard } from './MrCard.tsx';
 import {
   readinessProse,
   readReviewGate,
@@ -390,51 +390,17 @@ function ReviewGateSheet({
       tag={`review gate${mr ? ` !${mr.iid}` : ''}`}
       onClose={onClose}
     >
-      <div className="tui-review-sheet-body">
-        <section className="tui-review-sheet-main" ref={mainRef}>
-          {mr && (
-            <div className="tui-review-mr-card">
-              <Invadr
-                id={mr.author.username}
-                palette="css-vars"
-                className="tui-review-mr-avatar"
-              />
-              <div className="tui-review-mr-body">
-                <div className="tui-review-mr-head">
-                  <span className="tui-review-author">
-                    {mr.author.name || mr.author.username}
-                  </span>
-                  <span className="tui-review-mr-open">
-                    opened !{mr.iid} into {mr.targetBranch} ·{' '}
-                    {ago(mr.createdAt, Date.now())}
-                  </span>
-                </div>
-                <h2 className="tui-review-mr-title">{cleanTitle(mr.title)}</h2>
-                <div className="tui-review-mr-meta">
-                  <span className="tui-branch">{mr.sourceBranch}</span>
-                  {mr.diff && (
-                    <span className="tui-review-diff">
-                      <span className="tui-review-diff-add">
-                        +{mr.diff.additions}
-                      </span>
-                      <span className="tui-review-diff-del">
-                        -{mr.diff.deletions}
-                      </span>
-                    </span>
-                  )}
-                </div>
-              </div>
-              <MrLinks mr={mr} />
-            </div>
-          )}
+      <div className="tui-sheet-body">
+        <section className="tui-sheet-main" ref={mainRef}>
+          {mr && <MrCard mr={mr} />}
 
           {findingsQuestion && (
             <>
-              <div className="tui-review-find-head">
-                <span className="tui-review-find-title">
+              <div className="tui-sheet-list-head">
+                <span className="tui-sheet-list-title">
                   {findingsQuestion.label}
                 </span>
-                <span className="tui-review-find-tally">
+                <span className="tui-sheet-list-tally">
                   {selectedFindings.size} of {findings.length} selected
                   {!atEnd && moreBelow > 0 ? ` · ${moreBelow} more below` : ''}
                 </span>
@@ -604,9 +570,9 @@ function ReviewGateSheet({
             <FullReportDisclosure mrUrl={mr?.webUrl} />
           )}
         </section>
-        <aside className="tui-review-sheet-rail">
+        <aside className="tui-sheet-rail">
           {form.lost ? (
-            <div className="tui-review-lost">
+            <div className="tui-sheet-lost">
               <span className="tui-gate-error">answered elsewhere</span>
               <AnsweredChip
                 startOpen
@@ -621,20 +587,20 @@ function ReviewGateSheet({
             </div>
           ) : (
             <>
-              <div className="tui-review-rail-scroll">
-                <div className="tui-review-decision-card">
-                  <span className="tui-review-decision-label">
+              <div className="tui-sheet-rail-scroll">
+                <div className="tui-sheet-context-card">
+                  <span className="tui-sheet-context-label">
                     decision context
                   </span>
-                  <p className="tui-review-decision-lead">
+                  <p className="tui-sheet-context-lead">
                     {readinessProse(review.readiness)}
                   </p>
-                  <div className="tui-review-decision-reasoning">
+                  <div className="tui-sheet-context-reasoning">
                     <Markdown unstyled linkTargetBlank>
                       {review.summary}
                     </Markdown>
                   </div>
-                  {meta && <p className="tui-review-decision-meta">{meta}</p>}
+                  {meta && <p className="tui-sheet-context-meta">{meta}</p>}
                   {SEVERITY_ORDER.some(s => review.findings[s] > 0) && (
                     <div className="tui-review-tier-pills">
                       {SEVERITY_ORDER.filter(s => review.findings[s] > 0).map(
@@ -683,14 +649,14 @@ function ReviewGateSheet({
               </div>
 
               {outcomeQuestion && (
-                <div className="tui-review-verdict">
-                  <div className="tui-review-verdict-head">
-                    <h3 className="tui-review-verdict-heading">
+                <div className="tui-sheet-dock">
+                  <div className="tui-sheet-dock-head">
+                    <h3 className="tui-sheet-dock-heading">
                       Verdict on !{mr?.iid ?? ''}
                     </h3>
                     <button
                       type="button"
-                      className="tui-review-reset"
+                      className="tui-sheet-reset"
                       onClick={handleReset}
                     >
                       reset
@@ -764,7 +730,7 @@ function ReviewGateSheet({
                     variant="filled"
                     intent="accent"
                     size="lg"
-                    className="tui-review-submit"
+                    className="tui-sheet-submit"
                     disabled={form.busy || typeof selectedOutcome !== 'string'}
                     onClick={submit}
                   >

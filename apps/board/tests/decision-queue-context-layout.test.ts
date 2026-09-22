@@ -109,23 +109,16 @@ async function nextUntil(page: Page, selector: string): Promise<void> {
 }
 
 type Layout = {
-  kind: 'review' | 'triage';
+  kind: 'review' | 'respond' | 'triage';
   sheetTop: number;
   sheetBottom: number;
   sheetScrolls: boolean;
-  /** The step nav (triage) or the submit (review): the one control that
-      moves the decision forward. */
+  /** The rail's docked submit (review, respond) or the step nav (triage):
+      the one control that moves the decision forward. */
   forwardBottom: number;
   itemsScrolls: boolean;
   paneRootHeight: number;
   paneFloorPx: number;
-  paneScrolls: boolean;
-  /** Per choice of the ACTIVE question: whether its whole box lies inside
-      `.tui-gate-items`'s visible (unscrolled) viewport. */
-  choicesVisible: boolean[];
-  /** Whether the active question's drafted reply lies fully inside its
-      thread card's visible area; null without a thread card. */
-  replyBoxVisibleInCard: boolean | null;
 };
 
 function measure(page: Page): Promise<Layout> {
@@ -133,45 +126,24 @@ function measure(page: Page): Promise<Layout> {
     const { document } = globalThis as unknown as PageGlobals;
     const sheet = document.querySelector('.tui-gate-sheet')!;
     const review = document.querySelector('.tui-review-sheet');
-    const forward = review
-      ? document.querySelector('.tui-review-submit')
-      : document.querySelector('.tui-gate-actions');
+    const respond = document.querySelector('.tui-respond-sheet');
+    const forward =
+      document.querySelector('.tui-sheet-submit') ??
+      document.querySelector('.tui-gate-actions');
     const items = document.querySelector('.tui-gate-items');
     const root = document.querySelector(
       '.tui-triage-sheet [data-part="scrollpane"]'
     );
-    const pane = document.querySelector(
-      '.tui-triage-sheet [data-part="scrollpane-body"]'
-    );
-    const active = document.querySelector('.tui-gate-question[data-active]');
-    let choicesVisible: boolean[] = [];
-    if (items && active) {
-      const r = items.getBoundingClientRect();
-      const bottom = r.top + items.clientHeight;
-      choicesVisible = [...active.querySelectorAll('.tui-gate-choice')].map(
-        c => {
-          const b = c.getBoundingClientRect();
-          return b.top >= r.top - 0.5 && b.bottom <= bottom + 0.5;
-        }
-      );
-    }
-    const card = active ? active.querySelectorAll('.tui-thread-card')[0] : null;
-    const reply = active
-      ? active.querySelectorAll('.tui-thread-reply')[0]
-      : null;
-    let replyBoxVisibleInCard: boolean | null = null;
-    if (card && reply) {
-      const c = card.getBoundingClientRect();
-      const r = reply.getBoundingClientRect();
-      replyBoxVisibleInCard =
-        r.top >= c.top - 0.5 && r.bottom <= c.top + card.clientHeight + 0.5;
-    }
     const win = globalThis as unknown as {
       getComputedStyle(el: unknown): { minHeight: string };
     };
     const sheetRect = sheet.getBoundingClientRect();
     return {
-      kind: review ? ('review' as const) : ('triage' as const),
+      kind: review
+        ? ('review' as const)
+        : respond
+          ? ('respond' as const)
+          : ('triage' as const),
       sheetTop: sheetRect.top,
       sheetBottom: sheetRect.bottom,
       sheetScrolls: sheet.scrollHeight > sheet.clientHeight + 1,
@@ -180,9 +152,6 @@ function measure(page: Page): Promise<Layout> {
       itemsScrolls: items ? items.scrollHeight > items.clientHeight + 1 : false,
       paneRootHeight: root ? root.getBoundingClientRect().height : 0,
       paneFloorPx: root ? parseFloat(win.getComputedStyle(root).minHeight) : 0,
-      paneScrolls: pane ? pane.scrollHeight > pane.clientHeight : false,
-      choicesVisible,
-      replyBoxVisibleInCard,
     };
   });
 }
@@ -209,20 +178,25 @@ test('every gate fills the window, never scrolls, and keeps its forward control 
       await page.waitForTimeout(150);
     }
     expect(await page.locator('.tui-triage-done').count()).toBe(0);
-    expect([...kinds].sort()).toEqual(['review', 'triage']);
+    expect([...kinds].sort()).toEqual(['respond', 'review', 'triage']);
     await page.context().close();
   }
 }, 60_000);
 
-test('laptop: a respond thread gate shows its whole drafted reply and every choice, no scroll', async () => {
+test('laptop: a respond gate lists every thread at full height beside a docked submit', async () => {
   const page = await openQueue(LAPTOP);
-  await nextUntil(page, '.tui-thread-card');
-  const m = await measure(page);
-  expect(m.replyBoxVisibleInCard).toBe(true);
-  expect(m.choicesVisible.length).toBeGreaterThan(0);
-  expect(m.choicesVisible.every(Boolean)).toBe(true);
-  expect(m.itemsScrolls).toBe(false);
-  expectSheetLaw(m, LAPTOP);
+  await nextUntil(page, '.tui-respond-sheet');
+  const cards = await page.evaluate(() => {
+    const { document } = globalThis as unknown as {
+      document: { querySelectorAll(s: string): ArrayLike<Measured> };
+    };
+    return Array.from(
+      document.querySelectorAll('.tui-respond-list .tui-thread-card')
+    ).map(c => c.scrollHeight <= c.clientHeight + 1);
+  });
+  expect(cards.length).toBeGreaterThan(1);
+  expect(cards.every(Boolean)).toBe(true);
+  expectSheetLaw(await measure(page), LAPTOP);
   await page.context().close();
 }, 30_000);
 
@@ -282,7 +256,7 @@ test('queue nav: previous is disabled at the first gate and walks back from the 
 
 test('the recommended choice is highlighted only until something in its question is picked', async () => {
   const page = await openQueue(LAPTOP);
-  await nextUntil(page, '.tui-thread-card');
+  await nextUntil(page, '.tui-respond-sheet');
   const tinted = () =>
     page.evaluate(() => {
       const { document } = globalThis as unknown as {
@@ -293,7 +267,7 @@ test('the recommended choice is highlighted only until something in its question
       };
       return Array.from(
         document.querySelectorAll(
-          '.tui-gate-question[data-active] .tui-gate-choice[data-recommended]'
+          '.tui-respond-list > .tui-gate-question:first-child .tui-gate-choice[data-recommended]'
         )
       ).map(
         c => win.getComputedStyle(c).backgroundColor !== 'rgba(0, 0, 0, 0)'
@@ -302,7 +276,7 @@ test('the recommended choice is highlighted only until something in its question
   expect(await tinted()).toEqual([true]);
   await page
     .locator(
-      '.tui-gate-question[data-active] .tui-gate-choice:not([data-recommended])'
+      '.tui-respond-list > .tui-gate-question:first-child .tui-gate-choice:not([data-recommended])'
     )
     .first()
     .click();

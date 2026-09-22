@@ -2350,7 +2350,7 @@ body {
 }
 /* A respond-post reply option carries the full reply text, so the box
    tops its checkbox against the first line instead of centring it. */
-.tui-gate-question[data-gate-ctx='replies'] .tui-gate-choice {
+[data-gate-ctx='replies'] .tui-gate-choice {
   align-items: flex-start;
 }
 .tui-reply-choice-file {
@@ -2372,7 +2372,7 @@ body {
 /* The recommended choice is marked only while its question has no pick,
    so the eye lands on it before the pointer does; once anything is picked,
    the pick is the only highlighted choice. */
-.tui-gate-question:not(:has([data-checked]))
+:is(.tui-gate-question, .tui-sheet-dock-question):not(:has([data-checked]))
   .tui-gate-choice[data-recommended] {
   border-color: color-mix(in srgb, var(--fill-accent) 55%, var(--border));
   background: color-mix(in srgb, var(--fill-accent) 7%, transparent);
@@ -3665,7 +3665,7 @@ body {
   color: var(--text-1);
   background: color-mix(in srgb, var(--fg) 6%, transparent);
 }
-.tui-review-sheet-body {
+.tui-sheet-body {
   flex: 1;
   display: flex;
   min-height: 0;
@@ -3688,12 +3688,12 @@ body {
 .tui-triage-sheet-body > .tui-triage-done {
   margin: auto 0;
 }
-.tui-review-sheet-main {
+.tui-sheet-main {
   flex: 1;
   overflow-y: auto;
   padding: 22px 28px;
 }
-.tui-review-sheet-rail {
+.tui-sheet-rail {
   width: 470px;
   flex-shrink: 0;
   border-left: 1px solid var(--border);
@@ -3705,7 +3705,7 @@ body {
 /* The rail splits in two: reference material scrolls, the decision docks.
    The submit is the one control a long report must never push off-screen,
    so the scroll lives on the half above it rather than on the rail. */
-.tui-review-rail-scroll {
+.tui-sheet-rail-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -3741,7 +3741,7 @@ body {
   color: var(--text-1);
   border-color: var(--fill-accent);
 }
-.tui-review-mr-card {
+.tui-mr-card {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -3751,32 +3751,32 @@ body {
   border-radius: 10px;
   background: var(--panel);
 }
-.tui-review-mr-avatar {
+.tui-mr-card-avatar {
   width: 42px;
   height: 42px;
   flex-shrink: 0;
   border-radius: 8px;
   overflow: hidden;
 }
-.tui-review-mr-body {
+.tui-mr-card-body {
   min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.tui-review-mr-head {
+.tui-mr-card-head {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
-.tui-review-author {
+.tui-mr-card-author {
   color: var(--text-purple);
   font-size: 15px;
   font-weight: 700;
 }
-.tui-review-mr-open {
+.tui-mr-card-open {
   color: var(--text-3);
   font-size: var(--gate-font-meta);
 }
@@ -3784,44 +3784,65 @@ body {
    13.5, meta 12, all sans) and lets the author line carry the emphasis. A
    16px bold title plus an 11px mono meta was three sizes and two families
    fighting inside one block. */
-.tui-review-mr-title {
+.tui-mr-card-title {
   margin: 0;
   font-size: 13.5px;
   font-weight: 500;
 }
-.tui-review-mr-meta {
+.tui-mr-card-meta {
   display: flex;
   align-items: center;
   gap: 10px;
   color: var(--text-4);
   font-size: 12px;
 }
-.tui-review-diff {
+.tui-mr-card-diff {
   display: inline-flex;
   gap: 6px;
 }
-.tui-review-diff-add {
+.tui-mr-card-diff-add {
   color: var(--color-gray-okText);
 }
-.tui-review-diff-del {
+.tui-mr-card-diff-del {
   color: var(--text-bad-small);
 }
 
 /* findings list */
-.tui-review-find-head {
+.tui-sheet-list-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
   margin: 18px 0 10px;
 }
-.tui-review-find-title {
-  font-weight: 600;
+.tui-sheet-list-title {
+  font-weight: 700;
 }
-.tui-review-find-tally {
+.tui-sheet-list-tally {
   color: var(--text-3);
   font-size: var(--gate-font-meta);
   white-space: nowrap;
+}
+/* A respond sheet decides each thread on its own card, all of them in
+   the main column, which scrolls; a card's context shows at full height. */
+.tui-respond-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tui-respond-list .tui-thread-card {
+  max-height: none;
+  overflow: visible;
+}
+.tui-respond-replies,
+.tui-sheet-dock-question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tui-sheet-dock-prompt {
+  font-size: var(--gate-font-meta);
+  color: var(--text-2);
 }
 .tui-review-find-list {
   position: relative;
@@ -4077,7 +4098,7 @@ body {
 }
 
 /* right rail */
-.tui-review-decision-card {
+.tui-sheet-context-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -4086,13 +4107,13 @@ body {
   border-radius: 10px;
   background: var(--card);
 }
-.tui-review-decision-label {
+.tui-sheet-context-label {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-4);
 }
-.tui-review-decision-lead {
+.tui-sheet-context-lead {
   margin: 0;
   font-weight: 600;
   color: var(--text-1);
@@ -4101,18 +4122,18 @@ body {
    footnote: it reads at full foreground alongside the checks, while the
    genuinely secondary lines (fix gists, strengths detail, option
    subtitles) stay on the muted text token. */
-.tui-review-decision-reasoning {
+.tui-sheet-context-reasoning {
   margin: 0;
   color: var(--text-1);
   font-size: var(--gate-font-meta);
 }
-.tui-review-decision-reasoning [data-part='markdown'] > * {
+.tui-sheet-context-reasoning [data-part='markdown'] > * {
   margin: 0;
 }
-.tui-review-decision-reasoning [data-part='markdown'] > * + * {
+.tui-sheet-context-reasoning [data-part='markdown'] > * + * {
   margin-top: 6px;
 }
-.tui-review-decision-meta {
+.tui-sheet-context-meta {
   margin: 0;
   color: var(--text-3);
   font-size: var(--gate-font-meta);
@@ -4162,7 +4183,7 @@ body {
 /* The docked decision is its own plane: one step off the rail's card, bled
    to the rail's edges with a hairline above it, so the scrolling reference
    material above reads as passing behind it. */
-.tui-review-verdict {
+.tui-sheet-dock {
   background: var(--surface-wash-fg-4-card);
   border-top: 1px solid var(--border-soft);
   padding: 14px 26px 18px;
@@ -4170,18 +4191,18 @@ body {
   flex-direction: column;
   gap: 10px;
 }
-.tui-review-verdict-heading {
+.tui-sheet-dock-heading {
   margin: 0;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
-.tui-review-submit {
+.tui-sheet-submit {
   min-height: 44px;
   border-radius: 8px;
 }
 /* Sits with the verdict heading rather than under the submit: a full-width
    lg button spent a whole row of docked height on the least-used control. */
-.tui-review-reset {
+.tui-sheet-reset {
   border: none;
   background: none;
   padding: 0;
@@ -4189,11 +4210,11 @@ body {
   color: var(--text-4);
   cursor: pointer;
 }
-.tui-review-reset:hover {
+.tui-sheet-reset:hover {
   color: var(--text-accent-small);
   text-decoration: underline;
 }
-.tui-review-verdict-head {
+.tui-sheet-dock-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4201,7 +4222,7 @@ body {
 }
 /* CAS-loss face: the rail swaps entirely to this instead of appearing to
    accept a selection that can no longer be posted. */
-.tui-review-lost {
+.tui-sheet-lost {
   display: flex;
   flex-direction: column;
   gap: 8px;

@@ -16,6 +16,7 @@ import {
 import { GateSheet, type GateSheetQueue } from './GateSheet.tsx';
 import { MrLinks } from './MrLinks.tsx';
 import { RespondGateHeader } from './RespondGateHeader.tsx';
+import { RespondSheetBody } from './RespondSheet.tsx';
 import { isReviewSheetGate, paneContext } from './review-gate.ts';
 import { ReviewGateSheet } from './ReviewGateSheet.tsx';
 import {
@@ -168,6 +169,46 @@ function DecisionQueueModal({
     nextPeek,
   };
 
+  const actions = (
+    <>
+      {/* A parked gate has no pane: the board closed it on park, and the
+            recorded answer is what brings it back (resumeParkedGate). The
+            button stays so the head never rearranges, disabled with the
+            reason, as it is when the reconciler reports the pane gone. */}
+      {gate.status === 'parked' ? (
+        <Button
+          type="button"
+          variant="light"
+          intent="accent"
+          size="sm"
+          disabled
+          title="parked: answering this gate resumes its pane"
+        >
+          focus pane
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="light"
+          intent="accent"
+          size="sm"
+          disabled={!form.originFocusable || form.focusBusy || paneGone}
+          title={
+            paneGone
+              ? 'pane is gone'
+              : form.originFocusable
+                ? 'jump into the pane behind this gate'
+                : 'no origin on this gate'
+          }
+          onClick={() => void form.focusGate()}
+        >
+          focus pane
+        </Button>
+      )}
+      {headerCtx && <GateStateChips gate={gate} />}
+    </>
+  );
+
   if (isReviewSheet && actionable) {
     return (
       <ReviewGateSheet
@@ -181,6 +222,21 @@ function DecisionQueueModal({
     );
   }
 
+  if (headerCtx && actionable) {
+    return (
+      <GateSheet
+        variant="respond"
+        ariaLabel="decision queue"
+        queue={queue}
+        tag={gate.label}
+        onClose={onClose}
+        actions={actions}
+      >
+        <RespondSheetBody gate={gate} mr={mr} ctx={headerCtx} form={form} />
+      </GateSheet>
+    );
+  }
+
   return (
     <GateSheet
       variant="triage"
@@ -188,45 +244,7 @@ function DecisionQueueModal({
       queue={queue}
       tag={gate.label}
       onClose={onClose}
-      actions={
-        <>
-          {/* A parked gate has no pane: the board closed it on park, and the
-                recorded answer is what brings it back (resumeParkedGate). The
-                button stays so the head never rearranges, disabled with the
-                reason, as it is when the reconciler reports the pane gone. */}
-          {gate.status === 'parked' ? (
-            <Button
-              type="button"
-              variant="light"
-              intent="accent"
-              size="sm"
-              disabled
-              title="parked: answering this gate resumes its pane"
-            >
-              focus pane
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="light"
-              intent="accent"
-              size="sm"
-              disabled={!form.originFocusable || form.focusBusy || paneGone}
-              title={
-                paneGone
-                  ? 'pane is gone'
-                  : form.originFocusable
-                    ? 'jump into the pane behind this gate'
-                    : 'no origin on this gate'
-              }
-              onClick={() => void form.focusGate()}
-            >
-              focus pane
-            </Button>
-          )}
-          {headerCtx && <GateStateChips gate={gate} />}
-        </>
-      }
+      actions={actions}
     >
       <div className="tui-triage-sheet-body">
         {headerCtx ? (
