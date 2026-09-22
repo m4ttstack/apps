@@ -30,35 +30,27 @@ import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview } from '../types.ts';
 import type { TriageGateState } from './DecisionQueueModal.tsx';
 import { Disclosure, DisclosureHead } from './Disclosure.tsx';
-import { parseFindingOption, type ParsedFinding } from './finding-option.ts';
 import { ago, cleanTitle } from './format.ts';
-import { parseGateContext, sectionFor } from './gate-context.ts';
+import type { Disposition, FindingEntry, FindingSeverity } from './gate-ctx.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
 import {
   CircleCheckFilledIcon,
-  NoAnchorIcon,
   PencilLineIcon,
   SearchCheckIcon,
 } from './icons.tsx';
-
-/** Readiness values (`with-fixes`, `blocked`, ...) come as hyphenated
-    tokens whether they arrive from `report.summary.readiness` or from a
-    parsed `gate.context` verdict; both feed this one sentence. The
-    question-and-answer prefix only fits the schema's own vocabulary --
-    a foreign verdict like `blocked` renders bare so the sentence never
-    contradicts itself. */
-const READINESS_VALUES = new Set(['yes', 'no', 'with-fixes']);
-function readinessProse(value: string): string {
-  const prose = value.replace(/-/g, ' ');
-  return READINESS_VALUES.has(value) ? `Ready to merge: ${prose}` : prose;
-}
+import {
+  readinessProse,
+  readReviewGate,
+  reviewMeta,
+  SEVERITY_LABEL,
+  SEVERITY_ORDER,
+} from './review-gate.ts';
 
 /** The engine's optional record fields (`docs/superpowers/specs/
     2026-09-18-review-gate-redesign-design.md` §1): all absent on a report
     that only carries `summary`/`findings`, in which case the sheet falls
     back to the raw markdown instead of an empty cluster. */
 interface ReviewReportJson {
-  summary?: { readiness?: string; reasoning?: string };
   depth?: string;
   strengths?: Array<{ lead: string; detail?: string }>;
   checks?: Array<{ tag: string; text: string }>;
@@ -66,23 +58,12 @@ interface ReviewReportJson {
 }
 
 /** report.json arrives from disk unvalidated; the record arrays each have
-    their own safe* guard at render, but `summary` fields land in JSX
-    directly, where a non-string (an object readiness, say) would throw as
-    a React child. Keep only the string-shaped summary fields. */
+    their own safe* guard at render, and `depth` lands in JSX directly, so
+    a non-string one is dropped here. */
 function sanitizeReport(j: unknown): ReviewReportJson | null {
   if (typeof j !== 'object' || j === null || Array.isArray(j)) return null;
   const raw = j as Record<string, unknown>;
   const out: ReviewReportJson = { ...(raw as ReviewReportJson) };
-  const s = raw['summary'];
-  if (typeof s === 'object' && s !== null && !Array.isArray(s)) {
-    const summary: { readiness?: string; reasoning?: string } = {};
-    const { readiness, reasoning } = s as Record<string, unknown>;
-    if (typeof readiness === 'string') summary.readiness = readiness;
-    if (typeof reasoning === 'string') summary.reasoning = reasoning;
-    out.summary = summary;
-  } else {
-    delete out.summary;
-  }
   if (typeof raw['depth'] !== 'string') delete out.depth;
   return out;
 }
@@ -205,16 +186,25 @@ function singles(answers: GateAnswers): GateAnswers {
   return out;
 }
 
-function tierGroupsOf(
-  findings: ParsedFinding[]
-): Array<[string, ParsedFinding[]]> {
-  const map = new Map<string, ParsedFinding[]>();
-  for (const f of findings) {
-    const list = map.get(f.tier);
-    if (list) list.push(f);
-    else map.set(f.tier, [f]);
-  }
-  return [...map.entries()];
+const DISPOSITION: Record<
+  Disposition,
+  { text: string; hue: 'accent' | 'amber' | 'green' }
+> = {
+  new: { text: 'new', hue: 'accent' },
+  'still-open': { text: 'still open', hue: 'amber' },
+  'addressed-check': { text: 'confirm fix', hue: 'green' },
+};
+
+function severityGroups(
+  findings: FindingEntry[]
+): Array<[FindingSeverity, FindingEntry[]]> {
+  return SEVERITY_ORDER.map(
+    s =>
+      [s, findings.filter(f => f.severity === s)] as [
+        FindingSeverity,
+        FindingEntry[],
+      ]
+  ).filter(([, items]) => items.length > 0);
 }
 
 /** The full-screen sheet a `review-post` gate opens (design doc §4). Header
@@ -280,14 +270,9 @@ function ReviewGateSheet({
     () => collapseChunks(gate.questions),
     [gate.questions]
   );
+  const data = useMemo(() => readReviewGate(gate), [gate]);
   const findingsQuestion = useMemo<GateQuestion | undefined>(
-    () =>
-      questions.find(
-        q =>
-          q.multi &&
-          q.options.length > 0 &&
-          q.options.some(o => parseFindingOption(o) !== null)
-      ),
+    () => questions.find(q => q.multi && q.id === 'findings'),
     [questions]
   );
   const outcomeQuestion = useMemo<GateQuestion | undefined>(
@@ -297,40 +282,17 @@ function ReviewGateSheet({
   const findingsName = findingsQuestion?.id;
   const outcomeName = outcomeQuestion?.id;
 
-  const findings = useMemo<ParsedFinding[]>(
+  const findings = useMemo<FindingEntry[]>(
     () =>
-      (findingsQuestion?.options ?? [])
-        .map(o => parseFindingOption(o))
-        .filter((f): f is ParsedFinding => f !== null),
-    [findingsQuestion]
+      (findingsQuestion?.options ?? []).flatMap(o => {
+        const f = data?.findings.get(optionValue(o));
+        return f ? [f] : [];
+      }),
+    [findingsQuestion, data]
   );
-  const tierGroups = useMemo(() => tierGroupsOf(findings), [findings]);
-
-  // The gate's own context (design doc §3: "gate-level --context carries the
-  // readiness line and tier counts"), sectioned per question the same way
-  // GateForm.tsx does -- the outcome question's section carries the verdict
-  // recommendation a bare option label may not spell out.
-  const parsedContext = useMemo(
-    () => parseGateContext(gate.context),
-    [gate.context]
-  );
-  const outcomeSection = useMemo(
-    () =>
-      outcomeQuestion
-        ? sectionFor(parsedContext, {
-            id: outcomeQuestion.id,
-            label: outcomeQuestion.label,
-          })
-        : undefined,
-    [parsedContext, outcomeQuestion]
-  );
-  const isRecommended = (o: GateOption) => {
-    if (optionDisplayFor(o).recommended) return true;
-    return (
-      outcomeSection?.recommendation !== undefined &&
-      optionDisplayFor(o).text.toLowerCase() === outcomeSection.recommendation
-    );
-  };
+  const tierGroups = useMemo(() => severityGroups(findings), [findings]);
+  const isRecommended = (o: GateOption) =>
+    Boolean(optionDisplayFor(o).recommended);
 
   // A fresh gate (or an explicit reset) proposes posting everything with the
   // recommended verdict; the reviewer unchecks rather than builds the set
@@ -431,7 +393,7 @@ function ReviewGateSheet({
     };
   }, [findings.length, report]);
 
-  const toggleTier = (items: ParsedFinding[], on: boolean) => {
+  const toggleTier = (items: FindingEntry[], on: boolean) => {
     if (!findingsName) return;
     for (const f of items) form.toggleMulti(findingsName, f.id, on);
   };
@@ -453,6 +415,10 @@ function ReviewGateSheet({
   };
 
   const parked = gate.status === 'parked';
+
+  if (!data) return null;
+  const { review } = data;
+  const meta = reviewMeta(review);
 
   return (
     <div
@@ -601,8 +567,11 @@ function ReviewGateSheet({
                   return (
                     <div className="tui-review-tier-group" key={tier}>
                       <div className="tui-review-tier-head">
-                        <span className="tui-review-tier-pill" data-tier={tier}>
-                          {tier} ({items.length})
+                        <span
+                          className="tui-review-tier-pill"
+                          data-tier={SEVERITY_LABEL[tier]}
+                        >
+                          {SEVERITY_LABEL[tier]} ({items.length})
                         </span>
                         <span className="tui-review-allnone-group">
                           <button
@@ -653,23 +622,26 @@ function ReviewGateSheet({
                                 <span className="tui-review-finding-title">
                                   {f.title}
                                 </span>
-                                {f.kind && (
-                                  <span className="tui-review-finding-kind">
-                                    {f.kind}
+                                {f.disposition && (
+                                  <span
+                                    className="tui-respond-pill"
+                                    data-hue={DISPOSITION[f.disposition].hue}
+                                    data-disposition={f.disposition}
+                                  >
+                                    {DISPOSITION[f.disposition].text}
                                   </span>
                                 )}
                               </span>
-                              {f.anchor && (
+                              {f.file && (
                                 <span className="tui-review-finding-anchor">
-                                  {f.anchor}
+                                  {f.file}
                                 </span>
                               )}
-                              {f.anchorLabel && (
-                                <span className="tui-review-finding-anchor-label">
-                                  <NoAnchorIcon />
-                                  {f.anchorLabel}
-                                </span>
-                              )}
+                              <span className="tui-review-finding-text">
+                                <Markdown unstyled linkTargetBlank>
+                                  {f.body}
+                                </Markdown>
+                              </span>
                               {f.fix && (
                                 <span className="tui-review-finding-fix">
                                   {f.fix}
@@ -768,46 +740,28 @@ function ReviewGateSheet({
                   <span className="tui-review-decision-label">
                     decision context
                   </span>
-                  {report?.summary?.readiness ? (
-                    <p className="tui-review-decision-lead">
-                      {readinessProse(report.summary.readiness)}
-                    </p>
-                  ) : (
-                    outcomeSection?.verdict && (
-                      <p className="tui-review-decision-lead">
-                        {readinessProse(outcomeSection.verdict)}
-                      </p>
-                    )
-                  )}
-                  {report?.summary?.reasoning ? (
-                    <p className="tui-review-decision-reasoning">
-                      {report.summary.reasoning}
-                    </p>
-                  ) : (
-                    (outcomeSection?.remainder ??
-                      outcomeSection?.body ??
-                      parsedContext?.preamble) && (
-                      <div className="tui-review-decision-reasoning">
-                        <Markdown unstyled linkTargetBlank>
-                          {outcomeSection?.remainder ??
-                            outcomeSection?.body ??
-                            parsedContext?.preamble ??
-                            ''}
-                        </Markdown>
-                      </div>
-                    )
-                  )}
-                  {tierGroups.length > 0 && (
+                  <p className="tui-review-decision-lead">
+                    {readinessProse(review.readiness)}
+                  </p>
+                  <div className="tui-review-decision-reasoning">
+                    <Markdown unstyled linkTargetBlank>
+                      {review.summary}
+                    </Markdown>
+                  </div>
+                  {meta && <p className="tui-review-decision-meta">{meta}</p>}
+                  {SEVERITY_ORDER.some(s => review.findings[s] > 0) && (
                     <div className="tui-review-tier-pills">
-                      {tierGroups.map(([tier, items]) => (
-                        <span
-                          className="tui-review-tier-pill"
-                          data-tier={tier}
-                          key={tier}
-                        >
-                          {tier} ({items.length})
-                        </span>
-                      ))}
+                      {SEVERITY_ORDER.filter(s => review.findings[s] > 0).map(
+                        s => (
+                          <span
+                            className="tui-review-tier-pill"
+                            data-tier={SEVERITY_LABEL[s]}
+                            key={s}
+                          >
+                            {SEVERITY_LABEL[s]} ({review.findings[s]})
+                          </span>
+                        )
+                      )}
                     </div>
                   )}
                 </div>

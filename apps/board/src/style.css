@@ -2328,8 +2328,8 @@ body {
 .tui-gate-question-context [data-part='markdown'] > * + * {
   margin-top: 6px;
 }
-/* Respond gates' small uppercase tags: a thread's severity, a reply's verb.
-   Grey unless a hue names what needs the eye. */
+/* The small uppercase tags: a thread's severity, a reply's verb, a
+   finding's disposition. Grey unless a hue names what needs the eye. */
 .tui-respond-pill {
   flex-shrink: 0;
   display: inline-flex;
@@ -4236,10 +4236,8 @@ body {
   min-width: 0;
   flex: 1;
 }
-/* Line 1 is the title and its kind chip alone. The anchor used to sit here
-   too, which stole width from the title and forced it to wrap -- and a
-   finding whose location is prose (the engine's fileLabel) then rendered as
-   a code path. Anchor and fix each get their own line below instead. */
+/* Line 1 is the title and its disposition pill alone; the anchor, the
+   body, and the fix each get their own line below it. */
 .tui-review-finding-line1 {
   display: flex;
   align-items: flex-start;
@@ -4250,32 +4248,25 @@ body {
   flex: 1;
   min-width: 0;
 }
-.tui-review-finding-kind {
-  font-size: 11px;
-  color: var(--color-gray-badgeText);
-  background: color-mix(in srgb, var(--fg) 8%, transparent);
-  border-radius: 4px;
-  padding: 1px 6px;
-  flex-shrink: 0;
-}
 .tui-review-finding-anchor {
   font-family: var(--font-mono);
   font-size: var(--gate-font-meta);
   color: var(--text-accent-small);
   overflow-wrap: anywhere;
 }
-/* A finding that anchors to nothing in the diff: prose, so it never takes
-   the mono/accent treatment a real path gets. */
-.tui-review-finding-anchor-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+/* The finding's full text is the decision material itself, so it reads in
+   ink; only the fix line below it stays on the muted token. */
+.tui-review-finding-text {
+  color: var(--text-1);
   font-size: var(--gate-font-meta);
-  font-style: italic;
-  color: var(--text-3);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
-.tui-review-finding-anchor-label svg {
-  color: var(--text-3);
+.tui-review-finding-text [data-part='markdown'] > * {
+  margin: 0;
+}
+.tui-review-finding-text [data-part='markdown'] > * + * {
+  margin-top: 6px;
 }
 .tui-review-finding-fix {
   color: var(--text-3);
@@ -4381,6 +4372,11 @@ body {
 .tui-review-decision-reasoning {
   margin: 0;
   color: var(--text-1);
+  font-size: var(--gate-font-meta);
+}
+.tui-review-decision-meta {
+  margin: 0;
+  color: var(--text-3);
   font-size: var(--gate-font-meta);
 }
 .tui-review-tier-pills {
