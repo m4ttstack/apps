@@ -33,3 +33,13 @@ export function tabChangeClearsSelection(
 ): boolean {
   return patch.tab !== undefined && patch.tab !== currentTab;
 }
+
+/** Whether a right-click on this row opens the menu for the whole
+    selection. One checked row keeps the richer one-row menu. */
+export function menuActsOnSelection(
+  mr: { webUrl?: string | null },
+  selected: ReadonlySet<string>,
+  selectedCount: number
+): boolean {
+  return !!mr.webUrl && selected.has(mr.webUrl) && selectedCount > 1;
+}
