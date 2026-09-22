@@ -219,7 +219,6 @@ function ReviewGateSheet({
   form,
   queue,
   onClose,
-  onSkip,
   onFocusPane,
 }: {
   gate: GateRow;
@@ -227,7 +226,6 @@ function ReviewGateSheet({
   form: GateFormState;
   queue: ReviewGateSheetQueue;
   onClose: () => void;
-  onSkip: () => void;
   onFocusPane: (mr: BoardMRWithReview, domain: GateDomain) => void;
 }) {
   useEscapeClose(onClose);
@@ -453,27 +451,15 @@ function ReviewGateSheet({
           >
             focus pane
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            intent="muted"
-            size="lg"
-            onClick={onSkip}
-          >
-            skip gate
-          </Button>
         </span>
         <span className="tui-review-sheet-spacer" />
         <nav className="tui-review-queue-nav" aria-label="gate queue">
-          {/* No backward queue traversal exists yet (the queue only ever
-              advances); unconditionally disabled rather than a live control
-              with nothing behind it. */}
           <button
             type="button"
             className="tui-review-queue-chevron"
             onClick={queue.onPrev}
-            disabled
-            aria-disabled="true"
+            disabled={queue.index <= 0}
+            title="previous gate"
             aria-label="previous gate"
           >
             ‹
@@ -490,7 +476,7 @@ function ReviewGateSheet({
             type="button"
             className="tui-review-queue-chevron"
             onClick={queue.onNext}
-            disabled={queue.index >= queue.total - 1}
+            title="next gate"
             aria-label="next gate"
           >
             ›

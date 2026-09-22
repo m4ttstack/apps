@@ -225,7 +225,7 @@ try {
       { hasText: '[Important] Dropped guard' }
     );
     for (let i = 0; i < 10 && !(await legacy.count()); i++) {
-      await page.getByRole('button', { name: 'skip gate' }).click();
+      await page.getByRole('button', { name: 'next gate' }).click();
       await page.waitForTimeout(120);
     }
     await legacy.waitFor();
@@ -236,7 +236,7 @@ try {
     await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
     const sheet = page.locator('.tui-review-sheet');
     for (let i = 0; i < 10 && !(await sheet.count()); i++) {
-      await page.getByRole('button', { name: 'skip gate' }).click();
+      await page.getByRole('button', { name: 'next gate' }).click();
       await page.waitForTimeout(120);
     }
     await sheet.waitFor();
@@ -254,7 +254,7 @@ try {
       await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
       const head = page.locator(`.tui-respond-head[data-shape="${shape}"]`);
       for (let i = 0; i < 10 && !(await head.count()); i++) {
-        await page.getByRole('button', { name: 'skip gate' }).click();
+        await page.getByRole('button', { name: 'next gate' }).click();
         await page.waitForTimeout(120);
       }
       await head.waitFor();

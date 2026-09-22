@@ -326,7 +326,7 @@ test('decision queue: header entry opens, skip advances, close dismisses', async
     expect(dialog).not.toBeNull();
     expect(dialog?.textContent).toContain('first mr title');
 
-    const skipButton = findByText(dialog!, 'button', 'skip gate');
+    const skipButton = dialog!.querySelector('[aria-label="next gate"]');
     await React.act(async () => {
       (skipButton as HTMLElement).click();
     });
@@ -451,7 +451,7 @@ test('decision queue: skipping a gate does not bleed its selection into the next
     });
     expect(firstChoice.checked).toBe(true);
 
-    const skipButton = findByText(dialog!, 'button', 'skip gate');
+    const skipButton = dialog!.querySelector('[aria-label="next gate"]');
     await React.act(async () => {
       (skipButton as HTMLElement).click();
     });

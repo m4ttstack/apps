@@ -192,16 +192,23 @@ const QUEUE = {
   onNext: () => {},
 };
 
-function Host({ gate = GATE }: { gate?: GateRow }) {
+function Host({
+  gate = GATE,
+  queueIndex = QUEUE.index,
+  onPrev = () => {},
+}: {
+  gate?: GateRow;
+  queueIndex?: number;
+  onPrev?: () => void;
+}) {
   const form = useGateForm(gate);
   return (
     <ReviewGateSheet
       gate={gate}
       mr={MR}
       form={form}
-      queue={{ ...QUEUE, states: [...QUEUE.states] }}
+      queue={{ ...QUEUE, index: queueIndex, states: [...QUEUE.states], onPrev }}
       onClose={() => {}}
-      onSkip={() => {}}
       onFocusPane={() => {}}
     />
   );
@@ -234,9 +241,12 @@ afterEach(async () => {
   container.remove();
 });
 
-async function render(gate?: GateRow) {
+async function render(
+  gate?: GateRow,
+  hostProps?: { queueIndex?: number; onPrev?: () => void }
+) {
   await React.act(async () => {
-    root.render(<Host gate={gate} />);
+    root.render(<Host gate={gate} {...hostProps} />);
   });
 }
 
@@ -351,13 +361,39 @@ const CLEAN_GATE: GateRow = {
   questions: [GATE.questions[2]!],
 };
 
-test('the previous-gate chevron is disabled even when queue.index > 0, since backward queue traversal does not exist', async () => {
-  await render(); // QUEUE.index is 1
+test('the previous-gate chevron is enabled past the first gate and calls its handler', async () => {
+  let calls = 0;
+  await render(undefined, {
+    queueIndex: 1,
+    onPrev: () => {
+      calls++;
+    },
+  });
+
+  const prev = container.querySelector(
+    '[aria-label="previous gate"]'
+  ) as HTMLButtonElement;
+  expect(prev.disabled).toBe(false);
+  await click(prev);
+  expect(calls).toBe(1);
+});
+
+test('the previous-gate chevron is disabled at the first gate', async () => {
+  await render(undefined, { queueIndex: 0 });
 
   const prev = container.querySelector(
     '[aria-label="previous gate"]'
   ) as HTMLButtonElement;
   expect(prev.disabled).toBe(true);
+});
+
+test('the head carries no skip-gate chip', async () => {
+  await render();
+  expect(
+    [...container.querySelectorAll('button')].some(
+      b => b.textContent?.trim() === 'skip gate'
+    )
+  ).toBe(false);
 });
 
 test('a clean review labels the submit with the outcome alone, never post 0', async () => {

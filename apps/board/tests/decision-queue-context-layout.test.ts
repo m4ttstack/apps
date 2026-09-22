@@ -21,6 +21,15 @@ const ROOMY = { width: 1000, height: 1100 };
     active question's own area both have to shrink and scroll internally
     to keep the nav on screen. */
 const SHORT = { width: 1000, height: 812 };
+/** Shorter than SHORT: with the modal's ceiling raised from 80vh to
+    100vh minus a small fixed margin, SHORT alone no longer forces the
+    items-scroll fallback on the fixture's deliberately long gate (764px of
+    modal room fits its 279px item column without a scroll). This viewport
+    still does, and exists solely to prove the fallback mechanism -- kept
+    on purpose as the fallback for windows still too short even after the
+    taller ceiling -- still fires when a window is short enough to need
+    it. */
+const VERY_SHORT = { width: 1000, height: 700 };
 /** Below the question-context media query's breakpoint: the tight cap
     still applies here, one px shy of where it relaxes. */
 const JUST_BELOW_BREAKPOINT = { width: 1000, height: 970 };
@@ -119,7 +128,7 @@ async function openDecisionQueue(viewport: {
     '.tui-triage-modal [data-part="scrollpane-body"] [data-part="markdown"] p'
   );
   for (let i = 0; i < 10 && !(await prose.count()); i++) {
-    await page.getByRole('button', { name: 'skip gate' }).click();
+    await page.getByRole('button', { name: 'next gate' }).click();
     await page.waitForTimeout(120);
   }
   await prose.first().waitFor();
@@ -144,7 +153,7 @@ async function openDecisionQueueAtThreadGate(viewport: {
   await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
   const threadCard = page.locator('.tui-thread-card');
   for (let i = 0; i < 10 && !(await threadCard.count()); i++) {
-    await page.getByRole('button', { name: 'skip gate' }).click();
+    await page.getByRole('button', { name: 'next gate' }).click();
     await page.waitForTimeout(120);
   }
   await threadCard.first().waitFor();
@@ -281,8 +290,8 @@ test('short: the nav stays on screen without the body scrolling, even with long 
   await page.context().close();
 }, 30_000);
 
-test('short: if the question area scrolls, the pane is already at its floor', async () => {
-  const page = await openDecisionQueue(SHORT);
+test('very short: if the question area scrolls, the pane is already at its floor', async () => {
+  const page = await openDecisionQueue(VERY_SHORT);
   const m = await measure(page);
   // This is the fixture's deliberately long gate, long enough to name the
   // yield order rather than report two coincidental facts: the pane gives
@@ -314,7 +323,7 @@ test('short: the pane yields before the question area -- a shorter-context gate 
   // none of its own scroll -- the regression this guards is the pane and
   // the question area shrinking together instead of in that order, which
   // would scroll this gate's question area too.
-  await page.getByRole('button', { name: 'skip gate' }).click();
+  await page.getByRole('button', { name: 'next gate' }).click();
   await page.waitForTimeout(150);
   await page.waitForSelector(
     '.tui-triage-modal [data-part="scrollpane-body"] [data-part="markdown"] p'
@@ -347,7 +356,7 @@ test('short: a header-card gate with no context pane still keeps its nav on scre
   // one shows up, or the queue runs out.
   const head = page.locator('.tui-respond-head');
   for (let i = 0; i < 10 && !(await head.count()); i++) {
-    await page.getByRole('button', { name: 'skip gate' }).click();
+    await page.getByRole('button', { name: 'next gate' }).click();
     await page.waitForTimeout(120);
   }
   expect(await head.count()).toBeGreaterThan(0);
@@ -363,7 +372,7 @@ test('short: a header-card gate with no context pane still keeps its nav on scre
   await page.context().close();
 }, 30_000);
 
-test('the head is one row: title, focus pane, skip gate, and close share a line', async () => {
+test('the head is one row: title, focus pane, and close share a line -- no skip chip', async () => {
   const page = await openDecisionQueue(ROOMY);
   const middle = async (selector: string) => {
     const box = (await page.locator(selector).first().boundingBox())!;
@@ -372,11 +381,34 @@ test('the head is one row: title, focus pane, skip gate, and close share a line'
   const title = await middle('.tui-triage-title');
   for (const selector of [
     '.tui-triage-head-actions button:has-text("focus pane")',
-    '.tui-triage-head-actions button:has-text("skip gate")',
     '.tui-triage-modal [data-part="modal-close"]',
   ])
     expect(Math.abs((await middle(selector)) - title)).toBeLessThanOrEqual(4);
   expect(await page.locator('.tui-triage-queue-row').count()).toBe(0);
+  expect(
+    await page
+      .locator('.tui-triage-head-actions button:has-text("skip gate")')
+      .count()
+  ).toBe(0);
+  await page.context().close();
+}, 30_000);
+
+test('the footer centers the pips+count group between the previous- and next-gate controls', async () => {
+  const page = await openDecisionQueue(ROOMY);
+  const footer = (await page.locator('.tui-triage-footer').boundingBox())!;
+  const where = (await page.locator('.tui-triage-where').boundingBox())!;
+  const footerCenter = footer.x + footer.width / 2;
+  const whereCenter = where.x + where.width / 2;
+  // Genuinely centered in the footer, not merely flanked by two controls of
+  // unequal width (the previous control is disabled on this, the queue's
+  // first gate, so a merely-flanked layout would drift off-center here).
+  expect(Math.abs(whereCenter - footerCenter)).toBeLessThanOrEqual(2);
+  const prev = page.locator('[aria-label="previous gate"]');
+  const next = page.locator('[aria-label="next gate"]');
+  expect(await prev.count()).toBe(1);
+  expect(await next.count()).toBe(1);
+  expect(await prev.first().getAttribute('title')).toBe('previous gate');
+  expect(await next.first().getAttribute('title')).toBe('next gate');
   await page.context().close();
 }, 30_000);
 
@@ -392,7 +424,7 @@ test('short: the review sheet keeps its verdict and submit on screen', async () 
   await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
   const sheet = page.locator('.tui-review-sheet');
   for (let i = 0; i < 10 && !(await sheet.count()); i++) {
-    await page.getByRole('button', { name: 'skip gate' }).click();
+    await page.getByRole('button', { name: 'next gate' }).click();
     await page.waitForTimeout(120);
   }
   await sheet.waitFor();

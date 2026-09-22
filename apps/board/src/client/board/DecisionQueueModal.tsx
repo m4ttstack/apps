@@ -97,12 +97,15 @@ function GateStateChips({ gate }: { gate: GateRow }) {
 /** The queue-hosted face of one gate: `GateForm` inside the kit Modal, with
     queue chrome around it -- the only place a gate's form actually mounts,
     since a row now shows a chip that opens this modal rather than the form
-    itself. Actions keep their scope: gate-level (focus pane, skip gate) ride
-    the head row beside close; the footer is queue-scope only (pips, gate
-    count); step-level (previous / reset / next / submit) stay with
-    `GateForm`'s own body, in scope with the questions they act on. The host
-    owns the queue itself (which gates join, the order, advancing on answer
-    or skip); this component renders exactly one active gate of it. */
+    itself. Actions keep their scope: gate-level (focus pane) rides the head
+    row beside close, with room to spare now that it's the head's only
+    action; the footer is queue-scope nav (previous gate, pips, gate count,
+    next gate -- next carries the old skip-gate chip's semantics: mark
+    skipped, advance); step-level (previous / reset / next / submit) stay
+    with `GateForm`'s own body, in scope with the questions they act on. The
+    host owns the queue itself (which gates join, the order, advancing on
+    answer, skip, or back); this component renders exactly one active gate
+    of it. */
 function DecisionQueueModal({
   gate,
   mr,
@@ -111,6 +114,7 @@ function DecisionQueueModal({
   nextPeek,
   onClose,
   onSkip,
+  onBack,
   onFocusPane,
   onAnswered,
   onContinue,
@@ -128,6 +132,8 @@ function DecisionQueueModal({
   nextPeek?: string;
   onClose: () => void;
   onSkip: () => void;
+  /** Returns to the previous gate in queue order; a no-op at the first. */
+  onBack: () => void;
   onFocusPane: (mr: BoardMRWithReview, domain: GateDomain) => void;
   onAnswered: () => void;
   onContinue: () => void;
@@ -168,14 +174,10 @@ function DecisionQueueModal({
           index: position - 1,
           total: states.length,
           states,
-          // The queue only ever advances (skip or answer); there is no
-          // backward traversal to wire the previous chevron to, so it is
-          // inert rather than skipping a gate the reviewer meant to revisit.
-          onPrev: () => {},
+          onPrev: onBack,
           onNext: onSkip,
         }}
         onClose={onClose}
-        onSkip={onSkip}
         onFocusPane={onFocusPane}
       />
     );
@@ -222,15 +224,6 @@ function DecisionQueueModal({
                 focus pane
               </Button>
             )}
-            <Button
-              type="button"
-              variant="light"
-              intent="muted"
-              size="sm"
-              onClick={onSkip}
-            >
-              skip gate
-            </Button>
             {headerCtx && <GateStateChips gate={gate} />}
           </span>
         </>
@@ -387,6 +380,16 @@ function DecisionQueueModal({
         );
       })()}
       <div className="tui-triage-footer">
+        <button
+          type="button"
+          className="tui-triage-queue-nav"
+          onClick={onBack}
+          disabled={position <= 1}
+          title="previous gate"
+          aria-label="previous gate"
+        >
+          ‹
+        </button>
         <span className="tui-triage-where">
           <span className="tui-triage-pips">
             {states.map((state, i) => (
@@ -400,6 +403,15 @@ function DecisionQueueModal({
             gate {position} of {states.length}
           </span>
         </span>
+        <button
+          type="button"
+          className="tui-triage-queue-nav"
+          onClick={onSkip}
+          title="next gate"
+          aria-label="next gate"
+        >
+          ›
+        </button>
       </div>
     </Modal>
   );

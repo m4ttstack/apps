@@ -29,6 +29,7 @@ export interface DecisionQueue extends QueueView {
   openAt: (gateId: string) => void;
   close: () => void;
   skip: () => void;
+  back: () => void;
   noteAnswered: (gateId: string) => void;
   hold: (gateId: string | null) => void;
 }
@@ -124,6 +125,20 @@ export function advanceOrWrap(
   from: string
 ): string | null {
   return advance(session, entries, from) ?? advance(session, entries, null);
+}
+
+/** Walks `order` back to `from`'s predecessor. Never consults `answered` or
+    `skipped` -- looking back is a view change, not a decision, so it costs
+    nothing to revisit a gate already marked either way. Unavailable at (or
+    before) the first entry, where there is no predecessor to return to. */
+export function backTo(
+  session: QueueSession,
+  from: string | null
+): string | null {
+  if (from === null) return null;
+  const idx = session.order.indexOf(from);
+  if (idx <= 0) return null;
+  return session.order[idx - 1] ?? null;
 }
 
 /** Appends unseen actionable gates to `order` without touching existing
@@ -236,6 +251,13 @@ export function useDecisionQueue(
     [entries]
   );
 
+  const back = useCallback(() => {
+    setSession(s => {
+      const prev = backTo(s, s.activeId);
+      return prev === null ? s : { ...s, activeId: prev };
+    });
+  }, []);
+
   const hold = useCallback((gateId: string | null) => {
     setHeldId(gateId);
   }, []);
@@ -261,6 +283,7 @@ export function useDecisionQueue(
     openAt,
     close,
     skip,
+    back,
     noteAnswered,
     hold,
   };

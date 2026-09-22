@@ -1444,6 +1444,7 @@ export function Board() {
           nextPeek={queue.nextPeek}
           onClose={queue.close}
           onSkip={queue.skip}
+          onBack={queue.back}
           onFocusPane={handleFocusPane}
           onAnswered={() => queue.noteAnswered(activeGateId)}
           onContinue={() => queue.noteAnswered(activeGateId)}

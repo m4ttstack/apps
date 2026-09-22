@@ -304,7 +304,6 @@ function Host({ gate, mr }: { gate: GateRow; mr: BoardMRWithReview }) {
         onNext: noop,
       }}
       onClose={noop}
-      onSkip={noop}
       onFocusPane={noop}
     />
   );
