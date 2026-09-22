@@ -96,7 +96,7 @@ async function openDecisionQueue(viewport: {
   await page.goto(`${BASE}/?member=all`);
   await page.waitForSelector('.tui-row');
   await page.click('.tui-dq-open');
-  await page.waitForSelector('.tui-triage-body');
+  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
   const prose = page.locator(
     '.tui-triage-modal [data-part="scrollpane-body"] [data-part="markdown"] p'
   );
@@ -200,5 +200,26 @@ test('the head is one row: title, focus pane, skip gate, and close share a line'
   ])
     expect(Math.abs((await middle(selector)) - title)).toBeLessThanOrEqual(4);
   expect(await page.locator('.tui-triage-queue-row').count()).toBe(0);
+  await page.context().close();
+}, 30_000);
+
+test('short: the review sheet keeps its verdict and submit on screen', async () => {
+  const ctx = await browser.newContext({ viewport: SHORT });
+  await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
+    route.abort()
+  );
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/?member=all`);
+  await page.waitForSelector('.tui-row');
+  await page.click('.tui-dq-open');
+  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
+  const sheet = page.locator('.tui-review-sheet');
+  for (let i = 0; i < 10 && !(await sheet.count()); i++) {
+    await page.getByRole('button', { name: 'skip gate' }).click();
+    await page.waitForTimeout(120);
+  }
+  await sheet.waitFor();
+  const submit = (await page.locator('.tui-review-submit').boundingBox())!;
+  expect(submit.y + submit.height).toBeLessThanOrEqual(SHORT.height);
   await page.context().close();
 }, 30_000);

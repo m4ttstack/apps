@@ -210,31 +210,33 @@ for (const theme of ['light', 'dark'] as const) {
     await shoot(page, `reviewmodal-${theme}`);
     await page.keyboard.press('Escape');
   }
-  // decision queue: the loop below skips gates until it lands on the
-  // sectioned face (B7): the overview strip and the question's own context,
-  // wherever that gate sits in the queue.
+  // A legacy review-post gate (prose context, tier options) in the generic
+  // modal: its context renders as plain markdown, wherever it sits in the
+  // queue. The first gate may be the review sheet, so either face counts
+  // as open.
   await page.click('.tui-dq-open');
-  await page.waitForSelector('.tui-triage-body');
-  for (
-    let i = 0;
-    i < 10 &&
-    !(await page.locator('.tui-gate-question[data-sectioned]').count());
-    i++
-  ) {
+  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
+  const legacy = page.locator(
+    '.tui-triage-modal [data-part="scrollpane-body"]',
+    { hasText: '[Important] Dropped guard' }
+  );
+  for (let i = 0; i < 10 && !(await legacy.count()); i++) {
     await page.getByRole('button', { name: 'skip gate' }).click();
     await page.waitForTimeout(120);
   }
-  await page.waitForSelector('.tui-gate-question[data-sectioned]');
+  await legacy.waitFor();
   await shoot(page, `queue-${theme}`);
-  // The bracketed-findings gate (B9): the pane groups by label rather than
-  // leading every line with its own prefix.
-  for (let i = 0; i < 10; i++) {
-    if (await page.locator('.tui-gate-groups').count()) break;
+  await page.keyboard.press('Escape');
+  // The structured review-post gate: the full-screen review sheet.
+  await page.click('.tui-dq-open');
+  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
+  const sheet = page.locator('.tui-review-sheet');
+  for (let i = 0; i < 10 && !(await sheet.count()); i++) {
     await page.getByRole('button', { name: 'skip gate' }).click();
     await page.waitForTimeout(120);
   }
-  await page.waitForSelector('.tui-gate-groups');
-  await shoot(page, `queuegroups-${theme}`);
+  await sheet.waitFor();
+  await shoot(page, `reviewsheet-${theme}`);
   await page.keyboard.press('Escape');
   // Structured respond gates: the header card in place of the MR strip,
   // then the thread card (respond-plan) and the replies card (respond-post).
@@ -245,7 +247,7 @@ for (const theme of ['light', 'dark'] as const) {
     ['post@1', 'queuepost'],
   ] as const) {
     await page.click('.tui-dq-open');
-    await page.waitForSelector('.tui-triage-body');
+    await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
     const head = page.locator(`.tui-respond-head[data-shape="${shape}"]`);
     for (let i = 0; i < 10 && !(await head.count()); i++) {
       await page.getByRole('button', { name: 'skip gate' }).click();
