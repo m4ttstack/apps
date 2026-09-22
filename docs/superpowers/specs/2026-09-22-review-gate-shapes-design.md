@@ -8,20 +8,25 @@ repo is public; every example below is invented.
 
 ## Problem
 
-Review-post gates carry their findings as prose and their per-finding
-text through option labels and descriptions, which the registry caps at
-200 bytes and middle-truncates: the human picks findings whose text is
-cut mid-word. The board compensates with `gate-context.ts`, a regex
-module that guesses structure out of prose two ways:
+Review-post gates never carry the full finding text at all: what rides
+the gate is option labels and descriptions. The registry REJECTS a label
+over 200 UTF-8 bytes, so the emitter middle-truncates titles to dodge
+the rejection, and its own recipe caps descriptions at 1024 bytes -- the
+human picks findings from hints, not findings. The board compensates
+with two regex parsers:
 
-- `parseLabelledLines`: `[Severity] title` grouping for the findings
-  view (GroupedContext, ReviewGateSheet's severity groups);
-- `parseGateContext`: `=== key -- verdict -> recommend ===` sectioning
-  with quote/adjudication lifting (OverviewStrip, QuestionContext).
+- `finding-option.ts` (`parseFindingOption`): the LIVE one. It
+  regex-parses each option's label and description (`[Tier] title`,
+  `anchor - fix - kind`) into the ReviewGateSheet's finding rows and
+  severity groups, and its success is what routes a review-post gate to
+  the sheet at all (`isReviewSheetGate`).
+- `gate-context.ts` (`parseGateContext`, `parseLabelledLines`): the
+  generic modal's enrichment -- `=== key -- verdict -> recommend ===`
+  sectioning and `[label]:` grouping. Both of its input formats are
+  orphaned: the sectioned emitter was retired by the respond-gate
+  program, and no current emitter writes the bracketed gate-level
+  format (only pre-redesign gates in the registry carry either).
 
-The sectioned format's emitter was retired by the respond-gate program;
-a repo-wide search finds no live producer. The labelled format is live:
-the review engine and `board:review` emit it on every review-post gate.
 Guessed structure is the opposite of designed intention, and the parsers
 mis-file anything that drifts from the format they imagine.
 
@@ -37,7 +42,7 @@ the whole parse to prose, no partial parses, shared 8192-byte budget.
 ```json
 {"gate-ctx": "review@1",
  "reviewer": "renee",
- "ready": true,
+ "readiness": "with-fixes",
  "summary": "mechanism verified against the pinned deps; tests substantiate AC1/AC2 and fail on master; evidence attached.",
  "findings": {"critical": 0, "important": 1, "minor": 4},
  "round": 2,
@@ -45,7 +50,10 @@ the whole parse to prose, no partial parses, shared 8192-byte budget.
  "prior": {"addressed": 3, "still_open": 1}}
 ```
 
-- Required: `ready` (boolean), `summary` (one or two sentences),
+- Required: `readiness` -- the review engine's own vocabulary verbatim,
+  `"yes" | "no" | "with-fixes"` (hyphenated, exactly as
+  review-core-body-tail pins it; no boolean mapping layer, matching the
+  verdict-vocabulary precedent) -- `summary` (one or two sentences), and
   `findings` (counts by severity; a severity with no findings may omit
   its key, absent reads 0).
 - Optional: `reviewer` (the reviewing agent or person, when known),
@@ -78,10 +86,11 @@ the whole parse to prose, no partial parses, shared 8192-byte budget.
   `disposition` (`new | still-open | addressed-check`, re-review only:
   `still-open` re-raises a prior finding, `addressed-check` asks the
   human to confirm a claimed fix the reviewer verified).
-- Join rule, exactly as `replies@1`: entries join their checkbox options
-  by `id` == option value, and each `findings-N` question's context
-  lists exactly its own options' entries. An entry with no option is not
-  rendered; an option with no entry renders as today's plain checkbox.
+- Join rule, stricter than `replies@1`: entries and that question's
+  options correspond ONE TO ONE by `id` == option value. Any mismatch in
+  either direction fails that context's parse, which fails the question
+  to prose and (per routing, below) sends the whole gate to the generic
+  modal. There is no half-joined sheet.
 - Option labels and descriptions remain (`[Severity] title` and a
   first-line hint) for surfaces without a card renderer; they are a
   degraded view, and nothing requires them to carry the full text
@@ -91,39 +100,59 @@ the whole parse to prose, no partial parses, shared 8192-byte budget.
 
 ### Size rule
 
-The base spec's shared budget applies. Trim order for a review-post
-open, dropping whole fields, never mid-text: `evidence` from the largest
-finding first, then `fix` the same way, then `claim`-equivalent trims do
-not exist here -- if it still does not fit, the whole gate goes prose,
-never half-structured. `title`, `file`, and `body` are never trimmed; a
-`body` too large to ever fit is an emitter defect, not a trim case.
+The base spec's shared budget applies, with per-entry granularity inside
+a `findings@1` array: drop `evidence` from the largest entry first
+(largest by that field's serialized UTF-8 bytes), then `fix` the same
+way, whole fields only, never mid-text. Still over: the whole gate goes
+prose, never half-structured. `title`, `file`, and `body` are never
+trimmed; a `body` too large to ever fit is an emitter defect, not a trim
+case. `gate-ctx.sh` grows accordingly: validation for both shapes,
+per-entry trimming, and a prose flattener for each (the whole-gate prose
+fallback and the pane form both need it, exactly as `thread@1` and
+`replies@1` have theirs).
 
 ## Renderer (apps/board)
 
 - `parseGateCtx` gains the two shapes as further union members; every
   rule from the base spec's parser section applies.
+- Routing: a gate reaches the ReviewGateSheet if and only if its kind is
+  `review-post`, its gate context parses as `review@1`, and EVERY
+  `findings-*` question's context parses as `findings@1`. Anything else
+  -- legacy review-post gates included -- renders in the generic modal
+  with plain-markdown context. `isReviewSheetGate` becomes that
+  predicate.
 - ReviewGateSheet renders its severity groups, finding rows, and the
-  readiness header from `review@1` + `findings@1` when they parse:
-  severity pill + title, accent `file:line`, full `body` in ink, `fix`
-  as the muted action line, `disposition` as a small state pill on
-  re-review rounds. The sheet's approved look does not change; its data
-  source does.
-- **`gate-context.ts` is deleted**, with its tests. GroupedContext,
-  OverviewStrip, QuestionContext, and every sectioned/grouped branch in
-  GateForm and DecisionQueueModal go with it. A context that is not
-  valid gate-ctx renders as plain markdown -- no enrichment guessing,
-  anywhere, for any gate kind.
-- Fallback reality: historical gates and stragglers render as plain
-  markdown. That is the intended end state, not a regression; the
-  capture baselines that pinned the grouped/sectioned rendering are
-  re-rendered.
+  readiness header from the parsed shapes: severity pill + title, accent
+  `file:line`, full `body` in ink, `fix` as the muted action line,
+  `disposition` as a small state pill on re-review rounds. The approved
+  layout stands, and the rows GROW within it -- the body paragraph and
+  disposition pill are new, visible, and the point; the re-rendered
+  captures re-pin the result.
+- **`gate-context.ts` AND `finding-option.ts` are deleted**, with their
+  tests. GroupedContext, OverviewStrip, QuestionContext, and every
+  sectioned/grouped branch in GateForm and DecisionQueueModal go with
+  them. A context that is not valid gate-ctx renders as plain markdown
+  -- no enrichment guessing, anywhere, for any gate kind, and no
+  option-label parsing either.
+- Fallback reality: historical review-post gates lose the sheet and
+  render in the generic modal as plain markdown. That is the intended
+  end state, not a regression; the capture baselines that pinned the
+  grouped/sectioned/sheet-on-prose rendering are re-rendered.
 
 ## Emitters
 
+- The structured findings file (review-core-body-tail's `.json` sibling
+  of the report) grows the data the shapes need: `body` (required -- the
+  full finding text) and optional `evidence` per finding. That is a
+  contract change to the findings-file schema with its own version bump;
+  its named consumers update with it. A findings file with no `body`
+  (a legacy report) cannot produce a structured open: the emitter goes
+  whole-gate prose, deterministically, never a lifted-from-markdown
+  guess.
 - The review engine (mattstack-skills) builds the review-post open the
-  way receive-review builds respond opens: a source JSON, the shared
-  `gate-ctx.sh fit` (extended to validate the two new shapes), hand back
-  to a gate-owning caller or `rt gate ask` on the direct path.
+  way receive-review builds respond opens: a source JSON from the
+  findings file, the shared `gate-ctx.sh fit`, hand back to a
+  gate-owning caller or `rt gate ask` on the direct path.
 - `board:review` (apps) adopts the handed-back open exactly as
   `board:respond` did, including the pane-form prose flatten and the
   fits:false largest-first context drop from the base spec's amendments.
