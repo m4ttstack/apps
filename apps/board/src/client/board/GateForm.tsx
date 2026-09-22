@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import type {
   AnswerOutcome,
@@ -15,12 +15,18 @@ import {
   noteFieldName,
   Questionnaire,
   useGateDraft,
+  type GateItemDisplay,
 } from '@mattstack/gate-kit/react';
 import { Button, Chip, Markdown } from '@mattstack/tui-kit';
 import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview } from '../types.ts';
 import { Disclosure, DisclosureHead } from './Disclosure.tsx';
-import { parseGateCtx, type GateCtx } from './gate-ctx.ts';
+import {
+  parseGateCtx,
+  type GateCtx,
+  type RepliesCtx,
+  type ThreadCtx,
+} from './gate-ctx.ts';
 import { ReplyChoiceBody, SeverityPill, ThreadCard } from './RespondCards.tsx';
 import { paneContext } from './review-gate.ts';
 
@@ -220,6 +226,213 @@ function useGateForm(gate: GateRow, onAnswered?: () => void) {
 
 export type GateFormState = ReturnType<typeof useGateForm>;
 
+/** One question's card. The primitive's own <fieldset> (Questionnaire.Item
+    has no `render` prop to change that) does not pass a flex-shrunk height
+    down to its own children when it sits beneath a `max-height`-sized
+    ancestor -- confirmed by isolating a `<fieldset>` and a `<div>` in an
+    otherwise identical standalone reproduction: the div cascades correctly,
+    the fieldset renders its children at their full natural size regardless
+    of its own (correctly shrunk) box. `.tui-triage-modal`'s `max-height:
+    80vh` is that ancestor, and it stays (a prior ruling rejected shrinking
+    it), so a ResizeObserver syncs an explicit height onto `.tui-gate-
+    question-body` instead: once that height is a real CSS value rather
+    than one inherited through the broken cascade, its own children (the
+    context vs. the choices) shrink correctly. */
+function GateQuestionCard({
+  q,
+  current,
+  picked,
+  qctx,
+  threadOrd,
+  threadCount,
+  stepped,
+  note,
+  onSetNote,
+  onToggleMulti,
+  onSetSingle,
+}: {
+  q: GateItemDisplay;
+  current: string | string[] | undefined;
+  picked: Set<string>;
+  qctx: GateCtx | null;
+  /** -1 when this question is not a thread. */
+  threadOrd: number;
+  threadCount: number;
+  stepped: boolean;
+  note: string;
+  onSetNote: (value: string) => void;
+  onToggleMulti: (value: string, checked: boolean) => void;
+  onSetSingle: (value: string) => void;
+}) {
+  const threadCtx: ThreadCtx | null = qctx?.shape === 'thread@1' ? qctx : null;
+  const repliesCtx: RepliesCtx | null =
+    qctx?.shape === 'replies@1' ? qctx : null;
+  const fieldsetRef = useRef<HTMLFieldSetElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const fieldset = fieldsetRef.current;
+    const body = bodyRef.current;
+    if (!fieldset || !body) return;
+    const sync = () => {
+      // Clearing first, before reading, matters: a stale height left over
+      // from a step React reused this fieldset for (same `q.name`, a
+      // different gate's question) would otherwise get measured back into
+      // itself, since the fieldset's own natural size is partly a function
+      // of this div's current height.
+      body.style.height = '';
+      body.style.height = `${fieldset.clientHeight}px`;
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(fieldset);
+    return () => observer.disconnect();
+  }, [q.name]);
+
+  return (
+    <Questionnaire.Item
+      ref={fieldsetRef}
+      name={q.name}
+      required={q.required}
+      multiple={q.multiple}
+      className="tui-gate-question"
+      data-gate-ctx={threadCtx ? 'thread' : repliesCtx ? 'replies' : undefined}
+    >
+      <div ref={bodyRef} className="tui-gate-question-body">
+        <div className="tui-gate-question-head">
+          <Questionnaire.Title
+            className="tui-gate-question-label"
+            render={props => <span {...props} />}
+          >
+            {q.prompt}
+          </Questionnaire.Title>
+          {threadCtx && <SeverityPill severity={threadCtx.severity} />}
+          {threadOrd >= 0 && (
+            <span className="tui-gate-question-ord">
+              thread {threadOrd + 1} of {threadCount}
+            </span>
+          )}
+          {stepped && (
+            <Questionnaire.Progress
+              className="tui-gate-progress"
+              render={(props, state) => (
+                <span {...props}>
+                  <span className="tui-gate-qdots">
+                    {Array.from({ length: state.total }, (_, i) => (
+                      <i
+                        key={i}
+                        className="tui-gate-qdot"
+                        data-state={
+                          i + 1 < state.current
+                            ? 'done'
+                            : i + 1 === state.current
+                              ? 'active'
+                              : 'todo'
+                        }
+                      />
+                    ))}
+                  </span>
+                  {!threadCtx && `Question ${state.current} of ${state.total}`}
+                </span>
+              )}
+            />
+          )}
+        </div>
+        {threadCtx ? (
+          <ThreadCard ctx={threadCtx} />
+        ) : (
+          q.context &&
+          qctx === null && (
+            <div className="tui-gate-question-context">
+              <Markdown unstyled linkTargetBlank>
+                {q.context}
+              </Markdown>
+            </div>
+          )
+        )}
+        <Questionnaire.Choices className="tui-gate-choices">
+          {q.choices.map(choice => {
+            const recommended = choice.recommended === true;
+            const entry = repliesCtx?.replies.find(
+              r => r.thread === choice.value
+            );
+            const recommendedChip = recommended && (
+              <Chip
+                intent="ok"
+                variant="outline"
+                uppercase
+                data-gate="recommended"
+                className="tui-gate-recommended"
+              >
+                recommended
+              </Chip>
+            );
+            return (
+              <Questionnaire.Choice
+                key={choice.value}
+                value={choice.value}
+                data-recommended={recommended ? 'true' : undefined}
+                checked={
+                  q.multiple
+                    ? picked.has(choice.value)
+                    : current === choice.value
+                }
+                onChange={event =>
+                  q.multiple
+                    ? onToggleMulti(choice.value, event.currentTarget.checked)
+                    : onSetSingle(choice.value)
+                }
+                className="tui-gate-choice"
+              >
+                <Questionnaire.ChoiceInput
+                  render={props => (
+                    <input {...props} className="tui-gate-choice-input" />
+                  )}
+                />
+                <Questionnaire.ChoiceLabel className="tui-gate-choice-label">
+                  {entry ? (
+                    <ReplyChoiceBody entry={entry}>
+                      {recommendedChip}
+                    </ReplyChoiceBody>
+                  ) : (
+                    <>
+                      <span className="tui-gate-choice-label-row">
+                        <span title={choice.description}>{choice.label}</span>
+                        {recommendedChip}
+                      </span>
+                      {choice.subtitle && (
+                        <span className="tui-gate-choice-subtitle">
+                          {choice.subtitle}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </Questionnaire.ChoiceLabel>
+                <Questionnaire.ChoiceShortcut className="tui-gate-key" />
+              </Questionnaire.Choice>
+            );
+          })}
+        </Questionnaire.Choices>
+        <Questionnaire.Error className="tui-gate-invalid" />
+        <input
+          type="text"
+          className="tui-gate-note"
+          name={noteFieldName(q.name)}
+          aria-label={`Note for ${q.prompt}`}
+          placeholder="Add a note"
+          value={note}
+          onChange={event => onSetNote(event.currentTarget.value)}
+          onKeyDown={event => {
+            // Plain Enter in a text input is implicit form submission;
+            // Cmd/Ctrl+Enter stays the primitive's validate-and-advance.
+            if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey)
+              event.preventDefault();
+          }}
+        />
+      </div>
+    </Questionnaire.Item>
+  );
+}
+
 /** The questionnaire form the triage modal renders. One question renders
     flat; two or more step through the primitive's own step mode (one active
     item, Previous / Next, Submit on the last). The code-changes item of a
@@ -325,155 +538,25 @@ function GateForm({
           const current = selections[q.name];
           const picked = new Set(Array.isArray(current) ? current : []);
           const qctx = questionCtx.get(q.name) ?? null;
-          const threadCtx = qctx?.shape === 'thread@1' ? qctx : null;
-          const repliesCtx = qctx?.shape === 'replies@1' ? qctx : null;
-          const threadOrd = threadCtx ? threadIds.indexOf(q.name) : -1;
+          const threadOrd =
+            qctx?.shape === 'thread@1' ? threadIds.indexOf(q.name) : -1;
           return (
-            <Questionnaire.Item
+            <GateQuestionCard
               key={q.name}
-              name={q.name}
-              required={q.required}
-              multiple={q.multiple}
-              className="tui-gate-question"
-              data-gate-ctx={
-                threadCtx ? 'thread' : repliesCtx ? 'replies' : undefined
+              q={q}
+              current={current}
+              picked={picked}
+              qctx={qctx}
+              threadOrd={threadOrd}
+              threadCount={threadIds.length}
+              stepped={stepped}
+              note={notes[q.name] ?? ''}
+              onSetNote={value => setNote(q.name, value)}
+              onToggleMulti={(value, checked) =>
+                toggleMulti(q.name, value, checked)
               }
-            >
-              <div className="tui-gate-question-head">
-                <Questionnaire.Title className="tui-gate-question-label">
-                  {q.prompt}
-                </Questionnaire.Title>
-                {threadCtx && <SeverityPill severity={threadCtx.severity} />}
-                {threadOrd >= 0 && (
-                  <span className="tui-gate-question-ord">
-                    thread {threadOrd + 1} of {threadIds.length}
-                  </span>
-                )}
-                {stepped && (
-                  <Questionnaire.Progress
-                    className="tui-gate-progress"
-                    render={(props, state) => (
-                      <span {...props}>
-                        <span className="tui-gate-qdots">
-                          {Array.from({ length: state.total }, (_, i) => (
-                            <i
-                              key={i}
-                              className="tui-gate-qdot"
-                              data-state={
-                                i + 1 < state.current
-                                  ? 'done'
-                                  : i + 1 === state.current
-                                    ? 'active'
-                                    : 'todo'
-                              }
-                            />
-                          ))}
-                        </span>
-                        {!threadCtx &&
-                          `Question ${state.current} of ${state.total}`}
-                      </span>
-                    )}
-                  />
-                )}
-              </div>
-              {threadCtx ? (
-                <ThreadCard ctx={threadCtx} />
-              ) : (
-                q.context &&
-                qctx === null && (
-                  <div className="tui-gate-question-context">
-                    <Markdown unstyled linkTargetBlank>
-                      {q.context}
-                    </Markdown>
-                  </div>
-                )
-              )}
-              <Questionnaire.Choices className="tui-gate-choices">
-                {q.choices.map(choice => {
-                  const recommended = choice.recommended === true;
-                  const entry = repliesCtx?.replies.find(
-                    r => r.thread === choice.value
-                  );
-                  const recommendedChip = recommended && (
-                    <Chip
-                      intent="ok"
-                      variant="outline"
-                      uppercase
-                      data-gate="recommended"
-                      className="tui-gate-recommended"
-                    >
-                      recommended
-                    </Chip>
-                  );
-                  return (
-                    <Questionnaire.Choice
-                      key={choice.value}
-                      value={choice.value}
-                      data-recommended={recommended ? 'true' : undefined}
-                      checked={
-                        q.multiple
-                          ? picked.has(choice.value)
-                          : current === choice.value
-                      }
-                      onChange={event =>
-                        q.multiple
-                          ? toggleMulti(
-                              q.name,
-                              choice.value,
-                              event.currentTarget.checked
-                            )
-                          : setSingle(q.name, choice.value)
-                      }
-                      className="tui-gate-choice"
-                    >
-                      <Questionnaire.ChoiceInput
-                        render={props => (
-                          <input {...props} className="tui-gate-choice-input" />
-                        )}
-                      />
-                      <Questionnaire.ChoiceLabel className="tui-gate-choice-label">
-                        {entry ? (
-                          <ReplyChoiceBody entry={entry}>
-                            {recommendedChip}
-                          </ReplyChoiceBody>
-                        ) : (
-                          <>
-                            <span className="tui-gate-choice-label-row">
-                              <span title={choice.description}>
-                                {choice.label}
-                              </span>
-                              {recommendedChip}
-                            </span>
-                            {choice.subtitle && (
-                              <span className="tui-gate-choice-subtitle">
-                                {choice.subtitle}
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </Questionnaire.ChoiceLabel>
-                      <Questionnaire.ChoiceShortcut className="tui-gate-key" />
-                    </Questionnaire.Choice>
-                  );
-                })}
-              </Questionnaire.Choices>
-              <Questionnaire.Error className="tui-gate-invalid" />
-              <input
-                type="text"
-                className="tui-gate-note"
-                name={noteFieldName(q.name)}
-                aria-label={`Note for ${q.prompt}`}
-                placeholder="Add a note"
-                value={notes[q.name] ?? ''}
-                onChange={event => setNote(q.name, event.currentTarget.value)}
-                onKeyDown={event => {
-                  // Plain Enter in a text input is implicit form submission;
-                  // Cmd/Ctrl+Enter stays the primitive's validate-and-advance.
-                  if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey)
-                    event.preventDefault();
-                }}
-              />
-            </Questionnaire.Item>
+              onSetSingle={value => setSingle(q.name, value)}
+            />
           );
         })}
       </div>

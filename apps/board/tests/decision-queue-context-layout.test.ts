@@ -35,6 +35,7 @@ type Measured = {
   clientHeight: number;
   scrollHeight: number;
   getBoundingClientRect(): { top: number; bottom: number; height: number };
+  querySelectorAll(selector: string): Measured[];
 };
 type PageGlobals = {
   document: { querySelector(selector: string): Measured | null };
@@ -127,6 +128,10 @@ type Layout = {
   navBottom: number;
   itemsScrolls: boolean;
   itemsHeight: number;
+  /** One entry per choice of the ACTIVE question, in order: whether its
+      whole box lies inside `.tui-gate-items`'s visible (unscrolled)
+      viewport, not merely present in the DOM. */
+  choicesVisible: boolean[];
 };
 
 function measure(page: Page): Promise<Layout> {
@@ -145,6 +150,20 @@ function measure(page: Page): Promise<Layout> {
     const body = document.querySelector('.tui-triage-body')!;
     const nav = document.querySelector('.tui-gate-actions')!;
     const items = document.querySelector('.tui-gate-items')!;
+    const activeQuestion = document.querySelector(
+      '.tui-gate-question[data-active]'
+    );
+    const itemsRect = items.getBoundingClientRect();
+    const itemsVisibleBottom = itemsRect.top + items.clientHeight;
+    const choices = activeQuestion
+      ? [...activeQuestion.querySelectorAll('.tui-gate-choice')]
+      : [];
+    const choicesVisible = choices.map(c => {
+      const r = c.getBoundingClientRect();
+      return (
+        r.top >= itemsRect.top - 0.5 && r.bottom <= itemsVisibleBottom + 0.5
+      );
+    });
     return {
       modalScrolls: modal.scrollHeight > modal.clientHeight,
       bodyScrolls: body.scrollHeight > body.clientHeight,
@@ -153,8 +172,12 @@ function measure(page: Page): Promise<Layout> {
       paneRootHeight: root ? root.getBoundingClientRect().height : 0,
       paneScrolls: pane ? pane.scrollHeight > pane.clientHeight : false,
       navBottom: nav.getBoundingClientRect().bottom,
-      itemsScrolls: items.scrollHeight > items.clientHeight,
+      // +1: Blink's internal layout units are 1/64px, so two elements that
+      // are visually identical in height can differ by a fractional pixel
+      // once rounded to the integer `clientHeight`/`scrollHeight` pair.
+      itemsScrolls: items.scrollHeight > items.clientHeight + 1,
       itemsHeight: items.getBoundingClientRect().height,
+      choicesVisible,
     };
   });
 }
@@ -208,6 +231,14 @@ test('short: the context pane and the question area scroll internally instead of
   await page.context().close();
 }, 30_000);
 
+test('short: every choice of the active question is fully visible, not merely present', async () => {
+  const page = await openDecisionQueue(SHORT);
+  const m = await measure(page);
+  expect(m.choicesVisible.length).toBeGreaterThan(0);
+  expect(m.choicesVisible.every(visible => visible)).toBe(true);
+  await page.context().close();
+}, 30_000);
+
 test('short: the pane yields before the question area -- a shorter-context gate needs no items scroll', async () => {
   const page = await openDecisionQueue(SHORT);
   // openDecisionQueue lands on the queue's first prose-context gate, whose
@@ -224,6 +255,7 @@ test('short: the pane yields before the question area -- a shorter-context gate 
   );
   const m = await measure(page);
   expect(m.itemsScrolls).toBe(false);
+  expect(m.choicesVisible.every(visible => visible)).toBe(true);
   expectNavOnScreen(m, SHORT.height);
   await page.context().close();
 }, 30_000);
@@ -255,6 +287,13 @@ test('short: a header-card gate with no context pane still keeps its nav on scre
   expect(await head.count()).toBeGreaterThan(0);
   const m = await measure(page);
   expectNavOnScreen(m, SHORT.height);
+  // The fixture's own header-card gate has no floor left to give at this
+  // height even with its thread card fully shrunk: the first two choices
+  // (reply, fix) still show in full, the third (skip) needs the items
+  // backstop scroll to see the rest of its description. That is the named,
+  // reported extreme case, not a regression to chase away here.
+  expect(m.choicesVisible.length).toBeGreaterThanOrEqual(2);
+  expect(m.choicesVisible.slice(0, 2).every(visible => visible)).toBe(true);
   await page.context().close();
 }, 30_000);
 
