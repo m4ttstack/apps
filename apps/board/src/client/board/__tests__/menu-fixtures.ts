@@ -1,5 +1,6 @@
 import type { BoardMR } from '../../../data.ts';
 import type { BoardMRWithReview } from '../../types.ts';
+import type { ActionEnv } from '../row-actions.ts';
 
 export const MR_URL = (iid: number) =>
   `https://gitlab.example.com/acme/webapp/-/merge_requests/${iid}`;
@@ -106,3 +107,14 @@ export const failedEnv: MenuEnv = {
   slackEnabled: true,
   roster: ROSTER,
 };
+
+export function actionEnvOf(env: MenuEnv, mr: BoardMR): ActionEnv {
+  return {
+    local: env.local ?? true,
+    slackEnabled: env.slackEnabled ?? false,
+    self: env.self,
+    roster: env.roster ?? [],
+    peers: env.peers,
+    allMrs: env.allMrs ?? [mr],
+  };
+}
