@@ -4374,6 +4374,12 @@ body {
   color: var(--text-1);
   font-size: var(--gate-font-meta);
 }
+.tui-review-decision-reasoning [data-part='markdown'] > * {
+  margin: 0;
+}
+.tui-review-decision-reasoning [data-part='markdown'] > * + * {
+  margin-top: 6px;
+}
 .tui-review-decision-meta {
   margin: 0;
   color: var(--text-3);

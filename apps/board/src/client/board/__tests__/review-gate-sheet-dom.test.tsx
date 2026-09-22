@@ -5,8 +5,7 @@
     fixtures carry review@1 (gate-level) and findings@1 (per-chunk) contexts,
     the shapes `readReviewGate` actually joins. Mirrors
     gate-form-skip-dom.test.tsx's direct-mount harness rather than a full
-    Board render, since the sheet is host-agnostic (Task 7 wires it into
-    DecisionQueueModal). */
+    Board render, since the sheet is host-agnostic. */
 
 import React from 'react';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
@@ -337,9 +336,9 @@ test('the verdict renders as gate choices with the recommended badge', async () 
   expect(recommended?.textContent?.trim()).toBe('recommended');
 });
 
-/** No findings question at all: a clean review still opens the sheet
-    (controller ruling, Task 6/7) since there's nothing a tier-option gate
-    would have that a bare verdict question doesn't already cover. */
+/** No findings question at all: the outcome question rides alone, and the
+    sheet still renders since `readReviewGate`'s join only touches
+    `findings-N` chunks when the gate actually has one. */
 const CLEAN_GATE: GateRow = {
   ...GATE,
   gateId: 'g-clean',
@@ -565,8 +564,33 @@ test('a row reads title, accent file:line, the full body, and the fix line, in t
   );
 });
 
+/** findings-1's first option is a minor finding, not the critical one GATE
+    leads with: a grouping that follows first-appearance order would put
+    Minor first here, so this is the case that actually distinguishes
+    severity order from arrival order. */
+const MINOR_FIRST_GATE: GateRow = {
+  ...GATE,
+  gateId: 'g-minor-first',
+  questions: [
+    {
+      id: 'findings-1',
+      label: 'Post which findings to !31?',
+      multi: true,
+      context: findingsCtx(E.f1, E.f2, E.f3, E.f4),
+      options: [
+        GATE.questions[0]!.options[3]!,
+        GATE.questions[0]!.options[0]!,
+        GATE.questions[0]!.options[1]!,
+        GATE.questions[0]!.options[2]!,
+      ],
+    },
+    GATE.questions[1]!,
+    GATE.questions[2]!,
+  ],
+};
+
 test('groups follow the severity order, whatever order the options arrive in', async () => {
-  await render();
+  await render(MINOR_FIRST_GATE);
   const groups = [
     ...container.querySelectorAll(
       '.tui-review-tier-group .tui-review-tier-pill'
