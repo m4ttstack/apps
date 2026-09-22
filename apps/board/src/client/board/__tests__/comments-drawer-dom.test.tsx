@@ -73,22 +73,28 @@ const BOARD_DATA = {
   tabs: [{ id: 'team', label: 'Team', source: { kind: 'authors' } }],
 };
 
-const DISCUSSIONS = {
-  threads: [
-    {
-      status: 'awaiting',
-      notes: [
-        {
-          id: 9001,
-          name: 'Kim',
-          username: 'kim',
-          at: '2026-08-19T00:00:00Z',
-          body: 'rename this',
-        },
-      ],
-    },
-  ],
-  comments: [],
+const note = (id: number, username: string, body: string) => ({
+  id,
+  name: username,
+  username,
+  at: '2026-08-19T00:00:00Z',
+  body,
+});
+const threadA = {
+  discussionId: 'dA',
+  status: 'awaiting',
+  notes: [note(9001, 'kim', 'rename this')],
+};
+const threadB = {
+  discussionId: 'dB',
+  status: 'awaiting',
+  notes: [note(9002, 'jo', 'add a test')],
+};
+const DISCUSSIONS = { threads: [threadA, threadB], comments: [] };
+const THREAD_ADDRESS = {
+  repo: 'gitlab.example.com/g/p',
+  iid: 101,
+  author: 'matt',
 };
 
 let React: typeof import('react');
@@ -97,14 +103,24 @@ let Board: typeof import('../Board.tsx').Board;
 const realFetch = globalThis.fetch;
 let root: ReturnType<typeof import('react-dom/client').createRoot>;
 let container: HTMLDivElement;
+// Reset in beforeEach; a test swaps in what the board serves and how the
+// thread-write routes answer.
+let servedData: Record<string, unknown> = BOARD_DATA;
+let posts: Array<{ url: string; body: Record<string, unknown> }> = [];
+let writeAnswer: (url: string, body: Record<string, unknown>) => Response;
+const json = (v: unknown, status = 200) =>
+  new Response(JSON.stringify(v), { status });
 
 beforeAll(async () => {
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString();
-    if (url.startsWith('/data.json'))
-      return new Response(JSON.stringify(BOARD_DATA), { status: 200 });
-    if (url.startsWith('/discussions'))
-      return new Response(JSON.stringify(DISCUSSIONS), { status: 200 });
+    if (url.startsWith('/data.json')) return json(servedData);
+    if (init?.method === 'POST' && url.startsWith('/discussions/')) {
+      const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+      posts.push({ url, body });
+      return writeAnswer(url, body);
+    }
+    if (url.startsWith('/discussions')) return json(DISCUSSIONS);
     return new Response('{}', { status: 200 });
   }) as typeof fetch;
   window.open = (() => null) as typeof window.open;
@@ -116,6 +132,9 @@ beforeAll(async () => {
 beforeEach(() => {
   localStorage.clear();
   history.replaceState(null, '', '/');
+  servedData = BOARD_DATA;
+  posts = [];
+  writeAnswer = () => json(DISCUSSIONS);
 });
 
 afterEach(async () => {
@@ -213,4 +232,172 @@ test('a right-click on the row itself still opens the row menu', async () => {
   await React.act(async () => closeBtn!.click());
   await rightClick(container.querySelector('[data-mr-iid="101"]')!);
   expect(rowMenu()).not.toBeNull();
+});
+
+// ── reply and resolve ───────────────────────────────────────────────────────
+
+function thread(id: string): HTMLElement {
+  const el = document.querySelector<HTMLElement>(
+    `[data-part="sidedrawer"] [data-discussion-id="${id}"]`
+  );
+  if (!el) throw new Error(`no thread ${id} in the drawer`);
+  return el;
+}
+
+const threadOrder = () =>
+  [
+    ...document.querySelectorAll<HTMLElement>(
+      '[data-part="sidedrawer"] [data-discussion-id]'
+    ),
+  ].map(el => el.getAttribute('data-discussion-id'));
+
+function buttonIn(scope: HTMLElement, label: string): HTMLButtonElement {
+  const hit = [...scope.querySelectorAll<HTMLButtonElement>('button')].find(
+    b => b.textContent?.trim() === label
+  );
+  if (!hit)
+    throw new Error(
+      `no "${label}" button in ${[...scope.querySelectorAll('button')]
+        .map(b => b.textContent?.trim())
+        .join(' | ')}`
+    );
+  return hit;
+}
+
+async function press(scope: HTMLElement, label: string) {
+  await React.act(async () => buttonIn(scope, label).click());
+  await settle();
+}
+
+const replyBox = (id: string) =>
+  thread(id).querySelector<HTMLTextAreaElement>('textarea');
+
+async function type(box: HTMLTextAreaElement, text: string) {
+  await React.act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      'value'
+    )!.set!;
+    setter.call(box, text);
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+
+async function key(box: HTMLTextAreaElement, init: KeyboardEventInit) {
+  await React.act(async () => {
+    box.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...init }));
+  });
+  await settle();
+}
+
+const replied = {
+  ...threadA,
+  status: 'replied',
+  notes: [...threadA.notes, note(9003, 'matt', 'renamed in the next push')],
+};
+
+test('reply posts the typed text to that thread and shows the refreshed thread', async () => {
+  writeAnswer = () => json({ threads: [replied, threadB], comments: [] });
+  await renderBoardWithDrawerOpen();
+  await press(thread('dA'), 'reply');
+  await type(replyBox('dA')!, 'renamed in the next push');
+  await press(thread('dA'), 'send');
+  expect(posts).toEqual([
+    {
+      url: '/discussions/reply',
+      body: {
+        ...THREAD_ADDRESS,
+        discussionId: 'dA',
+        body: 'renamed in the next push',
+      },
+    },
+  ]);
+  expect(thread('dA').textContent).toContain('renamed in the next push');
+  expect(replyBox('dA')).toBeNull();
+});
+
+test('⌘↵ in the reply box sends; a plain ↵ does not', async () => {
+  writeAnswer = () => json({ threads: [replied, threadB], comments: [] });
+  await renderBoardWithDrawerOpen();
+  await press(thread('dA'), 'reply');
+  await type(replyBox('dA')!, 'renamed in the next push');
+  await key(replyBox('dA')!, { key: 'Enter' });
+  expect(posts).toEqual([]);
+  await key(replyBox('dA')!, { key: 'Enter', metaKey: true });
+  expect(posts.map(p => p.url)).toEqual(['/discussions/reply']);
+});
+
+test('send & resolve replies first, then resolves the same thread', async () => {
+  const resolved = { ...replied, status: 'resolved' };
+  writeAnswer = url =>
+    json({
+      threads: url.endsWith('/reply')
+        ? [replied, threadB]
+        : [threadB, resolved],
+      comments: [],
+    });
+  await renderBoardWithDrawerOpen();
+  await press(thread('dA'), 'reply');
+  await type(replyBox('dA')!, 'renamed in the next push');
+  await press(thread('dA'), 'send & resolve');
+  expect(posts.map(p => [p.url, p.body.discussionId, p.body.resolved])).toEqual(
+    [
+      ['/discussions/reply', 'dA', undefined],
+      ['/discussions/resolve', 'dA', true],
+    ]
+  );
+  expect(thread('dA').classList.contains('resolved')).toBe(true);
+});
+
+test('resolving a thread keeps its place in the drawer and offers unresolve', async () => {
+  writeAnswer = () =>
+    json({
+      threads: [threadB, { ...threadA, status: 'resolved' }],
+      comments: [],
+    });
+  await renderBoardWithDrawerOpen();
+  expect(threadOrder()).toEqual(['dA', 'dB']);
+  await press(thread('dA'), 'resolve');
+  expect(posts).toEqual([
+    {
+      url: '/discussions/resolve',
+      body: { ...THREAD_ADDRESS, discussionId: 'dA', resolved: true },
+    },
+  ]);
+  expect(threadOrder()).toEqual(['dA', 'dB']);
+  expect(thread('dA').classList.contains('resolved')).toBe(true);
+  buttonIn(thread('dA'), 'unresolve');
+});
+
+test('Escape closes the reply box, not the drawer, and the draft is there on reopen', async () => {
+  await renderBoardWithDrawerOpen();
+  await press(thread('dA'), 'reply');
+  await type(replyBox('dA')!, 'half a thought');
+  await key(replyBox('dA')!, { key: 'Escape' });
+  expect(replyBox('dA')).toBeNull();
+  expect(document.querySelector('[data-part="sidedrawer"]')).not.toBeNull();
+  await press(thread('dA'), 'reply');
+  expect(replyBox('dA')!.value).toBe('half a thought');
+});
+
+test("a failed send keeps the typed text and shows the server's error", async () => {
+  writeAnswer = () => json({ ok: false, error: '403 Forbidden' }, 502);
+  await renderBoardWithDrawerOpen();
+  await press(thread('dA'), 'reply');
+  await type(replyBox('dA')!, 'renamed in the next push');
+  await press(thread('dA'), 'send');
+  expect(replyBox('dA')!.value).toBe('renamed in the next push');
+  expect(thread('dA').querySelector('[role="alert"]')!.textContent).toContain(
+    '403 Forbidden'
+  );
+});
+
+test('a remote board shows the threads with no reply or resolve controls', async () => {
+  servedData = { ...BOARD_DATA, local: false };
+  await renderBoardWithDrawerOpen();
+  const labels = [...thread('dA').querySelectorAll('button')].map(b =>
+    b.textContent?.trim()
+  );
+  expect(labels).not.toContain('reply');
+  expect(labels).not.toContain('resolve');
 });

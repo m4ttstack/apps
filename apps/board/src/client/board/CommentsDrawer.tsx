@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
-import { ICONS, Markdown, SideDrawer } from '@mattstack/tui-kit';
+import { Button, ICONS, Markdown, SideDrawer } from '@mattstack/tui-kit';
+import { useAutoGrowTextarea } from '@mattstack/tui-kit/hooks';
 import type { BoardMR } from '../../data.ts';
-import { getDiscussions } from '../api.ts';
+import { getDiscussions, postThreadWrite } from '../api.ts';
 import type { CommentNote, CommentThread, GeneralComment } from '../types.ts';
 import { ago, cleanTitle, THREAD_ICON, THREAD_LABEL } from './format.ts';
 import { MessageGlyph } from './icons.tsx';
@@ -110,21 +111,302 @@ function CommentNoteView({
   );
 }
 
+type Discussions = { threads: CommentThread[]; comments: GeneralComment[] };
+
+/** `next` in the order the drawer first showed, so a thread the seat just
+    resolved or answered stays under the pointer instead of re-sorting away.
+    Threads the drawer has not shown yet keep the server's order, after. */
+function inPlace(
+  prev: CommentThread[] | undefined,
+  next: CommentThread[]
+): CommentThread[] {
+  if (!prev) return next;
+  const at = new Map(prev.map((t, i) => [t.discussionId, i]));
+  const rank = (t: CommentThread) => at.get(t.discussionId) ?? prev.length;
+  return [...next].sort((a, b) => rank(a) - rank(b));
+}
+
+type Pending = { id: string; what: 'send' | 'send-resolve' | 'resolve' };
+
+interface ThreadWrites {
+  composing: string | null;
+  drafts: Readonly<Record<string, string>>;
+  pending: Pending | null;
+  errors: Readonly<Record<string, string>>;
+  open: (id: string) => void;
+  close: () => void;
+  setDraft: (id: string, text: string) => void;
+  send: (t: CommentThread, alsoResolve: boolean) => void;
+  toggleResolved: (t: CommentThread) => void;
+}
+
+/** Reply and resolve for one MR's threads. One write at a time: a second
+    click while one is in flight is ignored, not queued. */
+function useThreadWrites(
+  mr: BoardMR,
+  apply: (d: Discussions) => void
+): ThreadWrites {
+  const [composing, setComposing] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const setError = (id: string, error: string | null) =>
+    setErrors(({ [id]: _dropped, ...rest }) =>
+      error === null ? rest : { ...rest, [id]: error }
+    );
+  const address = (id: string) => ({
+    repo: mr.rtRepo,
+    iid: mr.iid,
+    discussionId: id,
+    author: mr.author.username,
+  });
+
+  const send = async (t: CommentThread, alsoResolve: boolean) => {
+    const id = t.discussionId;
+    const body = drafts[id] ?? '';
+    if (pending || !body.trim()) return;
+    setPending({ id, what: alsoResolve ? 'send-resolve' : 'send' });
+    setError(id, null);
+    const replied = await postThreadWrite('/discussions/reply', {
+      ...address(id),
+      body,
+    });
+    if (!replied.ok) {
+      setError(id, `reply not sent: ${replied.error}`);
+      setPending(null);
+      return;
+    }
+    apply(replied);
+    setDrafts(({ [id]: _sent, ...rest }) => rest);
+    setComposing(open => (open === id ? null : open));
+    if (alsoResolve) {
+      const resolved = await postThreadWrite('/discussions/resolve', {
+        ...address(id),
+        resolved: true,
+      });
+      if (resolved.ok) apply(resolved);
+      else setError(id, `reply sent, but resolve failed: ${resolved.error}`);
+    }
+    setPending(null);
+  };
+
+  const toggleResolved = async (t: CommentThread) => {
+    const id = t.discussionId;
+    if (pending) return;
+    setPending({ id, what: 'resolve' });
+    setError(id, null);
+    const res = await postThreadWrite('/discussions/resolve', {
+      ...address(id),
+      resolved: t.status !== 'resolved',
+    });
+    if (res.ok) apply(res);
+    else setError(id, res.error);
+    setPending(null);
+  };
+
+  return {
+    composing,
+    drafts,
+    pending,
+    errors,
+    open: setComposing,
+    close: () => setComposing(null),
+    setDraft: (id, text) => setDrafts(d => ({ ...d, [id]: text })),
+    send: (t, alsoResolve) => void send(t, alsoResolve),
+    toggleResolved: t => void toggleResolved(t),
+  };
+}
+
+/** The reply box at a thread's foot. ⌘↵ sends; Escape closes the box and
+    keeps the draft, and stops there so the drawer behind it stays open. */
+function ReplyBox({
+  thread,
+  writes,
+}: {
+  thread: CommentThread;
+  writes: ThreadWrites;
+}) {
+  const id = thread.discussionId;
+  const draft = writes.drafts[id] ?? '';
+  const ref = useAutoGrowTextarea([draft]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [ref]);
+  const busy = writes.pending?.id === id ? writes.pending.what : null;
+  const locked = writes.pending !== null;
+  const empty = !draft.trim();
+  return (
+    <div className="tui-cd-reply">
+      <textarea
+        ref={ref}
+        className="tui-cd-reply-input"
+        rows={2}
+        value={draft}
+        placeholder="reply…"
+        aria-label="reply to this thread"
+        onChange={e => writes.setDraft(id, e.currentTarget.value)}
+        onKeyDown={e => {
+          if (e.key === 'Escape') {
+            e.stopPropagation();
+            writes.close();
+          } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            writes.send(thread, false);
+          }
+        }}
+      />
+      <div className="tui-cd-reply-foot">
+        <span className="tui-cd-reply-hint">⌘↵ sends · esc closes</span>
+        <Button
+          type="button"
+          size="sm"
+          variant="subtle"
+          intent="muted"
+          onClick={writes.close}
+        >
+          cancel
+        </Button>
+        {thread.status !== 'resolved' && (
+          <Button
+            type="button"
+            size="sm"
+            variant="light"
+            intent="accent"
+            busy={busy === 'send-resolve'}
+            disabled={locked || empty}
+            onClick={() => writes.send(thread, true)}
+          >
+            send & resolve
+          </Button>
+        )}
+        <Button
+          type="button"
+          size="sm"
+          variant="filled"
+          intent="accent"
+          busy={busy === 'send'}
+          disabled={locked || empty}
+          onClick={() => writes.send(thread, false)}
+        >
+          send
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** One review thread: its status bar (with reply / resolve when the board can
+    write), its notes, the reply box when open, and the last write's error. */
+function ThreadCard({
+  mr,
+  thread,
+  now,
+  writes,
+}: {
+  mr: BoardMR;
+  thread: CommentThread;
+  now: number;
+  writes: ThreadWrites | null;
+}) {
+  const id = thread.discussionId;
+  const resolved = thread.status === 'resolved';
+  const resolving =
+    writes?.pending?.id === id && writes.pending.what === 'resolve';
+  const error = writes?.errors[id];
+  return (
+    <section
+      className={`tui-cd-thread ${thread.status}`}
+      data-discussion-id={id}
+    >
+      <div className="tui-cd-thread-status">
+        <span>
+          <span className="tui-comment-icon">{THREAD_ICON[thread.status]}</span>{' '}
+          {THREAD_LABEL[thread.status]}
+        </span>
+        <span className="tui-cd-thread-verbs">
+          {writes && (
+            <>
+              <button
+                type="button"
+                className="tui-cd-verb"
+                onClick={() => writes.open(id)}
+              >
+                reply
+              </button>
+              <button
+                type="button"
+                className="tui-cd-verb"
+                disabled={writes.pending !== null}
+                aria-busy={resolving || undefined}
+                onClick={() => writes.toggleResolved(thread)}
+              >
+                {resolving
+                  ? resolved
+                    ? 'unresolving…'
+                    : 'resolving…'
+                  : resolved
+                    ? 'unresolve'
+                    : 'resolve'}
+              </button>
+            </>
+          )}
+          {mr.webUrl && thread.notes[0] && (
+            <a
+              className="tui-cd-thread-open"
+              href={`${mr.webUrl}#note_${thread.notes[0].id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              open ↗
+            </a>
+          )}
+        </span>
+      </div>
+      {thread.notes.map(n => (
+        <CommentNoteView key={n.id} mr={mr} note={n} now={now} />
+      ))}
+      {writes?.composing === id && <ReplyBox thread={thread} writes={writes} />}
+      {error && (
+        <p className="tui-cd-error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  );
+}
+
 /** Right-side drawer showing an MR's review threads (each with its status and
     notes) plus a section for general MR comments: the Overview-tab notes that
-    aren't threads, so a later author comment isn't invisible. Lazily fetched. */
-function CommentsDrawer({ mr, onClose }: { mr: BoardMR; onClose: () => void }) {
-  const [data, setData] = useState<{
-    threads: CommentThread[];
-    comments: GeneralComment[];
-  } | null>(null);
+    aren't threads, so a later author comment isn't invisible. Lazily fetched.
+    A local board can also reply to and resolve threads from here. */
+function CommentsDrawer({
+  mr,
+  local,
+  onClose,
+}: {
+  mr: BoardMR;
+  local: boolean;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<Discussions | null>(null);
   const [failed, setFailed] = useState(false);
   const now = Date.now();
+  const apply = (d: Discussions) =>
+    setData(prev => ({
+      threads: inPlace(prev?.threads, d.threads),
+      comments: d.comments,
+    }));
+  const writes = useThreadWrites(mr, apply);
   useEffect(() => {
     getDiscussions(mr.rtRepo ?? '', mr.iid, mr.author.username)
-      .then(d => setData(d))
+      .then(apply)
       .catch(() => setFailed(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mr]);
+  const canWrite = local && !!mr.rtRepo;
   return (
     <SideDrawer
       side="right"
@@ -157,30 +439,14 @@ function CommentsDrawer({ mr, onClose }: { mr: BoardMR; onClose: () => void }) {
           <p className="tui-comments-empty">no comments</p>
         ) : (
           <>
-            {data.threads.map((t, i) => (
-              <section key={i} className={`tui-cd-thread ${t.status}`}>
-                <div className="tui-cd-thread-status">
-                  <span>
-                    <span className="tui-comment-icon">
-                      {THREAD_ICON[t.status]}
-                    </span>{' '}
-                    {THREAD_LABEL[t.status]}
-                  </span>
-                  {mr.webUrl && t.notes[0] && (
-                    <a
-                      className="tui-cd-thread-open"
-                      href={`${mr.webUrl}#note_${t.notes[0].id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      open ↗
-                    </a>
-                  )}
-                </div>
-                {t.notes.map(n => (
-                  <CommentNoteView key={n.id} mr={mr} note={n} now={now} />
-                ))}
-              </section>
+            {data.threads.map(t => (
+              <ThreadCard
+                key={t.discussionId}
+                mr={mr}
+                thread={t}
+                now={now}
+                writes={canWrite ? writes : null}
+              />
             ))}
             {data.comments.length > 0 && (
               <section className="tui-cd-comments">

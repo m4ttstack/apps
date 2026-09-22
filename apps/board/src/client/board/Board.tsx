@@ -1454,6 +1454,7 @@ export function Board() {
             data.mrs.find(m => !!m.webUrl && m.webUrl === commentsFor.webUrl) ??
             commentsFor
           }
+          local={data.local}
           onClose={() => setCommentsFor(null)}
         />
       )}
