@@ -87,10 +87,11 @@ the whole parse to prose, no partial parses, shared 8192-byte budget.
   `still-open` re-raises a prior finding, `addressed-check` asks the
   human to confirm a claimed fix the reviewer verified).
 - Join rule, stricter than `replies@1`: entries and that question's
-  options correspond ONE TO ONE by `id` == option value. Any mismatch in
-  either direction fails that context's parse, which fails the question
-  to prose and (per routing, below) sends the whole gate to the generic
-  modal. There is no half-joined sheet.
+  options correspond ONE TO ONE by `id` == option value. The check lives
+  in the ROUTING PREDICATE, after a successful parse -- `parseGateCtx`
+  stays string-only per the base spec and never sees the options. A
+  mismatch in either direction fails routing for the whole gate, which
+  renders in the generic modal. There is no half-joined sheet.
 - Option labels and descriptions remain (`[Severity] title` and a
   first-line hint) for surfaces without a card renderer; they are a
   degraded view, and nothing requires them to carry the full text
@@ -176,7 +177,10 @@ fallback and the pane form both need it, exactly as `thread@1` and
   base spec's suite.
 - Renderer: sheet from structured data per severity and disposition;
   plain-markdown fallback for prose gates; the deleted parsers' test
-  files go with them, replaced by fallback-rendering tests.
+  files go with them, replaced by fallback-rendering tests. Routing:
+  both bijection-mismatch cases (an entry with no option, an option with
+  no entry) route the gate to the generic modal -- they are routing
+  behaviour now, not just emit-time validation.
 - Emitter: gate-ctx.sh validation cases for the new shapes; fit/trim
   cases for evidence and fix drops; whole-gate prose fallback.
 - Capture: re-rendered baselines for the review sheet (structured) and
@@ -184,8 +188,16 @@ fallback and the pane form both need it, exactly as `thread@1` and
 
 ## Rollout
 
-Renderer first (renders old prose gates as plain markdown -- the one
-visible change landing early, accepted); emitters second (skills engine,
-then the wrapper adoption); parser deletion rides the renderer change,
-not a later cleanup. Stale board tabs show structured gates as raw JSON
-until reload, as before.
+Emitters FIRST (skills engine, then the wrapper adoption), renderer plus
+parser deletion second -- the reverse of the base spec's order, because
+here the deletion takes the sheet away from prose gates. Why this order
+is safe: option labels and descriptions keep being emitted as the
+degraded view, so the OLD renderer's sheet keeps working from them all
+through the window; the one cosmetic cost is that a surface which shows
+the raw gate context (the generic modal's context pane, a stale tab) may
+show gate-ctx JSON until the renderer lands. Once the renderer ships,
+every newly opened review-post gate routes structured, and only
+historical gates degrade to the generic modal's plain markdown -- the
+intended end state. Landing renderer-first instead would take the sheet
+away from the LIVE review flow for the whole inter-repo window; that
+trade is rejected, not overlooked.
