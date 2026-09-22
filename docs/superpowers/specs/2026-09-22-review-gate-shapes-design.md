@@ -92,10 +92,13 @@ the whole parse to prose, no partial parses, shared 8192-byte budget.
   stays string-only per the base spec and never sees the options. A
   mismatch in either direction fails routing for the whole gate, which
   renders in the generic modal. There is no half-joined sheet.
-- Option labels and descriptions remain (`[Severity] title` and a
-  first-line hint) for surfaces without a card renderer; they are a
-  degraded view, and nothing requires them to carry the full text
-  anymore.
+- Option labels and descriptions remain for surfaces without a card
+  renderer, and they keep TODAY'S exact recipe: label `[Severity] title`,
+  description `anchor - fix gist - kind` joined as board:review emits it
+  now. The old sheet's parser reads precisely that format, which is what
+  makes the emitters-first rollout safe, and card-less surfaces keep
+  their anchors forever. A degraded view, pinned -- nothing requires it
+  to carry the full text anymore, and nothing may reshape it either.
 - The `outcome` question is untouched: its options already carry their
   meaning in plain descriptions.
 
