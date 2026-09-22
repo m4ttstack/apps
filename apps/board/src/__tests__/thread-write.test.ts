@@ -32,9 +32,7 @@ function glanceNote(id: number, username: string, resolved = false) {
 /** A stand-in daemon: records every call and answers with the discussions
     the real one returns after its post-write refresh. */
 function fakeDaemon(
-  answer:
-    | { ok: true; discussions: unknown[] }
-    | { ok: false; error: string }
+  answer: { ok: true; discussions: unknown[] } | { ok: false; error: string }
 ): { send: ThreadWriteSend; calls: Array<[string, unknown]> } {
   const calls: Array<[string, unknown]> = [];
   const send: ThreadWriteSend = async (verb, payload) => {
