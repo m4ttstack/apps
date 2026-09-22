@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { Button, ICONS, Markdown, SideDrawer } from '@mattstack/tui-kit';
 import { useAutoGrowTextarea } from '@mattstack/tui-kit/hooks';
@@ -95,7 +95,38 @@ function CommentNoteView({
           {ago(note.at, now)} ↗
         </a>
       </div>
-      <div className="tui-cd-note-body">
+      <NoteBody body={note.body} />
+    </div>
+  );
+}
+
+/** A note's markdown under the drawer's height cap, with "show more" only
+    when the note actually runs past it. Measured rather than guessed from the
+    text's length: a short note with a code block can stand taller than a long
+    paragraph. The cap is on before the first measure, so an overflowing note
+    never flashes open. */
+function NoteBody({ body }: { body: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || expanded) return;
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [body, expanded]);
+  return (
+    <div className="tui-cd-note-body">
+      <div
+        ref={ref}
+        className="tui-cd-note-clamp"
+        data-clamped={expanded ? 'false' : 'true'}
+        data-overflow={overflows ? 'true' : undefined}
+      >
         {/* `unstyled` is the parity choice, not an omission. .tui-cd-note-body
             is a SEPARATE board-owned prose block that was never .tui-md;
             without this the recipe's own font-family/size/line-height would sit
@@ -104,9 +135,19 @@ function CommentNoteView({
             h1-h6/pre/table rules would apply with no unlayered competitor.
             data-part="markdown" is still stamped either way. */}
         <Markdown unstyled linkTargetBlank>
-          {note.body}
+          {body}
         </Markdown>
       </div>
+      {overflows && (
+        <button
+          type="button"
+          className="tui-cd-verb tui-cd-more"
+          aria-expanded={expanded}
+          onClick={() => setExpanded(open => !open)}
+        >
+          {expanded ? 'show less' : 'show more'}
+        </button>
+      )}
     </div>
   );
 }

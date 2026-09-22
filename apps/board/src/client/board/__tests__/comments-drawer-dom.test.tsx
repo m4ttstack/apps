@@ -6,6 +6,7 @@ import {
   afterEach,
   beforeAll,
   beforeEach,
+  describe,
   expect,
   test,
 } from 'bun:test';
@@ -106,6 +107,7 @@ let container: HTMLDivElement;
 // Reset in beforeEach; a test swaps in what the board serves and how the
 // thread-write routes answer.
 let servedData: Record<string, unknown> = BOARD_DATA;
+let servedDiscussions: Record<string, unknown> = DISCUSSIONS;
 let posts: Array<{ url: string; body: Record<string, unknown> }> = [];
 let writeAnswer: (url: string, body: Record<string, unknown>) => Response;
 const json = (v: unknown, status = 200) =>
@@ -120,7 +122,7 @@ beforeAll(async () => {
       posts.push({ url, body });
       return writeAnswer(url, body);
     }
-    if (url.startsWith('/discussions')) return json(DISCUSSIONS);
+    if (url.startsWith('/discussions')) return json(servedDiscussions);
     return new Response('{}', { status: 200 });
   }) as typeof fetch;
   window.open = (() => null) as typeof window.open;
@@ -133,6 +135,7 @@ beforeEach(() => {
   localStorage.clear();
   history.replaceState(null, '', '/');
   servedData = BOARD_DATA;
+  servedDiscussions = DISCUSSIONS;
   posts = [];
   writeAnswer = () => json(DISCUSSIONS);
 });
@@ -400,4 +403,103 @@ test('a remote board shows the threads with no reply or resolve controls', async
   );
   expect(labels).not.toContain('reply');
   expect(labels).not.toContain('resolve');
+});
+
+// ── long notes ──────────────────────────────────────────────────────────────
+
+describe('long notes', () => {
+  // happy-dom has no layout, so the note's clamp box reports the heights a
+  // browser would: a long body overflows the cap while collapsed, a short one
+  // fits. Every other element keeps happy-dom's own answer.
+  const CAP = 226;
+  const saved = new Map<string, PropertyDescriptor | undefined>();
+  const inherited = (name: string) => {
+    for (
+      let p: object | null = Object.getPrototypeOf(HTMLElement.prototype);
+      p;
+      p = Object.getPrototypeOf(p)
+    ) {
+      const d = Object.getOwnPropertyDescriptor(p, name);
+      if (d) return d;
+    }
+    return undefined;
+  };
+  const natural = (el: HTMLElement) =>
+    (el.textContent?.length ?? 0) > 500 ? 900 : 60;
+  beforeAll(() => {
+    const stubs: Record<string, (el: HTMLElement) => number> = {
+      scrollHeight: natural,
+      clientHeight: el =>
+        el.getAttribute('data-clamped') === 'true'
+          ? Math.min(CAP, natural(el))
+          : natural(el),
+    };
+    for (const [name, height] of Object.entries(stubs)) {
+      saved.set(
+        name,
+        Object.getOwnPropertyDescriptor(HTMLElement.prototype, name)
+      );
+      const fallback = inherited(name);
+      Object.defineProperty(HTMLElement.prototype, name, {
+        configurable: true,
+        get(this: HTMLElement) {
+          return this.classList.contains('tui-cd-note-clamp')
+            ? height(this)
+            : (fallback?.get?.call(this) ?? 0);
+        },
+      });
+    }
+  });
+  afterAll(() => {
+    for (const [name, d] of saved) {
+      if (d) Object.defineProperty(HTMLElement.prototype, name, d);
+      else
+        delete (HTMLElement.prototype as unknown as Record<string, unknown>)[
+          name
+        ];
+    }
+  });
+
+  const LONG =
+    'This review walks every call site of the resolver before it settles. '.repeat(
+      20
+    );
+  const clampOf = (id: string) =>
+    thread(id).querySelector<HTMLElement>('.tui-cd-note-clamp')!;
+
+  test('a long note is capped, and "show more" opens it whole, then "show less" caps it again', async () => {
+    servedDiscussions = {
+      threads: [{ ...threadA, notes: [note(9001, 'kim', LONG)] }, threadB],
+      comments: [],
+    };
+    await renderBoardWithDrawerOpen();
+    expect(clampOf('dA').getAttribute('data-clamped')).toBe('true');
+    expect(clampOf('dA').hasAttribute('data-overflow')).toBe(true);
+    await press(thread('dA'), 'show more');
+    expect(clampOf('dA').getAttribute('data-clamped')).toBe('false');
+    await press(thread('dA'), 'show less');
+    expect(clampOf('dA').getAttribute('data-clamped')).toBe('true');
+  });
+
+  test('a note that fits under the cap has no fade and no "show more"', async () => {
+    await renderBoardWithDrawerOpen();
+    const labels = [...thread('dB').querySelectorAll('button')].map(b =>
+      b.textContent?.trim()
+    );
+    expect(labels).not.toContain('show more');
+    expect(clampOf('dB').hasAttribute('data-overflow')).toBe(false);
+  });
+
+  test('a long general MR comment is capped the same way', async () => {
+    servedDiscussions = {
+      threads: [],
+      comments: [note(9100, 'kim', LONG)],
+    };
+    const drawer = await renderBoardWithDrawerOpen();
+    const section = drawer.querySelector<HTMLElement>('.tui-cd-comments')!;
+    expect(
+      section.querySelector('.tui-cd-note-clamp')!.getAttribute('data-clamped')
+    ).toBe('true');
+    buttonIn(section, 'show more');
+  });
 });

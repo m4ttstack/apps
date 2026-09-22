@@ -1321,6 +1321,22 @@ body {
   color: var(--text-1);
   overflow-wrap: anywhere;
 }
+/* 18em is twelve lines at the body's 1.5 line-height. */
+.tui-cd-note-clamp[data-clamped='true'] {
+  max-height: 18em;
+  overflow: hidden;
+}
+.tui-cd-note-clamp[data-clamped='true'][data-overflow] {
+  mask-image: linear-gradient(
+    to bottom,
+    currentColor calc(100% - 3em),
+    transparent
+  );
+}
+.tui-cd-more {
+  display: inline-block;
+  margin-top: 0.35rem;
+}
 /* Rendered markdown inside a note. */
 /* Collapse the prose block's outer edges. These reach THROUGH the Markdown
    recipe's root: mr-board used to render ReactMarkdown's output as the direct
