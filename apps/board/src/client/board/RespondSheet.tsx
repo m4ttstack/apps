@@ -15,8 +15,16 @@ import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview } from '../types.ts';
 import { parseGateCtx, type PlanCtx, type PostCtx } from './gate-ctx.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
+import { MrCard } from './MrCard.tsx';
+import { forgeNoun } from './MrLinks.tsx';
+import { PersonLead } from './PersonLead.tsx';
 import { ReplyChoiceBody, SeverityPill, ThreadCard } from './RespondCards.tsx';
-import { RespondGateHeader, subjectRef } from './RespondGateHeader.tsx';
+import {
+  headerChips,
+  headerMeta,
+  reviewerName,
+  subjectRef,
+} from './RespondGateHeader.tsx';
 
 /** The wire answer from the sheet's own selections, built the way
     `answersFromForm` builds it from a form: only a displayed single-select
@@ -205,8 +213,8 @@ function reviseAnswers(
 }
 
 /** One line per thread (or reply) with what the submit will do with it,
-    filled in as picks are made. */
-function ResponsesCard({
+    filled in as picks are made; it sits in the dock above the submit. */
+function ResponseRows({
   mainQs,
   form,
 }: {
@@ -238,23 +246,20 @@ function ResponsesCard({
     ];
   });
   return (
-    <div className="tui-sheet-card" data-card="responses">
-      <span className="tui-sheet-card-title">your responses</span>
-      <div className="tui-sheet-card-list">
-        {rows.map(r => (
-          <div className="tui-sheet-card-row" key={r.key}>
-            <Chip
-              intent={r.intent}
-              variant="outline"
-              uppercase
-              className="tui-sheet-card-chip"
-            >
-              {r.chip}
-            </Chip>
-            <span className="tui-sheet-card-text">{r.text}</span>
-          </div>
-        ))}
-      </div>
+    <div className="tui-sheet-card-list" data-card="responses">
+      {rows.map(r => (
+        <div className="tui-sheet-card-row" key={r.key}>
+          <Chip
+            intent={r.intent}
+            variant="outline"
+            uppercase
+            className="tui-sheet-card-chip"
+          >
+            {r.chip}
+          </Chip>
+          <span className="tui-sheet-card-text">{r.text}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -336,11 +341,13 @@ function RespondSheetBody({
   mr,
   ctx,
   form,
+  people,
 }: {
   gate: GateRow;
   mr?: BoardMRWithReview;
   ctx: PlanCtx | PostCtx;
   form: GateFormState;
+  people?: ReadonlyMap<string, string>;
 }) {
   const [revising, setRevising] = useState(false);
   const [reason, setReason] = useState('');
@@ -373,13 +380,13 @@ function RespondSheetBody({
       !perItem(q) &&
       !(impliedCodeChanges && q.name === CODE_CHANGES_QUESTION_ID)
   );
-  const anyFix = mainQs.some(q => {
+  const fixes = mainQs.filter(q => {
     const v = form.selections[q.name];
     return typeof v === 'string' && v.startsWith('fix:');
-  });
+  }).length;
   const submitSelections: GateSelections = { ...form.selections };
   if (impliedCodeChanges) {
-    if (anyFix) submitSelections[CODE_CHANGES_QUESTION_ID] = 'approve';
+    if (fixes > 0) submitSelections[CODE_CHANGES_QUESTION_ID] = 'approve';
     else delete submitSelections[CODE_CHANGES_QUESTION_ID];
   }
   const shown = new Set(form.display.map(q => q.name));
@@ -409,6 +416,11 @@ function RespondSheetBody({
       return q.choices.find(c => c.value === v)?.label;
     })
     .find(Boolean);
+  const nextStep = !plan
+    ? null
+    : fixes > 0
+      ? `Next, ${fixes} ${fixes === 1 ? 'fix gets' : 'fixes get'} implemented, then you approve the replies before anything posts.`
+      : 'Next, you approve the replies before anything posts.';
   const submitLabel = form.busy
     ? 'submitting…'
     : revising
@@ -420,7 +432,6 @@ function RespondSheetBody({
   return (
     <div className="tui-sheet-body">
       <section className="tui-sheet-main">
-        <RespondGateHeader gate={gate} mr={mr} ctx={ctx} />
         <div className="tui-sheet-list-head">
           <span className="tui-sheet-list-title">
             {repliesQ
@@ -506,7 +517,35 @@ function RespondSheetBody({
         ) : (
           <>
             <div className="tui-sheet-rail-scroll">
-              <ResponsesCard mainQs={mainQs} form={form} />
+              {mr && <MrCard mr={mr} />}
+              <div className="tui-sheet-context-card">
+                <span className="tui-sheet-context-label">
+                  decision context
+                </span>
+                <PersonLead
+                  id={ctx.reviewer}
+                  name={reviewerName(ctx.reviewer, mr, people)}
+                >
+                  reviewed your {forgeNoun(mr, gate.subject)}
+                </PersonLead>
+                {headerMeta(ctx).length > 0 && (
+                  <p className="tui-sheet-context-meta">
+                    {headerMeta(ctx).join(' · ')}
+                  </p>
+                )}
+                <div className="tui-respond-chips">
+                  {headerChips(ctx).map(chip => (
+                    <span
+                      key={chip.key}
+                      className="tui-respond-chip"
+                      data-hue={chip.hue}
+                      data-chip={chip.key}
+                    >
+                      {chip.text}
+                    </span>
+                  ))}
+                </div>
+              </div>
               {mr && <MrStatusCard mr={mr} />}
             </div>
             <div className="tui-sheet-dock">
@@ -537,6 +576,14 @@ function RespondSheetBody({
                   onChange={e => setReason(e.currentTarget.value)}
                 />
               ) : (
+                <>
+                  <ResponseRows mainQs={mainQs} form={form} />
+                  {nextStep && (
+                    <p className="tui-sheet-dock-next">{nextStep}</p>
+                  )}
+                </>
+              )}
+              {!revising &&
                 dockQs.map(q => (
                   <div key={q.name} className="tui-sheet-dock-question">
                     <span className="tui-sheet-dock-prompt">{q.prompt}</span>
@@ -547,8 +594,7 @@ function RespondSheetBody({
                     <Choices q={q} form={form} />
                     <Note q={q} form={form} />
                   </div>
-                ))
-              )}
+                ))}
               <Button
                 type="button"
                 variant="filled"

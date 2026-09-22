@@ -115,6 +115,7 @@ function DecisionQueueModal({
   onAnswered,
   onContinue,
   onLostChange,
+  people,
 }: {
   gate: GateRow & { executor?: ExecutorState };
   /** Absent for a non-MR gate (queueExtras) -- the strip and face below
@@ -136,6 +137,9 @@ function DecisionQueueModal({
   /** Fires when the CAS-loss face flips on or off, so the host can hold the
       queue on this gate while it's showing. */
   onLostChange?: (lost: boolean) => void;
+  /** Team roster usernames to full names, for the reviewer a respond gate
+      answers. */
+  people?: ReadonlyMap<string, string>;
 }) {
   const form = useGateForm(gate, onAnswered);
   const paneGone = gate.executor === 'gone';
@@ -232,7 +236,13 @@ function DecisionQueueModal({
         onClose={onClose}
         actions={actions}
       >
-        <RespondSheetBody gate={gate} mr={mr} ctx={headerCtx} form={form} />
+        <RespondSheetBody
+          gate={gate}
+          mr={mr}
+          ctx={headerCtx}
+          form={form}
+          people={people}
+        />
       </GateSheet>
     );
   }
@@ -248,7 +258,12 @@ function DecisionQueueModal({
     >
       <div className="tui-triage-sheet-body">
         {headerCtx ? (
-          <RespondGateHeader gate={gate} mr={mr} ctx={headerCtx} />
+          <RespondGateHeader
+            gate={gate}
+            mr={mr}
+            ctx={headerCtx}
+            people={people}
+          />
         ) : (
           <div className="tui-triage-strip">
             <div className="tui-triage-row-1">

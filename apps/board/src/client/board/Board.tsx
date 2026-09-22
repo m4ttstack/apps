@@ -1449,6 +1449,13 @@ export function Board() {
           onAnswered={() => queue.noteAnswered(activeGateId)}
           onContinue={() => queue.noteAnswered(activeGateId)}
           onLostChange={lost => queue.hold(lost ? activeGateId : null)}
+          people={
+            new Map(
+              data.members.flatMap(m =>
+                m.name ? [[m.username, m.name] as const] : []
+              )
+            )
+          }
         />
       )}
       {queue.open && queue.complete && (

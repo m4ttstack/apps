@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Invadr } from 'invadrs/react';
 
 import {
   collapseChunks,
@@ -392,8 +391,6 @@ function ReviewGateSheet({
     >
       <div className="tui-sheet-body">
         <section className="tui-sheet-main" ref={mainRef}>
-          {mr && <MrCard mr={mr} />}
-
           {findingsQuestion && (
             <>
               <div className="tui-sheet-list-head">
@@ -588,6 +585,7 @@ function ReviewGateSheet({
           ) : (
             <>
               <div className="tui-sheet-rail-scroll">
+                {mr && <MrCard mr={mr} />}
                 <div className="tui-sheet-context-card">
                   <span className="tui-sheet-context-label">
                     decision context
