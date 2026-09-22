@@ -8,9 +8,10 @@
  * ~/.mattstack and the board's live state/. Tests may still fail from the root;
  * this only guarantees they fail without touching live state.
  */
-import { mkdtempSync } from 'fs';
+import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { afterAll } from 'bun:test';
 
 import { guardTestDaemonEnv } from '@mattstack/rt-client';
 
@@ -18,9 +19,16 @@ import { guardTestDaemonEnv } from '@mattstack/rt-client';
 // outranks HOME, so the scrub has to happen before the repoint below.
 guardTestDaemonEnv();
 
-process.env.HOME = mkdtempSync(
-  join(tmpdir(), 'mattstack-apps-root-test-home-')
-);
-process.env.BOARD_APP_ROOT = mkdtempSync(
+const testHome = mkdtempSync(join(tmpdir(), 'mattstack-apps-root-test-home-'));
+const testBoardRoot = mkdtempSync(
   join(tmpdir(), 'mattstack-apps-root-test-board-')
 );
+process.env.HOME = testHome;
+process.env.BOARD_APP_ROOT = testBoardRoot;
+
+// Not process.on('exit'): bun test fires neither exit nor beforeExit. A
+// preload's afterAll runs once, after every file.
+afterAll(() => {
+  rmSync(testHome, { recursive: true, force: true });
+  rmSync(testBoardRoot, { recursive: true, force: true });
+});
