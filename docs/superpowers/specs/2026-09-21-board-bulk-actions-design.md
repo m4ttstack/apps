@@ -18,8 +18,13 @@ The selection bar gains an **actions** button that opens the same menu
 (one checked row: the one-row menu for it).
 
 The bulk menu keeps the row menu's grammar and three sections. An item
-shows only when at least one checked MR can take it, and it carries a count
-(`3 of 5`) of how many it will act on.
+shows only when it fits the whole selection: every checked MR either needs
+it or is already where it leads (a rebased MR for rebase, a healthy one for
+call doctor, a marked thread for a mark). One checked MR that cannot get
+there at all (not yours, cannot merge, no Slack thread) hides it. The
+action then runs on the MRs that need it and skips the rest. Items carry no
+counts; the menu's title says how many are checked. When nothing fits, the
+menu says `nothing fits all 4`.
 
 | Section | Items |
 | --- | --- |
@@ -34,12 +39,18 @@ shows only when at least one checked MR can take it, and it carries a count
   that shows while it can't be clicked, so it never silently vanishes.
 - **Launches** (review, re-review, call doctor) take a second click once
   they would open more than 3 panes (`really start 4 reviews?`).
-- **Request review from…** opens a picker; each person's count is how many
-  checked MRs they can still be asked on. Picking one sends an ask on each.
-- A **slack mark** shows as "mark" for the MRs whose thread lacks it. It
-  shows as "unmark" only when every checked MR with a thread already has it.
-- **One summary toast** per action: `rebase started on 2 · couldn't rebase
-  !1266`. One reload at the end, not one per MR.
+- **Request review from…** shows only when every checked MR is yours. The
+  picker lists each person once; picking one sends an ask on each checked
+  MR they are not already on.
+- A **slack mark** shows as "mark" when every checked MR has a thread and at
+  least one lacks the mark; it shows as "unmark" only when every checked
+  thread already has it. A mixed draft/ready or armed/unarmed selection
+  shows both directions, since either one finishes the job.
+- **One summary toast** per action, naming what it did, what failed and
+  what it skipped: `doctor called on !1271 · 3 didn't need it`,
+  `rebase started on !1204, !1236 · couldn't rebase !1266 (409) · 1 didn't
+  need it`. Past four MRs the list ends `+2 more`. One reload at the end,
+  not one per MR.
 - The selection stays after an action, so moves chain (rebase, then set
   auto-merge). Merged MRs leave the board on their own.
 
@@ -68,13 +79,15 @@ Instead, each action is defined once and both menus read from it.
   `canNudge` / `canAskRespond` props. The existing helpers in `format.ts`
   (`gitlabMenuItems`, `reviewMenuItems`, `firstReviewTargets`, ...) stay
   and are called from here.
-- `bulkActions(mrs, env)`: runs `rowActions` for each checked MR, keeps the
-  `bulk` entries, groups them by `key`, and returns each with its targets
-  and count. It adds only what exists solely for a group: the merge stack
-  block (via `view.ts`'s `stackParents` over the whole board, exported
-  for this; today it is module-private) and the
-  mark/unmark rule. It has no eligibility logic of its own, so the two
-  menus can never disagree about what an MR can take.
+- `bulkActions(mrs, env)`: runs `rowActions` for each checked MR and keeps
+  a `bulk` action only when every checked MR either offers it (a target)
+  or is already there (skipped). "Already there" is read off the MR's own
+  `rowActions` keys (it offers the opposite toggle, or a running lane's
+  focus item, or nothing to do for a rebase, doctor, review or thread
+  lookup), so it adds no eligibility rules of its own. It also adds what
+  exists only for a group: the merge stack block (via `view.ts`'s
+  `stackParents` over the whole board, exported for this) and mark over
+  unmark.
 - `env` is one object (`self`, `local`, `slackEnabled`, `roster`, `peers`,
   `allMrs`) built once in `Board.tsx`.
 
@@ -97,8 +110,8 @@ Instead, each action is defined once and both menus read from it.
 ### `ActionMenu.tsx` (new, React)
 
 - Renders a list of entries into the kit `ContextMenu`: the section labels,
-  the counts, and the stages every menu needs: the second-click confirm,
-  the person picker and the alt-click note box.
+  an empty line when nothing fits, and the stages every menu needs: the
+  second-click confirm, the person picker and the alt-click note box.
 - `RowMenu` becomes a thin caller: `rowActions(mr, env)` into
   `ActionMenu`, plus the one piece only a single row has (Slack marks that
   stay open with a spinner while you set several).
