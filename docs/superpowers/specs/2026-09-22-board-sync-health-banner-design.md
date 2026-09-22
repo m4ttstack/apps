@@ -91,7 +91,7 @@ gain `syncError`. `cache.ts`'s empty snapshot sets it `null`.
 | # | when | text | title (tooltip) |
 |---|---|---|---|
 | 1 | `fetchError` | `⚠ board can't refresh... data is 1h 43m old (as of 14:28)` | the fetchError |
-| 2 | `syncError` and data stale or age unknown | `⚠ GitLab timing out since 14:31... board data is 1h 43m old (as of 14:28)` | the raw message, plus `2 of 3 projects failing` when more than one |
+| 2 | `syncError` and data stale or age unknown | `⚠ GitLab timing out since 14:31... board data is 1h 43m old (as of 14:28)` | the raw message, plus `(2 projects failing)` when more than one |
 | 3 | data stale (age known) | `⚠ board data is 1h 43m old (as of 14:28)... rt sync is behind` | none |
 | 4 | otherwise | no banner | |
 
@@ -120,8 +120,10 @@ new colour and no new CSS.
 
 **Fixture.** `tests/fixture/data.json` pins `dataSyncedAt` 60 minutes
 before `meta.json`'s `now`, which would put the banner on every capture.
-Move it to 2 minutes before `now` and add `"syncError": null`; regenerate
-the capture baselines once, on purpose.
+Move it to 2 minutes before `now` and add `"syncError": null`. Do not
+re-baseline the capture PNGs from this branch: `capture:compare` is already
+red on `main` (every baseline predates the theme work), so UI validation is
+a direct before/after in Fast Browser instead.
 
 ## Acceptance
 
