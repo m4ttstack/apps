@@ -101,6 +101,12 @@ function ActionMenu({
   const [noteFor, setNoteFor] = useState<MenuEntry | null>(null);
   const [noteText, setNoteText] = useState('');
   const noteRef = useAutoGrowTextarea([noteFor, noteText]);
+  // Screen readers skip text a live region already holds when it appears,
+  // so the empty line mounts blank and is filled after mount.
+  const [emptyNote, setEmptyNote] = useState('');
+  useEffect(() => {
+    setEmptyNote(entries.length === 0 && empty ? empty : '');
+  }, [entries.length, empty]);
   useEffect(() => {
     const onAlt = (e: KeyboardEvent) => setAltHeld(e.altKey);
     const onBlur = () => setAltHeld(false);
@@ -244,7 +250,9 @@ function ActionMenu({
     >
       <ContextMenu.Label>{subject}</ContextMenu.Label>
       {entries.length === 0 && empty && (
-        <div className="tui-menu-empty">{empty}</div>
+        <div className="tui-menu-empty" aria-live="polite">
+          {emptyNote}
+        </div>
       )}
       {SECTIONS.map(([section, title]) => {
         const items = entries.filter(e => e.section === section);

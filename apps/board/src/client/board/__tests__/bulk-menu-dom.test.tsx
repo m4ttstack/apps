@@ -241,7 +241,9 @@ test('a selection no bulk action fits says so', async () => {
   await rightClick(106);
   expect(menu()?.getAttribute('aria-label')).toBe('actions for 2 selected');
   expect(items()).toEqual([]);
-  expect(menu()?.textContent).toContain('nothing fits all 2');
+  expect(menu()?.querySelector('[aria-live="polite"]')?.textContent).toBe(
+    'nothing fits all 2'
+  );
 });
 
 test('right-click on an unchecked row opens its own menu', async () => {
