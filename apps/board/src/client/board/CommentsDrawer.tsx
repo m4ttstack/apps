@@ -190,6 +190,8 @@ function useThreadWrites(
   const [composing, setComposing] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<Pending | null>(null);
+  // `pending` is a render behind: two clicks in one frame both read null.
+  const inFlight = useRef(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const setError = (id: string, error: string | null) =>
     setErrors(({ [id]: _dropped, ...rest }) =>
@@ -205,7 +207,8 @@ function useThreadWrites(
   const send = async (t: CommentThread, alsoResolve: boolean) => {
     const id = t.discussionId;
     const body = drafts[id] ?? '';
-    if (pending || !body.trim()) return;
+    if (inFlight.current || !body.trim()) return;
+    inFlight.current = true;
     setPending({ id, what: alsoResolve ? 'send-resolve' : 'send' });
     setError(id, null);
     const replied = await postThreadWrite('/discussions/reply', {
@@ -214,6 +217,7 @@ function useThreadWrites(
     });
     if (!replied.ok) {
       setError(id, `reply not sent: ${replied.error}`);
+      inFlight.current = false;
       setPending(null);
       return;
     }
@@ -228,12 +232,14 @@ function useThreadWrites(
       if (resolved.ok) apply(resolved);
       else setError(id, `reply sent, but resolve failed: ${resolved.error}`);
     }
+    inFlight.current = false;
     setPending(null);
   };
 
   const toggleResolved = async (t: CommentThread) => {
     const id = t.discussionId;
-    if (pending) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setPending({ id, what: 'resolve' });
     setError(id, null);
     const res = await postThreadWrite('/discussions/resolve', {
@@ -242,6 +248,7 @@ function useThreadWrites(
     });
     if (res.ok) apply(res);
     else setError(id, res.error);
+    inFlight.current = false;
     setPending(null);
   };
 

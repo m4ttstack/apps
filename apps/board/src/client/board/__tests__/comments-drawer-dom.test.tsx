@@ -319,6 +319,26 @@ test('reply posts the typed text to that thread and shows the refreshed thread',
   expect(replyBox('dA')).toBeNull();
 });
 
+test('two sends in the same instant post the reply once', async () => {
+  writeAnswer = () => json({ threads: [replied, threadB], comments: [] });
+  await renderBoardWithDrawerOpen();
+  await press(thread('dA'), 'reply');
+  await type(replyBox('dA')!, 'renamed in the next push');
+  const box = replyBox('dA')!;
+  await React.act(async () => {
+    for (let i = 0; i < 2; i++)
+      box.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          metaKey: true,
+          bubbles: true,
+        })
+      );
+  });
+  await settle();
+  expect(posts.map(p => p.url)).toEqual(['/discussions/reply']);
+});
+
 test('⌘↵ in the reply box sends; a plain ↵ does not', async () => {
   writeAnswer = () => json({ threads: [replied, threadB], comments: [] });
   await renderBoardWithDrawerOpen();
