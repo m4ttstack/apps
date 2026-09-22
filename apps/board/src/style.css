@@ -2530,10 +2530,14 @@ body {
 /* Context sits ABOVE the form, the way a real pane reads: transcript on
    top, prompt below. Nothing here scrolls the body itself, and the nav is
    never compressed or pushed below the fold: a container that can outgrow
-   its box owns its own scroll instead, and both the pane above and the
-   form's own question area below (`.tui-gate-items`, see `.tui-gate-form`)
-   compete for whatever height the modal leaves, each shrinking on its own
-   terms and scrolling internally past that. */
+   its box owns its own scroll instead. The pane and the form's own question
+   area below (`.tui-gate-items`, see `.tui-gate-form`) are not equal
+   competitors: the choices are what the reviewer is at the gate to act on,
+   the pane is reference, so the pane's flex-shrink is set far above the
+   form column's (200 to 1) -- large enough that CSS's own constraint
+   resolution drains the pane down to its floor before the question area
+   gives up any of its own natural height, for every gate this modal has
+   ever shown, not merely the ones measured. */
 .tui-triage-body {
   display: flex;
   flex-direction: column;
@@ -2541,15 +2545,17 @@ body {
   gap: var(--gate-gap);
   min-height: 0;
 }
-/* The floor is the pane's header band plus a few lines of prose, so a
+/* The floor is the pane's header band plus a couple lines of prose, so a
    shrunk pane still reads as a pane, never just its own title. */
 .tui-triage-body > [data-part='scrollpane'] {
-  flex: 0 1 auto;
-  min-height: 9rem;
+  flex: 0 200 auto;
+  min-height: 6rem;
 }
 /* No floor of its own: the nav below `.tui-gate-items` is what must never
    be pushed off screen, and it is protected structurally (a fixed sibling
-   after the one flexible child), not by a minimum height on the form. */
+   after the one flexible child), not by a minimum height on the form. The
+   low flex-shrink (against the pane's 200) is what keeps this the second
+   thing to give, not the first. */
 .tui-triage-body > .tui-triage-form-col {
   flex: 0 1 auto;
   min-height: 0;

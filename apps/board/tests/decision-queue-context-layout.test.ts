@@ -2,10 +2,13 @@
     area, run in headless chromium against the fixture server: happy-dom
     does no layout, and the laws this guards only exist once CSS flex
     sizing runs. The nav (`.tui-gate-actions`, in the gate body, not the
-    footer) must stay fully on screen and the modal must never scroll;
-    whatever doesn't fit -- the context pane, or the active question's own
-    area -- shrinks and scrolls internally instead. Boots on a free port so
-    a concurrent `capture` run on 7941 is untouched. */
+    footer) must stay fully on screen and the modal must never scroll. The
+    pane and the question area are not equal: the pane (reference material)
+    shrinks first and scrolls internally past its floor; the question area
+    (what the reviewer acts on) keeps its natural height and only gives up
+    any of it, scrolling in turn, once the pane is already at that floor and
+    still isn't enough. Boots on a free port so a concurrent `capture` run
+    on 7941 is untouched. */
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -21,10 +24,10 @@ const SHORT = { width: 1000, height: 812 };
 /** The ScrollPane cap DecisionQueueModal passes, as a share of the
     viewport height. */
 const PANE_CAP = 0.46;
-/** `.tui-triage-body > [data-part='scrollpane']`'s `min-height: 9rem` in
+/** `.tui-triage-body > [data-part='scrollpane']`'s `min-height: 6rem` in
     `style.css`, in px at this repo's 17px root -- the floor the pane never
     shrinks below, whether or not it is also scrolling. */
-const PANE_FLOOR_PX = 9 * 17;
+const PANE_FLOOR_PX = 6 * 17;
 
 /** The slice of the page's DOM the measurements touch; this tsconfig has no
     `dom` lib, so the evaluate callbacks reach it through a cast. */
@@ -202,6 +205,26 @@ test('short: the context pane and the question area scroll internally instead of
   expect(m.paneScrolls).toBe(true);
   expect(m.itemsScrolls).toBe(true);
   expect(m.itemsHeight).toBeGreaterThan(0);
+  await page.context().close();
+}, 30_000);
+
+test('short: the pane yields before the question area -- a shorter-context gate needs no items scroll', async () => {
+  const page = await openDecisionQueue(SHORT);
+  // openDecisionQueue lands on the queue's first prose-context gate, whose
+  // own text is long enough that even a fully-yielded pane isn't room
+  // enough (the previous test). The next prose gate is shorter: with the
+  // pane taking priority to shrink first, the question area should need
+  // none of its own scroll -- the regression this guards is the pane and
+  // the question area shrinking together instead of in that order, which
+  // would scroll this gate's question area too.
+  await page.getByRole('button', { name: 'skip gate' }).click();
+  await page.waitForTimeout(150);
+  await page.waitForSelector(
+    '.tui-triage-modal [data-part="scrollpane-body"] [data-part="markdown"] p'
+  );
+  const m = await measure(page);
+  expect(m.itemsScrolls).toBe(false);
+  expectNavOnScreen(m, SHORT.height);
   await page.context().close();
 }, 30_000);
 
