@@ -74,13 +74,14 @@ afterEach(async () => {
   container.remove();
 });
 
-async function renderModal(row: GateRow) {
+async function renderModal(row: GateRow, nextPeek?: string) {
   await React.act(async () => {
     root.render(
       <DecisionQueueModal
         gate={row}
         position={1}
         states={['active']}
+        nextPeek={nextPeek}
         onClose={() => {}}
         onSkip={() => {}}
         onFocusPane={() => {}}
@@ -145,4 +146,12 @@ test('the head is one row: title, compact focus pane and skip gate, then close',
   ]);
   for (const b of actions) expect(b.getAttribute('data-size')).toBe('sm');
   expect($('.tui-triage-queue-row')).toBeNull();
+});
+
+test('the footer never renders a peek row; the next-gate title rides the count tooltip', async () => {
+  await renderModal(stepped(), '!52 · add retry to the fetch queue');
+  expect($('.tui-triage-peek')).toBeNull();
+  expect($('.tui-triage-pos')?.getAttribute('title')).toBe(
+    'next: !52 · add retry to the fetch queue'
+  );
 });

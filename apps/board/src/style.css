@@ -2723,14 +2723,19 @@ body {
   color: var(--text-4);
   align-self: center;
 }
-/* Footer, pinned below the scrolling body: where the queue stands (pips
-   and count) on the left, the next-gate peek in the middle, and the active
-   gate's step nav on the right, so the nav never scrolls out of reach. */
+/* Footer, pinned below the scrolling body: the queue stands (pips and
+   count) on the left, the active gate's step nav on the right. One row,
+   fixed height, never wraps -- the next-gate title lives on the count's
+   own tooltip instead of a row that would wrap. min-height holds the row
+   at the nav's own 34px control-row height (.tui-gate-actions) plus the
+   footer's own vertical padding, so an answered gate (no nav mounted) and
+   a form gate (nav mounted) stand at the same height. */
 .tui-triage-footer {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px 16px;
+  min-height: 53px;
   border-top: 1px solid var(--border-soft);
   padding: 0.85rem 0 0.35rem;
 }
@@ -2745,24 +2750,6 @@ body {
 .tui-triage-nav .tui-gate-actions {
   padding: 0;
   min-height: 0;
-}
-/* Long next-gate titles wrap to a second line instead of truncating. */
-.tui-triage-peek {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: var(--gate-font-meta);
-  color: var(--text-3);
-  min-height: 1lh;
-  min-width: 0;
-  flex: 1 1 12rem;
-}
-.tui-triage-peek > span:last-child {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.tui-triage-peek-k {
-  font-weight: 500;
 }
 .tui-triage-done {
   display: flex;

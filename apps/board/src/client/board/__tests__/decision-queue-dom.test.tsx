@@ -598,7 +598,9 @@ test('the queue counts gates on rows an author filter hides, visible rows first'
       '[role="dialog"][aria-label="decision queue"]'
     );
     expect(dialog?.textContent).toContain('second mr title');
-    expect(dialog?.textContent).toMatch(/next:\s*!1/);
+    expect(
+      dialog?.querySelector('.tui-triage-pos')?.getAttribute('title')
+    ).toMatch(/next:\s*!1/);
     expect(dialog?.textContent).toContain('gate 1 of 2');
   } finally {
     localStorage.removeItem('mrs-view-state');

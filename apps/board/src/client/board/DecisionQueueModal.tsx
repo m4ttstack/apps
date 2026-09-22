@@ -390,18 +390,13 @@ function DecisionQueueModal({
               <i key={i} className="tui-triage-pip" data-state={state} />
             ))}
           </span>
-          <span className="tui-triage-pos">
+          <span
+            className="tui-triage-pos"
+            title={nextPeek ? `next: ${nextPeek}` : undefined}
+          >
             gate {position} of {states.length}
           </span>
         </span>
-        <div className="tui-triage-peek">
-          {nextPeek && (
-            <>
-              <span className="tui-triage-peek-k">next:</span>
-              <span>{nextPeek}</span>
-            </>
-          )}
-        </div>
         <div className="tui-triage-nav" ref={setNavSlot} />
       </div>
     </Modal>
