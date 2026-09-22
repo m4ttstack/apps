@@ -21,13 +21,21 @@ const ROOMY = { width: 1000, height: 1100 };
     active question's own area both have to shrink and scroll internally
     to keep the nav on screen. */
 const SHORT = { width: 1000, height: 812 };
+/** Below the question-context media query's breakpoint: the tight cap
+    still applies here, one px shy of where it relaxes. */
+const JUST_BELOW_BREAKPOINT = { width: 1000, height: 970 };
+/** Above the breakpoint: the roomy cap applies and a thread card's reply
+    box reaches its full, natural height. */
+const JUST_ABOVE_BREAKPOINT = { width: 1000, height: 990 };
+/** A common laptop window. Below the question-context media query's
+    breakpoint (980px), so the tight cap still governs here. */
+const LAPTOP = { width: 1440, height: 900 };
+/** A 14-inch MacBook Pro window at its default scaled resolution. Past the
+    breakpoint, so the roomy cap governs here. */
+const TALL_LAPTOP = { width: 1512, height: 982 };
 /** The ScrollPane cap DecisionQueueModal passes, as a share of the
     viewport height. */
 const PANE_CAP = 0.46;
-/** `.tui-triage-body > [data-part='scrollpane']`'s `min-height: 6rem` in
-    `style.css`, in px at this repo's 17px root -- the floor the pane never
-    shrinks below, whether or not it is also scrolling. */
-const PANE_FLOOR_PX = 6 * 17;
 
 /** The slice of the page's DOM the measurements touch; this tsconfig has no
     `dom` lib, so the evaluate callbacks reach it through a cast. */
@@ -118,12 +126,38 @@ async function openDecisionQueue(viewport: {
   return page;
 }
 
+/** Opens the queue and skips forward to the first gate with a thread card
+    (a structured claim/points/verdict/reply, not plain prose), the only
+    kind of gate a drafted reply box can appear on. */
+async function openDecisionQueueAtThreadGate(viewport: {
+  width: number;
+  height: number;
+}): Promise<Page> {
+  const ctx = await browser.newContext({ viewport });
+  await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
+    route.abort()
+  );
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/?member=all`);
+  await page.waitForSelector('.tui-row');
+  await page.click('.tui-dq-open');
+  await page.waitForSelector('.tui-triage-body, .tui-review-sheet');
+  const threadCard = page.locator('.tui-thread-card');
+  for (let i = 0; i < 10 && !(await threadCard.count()); i++) {
+    await page.getByRole('button', { name: 'skip gate' }).click();
+    await page.waitForTimeout(120);
+  }
+  await threadCard.first().waitFor();
+  return page;
+}
+
 type Layout = {
   modalScrolls: boolean;
   bodyScrolls: boolean;
   modalBottom: number;
   footerBottom: number;
   paneRootHeight: number;
+  paneFloorPx: number;
   paneScrolls: boolean;
   navBottom: number;
   itemsScrolls: boolean;
@@ -132,6 +166,10 @@ type Layout = {
       whole box lies inside `.tui-gate-items`'s visible (unscrolled)
       viewport, not merely present in the DOM. */
   choicesVisible: boolean[];
+  /** Whether the active question has a thread card, and if so, whether its
+      reply box lies fully inside the card's own visible (unscrolled) area.
+      `null` when the active question has no thread card at all. */
+  replyBoxVisibleInCard: boolean | null;
 };
 
 function measure(page: Page): Promise<Layout> {
@@ -164,12 +202,35 @@ function measure(page: Page): Promise<Layout> {
         r.top >= itemsRect.top - 0.5 && r.bottom <= itemsVisibleBottom + 0.5
       );
     });
+    const threadCard = activeQuestion
+      ? activeQuestion.querySelectorAll('.tui-thread-card')[0]
+      : null;
+    const replyBox = activeQuestion
+      ? activeQuestion.querySelectorAll('.tui-thread-reply')[0]
+      : null;
+    let replyBoxVisibleInCard: boolean | null = null;
+    if (threadCard && replyBox) {
+      const cardRect = threadCard.getBoundingClientRect();
+      const cardVisibleBottom = cardRect.top + threadCard.clientHeight;
+      const r = replyBox.getBoundingClientRect();
+      replyBoxVisibleInCard =
+        r.top >= cardRect.top - 0.5 && r.bottom <= cardVisibleBottom + 0.5;
+    }
+    // Read live rather than duplicating the CSS literal here, so the test
+    // and the stylesheet cannot silently diverge.
+    const win = globalThis as unknown as {
+      getComputedStyle(el: unknown): { minHeight: string };
+    };
+    const paneFloorPx = root
+      ? parseFloat(win.getComputedStyle(root).minHeight)
+      : 0;
     return {
       modalScrolls: modal.scrollHeight > modal.clientHeight,
       bodyScrolls: body.scrollHeight > body.clientHeight,
       modalBottom: modal.getBoundingClientRect().bottom,
       footerBottom: footer.getBoundingClientRect().bottom,
       paneRootHeight: root ? root.getBoundingClientRect().height : 0,
+      paneFloorPx,
       paneScrolls: pane ? pane.scrollHeight > pane.clientHeight : false,
       navBottom: nav.getBoundingClientRect().bottom,
       // +1: Blink's internal layout units are 1/64px, so two elements that
@@ -178,6 +239,7 @@ function measure(page: Page): Promise<Layout> {
       itemsScrolls: items.scrollHeight > items.clientHeight + 1,
       itemsHeight: items.getBoundingClientRect().height,
       choicesVisible,
+      replyBoxVisibleInCard,
     };
   });
 }
@@ -189,7 +251,7 @@ function expectPaneLaw(m: Layout, viewportHeight: number): void {
   // pane no longer implies it sits at the cap -- only that it never goes
   // below its own floor, however much of the deficit the question area
   // ends up absorbing instead.
-  expect(m.paneRootHeight).toBeGreaterThanOrEqual(PANE_FLOOR_PX - 1);
+  expect(m.paneRootHeight).toBeGreaterThanOrEqual(m.paneFloorPx - 1);
   expect(m.modalScrolls).toBe(false);
   expect(m.footerBottom).toBeLessThanOrEqual(m.modalBottom);
 }
@@ -219,13 +281,17 @@ test('short: the nav stays on screen without the body scrolling, even with long 
   await page.context().close();
 }, 30_000);
 
-test('short: the context pane and the question area scroll internally instead of the body', async () => {
+test('short: if the question area scrolls, the pane is already at its floor', async () => {
   const page = await openDecisionQueue(SHORT);
   const m = await measure(page);
-  // This is the fixture's deliberately long gate: both the context pane
-  // and the active question's own area outgrow the space the modal leaves
-  // them at this height, so both scroll in place rather than the body.
+  // This is the fixture's deliberately long gate, long enough to name the
+  // yield order rather than report two coincidental facts: the pane gives
+  // up its own room first, and only once it is already at its floor does
+  // the question area give up any of its own height in turn.
   expect(m.paneScrolls).toBe(true);
+  if (m.itemsScrolls) {
+    expect(m.paneRootHeight).toBeLessThanOrEqual(m.paneFloorPx + 1);
+  }
   expect(m.itemsScrolls).toBe(true);
   expect(m.itemsHeight).toBeGreaterThan(0);
   await page.context().close();
@@ -333,4 +399,38 @@ test('short: the review sheet keeps its verdict and submit on screen', async () 
   const submit = (await page.locator('.tui-review-submit').boundingBox())!;
   expect(submit.y + submit.height).toBeLessThanOrEqual(SHORT.height);
   await page.context().close();
+}, 30_000);
+
+test('below the breakpoint: the thread card keeps every choice visible over showing its full reply box', async () => {
+  const page = await openDecisionQueueAtThreadGate(LAPTOP);
+  const m = await measure(page);
+  expect(m.choicesVisible.length).toBeGreaterThan(0);
+  expect(m.choicesVisible.every(visible => visible)).toBe(true);
+  expect(m.replyBoxVisibleInCard).toBe(false);
+  expectNavOnScreen(m, LAPTOP.height);
+  await page.context().close();
+}, 30_000);
+
+test('above the breakpoint: the thread card shows its full reply box and every choice stays visible', async () => {
+  const page = await openDecisionQueueAtThreadGate(TALL_LAPTOP);
+  const m = await measure(page);
+  expect(m.choicesVisible.length).toBeGreaterThan(0);
+  expect(m.choicesVisible.every(visible => visible)).toBe(true);
+  expect(m.replyBoxVisibleInCard).toBe(true);
+  expectNavOnScreen(m, TALL_LAPTOP.height);
+  await page.context().close();
+}, 30_000);
+
+test('the breakpoint transition is not itself a cut-choice zone', async () => {
+  const below = await openDecisionQueueAtThreadGate(JUST_BELOW_BREAKPOINT);
+  const mBelow = await measure(below);
+  expect(mBelow.choicesVisible.every(visible => visible)).toBe(true);
+  expect(mBelow.replyBoxVisibleInCard).toBe(false);
+  await below.context().close();
+
+  const above = await openDecisionQueueAtThreadGate(JUST_ABOVE_BREAKPOINT);
+  const mAbove = await measure(above);
+  expect(mAbove.choicesVisible.every(visible => visible)).toBe(true);
+  expect(mAbove.replyBoxVisibleInCard).toBe(true);
+  await above.context().close();
 }, 30_000);

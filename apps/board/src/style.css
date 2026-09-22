@@ -1997,13 +1997,14 @@ body {
    the fieldset's min-content default, which otherwise refuses to shrink.
    The primitive hides every non-active item with the `hidden` attribute,
    and an author `display` rule beats the UA [hidden] rule, hence the
-   explicit override. Its context (prose or a thread card, see
+   explicit override. `.tui-gate-items` is a plain scroll container, not a
+   flex container, so this card is never given a constrained height and
+   always renders at its natural size: the head, the choices, the note and
+   the error line need no protecting, since nothing ever asks them to
+   shrink. Only the card's context (prose or a thread card, see
    `.tui-gate-question-context` / `.tui-thread-card`) carries its own
-   viewport-relative cap and scrolls internally past it; the head, the
-   choices, the note and the error line are what the reviewer acts on, so
-   `flex-shrink: 0` on each of those keeps them at natural size. The card
-   is not itself shrunk by `.tui-gate-items`: its natural (now-bounded)
-   height is what `.tui-gate-items` scrolls past when it does not fit. */
+   viewport-relative cap; whatever the card's own natural height does not
+   fit in `.tui-gate-items`'s box is what that scrolls past. */
 .tui-gate-question {
   display: flex;
   flex-direction: column;
@@ -2021,7 +2022,6 @@ body {
 /* Bleeds through the card padding to the frame, a shade under the ground,
    sealed with a soft rule. */
 .tui-gate-question-head {
-  flex-shrink: 0;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -2090,7 +2090,6 @@ body {
   border: 1px solid var(--border);
 }
 .tui-gate-choices {
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: var(--gate-gap-row);
@@ -2210,9 +2209,11 @@ body {
 }
 /* A question's own `context` field, rendered with its card above its
    choices. It is the material the choice is made on, so it reads in ink.
-   The choices below it never shrink (`.tui-gate-choices`'s `flex-shrink:
-   0`), so a viewport-relative cap keeps this from pushing them out of the
-   question card's own box, scrolling internally past the cap instead. */
+   A viewport-relative cap keeps it from pushing the choices below it out
+   of the question card's own box, scrolling internally past the cap
+   instead. The taller cap below (see the media query after
+   `.tui-thread-card`) only turns on once the window has room to grant it
+   without that trade. */
 .tui-gate-question-context {
   max-height: 12vh;
   overflow-y: auto;
@@ -2274,11 +2275,10 @@ body {
   color: var(--text-2);
 }
 /* Same role as `.tui-gate-question-context`, for a structured thread's
-   claim / points / verdict / reply instead of plain prose: the claim,
-   points, verdict and reply box inside it keep their own natural size
-   (nothing further shrinks), and the whole card scrolls as a unit once it
-   hits its own viewport-relative cap, rather than the choices below it
-   losing any ground. */
+   claim / points / verdict / reply instead of plain prose: the whole card
+   scrolls as a unit once it hits its own viewport-relative cap, rather
+   than the choices below it losing any ground. Same taller-cap media query
+   below applies to both. */
 .tui-thread-card {
   max-height: 12vh;
   overflow-y: auto;
@@ -2297,6 +2297,19 @@ body {
 }
 .tui-thread-card [data-part='markdown'] > * + * {
   margin-top: 6px;
+}
+/* The question's context yields to its choices: below the breakpoint the
+   choices win over showing the whole reply box. Above it, there is enough
+   room to grant the context card its full natural height (a drafted reply
+   included) without that card's growth pushing a choice out of view, so
+   the cap only relaxes at heights where measurement shows every choice
+   still fits alongside the card at its natural size; a lower breakpoint
+   would grant the roomy cap somewhere that trade does not hold. */
+@media (min-height: 980px) {
+  .tui-gate-question-context,
+  .tui-thread-card {
+    max-height: 18vh;
+  }
 }
 .tui-thread-points {
   margin: 0;
@@ -2353,16 +2366,6 @@ body {
   border-radius: 8px;
   background: color-mix(in srgb, var(--fill-ok) 12%, transparent);
 }
-/* The card itself is what shrinks and scrolls (see `.tui-thread-card`); its
-   own children stay at their natural size and never individually compress,
-   so a squeeze always reads as the whole card scrolling, never a claim or
-   a reply cut mid-line while the verdict beside it looks untouched. */
-.tui-thread-claim,
-.tui-thread-points,
-.tui-thread-verdict,
-.tui-thread-reply {
-  flex-shrink: 0;
-}
 .tui-thread-reply[data-kind='direction'] {
   background: color-mix(in srgb, var(--fg) 5%, transparent);
 }
@@ -2404,13 +2407,11 @@ body {
   background: color-mix(in srgb, var(--fill-accent) 7%, transparent);
 }
 .tui-gate-invalid {
-  flex-shrink: 0;
   margin: 0;
   font-size: var(--gate-font-meta);
   color: var(--text-bad-small);
 }
 .tui-gate-note {
-  flex-shrink: 0;
   width: 100%;
   box-sizing: border-box;
   min-height: 34px;
@@ -2555,10 +2556,10 @@ body {
    area below (`.tui-gate-items`, see `.tui-gate-form`) are not equal
    competitors: the choices are what the reviewer is at the gate to act on,
    the pane is reference, so the pane's flex-shrink is set far above the
-   form column's (200 to 1) -- large enough that CSS's own constraint
-   resolution drains the pane down to its floor before the question area
-   gives up any of its own natural height, for every gate this modal has
-   ever shown, not merely the ones measured. */
+   form column's (200 to 1): the pane absorbs about 200/201 of any deficit,
+   the question area the remaining ~0.5%, so in practice the pane reaches
+   its floor first. The law this buys: if `.tui-gate-items` scrolls, the
+   pane is already at its floor. */
 .tui-triage-body {
   display: flex;
   flex-direction: column;
@@ -2570,7 +2571,7 @@ body {
    shrunk pane still reads as a pane, never just its own title. */
 .tui-triage-body > [data-part='scrollpane'] {
   flex: 0 200 auto;
-  min-height: 6rem;
+  min-height: 6.75rem;
 }
 /* No floor of its own: the nav below `.tui-gate-items` is what must never
    be pushed off screen, and it is protected structurally (a fixed sibling
