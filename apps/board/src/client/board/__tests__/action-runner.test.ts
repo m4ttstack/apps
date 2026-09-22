@@ -149,6 +149,12 @@ test('runMany speaks once: done count, then the failures', async () => {
   expect(events.at(-1)).toBe('reload true');
 });
 
+test('runMany with zero targets does nothing: no toast, no reload', async () => {
+  const { deps, events } = fakeDeps();
+  await runMany({ kind: 'mr', action: 'rebase' }, [], deps);
+  expect(events).toEqual([]);
+});
+
 test('runMany with every one failing lists them without a status', async () => {
   const { deps, events } = fakeDeps(() => fail(500));
   await runMany({ kind: 'mr', action: 'merge' }, [mr(1), mr(2)], deps);

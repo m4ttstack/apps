@@ -271,6 +271,9 @@ export async function runMany(
   targets: readonly BoardMR[],
   deps: RunnerDeps
 ): Promise<void> {
+  // A stale picker snapshot (runBulk's pickTargets.get(pick) ?? []) can reach
+  // here empty; an empty run has nothing to toast or reload.
+  if (targets.length === 0) return;
   const plan = bulkPlan(req);
   const results = await mapLimit(targets, BULK_CONCURRENCY, mr =>
     plan.run(mr, deps)
