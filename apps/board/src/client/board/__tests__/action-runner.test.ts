@@ -140,13 +140,28 @@ test('runOne without a url does nothing', async () => {
   expect(events).toEqual([]);
 });
 
-test('runMany speaks once: done count, then the failures', async () => {
+test('runMany speaks once: what it did, what failed, then what it skipped', async () => {
   const { deps, events } = fakeDeps(p => (p.iid === 3 ? fail(409) : ok()));
-  await runMany({ kind: 'mr', action: 'rebase' }, [mr(1), mr(2), mr(3)], deps);
+  await runMany(
+    { kind: 'mr', action: 'rebase' },
+    [mr(1), mr(2), mr(3)],
+    deps,
+    1
+  );
   expect(events.filter(e => e.startsWith('toast'))).toEqual([
-    "toast rebase started on 2 · couldn't rebase !3 (409)",
+    "toast rebase started on !1, !2 · couldn't rebase !3 (409) · 1 didn't need it",
   ]);
   expect(events.at(-1)).toBe('reload true');
+});
+
+test('runMany names the first four and counts the rest', async () => {
+  const { deps, events } = fakeDeps();
+  await runMany(
+    { kind: 'mr', action: 'rebase' },
+    [1, 2, 3, 4, 5, 6].map(mr),
+    deps
+  );
+  expect(events).toContain('toast rebase started on !1, !2, !3, !4 +2 more');
 });
 
 test('runMany with zero targets does nothing: no toast, no reload', async () => {
@@ -167,7 +182,7 @@ test('runMany launches quietly and reloads once', async () => {
   expect(events).toEqual([
     'launch review !1 {"quiet":true}',
     'launch review !2 {"quiet":true}',
-    'toast review started on 2',
+    'toast review started on !1, !2',
     'reload false',
   ]);
 });
@@ -195,12 +210,12 @@ test('runMany keeps at most four requests in flight', async () => {
   expect(peak).toBe(4);
 });
 
-test('runMany find-thread counts what it found', async () => {
+test('runMany find-thread says where it found a thread and where it did not', async () => {
   const { deps, events } = fakeDeps(p =>
     p.iid === 1 ? ok({ status: 'found' }) : ok({ status: 'notfound' })
   );
   await runMany({ kind: 'find-thread' }, [mr(1), mr(2)], deps);
-  expect(events).toContain('toast slack thread found on 1 of 2');
+  expect(events).toContain('toast slack thread found on !1 · no thread on !2');
 });
 
 test('mapLimit never runs more than the limit at once', async () => {
@@ -223,6 +238,7 @@ test('runBulk asks the picked person only on the MRs they can take', async () =>
     {
       request: { kind: 'ask', ask: 'review' },
       targets: [mr(1), mr(2), mr(3)],
+      selected: 3,
       pickTargets: new Map([['kim', [mr(1), mr(3)]]]),
     },
     { pick: 'kim' },
@@ -232,7 +248,21 @@ test('runBulk asks the picked person only on the MRs they can take', async () =>
     `post /nudge {"mrUrl":"${mr(1).webUrl}","iid":1,"reviewer":"kim","kind":"review"}`,
     `post /nudge {"mrUrl":"${mr(3).webUrl}","iid":3,"reviewer":"kim","kind":"review"}`,
   ]);
-  expect(events).toContain('toast asked kim on 2');
+  expect(events).toContain("toast asked kim on !1, !3 · 1 didn't need it");
+});
+
+test('runBulk says how many checked MRs did not need the action', async () => {
+  const { deps, events } = fakeDeps();
+  await runBulk(
+    {
+      request: { kind: 'launch', flow: 'doctor' },
+      targets: [mr(7)],
+      selected: 4,
+    },
+    {},
+    deps
+  );
+  expect(events).toContain("toast doctor called on !7 · 3 didn't need it");
 });
 
 test('runBulk does nothing for an ask without a pick or a one-row request', () => {

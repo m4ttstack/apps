@@ -51,11 +51,29 @@ export function isRunnable(req: ActionRequest): req is RunnableRequest {
   return RUNNABLE.has(req.kind);
 }
 
+interface Done {
+  mr: BoardMR;
+  result: ActionResult;
+}
+
 interface Wording {
   fresh: boolean;
-  manyDone: (oks: ActionResult[]) => string;
+  manyDone: (done: Done[]) => string;
   manyFail: (list: string) => string;
 }
+
+const NAMED = 4;
+
+/** A toast's MR list: the first few by number, the rest as a count. */
+function iids(mrs: readonly BoardMR[]): string {
+  const named = mrs
+    .slice(0, NAMED)
+    .map(m => `!${m.iid}`)
+    .join(', ');
+  return mrs.length > NAMED ? `${named} +${mrs.length - NAMED} more` : named;
+}
+
+const on = (done: Done[]) => iids(done.map(d => d.mr));
 
 interface PostSpec extends Wording {
   path: string;
@@ -116,7 +134,7 @@ function postSpec(req: PostRequest): PostSpec {
         done: mr => `${w.done} !${mr.iid}`,
         fail: (mr, r) => `couldn't ${req.action} !${mr.iid} (${r.status})`,
         fresh: true,
-        manyDone: oks => `${w.manyDone} ${oks.length}`,
+        manyDone: done => `${w.manyDone} ${on(done)}`,
         manyFail: list => `couldn't ${w.manyVerb} ${list}`,
       };
     }
@@ -132,7 +150,7 @@ function postSpec(req: PostRequest): PostSpec {
             : `!${mr.iid} is ready for review`,
         fail: (mr, r) => `couldn't mark !${mr.iid} ${verb} (${r.status})`,
         fresh: true,
-        manyDone: oks => `marked ${verb} on ${oks.length}`,
+        manyDone: done => `marked ${verb} on ${on(done)}`,
         manyFail: list => `couldn't mark ${list} ${verb}`,
       };
     }
@@ -150,7 +168,7 @@ function postSpec(req: PostRequest): PostSpec {
         fail: (mr, r) =>
           `couldn't ${verb} ${req.glyph} for !${mr.iid} (${r.status})`,
         fresh: false,
-        manyDone: oks => `${done} ${req.glyph} on ${oks.length}`,
+        manyDone: ok => `${done} ${req.glyph} on ${on(ok)}`,
         manyFail: list => `couldn't ${verb} ${req.glyph} for ${list}`,
       };
     }
@@ -165,8 +183,16 @@ function postSpec(req: PostRequest): PostSpec {
             : `no slack thread found for !${mr.iid}`,
         fail: (mr, r) => `slack lookup failed for !${mr.iid} (${r.status})`,
         fresh: false,
-        manyDone: oks =>
-          `slack thread found on ${oks.filter(r => r.body?.status === 'found').length} of ${oks.length}`,
+        manyDone: done => {
+          const found = done.filter(d => d.result.body?.status === 'found');
+          const none = done.filter(d => d.result.body?.status !== 'found');
+          return [
+            found.length ? `slack thread found on ${on(found)}` : '',
+            none.length ? `no thread on ${on(none)}` : '',
+          ]
+            .filter(Boolean)
+            .join(' · ');
+        },
         manyFail: list => `slack lookup failed for ${list}`,
       };
     case 'ask': {
@@ -190,7 +216,7 @@ function postSpec(req: PostRequest): PostSpec {
           r.text.trim() ||
           `couldn't request ${req.ask} for !${mr.iid} (${r.status})`,
         fresh: false,
-        manyDone: oks => `asked ${reviewer} on ${oks.length}`,
+        manyDone: done => `asked ${reviewer} on ${on(done)}`,
         manyFail: list => `couldn't ask ${reviewer} on ${list}`,
       };
     }
@@ -250,7 +276,7 @@ function bulkPlan(req: RunnableRequest): Wording & {
     return {
       run: (mr, deps) => deps.launch(req.flow, mr, { quiet: true }),
       fresh: false,
-      manyDone: oks => `${w.done} ${oks.length}`,
+      manyDone: done => `${w.done} ${on(done)}`,
       manyFail: list => `couldn't launch ${w.noun} for ${list}`,
     };
   }
@@ -269,7 +295,8 @@ function bulkPlan(req: RunnableRequest): Wording & {
 export async function runMany(
   req: RunnableRequest,
   targets: readonly BoardMR[],
-  deps: RunnerDeps
+  deps: RunnerDeps,
+  skipped = 0
 ): Promise<void> {
   // A stale picker snapshot (runBulk's pickTargets.get(pick) ?? []) can reach
   // here empty; an empty run has nothing to toast or reload.
@@ -278,17 +305,23 @@ export async function runMany(
   const results = await mapLimit(targets, BULK_CONCURRENCY, mr =>
     plan.run(mr, deps)
   );
-  const oks = results.filter((r): r is ActionResult => !!r?.ok);
-  const failed = targets.flatMap((mr, i) =>
-    results[i]?.ok ? [] : [{ mr, result: results[i] }]
-  );
+  const done: Done[] = [];
+  const failed: Array<{ mr: BoardMR; result: ActionResult | undefined }> = [];
+  targets.forEach((mr, i) => {
+    const result = results[i];
+    if (result?.ok) done.push({ mr, result });
+    else failed.push({ mr, result });
+  });
   const parts: string[] = [];
-  if (oks.length) parts.push(plan.manyDone(oks));
+  if (done.length) parts.push(plan.manyDone(done));
   if (failed.length) {
-    const list = failed.map(f => `!${f.mr.iid}`).join(', ');
     const only = failed.length === 1 ? failed[0]?.result : undefined;
-    parts.push(plan.manyFail(list) + (only ? ` (${only.status})` : ''));
+    parts.push(
+      plan.manyFail(iids(failed.map(f => f.mr))) +
+        (only ? ` (${only.status})` : '')
+    );
   }
+  if (skipped > 0) parts.push(`${skipped} didn't need it`);
   deps.addToast(parts.join(' · '));
   deps.reload(plan.fresh);
 }
@@ -297,6 +330,8 @@ export function runBulk(
   entry: {
     request: ActionRequest;
     targets: readonly BoardMR[];
+    /** How many MRs are checked; the ones not targeted were skipped. */
+    selected?: number;
     pickTargets?: ReadonlyMap<string, readonly BoardMR[]>;
   },
   opts: RunOpts,
@@ -304,15 +339,19 @@ export function runBulk(
 ): Promise<void> | undefined {
   const req = entry.request;
   if (!isRunnable(req)) return undefined;
+  const skipped = (targets: readonly BoardMR[]) =>
+    Math.max(0, (entry.selected ?? targets.length) - targets.length);
   if (req.kind === 'ask') {
     if (!opts.pick) return undefined;
+    const targets = entry.pickTargets?.get(opts.pick) ?? [];
     return runMany(
       { ...req, reviewer: opts.pick },
-      entry.pickTargets?.get(opts.pick) ?? [],
-      deps
+      targets,
+      deps,
+      skipped(targets)
     );
   }
-  return runMany(req, entry.targets, deps);
+  return runMany(req, entry.targets, deps, skipped(entry.targets));
 }
 
 /** The one-row menu's own effects that are not requests to run. */

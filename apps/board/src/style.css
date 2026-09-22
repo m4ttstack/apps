@@ -3296,6 +3296,12 @@ body {
   color: var(--text-3);
   white-space: normal;
 }
+/* A selection no bulk action fits: one line where the items would be,
+   padded like an item so the menu keeps its shape. */
+.tui-menu-empty {
+  padding: 7px 8px;
+  color: var(--text-3);
+}
 .tui-menu-agent {
   font-weight: 600;
   color: var(--lane);

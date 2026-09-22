@@ -80,6 +80,7 @@ function ActionMenu({
   y,
   subject,
   entries,
+  empty,
   onRun,
   onClose,
 }: {
@@ -88,6 +89,8 @@ function ActionMenu({
   /** What the menu acts on: "!1418" or "5 selected". */
   subject: string;
   entries: MenuEntry[];
+  /** Shown in place of the sections when there are no entries. */
+  empty?: string;
   onRun: (key: string, opts: RunOpts) => void | Promise<unknown>;
   onClose: () => void;
 }) {
@@ -240,6 +243,9 @@ function ActionMenu({
       onClose={onClose}
     >
       <ContextMenu.Label>{subject}</ContextMenu.Label>
+      {entries.length === 0 && empty && (
+        <div className="tui-menu-empty">{empty}</div>
+      )}
       {SECTIONS.map(([section, title]) => {
         const items = entries.filter(e => e.section === section);
         if (!items.length) return null;

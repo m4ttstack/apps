@@ -1039,9 +1039,8 @@ export function Board() {
     peers: data.peers,
     allMrs: data.mrs,
   };
-  // Every bulk-capable action sits inside an env.local block, so bulkActions
-  // is always empty on a remote board; gating on data.local as well keeps
-  // that explicit rather than relying on the actions all happening to agree.
+  // A remote board has no bulk actions (each needs the local server), so a
+  // right-click there keeps the row's own menu instead of an empty one.
   const bulkEntries =
     data.local &&
     rowMenu &&
@@ -1355,12 +1354,13 @@ export function Board() {
       )}
 
       {rowMenu &&
-        (bulkEntries && bulkEntries.length > 0 ? (
+        (bulkEntries ? (
           <ActionMenu
             x={rowMenu.x}
             y={rowMenu.y}
             subject={`${selectedMrs.length} selected`}
             entries={bulkEntries}
+            empty={`nothing fits all ${selectedMrs.length}`}
             onClose={() => setRowMenu(null)}
             onRun={(key, opts) => {
               const entry = bulkEntries.find(e => e.key === key);

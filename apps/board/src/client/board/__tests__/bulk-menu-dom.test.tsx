@@ -190,9 +190,58 @@ test('right-click on a checked row, two checked, opens the menu for the selectio
   await check(102);
   await rightClick(101);
   expect(menu()?.getAttribute('aria-label')).toBe('actions for 2 selected');
-  expect(items().some(i => i.textContent === 'rebase on target2 of 2')).toBe(
-    true
+  expect(items().some(i => i.textContent === 'rebase on target')).toBe(true);
+});
+
+test('an action one checked MR cannot take is hidden', async () => {
+  const unmergeable = boardMr(104, {
+    mergeButton: { visible: false, disabled: false, loading: false },
+  });
+  servedData = { ...BOARD_DATA, mrs: [...BOARD_DATA.mrs, unmergeable] };
+  await renderBoard();
+  await check(101);
+  await check(104);
+  await rightClick(101);
+  const texts = items().map(i => i.textContent);
+  expect(texts).toContain('rebase on target');
+  expect(texts.some(t => t?.startsWith('merge'))).toBe(false);
+});
+
+test('call doctor goes to the broken MR and the toast says who was skipped', async () => {
+  const broken = boardMr(105, {
+    blockers: { any: true, pipelineFailing: true },
+  });
+  servedData = { ...BOARD_DATA, mrs: [...BOARD_DATA.mrs, broken] };
+  await renderBoard();
+  await check(101);
+  await check(105);
+  await rightClick(105);
+  await click('call doctor');
+  expect(posts.filter(p => p.url === '/doctor').map(p => p.body.iid)).toEqual([
+    105,
+  ]);
+  expect(document.body.textContent).toContain(
+    "doctor called on !105 · 1 didn't need it"
   );
+});
+
+test('a selection no bulk action fits says so', async () => {
+  const busy = (iid: number) =>
+    boardMr(iid, {
+      author: { username: 'kim', name: 'kim' },
+      review: { status: 'reviewing' },
+      behindTarget: 0,
+      mergeButton: { visible: false, disabled: false, loading: false },
+    });
+  servedData = { ...BOARD_DATA, mrs: [busy(106), busy(107)] };
+  history.replaceState(null, '', '/?member=all');
+  await renderBoard();
+  await check(106);
+  await check(107);
+  await rightClick(106);
+  expect(menu()?.getAttribute('aria-label')).toBe('actions for 2 selected');
+  expect(items()).toEqual([]);
+  expect(menu()?.textContent).toContain('nothing fits all 2');
 });
 
 test('right-click on an unchecked row opens its own menu', async () => {
@@ -236,7 +285,7 @@ test('a bulk rebase posts once per MR and speaks once', async () => {
     [101, 'rebase'],
     [102, 'rebase'],
   ]);
-  expect(document.body.textContent).toContain('rebase started on 2');
+  expect(document.body.textContent).toContain('rebase started on !101, !102');
 });
 
 test('a bulk rebase keeps the selection checked', async () => {

@@ -158,43 +158,61 @@ const c = mrx(203, {
   blockers: { any: true, pipelineFailing: true },
 });
 
-test('bulk groups the bulk-capable actions, counts them, and orders them like the mock', () => {
-  const lines = bulkActions([a, b, c], env3([a, b, c])).map(
-    e => `${e.key} | ${e.label} | ${e.hint}`
-  );
-  expect(lines).toEqual([
-    'review | review | 3 of 3',
-    'doctor | call doctor | 1 of 3',
-    'request-review | request review from… | 2 of 3',
-    'rebase | rebase on target | 1 of 3',
-    'mark-ready | mark ready | 1 of 3',
-    'mark-draft | mark as draft | 1 of 3',
-    'merge | merge | 2 of 3',
-    'find-thread | find slack threads | 3 of 3',
+test('bulk shows only what fits every checked MR, in the mock order, with no counts', () => {
+  const entries = bulkActions([a, b, c], env3([a, b, c]));
+  expect(entries.map(e => `${e.key} | ${e.label}`)).toEqual([
+    'review | review',
+    'doctor | call doctor',
+    'rebase | rebase on target',
+    'find-thread | find slack threads',
   ]);
+  expect(entries.every(e => e.hint === undefined)).toBe(true);
 });
 
-test('bulk targets are the MRs each action acts on', () => {
+test('an action acts on the MRs that need it and skips the ones already there', () => {
+  const entries = bulkActions([a, b, c], env3([a, b, c]));
   const byKey = Object.fromEntries(
-    bulkActions([a, b, c], env3([a, b, c])).map(e => [
-      e.key,
-      e.targets.map(t => t.iid),
-    ])
+    entries.map(e => [e.key, e.targets.map(t => t.iid)])
   );
-  expect(byKey.merge).toEqual([201, 202]);
+  expect(byKey.review).toEqual([201, 202, 203]);
   expect(byKey.doctor).toEqual([203]);
+  expect(byKey.rebase).toEqual([201]);
+  expect(entries.every(e => e.selected === 3)).toBe(true);
+});
+
+test('one checked MR that cannot take an action hides it', () => {
+  const keys = bulkActions([a, b, c], env3([a, b, c])).map(e => e.key);
+  for (const k of ['merge', 'request-review', 'mark-ready', 'mark-draft'])
+    expect(keys).not.toContain(k);
 });
 
 test('merge always confirms; launches confirm only past three', () => {
-  const d = mrx(204);
-  const four = [a, b, c, d];
+  const m1 = mrx(211, { mergeButton: visible });
+  const m2 = mrx(212, { mergeButton: visible });
+  const four = [a, b, m1, m2];
   const entries = bulkActions(four, env3(four));
-  expect(entries.find(e => e.key === 'merge')?.confirm).toBe('really merge 2?');
+  expect(entries.find(e => e.key === 'merge')?.confirm).toBe('really merge 4?');
   expect(entries.find(e => e.key === 'review')?.confirm).toBe(
     'really start 4 reviews?'
   );
-  const three = bulkActions([a, b, c], env3([a, b, c]));
+  const three = bulkActions([a, b, m1], env3([a, b, m1]));
   expect(three.find(e => e.key === 'review')?.confirm).toBeUndefined();
+});
+
+test('nothing fits when no checked MR needs any bulk action', () => {
+  const running = (iid: number) =>
+    mrx(iid, {
+      author: { username: 'kim', name: 'Kim' },
+      review: { status: 'reviewing' },
+    });
+  const r1 = running(214);
+  const r2 = running(215);
+  const env = { ...env3([r1, r2]), slackEnabled: false };
+  expect(bulkActions([r1, r2], env)).toEqual([]);
+});
+
+test('a remote board has no bulk actions', () => {
+  expect(bulkActions([a, b], { ...env3([a, b]), local: false })).toEqual([]);
 });
 
 test('a checked MR stacked on an open MR blocks merge for the selection', () => {
@@ -222,12 +240,31 @@ test('mark wins over unmark until every checked thread has the mark', () => {
   const mixed = bulkActions([e, f], env3([e, f])).map(x => x.key);
   expect(mixed).toContain('react-eyes');
   expect(mixed).not.toContain('unreact-eyes');
+  expect(
+    bulkActions([e, f], env3([e, f]))
+      .find(x => x.key === 'react-eyes')
+      ?.targets.map(t => t.iid)
+  ).toEqual([207]);
   const g = found(208, ['eyes']);
   const both = bulkActions([e, g], env3([e, g]));
   expect(both.find(x => x.key === 'unreact-eyes')?.label).toBe(
     'unmark looking'
   );
-  expect(both.find(x => x.key === 'unreact-eyes')?.hint).toBe('2 of 2');
+  expect(both.map(x => x.key)).not.toContain('react-eyes');
+});
+
+test('a checked MR with no slack thread hides the marks but not the lookup', () => {
+  const found = mrx(216, {
+    slack: { status: 'found', reactions: [], posted: true },
+  });
+  const missing = mrx(217, {
+    slack: { status: 'notfound', reactions: [], posted: false },
+  });
+  const entries = bulkActions([found, missing], env3([found, missing]));
+  expect(entries.filter(x => x.key.includes('react-'))).toEqual([]);
+  expect(
+    entries.find(x => x.key === 'find-thread')?.targets.map(t => t.iid)
+  ).toEqual([217]);
 });
 
 test('bulk slack marks follow the ladder, not first-seen order', () => {
@@ -245,15 +282,28 @@ test('bulk slack marks follow the ladder, not first-seen order', () => {
   ]);
 });
 
-test('request review from… lists each person with the MRs they can be asked on', () => {
-  const entry = bulkActions([a, b, c], env3([a, b, c])).find(
+test('request review from… lists each person once, asked only where they are not already on it', () => {
+  const entry = bulkActions([a, b], env3([a, b])).find(
     e => e.key === 'request-review'
   );
-  expect(entry?.pick?.options).toEqual([
-    { value: 'kim', hint: '2 of 3' },
-    { value: 'jo', hint: '2 of 3' },
-  ]);
+  expect(entry?.pick?.options).toEqual([{ value: 'kim' }, { value: 'jo' }]);
   expect(entry?.pickTargets?.get('kim')?.map(t => t.iid)).toEqual([201, 202]);
+  const kimOn = mrx(213, {
+    peerReviews: [
+      {
+        mrUrl: 'https://gitlab.example.com/acme/webapp/-/merge_requests/213',
+        iid: 213,
+        reviewer: 'kim',
+        status: 'reviewing',
+        updatedAt: 1,
+      },
+    ],
+  });
+  const mixed = bulkActions([a, kimOn], env3([a, kimOn])).find(
+    e => e.key === 'request-review'
+  );
+  expect(mixed?.pickTargets?.get('kim')?.map(t => t.iid)).toEqual([201]);
+  expect(mixed?.pickTargets?.get('jo')?.map(t => t.iid)).toEqual([201, 213]);
 });
 
 test('one-row-only actions never reach the bulk menu', () => {

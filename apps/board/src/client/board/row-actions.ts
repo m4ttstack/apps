@@ -462,9 +462,42 @@ export const LAUNCH_CONFIRM_OVER = 3;
 
 export interface BulkEntry extends MenuEntry {
   request: ActionRequest;
+  /** The checked MRs that need the action; the rest are already there. */
   targets: BoardMRWithReview[];
+  /** How many MRs are checked, so a run can say how many it skipped. */
+  selected: number;
   /** request review from…: who can be asked on which of the targets. */
   pickTargets?: Map<string, BoardMRWithReview[]>;
+}
+
+/** A checked MR that does not offer a bulk action is either already where
+    the action would take it (skipped) or cannot get there (the action
+    hides). Read off the MR's own rowActions keys, so the rules stay there. */
+function alreadyThere(key: string, offered: ReadonlySet<string>): boolean {
+  const mark = /^(un)?react-(.+)$/.exec(key);
+  if (mark) return offered.has(`${mark[1] ? '' : 'un'}react-${mark[2]}`);
+  switch (key) {
+    // Reviewed, or a review or doctor is running; healthy; up to date;
+    // thread already found. None of these has a "cannot" case on a local
+    // board.
+    case 'review':
+    case 'doctor':
+    case 'rebase':
+    case 'find-thread':
+      return true;
+    case 're-review':
+      return offered.has('focus-review');
+    case 'setAutoMerge':
+      return offered.has('cancelAutoMerge');
+    case 'cancelAutoMerge':
+      return offered.has('setAutoMerge');
+    case 'mark-ready':
+      return offered.has('mark-draft');
+    case 'mark-draft':
+      return offered.has('mark-ready');
+    default:
+      return false;
+  }
 }
 
 const SECTION_RANK: Record<Section, number> = { agent: 0, gitlab: 1, slack: 2 };
@@ -526,14 +559,26 @@ function mergeBlock(checked: BoardMR[], allMrs: BoardMR[]): string | undefined {
   return undefined;
 }
 
-/** The bulk menu: each checked MR's rowActions, keeping the bulk-capable
-    ones, grouped by key. Eligibility comes only from rowActions; what is
-    added here exists only for a group (counts, confirms, the stack block,
-    mark over unmark, the merged picker). */
+/** The bulk menu: an action shows when every checked MR either offers it
+    (a target) or is already where it leads (skipped); one checked MR that
+    cannot get there hides it. Eligibility comes only from rowActions; what
+    is added here exists only for a group (confirms, the stack block, mark
+    over unmark, the merged picker). */
 export function bulkActions(
   mrs: BoardMRWithReview[],
   env: ActionEnv
 ): BulkEntry[] {
+  if (!env.local) return [];
+  const rows = mrs.map(mr => {
+    const actions = rowActions(mr, env);
+    return { mr, actions, offered: new Set(actions.map(a => a.key)) };
+  });
+  const firstOf = new Map<string, RowAction>();
+  for (const { actions } of rows)
+    for (const action of actions)
+      if (action.bulk && !firstOf.has(action.key))
+        firstOf.set(action.key, action);
+
   const groups = new Map<
     string,
     {
@@ -542,18 +587,19 @@ export function bulkActions(
       picks: Map<string, BoardMRWithReview[]>;
     }
   >();
-  for (const mr of mrs) {
-    for (const action of rowActions(mr, env)) {
-      if (!action.bulk) continue;
-      let g = groups.get(action.key);
-      if (!g) {
-        g = { first: action, targets: [], picks: new Map() };
-        groups.set(action.key, g);
-      }
-      g.targets.push(mr);
-      for (const o of action.pick?.options ?? [])
-        g.picks.set(o.value, [...(g.picks.get(o.value) ?? []), mr]);
+  for (const [key, first] of firstOf) {
+    const targets: BoardMRWithReview[] = [];
+    const picks = new Map<string, BoardMRWithReview[]>();
+    let fits = true;
+    for (const { mr, actions, offered } of rows) {
+      const own = actions.find(a => a.key === key);
+      if (own) {
+        targets.push(mr);
+        for (const o of own.pick?.options ?? [])
+          picks.set(o.value, [...(picks.get(o.value) ?? []), mr]);
+      } else if (!alreadyThere(key, offered)) fits = false;
     }
+    if (fits) groups.set(key, { first, targets, picks });
   }
   for (const key of [...groups.keys()])
     if (
@@ -562,9 +608,7 @@ export function bulkActions(
     )
       groups.delete(key);
 
-  const of = (n: number) => `${n} of ${mrs.length}`;
   const entries = [...groups].map(([key, g]): BulkEntry => {
-    const n = g.targets.length;
     const entry: BulkEntry = {
       key,
       section: g.first.section,
@@ -573,17 +617,14 @@ export function bulkActions(
       lane: g.first.lane,
       request: g.first.request,
       targets: g.targets,
-      hint: of(n),
-      confirm: BULK_CONFIRM[key]?.(n),
+      selected: mrs.length,
+      confirm: BULK_CONFIRM[key]?.(g.targets.length),
       blocked: key === 'merge' ? mergeBlock(mrs, env.allMrs) : undefined,
     };
     if (g.first.pick) {
       entry.pick = {
         ...g.first.pick,
-        options: [...g.picks].map(([value, t]) => ({
-          value,
-          hint: of(t.length),
-        })),
+        options: [...g.picks.keys()].map(value => ({ value })),
       };
       entry.pickTargets = g.picks;
     }
