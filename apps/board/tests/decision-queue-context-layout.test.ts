@@ -162,3 +162,43 @@ test('short: the pane keeps its height and the body scrolls to the form under th
   expect(m.bodyScrolls).toBe(true);
   await page.context().close();
 }, 30_000);
+
+type Scrollable = { scrollTop: number; scrollHeight: number };
+
+test('short: the step nav is pinned in the footer, on screen, and stays put while the body scrolls', async () => {
+  const page = await openDecisionQueue(SHORT);
+  const nav = page.locator('.tui-triage-footer .tui-gate-actions');
+  await nav.waitFor();
+  expect(await page.locator('.tui-triage-body .tui-gate-actions').count()).toBe(
+    0
+  );
+  const before = (await nav.boundingBox())!;
+  expect(before.y + before.height).toBeLessThanOrEqual(SHORT.height);
+  await page.evaluate(() => {
+    const { document } = globalThis as unknown as PageGlobals;
+    const body = document.querySelector(
+      '.tui-triage-body'
+    ) as unknown as Scrollable;
+    body.scrollTop = body.scrollHeight;
+  });
+  const after = (await nav.boundingBox())!;
+  expect(after.y).toBe(before.y);
+  await page.context().close();
+}, 30_000);
+
+test('the head is one row: title, focus pane, skip gate, and close share a line', async () => {
+  const page = await openDecisionQueue(ROOMY);
+  const middle = async (selector: string) => {
+    const box = (await page.locator(selector).first().boundingBox())!;
+    return box.y + box.height / 2;
+  };
+  const title = await middle('.tui-triage-title');
+  for (const selector of [
+    '.tui-triage-head-actions button:has-text("focus pane")',
+    '.tui-triage-head-actions button:has-text("skip gate")',
+    '.tui-triage-modal [data-part="modal-close"]',
+  ])
+    expect(Math.abs((await middle(selector)) - title)).toBeLessThanOrEqual(4);
+  expect(await page.locator('.tui-triage-queue-row').count()).toBe(0);
+  await page.context().close();
+}, 30_000);

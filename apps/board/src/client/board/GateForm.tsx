@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import type {
   AnswerOutcome,
@@ -234,6 +235,7 @@ function GateForm({
   onFocusPane,
   showFocusAction = true,
   showContextFallback = true,
+  actionsSlot,
 }: {
   gate: GateRow;
   /** Absent for a non-MR gate (queueExtras); the focus-pane-via-domain branch
@@ -246,6 +248,10 @@ function GateForm({
       pane above the form; a bare host with no such pane wants this on so
       the context is not lost. */
   showContextFallback?: boolean;
+  /** Where the step nav renders. Undefined keeps it inline under the
+      questions. An element (the queue modal's footer) takes it out of the
+      scrolling body; null holds it back until that element has mounted. */
+  actionsSlot?: HTMLElement | null;
 }) {
   const {
     selections,
@@ -292,9 +298,123 @@ function GateForm({
     () => gate.questions.filter(q => /^thread-/.test(q.id)).map(q => q.id),
     [gate.questions]
   );
+  const formId = useId();
+  // A portal takes this outside the <form>, so the two native controls
+  // (reset, submit) reach it only through the HTML form="" attribute.
+  const actions = (
+    <div className="tui-gate-actions">
+      <Questionnaire.Previous
+        disabled={busy}
+        render={props => (
+          <Button {...props} variant="light" intent="muted" size="lg" />
+        )}
+      >
+        previous
+      </Questionnaire.Previous>
+      {stepped && (
+        <Button
+          type="reset"
+          form={formId}
+          variant="subtle"
+          intent="muted"
+          size="lg"
+          disabled={busy}
+          onClick={resetAll}
+        >
+          reset
+        </Button>
+      )}
+      <div className="tui-gate-actions-end">
+        {failed && (
+          <span className="tui-gate-error">
+            submit failed... nothing was sent, try again
+          </span>
+        )}
+        {focusError && <span className="tui-gate-error">{focusError}</span>}
+        {showFocusAction &&
+          (gate.status === 'parked' ? (
+            gate.domain &&
+            mr && (
+              <Button
+                type="button"
+                variant="subtle"
+                intent="muted"
+                size="lg"
+                title="resume this gate's flow in a fresh pane"
+                onClick={() => onFocusPane(mr, gate.domain!)}
+              >
+                focus pane
+              </Button>
+            )
+          ) : (
+            <Button
+              type="button"
+              variant="subtle"
+              intent="muted"
+              size="lg"
+              disabled={!originFocusable || focusBusy}
+              title={
+                originFocusable
+                  ? 'jump into the pane behind this gate'
+                  : 'no origin on this gate'
+              }
+              onClick={() => void focusGate()}
+            >
+              focus pane
+            </Button>
+          ))}
+        {/* While a skippable multi has nothing picked, the skip control IS
+            the primary button ("next · none"), and next/submit render null
+            -- skipping submits an explicit []. The primitive hides skip on
+            required items, so required steps keep plain next/submit. */}
+        <Questionnaire.Skip
+          disabled={busy}
+          render={(props, state) =>
+            state.visible && state.status !== 'answered' ? (
+              <Button {...props} variant="filled" intent="accent" size="lg" />
+            ) : null
+          }
+        >
+          {lastStep ? 'submit · none' : 'next · none'}
+        </Questionnaire.Skip>
+        <Questionnaire.Next
+          render={(props, state) =>
+            activeSkippable && state.status !== 'answered' ? null : (
+              <Button
+                {...props}
+                variant="filled"
+                intent="accent"
+                size="lg"
+                disabled={busy || state.status !== 'answered'}
+              />
+            )
+          }
+        >
+          next
+        </Questionnaire.Next>
+        <Questionnaire.Submit
+          form={formId}
+          render={(props, state) =>
+            activeSkippable && state.status !== 'answered' ? null : (
+              <Button
+                {...props}
+                variant="filled"
+                intent="accent"
+                size="lg"
+                disabled={busy || state.status !== 'answered'}
+              />
+            )
+          }
+        >
+          {busy ? 'submitting…' : 'submit'}
+        </Questionnaire.Submit>
+      </div>
+    </div>
+  );
   return (
     <Questionnaire.Root
       className="tui-gate-form"
+      id={formId}
       items={items}
       shortcuts="numbers"
       item={activeStep}
@@ -471,112 +591,9 @@ function GateForm({
           </Questionnaire.Item>
         );
       })}
-      <div className="tui-gate-actions">
-        <Questionnaire.Previous
-          disabled={busy}
-          render={props => (
-            <Button {...props} variant="light" intent="muted" size="lg" />
-          )}
-        >
-          previous
-        </Questionnaire.Previous>
-        {stepped && (
-          <Button
-            type="reset"
-            variant="subtle"
-            intent="muted"
-            size="lg"
-            disabled={busy}
-            onClick={resetAll}
-          >
-            reset
-          </Button>
-        )}
-        <div className="tui-gate-actions-end">
-          {failed && (
-            <span className="tui-gate-error">
-              submit failed... nothing was sent, try again
-            </span>
-          )}
-          {focusError && <span className="tui-gate-error">{focusError}</span>}
-          {showFocusAction &&
-            (gate.status === 'parked' ? (
-              gate.domain &&
-              mr && (
-                <Button
-                  type="button"
-                  variant="subtle"
-                  intent="muted"
-                  size="lg"
-                  title="resume this gate's flow in a fresh pane"
-                  onClick={() => onFocusPane(mr, gate.domain!)}
-                >
-                  focus pane
-                </Button>
-              )
-            ) : (
-              <Button
-                type="button"
-                variant="subtle"
-                intent="muted"
-                size="lg"
-                disabled={!originFocusable || focusBusy}
-                title={
-                  originFocusable
-                    ? 'jump into the pane behind this gate'
-                    : 'no origin on this gate'
-                }
-                onClick={() => void focusGate()}
-              >
-                focus pane
-              </Button>
-            ))}
-          {/* While a skippable multi has nothing picked, the skip control IS
-              the primary button ("next · none"), and next/submit render null
-              -- skipping submits an explicit []. The primitive hides skip on
-              required items, so required steps keep plain next/submit. */}
-          <Questionnaire.Skip
-            disabled={busy}
-            render={(props, state) =>
-              state.visible && state.status !== 'answered' ? (
-                <Button {...props} variant="filled" intent="accent" size="lg" />
-              ) : null
-            }
-          >
-            {lastStep ? 'submit · none' : 'next · none'}
-          </Questionnaire.Skip>
-          <Questionnaire.Next
-            render={(props, state) =>
-              activeSkippable && state.status !== 'answered' ? null : (
-                <Button
-                  {...props}
-                  variant="filled"
-                  intent="accent"
-                  size="lg"
-                  disabled={busy || state.status !== 'answered'}
-                />
-              )
-            }
-          >
-            next
-          </Questionnaire.Next>
-          <Questionnaire.Submit
-            render={(props, state) =>
-              activeSkippable && state.status !== 'answered' ? null : (
-                <Button
-                  {...props}
-                  variant="filled"
-                  intent="accent"
-                  size="lg"
-                  disabled={busy || state.status !== 'answered'}
-                />
-              )
-            }
-          >
-            {busy ? 'submitting…' : 'submit'}
-          </Questionnaire.Submit>
-        </div>
-      </div>
+      {actionsSlot === undefined
+        ? actions
+        : actionsSlot && createPortal(actions, actionsSlot)}
     </Questionnaire.Root>
   );
 }

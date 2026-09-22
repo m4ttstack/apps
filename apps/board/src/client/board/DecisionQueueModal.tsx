@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { GateDomain } from '@mattstack/gate-kit';
 import { Button, Chip, Markdown, Modal, ScrollPane } from '@mattstack/tui-kit';
@@ -97,11 +97,11 @@ function GateStateChips({ gate }: { gate: GateRow }) {
 /** The queue-hosted face of one gate: `GateForm` inside the kit Modal, with
     queue chrome around it -- the only place a gate's form actually mounts,
     since a row now shows a chip that opens this modal rather than the form
-    itself. Actions keep their level: gate-level (focus pane, skip gate) sit
-    on the gate strip, step-level (previous / next / submit) stay in the
-    form's footer, so the footer never mixes the two. The host owns the
-    queue itself (which gates join, the order, advancing on answer or skip);
-    this component renders exactly one active gate of it. */
+    itself. Actions keep their level: gate-level (focus pane, skip gate) ride
+    the head row beside close; step-level (previous / next / submit) ride
+    the footer, pinned below the scrolling body; the two never mix. The host
+    owns the queue itself (which gates join, the order, advancing on answer
+    or skip); this component renders exactly one active gate of it. */
 function DecisionQueueModal({
   gate,
   mr,
@@ -135,6 +135,7 @@ function DecisionQueueModal({
   onLostChange?: (lost: boolean) => void;
 }) {
   const form = useGateForm(gate, onAnswered);
+  const [navSlot, setNavSlot] = useState<HTMLDivElement | null>(null);
   const paneGone = gate.executor === 'gone';
   const headerCtx = useMemo((): PlanCtx | PostCtx | null => {
     const ctx = parseGateCtx(gate.context);
@@ -179,59 +180,61 @@ function DecisionQueueModal({
   return (
     <Modal
       className="tui-triage-modal"
-      title={<>decision queue</>}
+      title={
+        <>
+          <span className="tui-triage-title">decision queue</span>
+          <span className="tui-triage-head-actions">
+            {/* A parked gate has no pane: the board closed it on park, and the
+                recorded answer is what brings it back (resumeParkedGate). The
+                button stays so the head never rearranges, disabled with the
+                reason, as it is when the reconciler reports the pane gone. */}
+            {gate.status === 'parked' ? (
+              <Button
+                type="button"
+                variant="light"
+                intent="accent"
+                size="sm"
+                disabled
+                title="parked: answering this gate resumes its pane"
+              >
+                focus pane
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="light"
+                intent="accent"
+                size="sm"
+                disabled={!form.originFocusable || form.focusBusy || paneGone}
+                title={
+                  paneGone
+                    ? 'pane is gone'
+                    : form.originFocusable
+                      ? 'jump into the pane behind this gate'
+                      : 'no origin on this gate'
+                }
+                onClick={() => void form.focusGate()}
+              >
+                focus pane
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="light"
+              intent="muted"
+              size="sm"
+              onClick={onSkip}
+            >
+              skip gate
+            </Button>
+            {headerCtx && <GateStateChips gate={gate} />}
+          </span>
+        </>
+      }
       ariaLabel="decision queue"
       onClose={onClose}
       closeGlyph="✕"
     >
-      <div className="tui-triage-queue-row">
-        <span className="tui-triage-head-actions">
-          {/* A parked gate has no pane: the board closed it on park, and the
-              recorded answer is what brings it back (resumeParkedGate). The
-              button stays so the head never rearranges, disabled with the
-              reason, as it is when the reconciler reports the pane gone. */}
-          {gate.status === 'parked' ? (
-            <Button
-              type="button"
-              variant="light"
-              intent="accent"
-              size="lg"
-              disabled
-              title="parked: answering this gate resumes its pane"
-            >
-              focus pane
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="light"
-              intent="accent"
-              size="lg"
-              disabled={!form.originFocusable || form.focusBusy || paneGone}
-              title={
-                paneGone
-                  ? 'pane is gone'
-                  : form.originFocusable
-                    ? 'jump into the pane behind this gate'
-                    : 'no origin on this gate'
-              }
-              onClick={() => void form.focusGate()}
-            >
-              focus pane
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="light"
-            intent="muted"
-            size="lg"
-            onClick={onSkip}
-          >
-            skip gate
-          </Button>
-          {headerCtx && <GateStateChips gate={gate} />}
-        </span>
-      </div>
       {headerCtx ? (
         <RespondGateHeader gate={gate} mr={mr} ctx={headerCtx} />
       ) : (
@@ -359,6 +362,7 @@ function DecisionQueueModal({
               onFocusPane={onFocusPane}
               showFocusAction={false}
               showContextFallback={false}
+              actionsSlot={navSlot}
             />
           );
         // The modal exists to give context room: unlike the row card's
@@ -380,6 +384,16 @@ function DecisionQueueModal({
         );
       })()}
       <div className="tui-triage-footer">
+        <span className="tui-triage-where">
+          <span className="tui-triage-pips">
+            {states.map((state, i) => (
+              <i key={i} className="tui-triage-pip" data-state={state} />
+            ))}
+          </span>
+          <span className="tui-triage-pos">
+            gate {position} of {states.length}
+          </span>
+        </span>
         <div className="tui-triage-peek">
           {nextPeek && (
             <>
@@ -388,14 +402,7 @@ function DecisionQueueModal({
             </>
           )}
         </div>
-        <span className="tui-triage-pips">
-          {states.map((state, i) => (
-            <i key={i} className="tui-triage-pip" data-state={state} />
-          ))}
-        </span>
-        <span className="tui-triage-pos">
-          gate {position} of {states.length}
-        </span>
+        <div className="tui-triage-nav" ref={setNavSlot} />
       </div>
     </Modal>
   );
