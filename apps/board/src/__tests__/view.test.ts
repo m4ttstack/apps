@@ -1255,7 +1255,9 @@ describe('freshnessBanner', () => {
   });
 
   test('thresholds: 10m exactly is fresh, 30m exactly is still warn, 31m is bad', () => {
-    expect(freshnessBanner({ ...base, dataSyncedAt: now - 10 * 60_000 })).toBeNull();
+    expect(
+      freshnessBanner({ ...base, dataSyncedAt: now - 10 * 60_000 })
+    ).toBeNull();
     expect(
       freshnessBanner({ ...base, dataSyncedAt: now - 30 * 60_000 })!.intent
     ).toBe('warn');
@@ -1273,7 +1275,9 @@ describe('freshnessBanner', () => {
     expect(text('rate-limited')).toStartWith(
       '⚠ GitLab rate-limiting rt since 14:31'
     );
-    expect(text('auth')).toStartWith("⚠ GitLab rejecting rt's token since 14:31");
+    expect(text('auth')).toStartWith(
+      "⚠ GitLab rejecting rt's token since 14:31"
+    );
     expect(text('other')).toStartWith('⚠ GitLab sync failing since 14:31');
   });
 
@@ -1328,7 +1332,8 @@ describe('freshnessBanner', () => {
 
   test('several failing projects are counted in the tooltip', () => {
     expect(
-      freshnessBanner({ ...base, syncError: { ...timeout, projects: 3 } })!.title
+      freshnessBanner({ ...base, syncError: { ...timeout, projects: 3 } })!
+        .title
     ).toBe('GraphQL errors: Timeout on MergeRequest.id (3 projects failing)');
   });
 
@@ -1339,8 +1344,6 @@ describe('freshnessBanner', () => {
   test('a missing syncError key (older server) falls back to the age-only banner', () => {
     expect(
       freshnessBanner({ fetchError: null, dataSyncedAt: at(14, 28), now })!.text
-    ).toBe(
-      '⚠ board data is 1h 43m old (as of 14:28)... rt sync is behind'
-    );
+    ).toBe('⚠ board data is 1h 43m old (as of 14:28)... rt sync is behind');
   });
 });

@@ -137,7 +137,9 @@ export function freshnessBanner(input: {
     return {
       text: ageClause ? `${cause}... board data is ${ageClause}` : cause,
       intent:
-        syncError.kind === 'auth' || outage > ESCALATE_AFTER_MS ? 'bad' : 'warn',
+        syncError.kind === 'auth' || outage > ESCALATE_AFTER_MS
+          ? 'bad'
+          : 'warn',
       title:
         syncError.projects > 1
           ? `${syncError.message} (${syncError.projects} projects failing)`
