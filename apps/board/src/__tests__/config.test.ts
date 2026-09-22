@@ -374,7 +374,12 @@ describe('saveSwitchboardUrl', () => {
     const write = ((...args: unknown[]) => {
       writes.push(args);
     }) as SetSettingFn;
-    const cfg = saveSwitchboardUrl('https://sb.example.app/', p, fakeResolve({}), write);
+    const cfg = saveSwitchboardUrl(
+      'https://sb.example.app/',
+      p,
+      fakeResolve({}),
+      write
+    );
     expect(cfg.switchboard.url).toBe('https://sb.example.app');
     const onDisk = JSON.parse(readFileSync(p, 'utf8'));
     expect(onDisk.switchboard).toEqual({ url: 'https://sb.example.app/' });
