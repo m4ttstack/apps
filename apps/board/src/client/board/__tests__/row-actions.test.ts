@@ -1,11 +1,12 @@
 import { expect, test } from 'bun:test';
 
-import { rowActions } from '../row-actions.ts';
+import { bulkActions, rowActions } from '../row-actions.ts';
 import {
   actionEnvOf,
   busyEnv,
   failedEnv,
   failedLanes,
+  mrx,
   ownBusy,
   ownEnv,
   ownIdle,
@@ -140,4 +141,116 @@ test('request review from… carries its picker; asks name their reviewer', () =
   expect(
     actions.filter(a => a.key.startsWith('dismiss-')).map(a => a.key)
   ).toEqual(['dismiss-review', 'dismiss-doctor']);
+});
+
+const visible = { visible: true, disabled: false, loading: false };
+const env3 = (allMrs: ReturnType<typeof mrx>[]) => ({
+  local: true,
+  slackEnabled: true,
+  self: 'pat',
+  roster: ['pat', 'kim', 'jo'],
+  allMrs,
+});
+const a = mrx(201, { mergeButton: visible, behindTarget: 2 });
+const b = mrx(202, { mergeButton: visible, isDraft: true });
+const c = mrx(203, {
+  author: { username: 'kim', name: 'Kim' },
+  blockers: { any: true, pipelineFailing: true },
+});
+
+test('bulk groups the bulk-capable actions, counts them, and orders them like the mock', () => {
+  const lines = bulkActions([a, b, c], env3([a, b, c])).map(
+    e => `${e.key} | ${e.label} | ${e.hint}`
+  );
+  expect(lines).toEqual([
+    'review | review | 3 of 3',
+    'doctor | call doctor | 1 of 3',
+    'request-review | request review from… | 2 of 3',
+    'rebase | rebase on target | 1 of 3',
+    'mark-ready | mark ready | 1 of 3',
+    'mark-draft | mark as draft | 1 of 3',
+    'merge | merge | 2 of 3',
+    'find-thread | find slack threads | 3 of 3',
+  ]);
+});
+
+test('bulk targets are the MRs each action acts on', () => {
+  const byKey = Object.fromEntries(
+    bulkActions([a, b, c], env3([a, b, c])).map(e => [
+      e.key,
+      e.targets.map(t => t.iid),
+    ])
+  );
+  expect(byKey.merge).toEqual([201, 202]);
+  expect(byKey.doctor).toEqual([203]);
+});
+
+test('merge always confirms; launches confirm only past three', () => {
+  const d = mrx(204);
+  const four = [a, b, c, d];
+  const entries = bulkActions(four, env3(four));
+  expect(entries.find(e => e.key === 'merge')?.confirm).toBe('really merge 2?');
+  expect(entries.find(e => e.key === 'review')?.confirm).toBe(
+    'really start 4 reviews?'
+  );
+  const three = bulkActions([a, b, c], env3([a, b, c]));
+  expect(three.find(e => e.key === 'review')?.confirm).toBeUndefined();
+});
+
+test('a checked MR stacked on an open MR blocks merge for the selection', () => {
+  const child = mrx(205, {
+    isStacked: true,
+    targetBranch: 'f-201',
+    mergeButton: visible,
+  });
+  const all = [a, b, c, child];
+  const blocked = bulkActions([b, child], env3(all)).find(
+    e => e.key === 'merge'
+  );
+  expect(blocked?.blocked).toBe('!205 sits on !201, which is still open');
+  const parentGone = bulkActions([b, child], env3([b, c, child])).find(
+    e => e.key === 'merge'
+  );
+  expect(parentGone?.blocked).toBeUndefined();
+});
+
+test('mark wins over unmark until every checked thread has the mark', () => {
+  const found = (iid: number, reactions: string[]) =>
+    mrx(iid, { slack: { status: 'found', reactions, posted: true } });
+  const e = found(206, ['eyes']);
+  const f = found(207, []);
+  const mixed = bulkActions([e, f], env3([e, f])).map(x => x.key);
+  expect(mixed).toContain('react-eyes');
+  expect(mixed).not.toContain('unreact-eyes');
+  const g = found(208, ['eyes']);
+  const both = bulkActions([e, g], env3([e, g]));
+  expect(both.find(x => x.key === 'unreact-eyes')?.label).toBe(
+    'unmark looking'
+  );
+  expect(both.find(x => x.key === 'unreact-eyes')?.hint).toBe('2 of 2');
+});
+
+test('request review from… lists each person with the MRs they can be asked on', () => {
+  const entry = bulkActions([a, b, c], env3([a, b, c])).find(
+    e => e.key === 'request-review'
+  );
+  expect(entry?.pick?.options).toEqual([
+    { value: 'kim', hint: '2 of 3' },
+    { value: 'jo', hint: '2 of 3' },
+  ]);
+  expect(entry?.pickTargets?.get('kim')?.map(t => t.iid)).toEqual([201, 202]);
+});
+
+test('one-row-only actions never reach the bulk menu', () => {
+  const keys = bulkActions([a, b, c], env3([a, b, c])).map(e => e.key);
+  for (const k of [
+    'respond',
+    'rebase-local',
+    'stand-down',
+    'open-gitlab',
+    'post-slack',
+    'copy',
+    'note',
+  ])
+    expect(keys).not.toContain(k);
 });
