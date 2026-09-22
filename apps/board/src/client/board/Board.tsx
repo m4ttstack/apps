@@ -34,7 +34,7 @@ import type {
   StackNode,
   ViewState,
 } from '../../view.ts';
-import { postAction } from '../api.ts';
+import { postAction, type ActionResult } from '../api.ts';
 import type {
   BoardData,
   BoardMRWithReview,
@@ -141,6 +141,20 @@ function emptyQueueCopy(
   }
   return 'nothing waiting on review ✓';
 }
+
+// Module scope, not inline in useLaunchAction's call below: an inline arrow
+// is a new function every render, which breaks the memo chain running
+// through launch, runner, runRowAction and rowHandlers.
+const resumeReviewFailureMessage = (
+  result: ActionResult,
+  mr: BoardMR
+): string =>
+  `resume review failed for !${mr.iid} (${result.status})${result.text ? `: ${result.text}` : ''}`;
+const resumeRespondFailureMessage = (
+  result: ActionResult,
+  mr: BoardMR
+): string =>
+  `resume respond failed for !${mr.iid} (${result.status})${result.text ? `: ${result.text}` : ''}`;
 
 // ── board ──────────────────────────────────────────────────────────────────
 
@@ -454,8 +468,7 @@ export function Board() {
     optimistic: optimisticLifecycle,
     addToast,
     reload: load,
-    failureMessage: (result, mr) =>
-      `resume review failed for !${mr.iid} (${result.status})${result.text ? `: ${result.text}` : ''}`,
+    failureMessage: resumeReviewFailureMessage,
   });
   const resumeRespondAction = useLaunchAction({
     axis: null,
@@ -465,8 +478,7 @@ export function Board() {
     optimistic: optimisticLifecycle,
     addToast,
     reload: load,
-    failureMessage: (result, mr) =>
-      `resume respond failed for !${mr.iid} (${result.status})${result.text ? `: ${result.text}` : ''}`,
+    failureMessage: resumeRespondFailureMessage,
   });
 
   // Each flow's payload lives here once: the row menu, the bulk menu, the
