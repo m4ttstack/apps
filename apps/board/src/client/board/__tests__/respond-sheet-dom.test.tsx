@@ -1201,3 +1201,39 @@ test('an emptied reply pick blocks submit with a reason; send-back mode ignores 
   await click($('.tui-sheet-revise'));
   expect(document.body.textContent).not.toContain('a reply is empty');
 });
+
+async function editThenHold(card: HTMLElement) {
+  await React.act(async () => editButton(card)!.click());
+  await typeInto(replyBox(card)!, 'Kept on purpose.');
+  await React.act(async () => button(card, 'done')!.click());
+  await React.act(async () => control(card, 'hold')!.click());
+}
+
+test('a held post card shows the draft without the chip; post brings the edit back', async () => {
+  await render(perThreadPostGate(), withFixPlan());
+  const reply = postCards()[1]!;
+  await editThenHold(reply);
+  expect(caption(reply)).toBe('drafted reply');
+  expect(reply.querySelector('.tui-thread-reply-text')!.textContent).toBe(
+    'The delay is fixed by design.'
+  );
+  expect(reply.querySelector('[data-chip="edited"]')).toBeNull();
+  await React.act(async () => control(reply, 'post')!.click());
+  expect(caption(reply)).toBe('will post as reply');
+  expect(reply.querySelector('.tui-thread-reply-text')!.textContent).toBe(
+    'Kept on purpose.'
+  );
+  expect(reply.querySelector('[data-chip="edited"]')).not.toBeNull();
+});
+
+test('without its plan gate, a held post card also shows the draft without the chip', async () => {
+  await render(perThreadPostGate());
+  const reply = postCards()[1]!;
+  await editThenHold(reply);
+  expect(reply.querySelector('.tui-thread-reply-text')!.textContent).toBe(
+    'The delay is fixed by design.'
+  );
+  expect(reply.querySelector('[data-chip="edited"]')).toBeNull();
+  await React.act(async () => control(reply, 'post')!.click());
+  expect(reply.querySelector('[data-chip="edited"]')).not.toBeNull();
+});

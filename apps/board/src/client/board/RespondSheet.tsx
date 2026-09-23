@@ -758,14 +758,20 @@ function RespondSheetBody({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gate.gateId, picks.length]);
   const { posting, resolving } = postTally(picks, form.selections);
-  const editableReply = (p: PostPick) => {
+  // A held thread keeps its edit in the form but shows the draft, so the card
+  // shows only what will post.
+  const postingPick = (p: PostPick) => {
     const v = form.selections[p.name];
+    return Array.isArray(v) && v.includes(p.post);
+  };
+  const editableReply = (p: PostPick) => {
+    const live = postingPick(p);
     return (
       <EditableReply
         label={p.label}
         draft={p.reply!.text}
-        value={form.texts[p.name]}
-        canEdit={Array.isArray(v) && v.includes(p.post)}
+        value={live ? form.texts[p.name] : undefined}
+        canEdit={live}
         onChange={text => form.setText(p.name, text)}
         onReset={() => form.clearText(p.name)}
       />
@@ -861,7 +867,11 @@ function RespondSheetBody({
                   <PostStepCard
                     key={j.threadId}
                     j={j}
-                    edited={pick ? isEdited(pick, form.texts) : false}
+                    edited={
+                      pick
+                        ? postingPick(pick) && isEdited(pick, form.texts)
+                        : false
+                    }
                     reply={pick?.reply ? editableReply(pick) : undefined}
                   >
                     {pick && <PostResolveChoice pick={pick} form={form} />}
@@ -881,7 +891,9 @@ function RespondSheetBody({
                     <div className="tui-gate-question-head">
                       <span className="tui-gate-question-label">{p.label}</span>
                       {p.reply && <ThreadOutcome verb={p.reply.verb} />}
-                      {isEdited(p, form.texts) && <EditedChip />}
+                      {postingPick(p) && isEdited(p, form.texts) && (
+                        <EditedChip />
+                      )}
                     </div>
                     {p.reply ? (
                       <div className="tui-thread-card">{editableReply(p)}</div>
