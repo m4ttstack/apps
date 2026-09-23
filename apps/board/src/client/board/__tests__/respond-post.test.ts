@@ -41,7 +41,11 @@ const NEXT: GateQuestion = {
 };
 
 test('each thread question yields its pick, with the recommended options as its defaults', () => {
-  const picks = postPicks([threadQ(1, 'T1', 'fix'), threadQ(2, 'T2', 'reply'), NEXT]);
+  const picks = postPicks([
+    threadQ(1, 'T1', 'fix'),
+    threadQ(2, 'T2', 'reply'),
+    NEXT,
+  ]);
   expect(picks.map(p => [p.name, p.threadId, p.label, p.defaults])).toEqual([
     ['thread-1', 'T1', 'T1.ts:1', ['post:T1', 'resolve:T1']],
     ['thread-2', 'T2', 'T2.ts:1', ['post:T2']],
@@ -59,7 +63,9 @@ test('a thread whose context fell back to prose is still a pick, with no reply e
 });
 
 test('a reply context naming another thread is not trusted', () => {
-  const [pick] = postPicks([threadQ(1, 'T1', 'fix', { context: reply('T9', 'fix') })]);
+  const [pick] = postPicks([
+    threadQ(1, 'T1', 'fix', { context: reply('T9', 'fix') }),
+  ]);
   expect(pick?.reply).toBeUndefined();
 });
 
@@ -69,9 +75,9 @@ test('anything but a multi with exactly post:<id> and resolve:<id> is not a pick
   expect(
     postPicks([{ ...pair, options: [...pair.options, 'skip:T1'] }])
   ).toEqual([]);
-  expect(
-    postPicks([{ ...pair, options: ['post:T1', 'resolve:T2'] }])
-  ).toEqual([]);
+  expect(postPicks([{ ...pair, options: ['post:T1', 'resolve:T2'] }])).toEqual(
+    []
+  );
   expect(
     postPicks([
       {
