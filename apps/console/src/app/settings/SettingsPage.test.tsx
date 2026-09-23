@@ -117,6 +117,9 @@ describe('SettingsPage', () => {
     expect(document.getElementById('page-shell-content')).toContainElement(
       screen.getByRole('heading', { name: 'Board' })
     );
+    expect(document.getElementById('page-shell-content')).toHaveAttribute(
+      'data-own-surface'
+    );
   });
 
   it('filters by key and description, keeps the query in the URL, and Esc clears it', async () => {

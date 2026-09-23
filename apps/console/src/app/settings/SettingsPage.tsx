@@ -51,17 +51,17 @@ function Index({
     window.location.hash.replace('#', '')
   );
   return (
-    <Box component="nav" aria-label="settings groups" p="20px 12px 20px 16px">
-      {TIERS.map(tier => (
+    <Box component="nav" aria-label="settings groups" p="12px 12px 20px 16px">
+      {TIERS.map((tier, i) => (
         <Box key={tier}>
           <Text
-            fz={12}
+            fz={11}
             fw={500}
             tt="uppercase"
-            lts={0.6}
-            c={text.muted}
+            lts={0.8}
+            c="var(--tk-text-4)"
             px={8}
-            pt={14}
+            pt={i === 0 ? 8 : 22}
             pb={6}
           >
             {TIER_LABEL[tier]}
@@ -94,7 +94,7 @@ function Index({
                       color:
                         current || (filtering && !empty)
                           ? 'var(--tk-text-1)'
-                          : text.muted,
+                          : 'var(--tk-text-2)',
                       opacity: empty ? 0.45 : undefined,
                       marginBottom: 2,
                     },
@@ -123,7 +123,7 @@ function Index({
 }
 
 export function SettingsPage() {
-  const { text } = useSchemeColors();
+  const { text, bg } = useSchemeColors();
   const store = useSettingsScope('');
   const [params, setParams] = useSearchParams();
   const query = params.get('q') ?? '';
@@ -207,189 +207,178 @@ export function SettingsPage() {
             )
           }
         />
-        <PageShell.Content contentContainer={false}>
-          {/* Tokyo grids every content frame; this page's rows sit on the
-              plain page surface, so the body paints over it. */}
-          <Box flex={1} style={{ background: 'var(--tk-bg)' }}>
-            <Group
-              gap={12}
-              px={32}
-              h={TOOLBAR_HEIGHT}
-              wrap="nowrap"
-              style={{
-                borderBottom: '1px solid var(--tk-line-2)',
-                position: 'sticky',
-                top: 0,
-                zIndex: 3,
-                background: 'var(--tk-bg)',
+        <PageShell.Content contentContainer={false} bg={bg.level3}>
+          <Group
+            gap={12}
+            px={32}
+            h={TOOLBAR_HEIGHT}
+            wrap="nowrap"
+            style={{
+              borderBottom: '1px solid var(--tk-line-2)',
+              position: 'sticky',
+              top: 0,
+              zIndex: 3,
+              background: bg.level3,
+            }}
+          >
+            <TextInput
+              ref={filterRef}
+              aria-label="filter settings"
+              style={{ flex: 1 }}
+              leftSection={<Icons.search size={16} />}
+              placeholder={`Filter ${total} settings by key or description`}
+              styles={{ input: { fontSize: 14 } }}
+              value={query}
+              onTextChange={setQuery}
+              onKeyDown={e => {
+                if (e.key === 'Escape' && query !== '') {
+                  e.stopPropagation();
+                  setQuery('');
+                }
+              }}
+              rightSectionWidth={query ? 110 : 36}
+              rightSection={
+                query ? (
+                  <Group gap={6} wrap="nowrap">
+                    <Text fz={12} c={text.muted}>{`${shown} of ${total}`}</Text>
+                    <CloseButton
+                      size="sm"
+                      aria-label="clear filter"
+                      onClick={() => setQuery('')}
+                    />
+                  </Group>
+                ) : (
+                  <Kbd size="xs">/</Kbd>
+                )
+              }
+            />
+            <Chip
+              checked={changedOnly}
+              onChange={setChangedOnly}
+              variant="outline"
+              size="sm"
+              styles={{
+                label: {
+                  height: 30,
+                  paddingInline: 12,
+                  fontSize: 12,
+                  fontWeight: 500,
+                },
               }}
             >
-              <TextInput
-                ref={filterRef}
-                aria-label="filter settings"
-                style={{ flex: 1 }}
-                leftSection={<Icons.search size={16} />}
-                placeholder={`Filter ${total} settings by key or description`}
-                styles={{ input: { fontSize: 14 } }}
-                value={query}
-                onTextChange={setQuery}
-                onKeyDown={e => {
-                  if (e.key === 'Escape' && query !== '') {
-                    e.stopPropagation();
-                    setQuery('');
-                  }
-                }}
-                rightSectionWidth={query ? 110 : 36}
-                rightSection={
-                  query ? (
+              Changed{' '}
+              <Text span inherit ff="monospace">
+                {store.defs.filter(isSet).length}
+              </Text>
+            </Chip>
+            <Chip
+              checked={editableOnly}
+              onChange={setEditableOnly}
+              variant="outline"
+              size="sm"
+              styles={{
+                label: {
+                  height: 30,
+                  paddingInline: 12,
+                  fontSize: 12,
+                  fontWeight: 500,
+                },
+              }}
+            >
+              Editable{' '}
+              <Text span inherit ff="monospace">
+                {store.defs.filter(isEditable).length}
+              </Text>
+            </Chip>
+            <SegmentedControl
+              size="xs"
+              withItemsBorders={false}
+              styles={{ label: { fontSize: 12, fontWeight: 500 } }}
+              value={scope}
+              onChange={v => setScope(v as ScopeFilter)}
+              data={[
+                { value: 'any', label: 'any' },
+                ...SCOPES.map(s => ({
+                  value: s,
+                  label: (
                     <Group gap={6} wrap="nowrap">
-                      <Text
-                        fz={12}
-                        c={text.muted}
-                      >{`${shown} of ${total}`}</Text>
-                      <CloseButton
-                        size="sm"
-                        aria-label="clear filter"
-                        onClick={() => setQuery('')}
-                      />
+                      <ScopeDot scope={s} />
+                      <span>{s}</span>
                     </Group>
-                  ) : (
-                    <Kbd size="xs">/</Kbd>
-                  )
-                }
-              />
-              <Chip
-                checked={changedOnly}
-                onChange={setChangedOnly}
-                variant="outline"
-                size="sm"
-                styles={{
-                  label: {
-                    height: 30,
-                    paddingInline: 12,
-                    fontSize: 12,
-                    fontWeight: 500,
-                  },
-                }}
+                  ),
+                })),
+              ]}
+            />
+          </Group>
+          <Box px={32} pb={32}>
+            {store.error && (
+              <Alert
+                color="bad"
+                variant="light"
+                mt="md"
+                icon={<Icons.error size={14} />}
               >
-                Changed{' '}
-                <Text span inherit ff="monospace">
-                  {store.defs.filter(isSet).length}
+                <Text fz={12}>{store.error}</Text>
+              </Alert>
+            )}
+            {store.loading ? (
+              <Stack gap="md" pt={28}>
+                {[220, 280, 180, 240].map(w => (
+                  <Group key={w} justify="space-between">
+                    <Stack gap={8}>
+                      <Skeleton h={12} w={w} />
+                      <Skeleton h={10} w={w + 160} />
+                    </Stack>
+                    <Skeleton h={30} w={200} />
+                  </Group>
+                ))}
+              </Stack>
+            ) : visible.length === 0 && total > 0 ? (
+              <Stack align="center" gap={10} py={48}>
+                <Icons.search size={24} color={text.muted} />
+                <Text fz={14} fw={500}>
+                  {query
+                    ? `No settings match “${query}”`
+                    : 'No settings match these filters'}
                 </Text>
-              </Chip>
-              <Chip
-                checked={editableOnly}
-                onChange={setEditableOnly}
-                variant="outline"
-                size="sm"
-                styles={{
-                  label: {
-                    height: 30,
-                    paddingInline: 12,
-                    fontSize: 12,
-                    fontWeight: 500,
-                  },
-                }}
-              >
-                Editable{' '}
-                <Text span inherit ff="monospace">
-                  {store.defs.filter(isEditable).length}
+                <Text fz={12} c={text.muted}>
+                  The filter reads key names and descriptions, not values.
                 </Text>
-              </Chip>
-              <SegmentedControl
-                size="xs"
-                withItemsBorders={false}
-                styles={{ label: { fontSize: 12, fontWeight: 500 } }}
-                value={scope}
-                onChange={v => setScope(v as ScopeFilter)}
-                data={[
-                  { value: 'any', label: 'any' },
-                  ...SCOPES.map(s => ({
-                    value: s,
-                    label: (
-                      <Group gap={6} wrap="nowrap">
-                        <ScopeDot scope={s} />
-                        <span>{s}</span>
-                      </Group>
-                    ),
-                  })),
-                ]}
-              />
-            </Group>
-            <Box px={32} pb={32}>
-              {store.error && (
-                <Alert
-                  color="bad"
-                  variant="light"
-                  mt="md"
-                  icon={<Icons.error size={14} />}
+                <Button
+                  size="xs"
+                  h={28}
+                  fz={12}
+                  variant="default"
+                  onClick={clearAll}
                 >
-                  <Text fz={12}>{store.error}</Text>
-                </Alert>
-              )}
-              {store.loading ? (
-                <Stack gap="md" pt={28}>
-                  {[220, 280, 180, 240].map(w => (
-                    <Group key={w} justify="space-between">
-                      <Stack gap={8}>
-                        <Skeleton h={12} w={w} />
-                        <Skeleton h={10} w={w + 160} />
-                      </Stack>
-                      <Skeleton h={30} w={200} />
-                    </Group>
-                  ))}
-                </Stack>
-              ) : visible.length === 0 && total > 0 ? (
-                <Stack align="center" gap={10} py={48}>
-                  <Icons.search size={24} color={text.muted} />
-                  <Text fz={14} fw={500}>
-                    {query
-                      ? `No settings match “${query}”`
-                      : 'No settings match these filters'}
-                  </Text>
-                  <Text fz={12} c={text.muted}>
-                    The filter reads key names and descriptions, not values.
-                  </Text>
-                  <Button
-                    size="xs"
-                    h={28}
-                    fz={12}
-                    variant="default"
-                    onClick={clearAll}
-                  >
-                    Clear filter
-                  </Button>
-                </Stack>
-              ) : (
-                visible.map(s => (
-                  <SettingsSection
-                    key={s.group.id}
-                    section={s}
-                    store={store}
-                    query={query}
-                    filtering={filtering}
-                    agentProvider={agentProvider}
-                  />
-                ))
-              )}
-              {filtering && visible.length > 0 && hiddenGroups > 0 && (
-                <Group gap={8} pt={20}>
-                  <Icons.eyeOff size={14} color={text.muted} />
-                  <Text fz={12} c={text.muted}>
-                    {hiddenGroups === 1
-                      ? '1 group has no match.'
-                      : `${hiddenGroups} groups have no match.`}
-                  </Text>
-                  <Button
-                    size="compact-xs"
-                    variant="default"
-                    onClick={clearAll}
-                  >
-                    Clear filter
-                  </Button>
-                </Group>
-              )}
-            </Box>
+                  Clear filter
+                </Button>
+              </Stack>
+            ) : (
+              visible.map(s => (
+                <SettingsSection
+                  key={s.group.id}
+                  section={s}
+                  store={store}
+                  query={query}
+                  filtering={filtering}
+                  agentProvider={agentProvider}
+                />
+              ))
+            )}
+            {filtering && visible.length > 0 && hiddenGroups > 0 && (
+              <Group gap={8} pt={20}>
+                <Icons.eyeOff size={14} color={text.muted} />
+                <Text fz={12} c={text.muted}>
+                  {hiddenGroups === 1
+                    ? '1 group has no match.'
+                    : `${hiddenGroups} groups have no match.`}
+                </Text>
+                <Button size="compact-xs" variant="default" onClick={clearAll}>
+                  Clear filter
+                </Button>
+              </Group>
+            )}
           </Box>
         </PageShell.Content>
       </PageShell.Main>
