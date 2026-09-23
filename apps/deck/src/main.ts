@@ -92,17 +92,6 @@ export function serve(): void {
     }, 15_000);
   }
 
-  try {
-    const migrated = migrateManagedDevShape();
-    if (migrated.slimmed.length || migrated.skipped.length) {
-      console.log(
-        `[migrate] dev shape: slimmed ${migrated.slimmed.join(', ') || 'none'}; skipped ${migrated.skipped.join(', ') || 'none'}`
-      );
-    }
-  } catch (err) {
-    console.error('registry dev-shape migration failed:', err);
-  }
-
   // Same contract as the gateway bind below: a held API port exits for
   // launchd's retry, naming the holder on the way out, instead of the
   // uncaught EADDRINUSE crash loop a held port otherwise produces.
@@ -125,6 +114,28 @@ export function serve(): void {
   }
   console.log(`Deck serving on http://localhost:${PORT}`);
 
+  let gatewayServer: ReturnType<typeof bindGatewayOrExit> = null;
+  let canaryServer: ReturnType<typeof startCanaryListener> | null = null;
+  let canaryInterval: ReturnType<typeof setInterval> | null = null;
+  let canaryTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  const gatewayEnabled = process.env.LOCAL_APPS_NO_GATEWAY !== '1';
+  if (gatewayEnabled) gatewayServer = bindGatewayOrExit();
+
+  // No shared-state write until both ports are held: launchd retries a
+  // losing instance every 10s, and one that migrated or reconciled before
+  // dying is a second writer on the winner's registry and routes.
+  try {
+    const migrated = migrateManagedDevShape();
+    if (migrated.slimmed.length || migrated.skipped.length) {
+      console.log(
+        `[migrate] dev shape: slimmed ${migrated.slimmed.join(', ') || 'none'}; skipped ${migrated.skipped.join(', ') || 'none'}`
+      );
+    }
+  } catch (err) {
+    console.error('registry dev-shape migration failed:', err);
+  }
+
   // Ownership-driven TLD rehome: every managed record (mattstack product)
   // surfaces on name.mattstack; the tlds cache is then re-derived from the
   // routes that actually exist -- tlds is a derived cache of portless state,
@@ -139,13 +150,7 @@ export function serve(): void {
     reconcileOnce().catch(err => console.error('reconcile tick failed:', err));
   }, 5000);
 
-  let gatewayServer: ReturnType<typeof bindGatewayOrExit> = null;
-  let canaryServer: ReturnType<typeof startCanaryListener> | null = null;
-  let canaryInterval: ReturnType<typeof setInterval> | null = null;
-  let canaryTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  if (process.env.LOCAL_APPS_NO_GATEWAY !== '1') {
-    gatewayServer = bindGatewayOrExit();
+  if (gatewayEnabled) {
     try {
       canaryServer = startCanaryListener(CANARY_PORT, PORT);
       canaryTimeout = setTimeout(runCanaryCheck, 10_000);
