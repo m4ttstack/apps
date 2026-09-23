@@ -58,14 +58,24 @@ function planGateFor(
 }
 
 /** A respond-post gate's replies joined to the plan gate's threads by
-    thread id, in plan order. Null when no plan gate matches, or when a
-    reply names a thread the plan does not have, so the sheet falls back to
-    the plain checklist rather than drawing a card it cannot fill. */
+    thread id, in plan order. Null when the replies and the question's
+    `offered` option values are not one to one, when no plan gate matches,
+    or when a reply names a thread the plan does not have, so the sheet
+    falls back to the plain checklist rather than drawing a card it cannot
+    fill or a pick it cannot post. */
 export function joinPlan(
   ctx: PostCtx,
   replies: ReplyEntry[],
+  offered: readonly string[],
   mr?: BoardMRWithReview
 ): JoinedThread[] | null {
+  const threads = new Set(replies.map(r => r.thread));
+  if (
+    threads.size !== replies.length ||
+    threads.size !== new Set(offered).size ||
+    offered.some(v => !threads.has(v))
+  )
+    return null;
   const plan = planGateFor(ctx, mr);
   if (!plan) return null;
   const joined: JoinedThread[] = [];

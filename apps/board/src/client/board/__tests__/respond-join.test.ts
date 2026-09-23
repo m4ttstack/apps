@@ -58,11 +58,13 @@ const REPLIES: ReplyEntry[] = [
   { thread: 't2', file: 'a.ts:2', verb: 'reply', text: 'answered' },
 ];
 
+const OFFERED = ['t1', 't2'];
+
 const mrWith = (gates: GateRow[]) =>
   ({ gates }) as unknown as BoardMRWithReview;
 
 test('joins every plan thread in plan order, with its reply and plan pick', () => {
-  const joined = joinPlan(POST, REPLIES, mrWith([planGate()]))!;
+  const joined = joinPlan(POST, REPLIES, OFFERED, mrWith([planGate()]))!;
   expect(
     joined.map(j => [j.threadId, j.label, j.decided, j.reply?.text])
   ).toEqual([
@@ -93,29 +95,38 @@ test('picks the plan gate in the same round, never an older round', () => {
   const inRound2 = joinPlan(
     { ...POST, round: 2 },
     REPLIES,
+    OFFERED,
     mrWith([round1, round2])
   )!;
   expect(inRound2[0]!.decided).toBe('reply');
-  const inRound1 = joinPlan(POST, REPLIES, mrWith([round1, round2]))!;
+  const inRound1 = joinPlan(POST, REPLIES, OFFERED, mrWith([round1, round2]))!;
   expect(inRound1[0]!.decided).toBe('fix');
 });
 
 test('falls back (null) with no plan gate, or when a reply names a thread the plan lacks', () => {
-  expect(joinPlan(POST, REPLIES, mrWith([]))).toBeNull();
-  expect(joinPlan(POST, REPLIES, undefined)).toBeNull();
+  expect(joinPlan(POST, REPLIES, OFFERED, mrWith([]))).toBeNull();
+  expect(joinPlan(POST, REPLIES, OFFERED, undefined)).toBeNull();
   const stray: ReplyEntry[] = [
     ...REPLIES,
     { thread: 'unknown', file: 'b.ts:9', verb: 'reply', text: 'x' },
   ];
-  expect(joinPlan(POST, stray, mrWith([planGate()]))).toBeNull();
+  expect(joinPlan(POST, stray, OFFERED, mrWith([planGate()]))).toBeNull();
 });
 
 test('an unanswered plan gate still joins; threads with nothing to post carry no pick', () => {
   const joined = joinPlan(
     POST,
     REPLIES,
+    OFFERED,
     mrWith([planGate({ status: 'open', answers: undefined })])
   )!;
   expect(joined.map(j => j.decided)).toEqual([undefined, undefined, undefined]);
   expect(joined[2]!.reply).toBeUndefined();
+});
+
+test('falls back (null) unless the offered options and the replies match one to one', () => {
+  const plan = mrWith([planGate()]);
+  expect(joinPlan(POST, REPLIES, ['t1'], plan)).toBeNull();
+  expect(joinPlan(POST, REPLIES, ['t1', 't2', 't3'], plan)).toBeNull();
+  expect(joinPlan(POST, REPLIES, ['t2', 't1'], plan)).not.toBeNull();
 });

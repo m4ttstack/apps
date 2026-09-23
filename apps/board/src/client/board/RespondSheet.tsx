@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import {
   CODE_CHANGES_QUESTION_ID,
+  CODE_CHANGES_SENTINEL,
   effectiveSelections,
   gateAnswerPayload,
   optionDisplayFor,
@@ -408,8 +409,12 @@ function RespondSheetBody({
   /** Retires a gate answered elsewhere from the queue. */
   onContinue: () => void;
 }) {
-  const [revising, setRevising] = useState(false);
-  const [reason, setReason] = useState('');
+  // The send-back reason is code-changes' note on the wire, so it lives in
+  // the form's notes and rides the gate's draft like any other note.
+  const reason = form.notes[CODE_CHANGES_QUESTION_ID] ?? '';
+  const setReason = (text: string) =>
+    form.setNote(CODE_CHANGES_QUESTION_ID, text);
+  const [revising, setRevising] = useState(() => reason.trim() !== '');
   const questionCtx = useMemo(
     () => new Map(gate.questions.map(q => [q.id, parseGateCtx(q.context)])),
     [gate.questions]
@@ -431,8 +436,13 @@ function RespondSheetBody({
     q => q.id === CODE_CHANGES_QUESTION_ID
   );
   const ccValues = new Set((codeChanges?.options ?? []).map(optionValue));
+  // Without the sentinel there is nothing to fall back to when no thread is
+  // a fix, so the question stays in the dock for the user to answer.
   const impliedCodeChanges =
-    plan && ccValues.has('approve') && ccValues.has('revise');
+    plan &&
+    ccValues.has('approve') &&
+    ccValues.has('revise') &&
+    ccValues.has(CODE_CHANGES_SENTINEL);
   const mainQs = form.display.filter(perItem);
   const dockQs = form.display.filter(
     q =>
@@ -474,7 +484,12 @@ function RespondSheetBody({
   // gate it follows is still on the MR row; otherwise the plain checklist.
   const joined =
     ctx.shape === 'post@1' && repliesCtx?.shape === 'replies@1'
-      ? joinPlan(ctx, repliesCtx.replies, mr)
+      ? joinPlan(
+          ctx,
+          repliesCtx.replies,
+          repliesQ!.choices.map(c => c.value),
+          mr
+        )
       : null;
   const postable = joined?.filter(j => j.reply).map(j => j.threadId) ?? [];
   const repliesName = repliesQ?.name;
@@ -588,7 +603,10 @@ function RespondSheetBody({
                         </span>
                         <SeverityPill severity={j.thread.severity} />
                         {(j.reply ?? j.decided) && (
-                          <ThreadOutcome verb={j.reply?.verb ?? j.decided!} />
+                          <ThreadOutcome
+                            verb={j.reply?.verb ?? j.decided!}
+                            held={!j.reply}
+                          />
                         )}
                       </div>
                       <ThreadCard

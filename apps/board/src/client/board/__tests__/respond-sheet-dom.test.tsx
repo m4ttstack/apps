@@ -261,6 +261,18 @@ test('a gate answered elsewhere offers continue, which retires it from the queue
   expect(continues).toBe(1);
 });
 
+test('a plan gate without the skip sentinel asks code-changes in the dock', async () => {
+  const gate = planGate();
+  gate.questions[2] = { ...gate.questions[2]!, options: ['approve', 'revise'] };
+  await render(gate);
+  await pick('reply:t1');
+  await pick('reply:t2');
+  expect($('.tui-sheet-dock-question')).not.toBeNull();
+  expect(submit().disabled).toBe(true);
+  await pick('approve');
+  expect(submit().disabled).toBe(false);
+});
+
 test('a fix implies approve: no code-changes question, submit is live', async () => {
   await render(planGate());
   await pick('fix:t1');
@@ -368,6 +380,21 @@ test('sending the plan back needs a reason and posts revise with it', async () =
   });
 });
 
+test('a send-back reason survives leaving the gate and coming back', async () => {
+  await render(planGate());
+  await pick('fix:t1');
+  await click($('.tui-sheet-revise'));
+  await typeArea('What should the new plan change?', 'split the fix');
+  await React.act(async () => root.unmount());
+  root = createRoot(container);
+  await render(planGate());
+  const area = $(
+    'textarea[aria-label="What should the new plan change?"]'
+  ) as HTMLTextAreaElement | null;
+  expect(area?.value).toBe('split the fix');
+  expect(submit().textContent).toBe('send back for revision');
+});
+
 test('cancel leaves send-back mode and restores the submit', async () => {
   await render(planGate());
   await click($('.tui-sheet-revise'));
@@ -422,6 +449,17 @@ test('with its plan gate on the row, the post step draws every plan thread as a 
   );
   expect(cards[2]!.textContent).toContain('Nothing to post for this thread.');
   expect($('.tui-sheet-list-tally')!.textContent).toBe('2 of 2 posting');
+});
+
+test('a planned fix with nothing to post reads as held, never fixed', async () => {
+  const plan = answeredPlan();
+  plan.answers = { ...plan.answers, 'thread-3': 'fix:r3' };
+  await render(postGate(), {
+    ...MR,
+    gates: [plan],
+  } as unknown as BoardMRWithReview);
+  const third = document.body.querySelectorAll('[data-step="post"]')[2]!;
+  expect(third.querySelector('[data-outcome]')!.textContent).toBe('fix held');
 });
 
 test('the post step defaults every reply to post; hold keeps one back', async () => {

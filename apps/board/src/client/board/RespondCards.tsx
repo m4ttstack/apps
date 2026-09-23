@@ -96,14 +96,22 @@ const OUTCOME_TEXT = {
 
 /** A post-step thread's outcome, in its card's head: what the plan step
     decided for it. */
-function ThreadOutcome({ verb }: { verb: 'reply' | 'fix' | 'skip' }) {
+function ThreadOutcome({
+  verb,
+  held = false,
+}: {
+  verb: 'reply' | 'fix' | 'skip';
+  /** The plan picked a reply or fix, but this gate has nothing to post. */
+  held?: boolean;
+}) {
+  const heldBack = held && verb !== 'skip';
   return (
     <span
       className="tui-respond-chip tui-thread-outcome"
-      data-hue={OUTCOME_HUE[verb]}
-      data-outcome={verb}
+      data-hue={heldBack ? 'amber' : OUTCOME_HUE[verb]}
+      data-outcome={heldBack ? `${verb}-held` : verb}
     >
-      {OUTCOME_TEXT[verb]}
+      {heldBack ? `${verb} held` : OUTCOME_TEXT[verb]}
     </span>
   );
 }
