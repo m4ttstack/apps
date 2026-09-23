@@ -267,7 +267,12 @@ export function useDecisionQueue(
   const lastActiveEntry = useRef<QueueEntry | null>(null);
   const seen = useRef<Map<string, QueueEntry> | null>(null);
   const seenEntries = (seen.current ??= new Map());
-  if (open) for (const e of entries) seenEntries.set(e.gate.gateId, e);
+
+  useEffect(() => {
+    if (!open) return;
+    const map = (seen.current ??= new Map());
+    for (const e of entries) map.set(e.gate.gateId, e);
+  }, [open, entries]);
 
   useEffect(() => {
     if (!open) return;
