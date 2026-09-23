@@ -319,8 +319,8 @@ conversation.
      that as a new round of step 3-4 (a new `respond-plan` gate, same
      shape, opened from its fresh open file when it hands one back, and the
      report update from step 3 applies again, recording the new round). On `skip`,
-     go straight to Gate 2: reply and skip threads still get their drafted
-     replies posted, there is just nothing to implement first. A thread
+     go straight to Gate 2: `reply:` threads still get their drafted
+     replies offered, there is just nothing to implement first. A thread
      answered `fix:` under `skip` stays unimplemented and has no finalized
      reply, so it is held out of Gate 2 rather than posted as a draft.
 6. **Gate 2 — post.** **Handed a fitted open file?** (the domain skill
