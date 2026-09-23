@@ -346,6 +346,32 @@ dropped)", so it is not read as resume-only. That wording was not re-run
 in full: a usage limit cut the re-run of wrap-resume-plan-dropped,
 wrap-dropped-context and wrap-plan-pane-note to 6 of 15 reps. All 6 pass.
 
+## CodeRabbit round (receive-review): no wrapper change
+
+CodeRabbit on the mattstack-skills PR found two receive-review gaps. Fix
+round 5 in that repo's record covers them. This section checks whether
+the wrapper needs a matching line:
+
+- **`notes` in the respond-plan record.** The wrapper writes no `rt runs`
+  decision record. On its generic path it records Gate 1 in the report
+  rows only, and a noted override's redraft (note folded in) lives in its
+  row. So it has nothing to add; receive-review keeps the record on the
+  domain path.
+- **A handed `post` decides first.** The wrapper never hands
+  `{plan, post}` together. It hands `{plan}` after Gate 1, and `{post}`
+  only when a Gate 2 opened or on a `respond-post` resume. On the generic
+  path it already lets a retired-shape Gate 2 answer decide a
+  `gate-1: reply` thread (step 6's act paragraph and the "Gate protocol"
+  retired-shape line).
+
+New guard scenario, `wrap-resume-retired-empty.md`: a generic-path
+`respond-post` resume whose old-wrapper gate returns
+`{"replies": [], "disposition": "leave-open"}`, with one `gate-1: reply`
+row, T1. Pass: `drafting` first; T1 neither posted nor resolved;
+`--posted 0 --threads 1 --held 1`. On the current wording (v5 plus the
+text round): 5/5. Every rep reasons that the old gate offered T1, so its
+empty list decides it.
+
 ## Verdict
 
 On the 14 scenarios above, the v4 wording makes Gate 2 offer exactly the
