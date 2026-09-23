@@ -197,7 +197,9 @@ export const Content = ({
   return (
     <ScrollArea.Autosize
       id="page-shell-content"
-      data-own-surface={bg !== undefined || undefined}
+      data-own-surface={
+        bg !== undefined || scrollAreaProps?.bg !== undefined || undefined
+      }
       mah={height}
       bg={bg ?? schemeBg.level3}
       flex={1}

@@ -650,3 +650,18 @@ test('Content marks an explicit surface so a theme can leave it alone', () => {
     'data-own-surface'
   );
 });
+
+test('a surface passed through scrollAreaProps marks the frame too', () => {
+  renderWithProviders(
+    <PageShell>
+      <PageShell.Main>
+        <PageShell.Content scrollAreaProps={{ bg: 'var(--ui-bg-3)' }}>
+          <div>scroll-area surface</div>
+        </PageShell.Content>
+      </PageShell.Main>
+    </PageShell>
+  );
+  expect(document.getElementById('page-shell-content')).toHaveAttribute(
+    'data-own-surface'
+  );
+});
