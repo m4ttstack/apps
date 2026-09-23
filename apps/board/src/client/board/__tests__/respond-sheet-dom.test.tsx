@@ -414,6 +414,32 @@ test('the post step defaults every reply to post; hold keeps one back', async ()
   });
 });
 
+async function holdAll() {
+  for (const hold of document.body.querySelectorAll(
+    '[data-step="post"] input[value="hold"]'
+  ))
+    await React.act(async () => {
+      (hold as HTMLInputElement).click();
+    });
+}
+
+test('replies held on the post step stay held after leaving and coming back', async () => {
+  await render(postGate(), withPlan());
+  await holdAll();
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('0 of 2 posting');
+  await React.act(async () => root.unmount());
+  root = createRoot(container);
+  await render(postGate(), withPlan());
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('0 of 2 posting');
+});
+
+test('reset on the post step restores the default of posting every reply', async () => {
+  await render(postGate(), withPlan());
+  await holdAll();
+  await click($('.tui-sheet-reset'));
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('2 of 2 posting');
+});
+
 test('without its plan gate the post step keeps the plain checklist', async () => {
   await render(postGate());
   expect($('[data-step="post"]')).toBeNull();

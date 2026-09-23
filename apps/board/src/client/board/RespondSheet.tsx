@@ -475,10 +475,13 @@ function RespondSheetBody({
       : null;
   const postable = joined?.filter(j => j.reply).map(j => j.threadId) ?? [];
   const repliesName = repliesQ?.name;
-  useEffect(() => {
+  const seedPostable = () => {
     if (!repliesName || !joined) return;
-    if (form.selections[repliesName] !== undefined) return;
     for (const id of postable) form.toggleMulti(repliesName, id, true);
+  };
+  useEffect(() => {
+    if (!repliesName || form.selections[repliesName] !== undefined) return;
+    seedPostable();
     // Seeds once per gate, and only a checklist no draft or pick has touched.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gate.gateId, joined !== null]);
@@ -693,7 +696,10 @@ function RespondSheetBody({
                     if (revising) {
                       setRevising(false);
                       setReason('');
-                    } else form.resetAll();
+                    } else {
+                      form.resetAll();
+                      seedPostable();
+                    }
                   }}
                 >
                   {revising ? 'cancel' : 'reset'}
