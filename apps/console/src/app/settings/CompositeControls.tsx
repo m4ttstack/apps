@@ -511,7 +511,8 @@ export function compositeParts(
           <TagsInput
             aria-label={def.key}
             size="xs"
-            w={260}
+            w={200}
+            styles={{ inputField: { minWidth: 48 } }}
             value={list}
             onChange={next => void row.save(next)}
           />
