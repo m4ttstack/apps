@@ -24,6 +24,7 @@ export interface GateSummaryDetailRow {
   question: string;
   answers: GateOptionDisplay[];
   note?: string;
+  text?: string;
   decidedBy: string | null;
   at: number | null;
 }
@@ -119,6 +120,7 @@ export function answeredGateSummary(row: GateSummaryInput): GateSummary {
           ? values.map(v => displayForValue(v, q.options))
           : [{ text: '(none)' }],
       ...(unwrapped?.note !== undefined ? { note: unwrapped.note } : {}),
+      ...(unwrapped?.text !== undefined ? { text: unwrapped.text } : {}),
       decidedBy,
       at,
     };
@@ -136,17 +138,24 @@ export function answeredGateSummary(row: GateSummaryInput): GateSummary {
     const pairs = row.questions.filter(isPostPair);
     if (pairs.length > 0) {
       let posted = 0;
+      let edited = 0;
       let resolved = 0;
       for (const q of pairs) {
         const raw = answers?.[q.id];
-        const value = raw === undefined ? [] : unwrapGateAnswer(raw).value;
+        const unwrapped = raw === undefined ? null : unwrapGateAnswer(raw);
+        const value = unwrapped?.value ?? [];
         const picked = Array.isArray(value) ? value : [value];
-        if (picked.some(v => v.startsWith('post:'))) posted++;
+        if (picked.some(v => v.startsWith('post:'))) {
+          posted++;
+          if (unwrapped?.text !== undefined) edited++;
+        }
         if (picked.some(v => v.startsWith('resolve:'))) resolved++;
       }
       fragments.push(
         [
-          `${posted} posted`,
+          edited > 0
+            ? `${posted} posted (${edited} edited)`
+            : `${posted} posted`,
           resolved > 0 ? `${resolved} resolved` : null,
           posted < pairs.length ? `${pairs.length - posted} held` : null,
         ]

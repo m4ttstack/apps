@@ -80,6 +80,42 @@ describe('answeredGateSummary chip', () => {
     expect(chip).toBe('respond !87 · 1 posted, 2 resolved, 2 held · by board');
   });
 
+  test('an edited posted thread counts on the chip and carries its text in the detail', () => {
+    const thread = (n: number, t: string): GateQuestion => ({
+      id: `thread-${n}`,
+      label: `${t}.ts:1`,
+      multi: true,
+      options: [
+        { value: `post:${t}`, label: 'Post' },
+        { value: `resolve:${t}`, label: 'Resolve' },
+      ],
+    });
+    const { chip, detail } = answeredGateSummary({
+      subject:
+        'mr:https://gitlab.example.invalid/group/proj/-/merge_requests/87',
+      kind: 'respond-post',
+      status: 'answered',
+      questions: [thread(1, 'T1'), thread(2, 'T2'), thread(3, 'T3')],
+      answer: {
+        answers: {
+          'thread-1': {
+            value: ['post:T1', 'resolve:T1'],
+            text: 'edited reply',
+          },
+          'thread-2': ['post:T2'],
+          'thread-3': [],
+        },
+        by: 'board',
+        answeredAt: 1,
+      },
+    });
+    expect(chip).toBe(
+      'respond !87 · 2 posted (1 edited), 1 resolved, 1 held · by board'
+    );
+    expect(detail.find(d => d.id === 'thread-1')!.text).toBe('edited reply');
+    expect(detail.find(d => d.id === 'thread-2')!.text).toBeUndefined();
+  });
+
   test('an explicit empty multi answer chips the same nothing-posted marker as the zero-option shape', () => {
     const questions: GateQuestion[] = [
       {
