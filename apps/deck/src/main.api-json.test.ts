@@ -65,8 +65,12 @@ test('a deck that binds every port replaces a dead api.json with its own', async
   try {
     let recorded: unknown = null;
     for (let i = 0; i < 100; i++) {
-      recorded = JSON.parse(readFileSync(join(home, 'api.json'), 'utf8'));
-      if ((recorded as { port: number }).port === 47973) break;
+      try {
+        recorded = JSON.parse(readFileSync(join(home, 'api.json'), 'utf8'));
+        if ((recorded as { port: number }).port === 47973) break;
+      } catch {
+        // writeFileSync truncates first: a poll can land mid-write.
+      }
       await new Promise(r => setTimeout(r, 100));
     }
     expect(recorded).toEqual({ port: 47973, pid: proc.pid });

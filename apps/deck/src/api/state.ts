@@ -113,6 +113,9 @@ export async function claimApiInfo(
   if (
     current &&
     current.pid !== process.pid &&
+    // This process already holds `port`, so a record naming it can only be
+    // answered by this process: its live pid is a reused one.
+    current.port !== port &&
     probe.isAlive(current.pid) &&
     (await probe.answers(current.port))
   ) {

@@ -152,3 +152,13 @@ test('claimApiInfo leaves an api.json alone while its writer is alive and answer
   expect(probed).toEqual([7000]);
   expect(apiJsonIn(dir)).toEqual({ port: 7000, pid: 4242 });
 });
+
+test('claimApiInfo overwrites an api.json naming its own port, whose live pid must be a reused one', async () => {
+  const dir = seededStateDir({ port: 7940, pid: 4242 });
+  const wrote = await claimApiInfo(7940, {
+    isAlive: () => true,
+    answers: async () => true,
+  });
+  expect(wrote).toBe(true);
+  expect(apiJsonIn(dir)).toEqual({ port: 7940, pid: process.pid });
+});
