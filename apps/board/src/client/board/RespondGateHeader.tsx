@@ -80,6 +80,22 @@ export function reviewerName(
   );
 }
 
+/** A person's full name for a handle: the team roster first, then the MR's
+    author, then its assigned reviewers and approvers, else the handle. */
+export function personName(
+  handle: string,
+  mr?: BoardMRWithReview,
+  people?: ReadonlyMap<string, string>
+): string {
+  return (
+    people?.get(handle) ??
+    (mr?.author?.username === handle
+      ? mr.author.name || undefined
+      : undefined) ??
+    reviewerName(handle, mr, people)
+  );
+}
+
 /** `!<n>` from an `mr:<url>` subject: the object line's stand-in when the
     board has no row for the MR, so the card never waits on the join. */
 export function subjectRef(subject: string): string {

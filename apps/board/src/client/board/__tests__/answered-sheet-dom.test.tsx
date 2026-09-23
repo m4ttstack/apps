@@ -121,12 +121,17 @@ afterEach(async () => {
   container.remove();
 });
 
-async function render(row: GateRow, mr?: BoardMRWithReview) {
+async function render(
+  row: GateRow,
+  mr?: BoardMRWithReview,
+  people?: ReadonlyMap<string, string>
+) {
   await React.act(async () => {
     root.render(
       <DecisionQueueModal
         gate={row}
         mr={mr}
+        people={people}
         position={1}
         states={['active']}
         onClose={() => {}}
@@ -159,7 +164,9 @@ test('an answered gate shows every question read-only with its recorded pick, be
   await render(shipped(), MR);
   expect($('.tui-answered-sheet .tui-sheet-body')).not.toBeNull();
   expect($('.tui-triage-sheet-body')).toBeNull();
-  expect(text('.tui-sheet-list-title')).toBe('Answered by jvasquez');
+  expect(text('.tui-sheet-list-title')).toBe('Answered by Joel Vasquez');
+  expect(text('.tui-sheet-list-title .tui-person-name')).toBe('Joel Vasquez');
+  expect($('.tui-sheet-list-title .tui-person-avatar')).not.toBeNull();
   expect(text('.tui-sheet-list-tally')).toBe('answered 2m ago');
   const cards = $$('.tui-sheet-main .tui-gate-question');
   expect(cards).toHaveLength(3);
@@ -215,6 +222,19 @@ test('with no recorded author the head reads plain "Answered"; the board and the
   expect(text('.tui-sheet-list-title')).toBe('Answered on the board');
   await render(shipped({ answeredBy: 'pane' }));
   expect(text('.tui-sheet-list-title')).toBe('Answered in the pane');
+});
+
+test('the answerer reads by roster name, else by handle', async () => {
+  await render(
+    shipped({ answeredBy: 'rpark' }),
+    undefined,
+    new Map([['rpark', 'Renee Park']])
+  );
+  expect(text('.tui-sheet-list-title')).toBe('Answered by Renee Park');
+  expect(text('.tui-sheet-list-title .tui-person-name')).toBe('Renee Park');
+  await render(shipped({ answeredBy: 'kim' }));
+  expect(text('.tui-sheet-list-title')).toBe('Answered by kim');
+  expect(text('.tui-sheet-list-title .tui-person-name')).toBe('kim');
 });
 
 test('an answer the pane never picked up leads with why and docks focus pane', async () => {

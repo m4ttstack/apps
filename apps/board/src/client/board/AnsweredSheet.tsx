@@ -14,8 +14,12 @@ import { parseGateCtx, type PlanCtx, type PostCtx } from './gate-ctx.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
 import { MrCard } from './MrCard.tsx';
 import { forgeNoun } from './MrLinks.tsx';
-import { PersonLead } from './PersonLead.tsx';
-import { RespondCtxFacts, reviewerName } from './RespondGateHeader.tsx';
+import { PersonLead, PersonTag } from './PersonLead.tsx';
+import {
+  personName,
+  RespondCtxFacts,
+  reviewerName,
+} from './RespondGateHeader.tsx';
 import {
   DELIVERY_STUCK_MESSAGE,
   EXECUTION_UNASSIGNED_MESSAGE,
@@ -32,11 +36,23 @@ const TITLES: Record<Exclude<AnsweredState, 'answered'>, string> = {
 };
 
 /** `by` is a username, or the surface the answer came from. */
-function answeredTitle(by: string | undefined): string {
-  if (!by) return 'Answered';
-  if (by === 'board') return 'Answered on the board';
-  if (by === 'pane') return 'Answered in the pane';
-  return `Answered by ${by}`;
+function AnsweredTitle({
+  by,
+  mr,
+  people,
+}: {
+  by: string | undefined;
+  mr?: BoardMRWithReview;
+  people?: ReadonlyMap<string, string>;
+}) {
+  if (!by) return <>Answered</>;
+  if (by === 'board') return <>Answered on the board</>;
+  if (by === 'pane') return <>Answered in the pane</>;
+  return (
+    <>
+      Answered by <PersonTag id={by} name={personName(by, mr, people)} />
+    </>
+  );
 }
 
 const noop = () => {};
@@ -107,9 +123,11 @@ function AnsweredSheetBody({
       <section className="tui-sheet-main">
         <div className="tui-sheet-list-head">
           <span className="tui-sheet-list-title">
-            {state === 'answered'
-              ? answeredTitle(gate.answeredBy)
-              : TITLES[state]}
+            {state === 'answered' ? (
+              <AnsweredTitle by={gate.answeredBy} mr={mr} people={people} />
+            ) : (
+              TITLES[state]
+            )}
           </span>
           {answeredAgo && (
             <span className="tui-sheet-list-tally">{answeredAgo}</span>
