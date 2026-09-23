@@ -1,4 +1,11 @@
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import {
   CODE_CHANGES_QUESTION_ID,
@@ -289,6 +296,7 @@ function PostResolveChoice({
   const picked = new Set(Array.isArray(current) ? current : []);
   const posting = picked.has(pick.post);
   const resolving = picked.has(pick.resolve);
+  const resolveHint = useId();
   const choices = [
     { post: true, label: 'post', subtitle: 'post this reply to the thread' },
     { post: false, label: 'hold', subtitle: 'keep it back; nothing is posted' },
@@ -330,20 +338,25 @@ function PostResolveChoice({
         className="tui-gate-choice tui-post-resolve"
         data-checked={resolving || undefined}
       >
-        <input
-          type="checkbox"
-          className="tui-gate-choice-input"
-          data-type="checkbox"
-          data-checked={resolving ? '' : undefined}
-          value="resolve"
-          checked={resolving}
-          onChange={e =>
-            form.toggleMulti(pick.name, pick.resolve, e.currentTarget.checked)
-          }
-        />
+        <span className="tui-check">
+          <input
+            type="checkbox"
+            className="tui-gate-choice-input"
+            data-type="checkbox"
+            data-checked={resolving ? '' : undefined}
+            value="resolve"
+            aria-label={`${pick.label}: resolve`}
+            aria-describedby={resolveHint}
+            checked={resolving}
+            onChange={e =>
+              form.toggleMulti(pick.name, pick.resolve, e.currentTarget.checked)
+            }
+          />
+          <span className="tui-check-tick" aria-hidden="true" />
+        </span>
         <span className="tui-gate-choice-label">
           <span className="tui-gate-choice-label-row">resolve</span>
-          <span className="tui-gate-choice-subtitle">
+          <span className="tui-gate-choice-subtitle" id={resolveHint}>
             {posting
               ? 'resolve the thread once the reply posts'
               : 'resolve the thread without replying'}
@@ -397,9 +410,10 @@ function reviseAnswers(
   return { answers };
 }
 
+type RowChip = { text: string; intent: 'ok' | 'muted' | 'accent' } | null;
+
 /** One line per thread (or reply) with what the submit will do with it,
     filled in as picks are made; it sits in the dock above the submit. */
-type RowChip = { text: string; intent: 'ok' | 'muted' | 'accent' } | null;
 
 function ResponseRows({
   mainQs,
@@ -561,6 +575,7 @@ function RespondSheetBody({
   form,
   people,
   onContinue,
+  frame,
 }: {
   gate: GateRow;
   mr?: BoardMRWithReview;
@@ -569,6 +584,9 @@ function RespondSheetBody({
   people?: ReadonlyMap<string, string>;
   /** Retires a gate answered elsewhere from the queue. */
   onContinue: () => void;
+  /** The gate's own context as prose, when the emitter flattened it to fit
+      the budget: `ctx` then carries no reviewer, and this is shown instead. */
+  frame?: string;
 }) {
   // The send-back reason is code-changes' note on the wire, so it lives in
   // the form's notes and rides the gate's draft like any other note.
@@ -582,7 +600,8 @@ function RespondSheetBody({
   );
   // A thread keeps its place in the list even when its structured
   // context was dropped to prose; the gate contract keeps thread-* ids
-  // positional. A multi is the replies checklist, structured or not.
+  // positional. A multi is a post step's replies checklist or one of its
+  // per-thread questions, structured or not.
   const perItem = (q: GateItemDisplay) => {
     const shape = questionCtx.get(q.name)?.shape;
     return (
@@ -714,11 +733,16 @@ function RespondSheetBody({
         ? ['submit', ...tally].join(' · ')
         : perThread
           ? [
-              posting > 0 ? `post ${posting}` : null,
-              resolving > 0 ? `resolve ${resolving}` : null,
+              [
+                posting > 0 ? `post ${posting}` : null,
+                resolving > 0 ? `resolve ${resolving}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ') || 'hold all',
+              dockPick,
             ]
               .filter(Boolean)
-              .join(' · ') || 'hold all'
+              .join(' · ')
           : [`post ${repliesPicked}`, dockPick].filter(Boolean).join(' · ');
 
   return (
@@ -731,12 +755,17 @@ function RespondSheetBody({
                 Post replies on {postThreads?.length ?? picks.length}{' '}
                 {(postThreads?.length ?? picks.length) === 1
                   ? 'thread'
-                  : 'threads'}{' '}
-                from{' '}
-                <PersonTag
-                  id={ctx.reviewer}
-                  name={reviewerName(ctx.reviewer, mr, people)}
-                />
+                  : 'threads'}
+                {frame === undefined && (
+                  <>
+                    {' '}
+                    from{' '}
+                    <PersonTag
+                      id={ctx.reviewer}
+                      name={reviewerName(ctx.reviewer, mr, people)}
+                    />
+                  </>
+                )}
               </>
             ) : repliesQ ? (
               repliesQ.prompt
@@ -787,8 +816,13 @@ function RespondSheetBody({
                     </div>
                     {p.reply ? (
                       <ReplyCard entry={p.reply} />
+                    ) : display?.context && questionCtx.get(p.name) == null ? (
+                      <ProseContext q={display} structured={false} />
                     ) : (
-                      display && <ProseContext q={display} structured={false} />
+                      <p className="tui-thread-nothing">
+                        The reply text did not fit the gate; read it in the
+                        pane.
+                      </p>
                     )}
                     <PostResolveChoice pick={p} form={form} />
                   </section>
@@ -894,12 +928,16 @@ function RespondSheetBody({
                 <span className="tui-sheet-context-label">
                   decision context
                 </span>
-                <PersonLead
-                  id={ctx.reviewer}
-                  name={reviewerName(ctx.reviewer, mr, people)}
-                >
-                  reviewed your {forgeNoun(mr, gate.subject)}
-                </PersonLead>
+                {frame === undefined ? (
+                  <PersonLead
+                    id={ctx.reviewer}
+                    name={reviewerName(ctx.reviewer, mr, people)}
+                  >
+                    reviewed your {forgeNoun(mr, gate.subject)}
+                  </PersonLead>
+                ) : (
+                  frame && <p className="tui-sheet-context-meta">{frame}</p>
+                )}
                 {headerMeta(ctx).length > 0 && (
                   <p className="tui-sheet-context-meta">
                     {headerMeta(ctx).join(' · ')}

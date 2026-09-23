@@ -2425,6 +2425,25 @@ body {
 .tui-post-controls > .tui-gate-choices > .tui-gate-choice {
   flex: 1 1 220px;
 }
+/* The resolve tick is painted with the on-fill token through a mask, so it
+   follows the fill it sits on in either scheme. */
+.tui-check {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.tui-check-tick {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--on-fill-accent);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E")
+    center / 11px 11px no-repeat;
+  opacity: 0;
+}
+.tui-check > [data-checked] + .tui-check-tick {
+  opacity: 1;
+}
 .tui-thread-verdict-call {
   font-weight: 700;
   color: var(--text-2);
@@ -4105,8 +4124,7 @@ body {
 }
 /* The mock's checked box carries a white checkmark; the shared control is
    a bare accent fill, so the glyph rides a sheet-scoped background image. */
-.tui-review-finding-row .tui-gate-choice-input[data-checked],
-.tui-post-resolve .tui-gate-choice-input[data-checked] {
+.tui-review-finding-row .tui-gate-choice-input[data-checked] {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;

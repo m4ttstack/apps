@@ -676,3 +676,104 @@ test('without its plan gate, each per-thread question still draws its reply and 
   expect(control(cards[1]!, 'resolve')?.checked).toBe(false);
   expect($('.tui-sheet-list-tally')!.textContent).toBe('2 of 2 posting');
 });
+
+/** The same gate after `gate-ctx.sh fit` went over budget: every context,
+    the gate's own included, flattened to prose. */
+function prosePostGate(): GateRow {
+  const gate = perThreadPostGate();
+  return {
+    ...gate,
+    gateId: 'g-post-prose',
+    context:
+      "Posting replies to renee's review · 2 replies · fix pushed ab12cd3",
+    questions: gate.questions.map((q, i) => ({
+      ...q,
+      context: [
+        'a.ts:1 FIX · ab12cd3: Fixed -- a.ts:1 now guards the retry.',
+        'b.ts:2 REPLY: The delay is fixed by design.',
+      ][i],
+    })),
+  };
+}
+
+test('a per-thread gate flattened to prose still opens the post step with its defaults', async () => {
+  await render(prosePostGate());
+  const cards = postCards();
+  expect(cards.map(c => c.getAttribute('aria-label'))).toEqual([
+    'a.ts:1',
+    'b.ts:2',
+  ]);
+  expect(cards[0]!.textContent).toContain(
+    'a.ts:1 FIX · ab12cd3: Fixed -- a.ts:1 now guards the retry.'
+  );
+  expect(control(cards[0]!, 'resolve')!.checked).toBe(true);
+  expect(control(cards[1]!, 'resolve')!.checked).toBe(false);
+  expect($('.tui-sheet-context-card')!.textContent).toContain(
+    "Posting replies to renee's review"
+  );
+  expect(submit().textContent).toBe('post 2 · resolve 1');
+});
+
+test('a thread with no usable reply context says where to read it, never raw JSON', async () => {
+  const gate = perThreadPostGate();
+  gate.questions = [
+    { ...gate.questions[0]!, context: undefined },
+    {
+      ...gate.questions[1]!,
+      context: JSON.stringify({
+        'gate-ctx': 'reply@1',
+        thread: 'r9',
+        file: 'z.ts:9',
+        verb: 'reply',
+        text: 'a different thread',
+      }),
+    },
+  ];
+  await render(gate);
+  const cards = postCards();
+  for (const card of cards) {
+    expect(card.textContent).toContain(
+      'The reply text did not fit the gate; read it in the pane.'
+    );
+    expect(card.textContent).not.toContain('gate-ctx');
+  }
+});
+
+test('each resolve checkbox is named by its thread', async () => {
+  await render(perThreadPostGate(), withFixPlan());
+  expect(
+    postCards()
+      .slice(0, 2)
+      .map(c => control(c, 'resolve')!.getAttribute('aria-label'))
+  ).toEqual(['a.ts:1: resolve', 'b.ts:2: resolve']);
+});
+
+test('a dock question on a per-thread gate joins the submit label once picked', async () => {
+  const gate = perThreadPostGate();
+  gate.questions = [
+    ...gate.questions,
+    {
+      id: 'next',
+      label: 'Next',
+      multi: false,
+      options: ['proceed', 'iterate', 'hold'],
+    },
+  ];
+  await render(gate, withFixPlan());
+  expect(submit().disabled).toBe(true);
+  await pick('proceed');
+  expect(submit().textContent).toBe('post 2 · resolve 1 · proceed');
+  expect(submit().disabled).toBe(false);
+});
+
+test('a held thread stays held after leaving the per-thread post step and coming back', async () => {
+  await render(perThreadPostGate(), withFixPlan());
+  const reply = postCards()[1]!;
+  await React.act(async () => control(reply, 'hold')!.click());
+  expect(submit().textContent).toBe('post 1 · resolve 1');
+  await React.act(async () => root.unmount());
+  root = createRoot(container);
+  await render(perThreadPostGate(), withFixPlan());
+  expect(control(postCards()[1]!, 'hold')!.checked).toBe(true);
+  expect(submit().textContent).toBe('post 1 · resolve 1');
+});

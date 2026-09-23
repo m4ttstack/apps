@@ -35,10 +35,6 @@ function SeverityPill({ severity }: { severity: Severity }) {
   );
 }
 
-/** A respond-plan thread question's body: the reviewer's claim, the
-    adjudicated verdict, and the reply that goes out in the developer's
-    name. The file:line and the severity ride the question head; the plan
-    rides the fix option's subtitle. */
 function ReplyBlock({ text }: { text: string }) {
   return (
     <div className="tui-thread-reply" data-kind="verbatim">
@@ -52,6 +48,10 @@ function ReplyBlock({ text }: { text: string }) {
   );
 }
 
+/** A respond-plan thread question's body: the reviewer's claim, the
+    adjudicated verdict, and the reply that goes out in the developer's
+    name. The file:line and the severity ride the question head; the plan
+    rides the fix option's subtitle. */
 function ThreadCard({ ctx }: { ctx: ThreadCtx }) {
   const { claim, verdict, reply } = ctx;
   return (
