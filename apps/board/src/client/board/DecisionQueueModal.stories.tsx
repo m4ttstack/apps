@@ -476,7 +476,7 @@ const decided: Array<{ gate: GateRow; mr?: BoardMRWithReview }> = [
       kind: 'review-post',
       status: 'answered',
       answers: { verdict: 'approve' },
-      answeredBy: 'board',
+      answeredBy: 'dana',
     },
     mr: decidedMr(46, 'drain the widget queue before shutdown'),
   },

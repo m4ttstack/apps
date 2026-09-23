@@ -2874,7 +2874,7 @@ body {
 .tui-triage-done-heading {
   margin: 0.2rem 0 0;
   font-size: 20px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-1);
 }
 .tui-triage-done-counts {
@@ -2935,21 +2935,25 @@ body {
   padding-bottom: 0;
 }
 .tui-triage-done-ref {
-  max-width: 16ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   font: 500 var(--gate-font-meta) / 1.4 var(--font-mono);
   color: var(--text-2);
 }
+/* Pinned to its column so a row without an MR (no ref) leaves the ref
+   column empty instead of sliding its kind under the refs. */
 .tui-triage-done-row > .tui-respond-chip {
+  grid-column: 2;
   justify-self: start;
 }
-.tui-triage-done-title {
+.tui-triage-done-title,
+.tui-triage-done-subject {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-1);
+}
+.tui-triage-done-subject {
+  font: var(--gate-font-meta) / 1.4 var(--font-mono);
 }
 .tui-triage-done-outcome {
   grid-column: 3;
@@ -2959,7 +2963,8 @@ body {
   font-size: var(--gate-font-meta);
   color: var(--text-2);
 }
-.tui-triage-done-outcome[data-pending] {
+.tui-triage-done-outcome[data-pending],
+.tui-triage-done-by {
   color: var(--text-4);
 }
 .tui-triage-done-action {

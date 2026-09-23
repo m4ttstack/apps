@@ -23,7 +23,7 @@ export interface QueueView {
   canNext: boolean;
   complete: boolean;
   /** In the order they were answered. */
-  answeredIds: string[];
+  answeredIds: readonly string[];
 }
 
 export interface DecisionQueue extends QueueView {
@@ -265,8 +265,9 @@ export function useDecisionQueue(
   // keep rendering it through a transient snapshot that dropped the gate
   // without answering it.
   const lastActiveEntry = useRef<QueueEntry | null>(null);
-  const seen = useRef(new Map<string, QueueEntry>());
-  if (open) for (const e of entries) seen.current.set(e.gate.gateId, e);
+  const seen = useRef<Map<string, QueueEntry> | null>(null);
+  const seenEntries = (seen.current ??= new Map());
+  if (open) for (const e of entries) seenEntries.set(e.gate.gateId, e);
 
   useEffect(() => {
     if (!open) return;
@@ -297,7 +298,7 @@ export function useDecisionQueue(
     setSession(CLOSED_SESSION);
     setHeldId(null);
     lastActiveEntry.current = null;
-    seen.current = new Map();
+    seen.current = null;
   }, []);
 
   const next = useCallback(() => {
@@ -339,7 +340,7 @@ export function useDecisionQueue(
 
   return {
     ...view,
-    seenEntries: seen.current,
+    seenEntries,
     open,
     openAtStart,
     openAt,

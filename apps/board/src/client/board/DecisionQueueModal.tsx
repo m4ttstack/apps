@@ -5,7 +5,14 @@ import {
   domainForKind,
   type GateDomain,
 } from '@mattstack/gate-kit';
-import { Button, Chip, Icon, Markdown, ScrollPane } from '@mattstack/tui-kit';
+import {
+  Button,
+  CHECK_ICON,
+  Chip,
+  Icon,
+  Markdown,
+  ScrollPane,
+} from '@mattstack/tui-kit';
 import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview, ExecutorState } from '../types.ts';
 import { AttentionCard } from './AttentionCard.tsx';
@@ -423,7 +430,9 @@ function DecisionQueueModal({
 }
 
 /** One decided gate on the finished face. The outcome waits on the poll: a
-    row that does not carry its answer yet reads plain "answered". */
+    row that does not carry its answer yet reads plain "answered". A gate
+    answered on another surface lands here too (the queue retires it), so
+    its decider is named. */
 function DecidedRow({ gate, mr }: { gate: GateRow; mr?: BoardMRWithReview }) {
   const outcome = gate.answers
     ? answeredGateSummary({
@@ -439,28 +448,33 @@ function DecidedRow({ gate, mr }: { gate: GateRow; mr?: BoardMRWithReview }) {
       }).outcome
     : null;
   const title = mr ? cleanTitle(mr.title) : null;
+  // 'board' is the `by` gates/answer.ts stamps on this board's own answers.
+  const by =
+    outcome !== null && gate.answeredBy && gate.answeredBy !== 'board'
+      ? ` · by ${gate.answeredBy}`
+      : '';
   return (
     <li className="tui-triage-done-row">
-      <span
-        className="tui-triage-done-ref"
-        title={mr ? undefined : gate.subject}
-      >
-        {mr ? `!${mr.iid}` : gate.subject}
-      </span>
+      {mr && <span className="tui-triage-done-ref">!{mr.iid}</span>}
       <span className="tui-respond-chip">
-        {domainForKind(gate.kind) ?? gate.kind}
+        {domainForKind(gate.kind) ?? gate.kind.replaceAll('-', ' ')}
       </span>
-      {title !== null && (
+      {title !== null ? (
         <span className="tui-triage-done-title" title={title}>
           {title}
+        </span>
+      ) : (
+        <span className="tui-triage-done-subject" title={gate.subject}>
+          {gate.subject}
         </span>
       )}
       <span
         className="tui-triage-done-outcome"
-        title={outcome ?? undefined}
+        title={outcome === null ? undefined : `${outcome}${by}`}
         data-pending={outcome === null ? 'true' : undefined}
       >
         {outcome ?? 'answered'}
+        {by && <span className="tui-triage-done-by">{by}</span>}
       </span>
     </li>
   );
@@ -493,7 +507,7 @@ function DecisionQueueComplete({
       <div className="tui-triage-sheet-body">
         <div className="tui-triage-done">
           <span className="tui-triage-done-badge">
-            <Icon d="M20 6 9 17l-5-5" width="22" height="22" />
+            <Icon d={CHECK_ICON} width="22" height="22" />
           </span>
           <h2 className="tui-triage-done-heading">Queue cleared</h2>
           <p className="tui-triage-done-counts">

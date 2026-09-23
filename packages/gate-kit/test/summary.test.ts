@@ -113,13 +113,6 @@ describe('answeredGateSummary chip', () => {
     expect(detail.find(d => d.id === 'thread-2')!.text).toBeUndefined();
   });
 
-  test('outcome is the chip without its subject head or by suffix', () => {
-    const { outcome } = answeredGateSummary(EDITED_POST_ROW);
-    expect(outcome).toBe('2 posted (1 edited), 1 resolved, 1 held');
-    expect(outcome).not.toContain('!87');
-    expect(outcome).not.toContain('· by');
-  });
-
   test('an explicit empty multi answer chips the same nothing-posted marker as the zero-option shape', () => {
     const questions: GateQuestion[] = [
       {
@@ -337,5 +330,136 @@ describe('answeredGateSummary detail', () => {
     expect(detail[0]!.answers).toEqual([
       { text: 'Approve', title: 'approve', recommended: true },
     ]);
+  });
+});
+
+describe('answeredGateSummary outcome', () => {
+  const findingsChunk = (n: number, ids: string[]): GateQuestion => ({
+    id: `findings-${n}`,
+    label: `Findings, part ${n}`,
+    multi: true,
+    options: ids.map(id => ({ value: id, label: `[Minor] finding ${id}` })),
+  });
+  const reviewRow = (
+    answers: Record<string, string | string[]>
+  ): GateSummaryInput => ({
+    subject: MR_SUBJECT,
+    kind: 'review-post',
+    status: 'answered',
+    questions: [
+      findingsChunk(1, ['f1', 'f2', 'f3', 'f4']),
+      findingsChunk(2, ['f5']),
+      REVIEW_QUESTIONS[1]!,
+    ],
+    answer: { answers, by: 'board', answeredAt: 1 },
+  });
+  const threadPick = (n: number): GateQuestion => ({
+    id: `thread-${n}`,
+    label: `queue.ts:${n}`,
+    multi: false,
+    options: [`reply:t${n}`, `fix:t${n}`, `skip:t${n}`],
+  });
+
+  test('a posting gate keeps its pair summary, with no subject head or by suffix', () => {
+    const { outcome } = answeredGateSummary(EDITED_POST_ROW);
+    expect(outcome).toBe('2 posted (1 edited), 1 resolved, 1 held');
+  });
+
+  test('chunked findings count together under the question noun, then the verdict', () => {
+    const row = reviewRow({
+      'findings-1': ['f1', 'f2', 'f3', 'f4'],
+      'findings-2': ['f5'],
+      outcome: 'comment',
+    });
+    expect(answeredGateSummary(row).outcome).toBe('5 findings, comment');
+    expect(answeredGateSummary(row).chip).toContain('[Minor] finding f1');
+  });
+
+  test('one finding reads singular, and no findings read nothing posted', () => {
+    expect(
+      answeredGateSummary(
+        reviewRow({
+          'findings-1': ['f2'],
+          'findings-2': [],
+          outcome: 'approve',
+        })
+      ).outcome
+    ).toBe('1 finding, approve');
+    expect(
+      answeredGateSummary(
+        reviewRow({ 'findings-1': [], 'findings-2': [], outcome: 'comment' })
+      ).outcome
+    ).toBe('comment, nothing posted');
+  });
+
+  test('the clean review shape keeps its nothing-posted marker', () => {
+    const { outcome } = answeredGateSummary({
+      subject: MR_SUBJECT,
+      kind: 'review-post',
+      status: 'answered',
+      questions: REVIEW_QUESTIONS,
+      answer: { answers: { outcome: 'comment' }, by: 'pane', answeredAt: 1 },
+    });
+    expect(outcome).toBe('comment, nothing posted');
+  });
+
+  test('verb picks across per-thread questions add up, then the single answers', () => {
+    const { outcome } = answeredGateSummary({
+      subject: MR_SUBJECT,
+      kind: 'respond-plan',
+      status: 'answered',
+      questions: [
+        threadPick(1),
+        threadPick(2),
+        threadPick(3),
+        {
+          id: 'code-changes',
+          label: 'Approve the proposed code changes?',
+          multi: false,
+          options: ['approve', 'revise', 'skip'],
+        },
+      ],
+      answer: {
+        answers: {
+          'thread-1': 'fix:t1',
+          'thread-2': 'fix:t2',
+          'thread-3': 'reply:t3',
+          'code-changes': 'approve',
+        },
+        by: 'board',
+        answeredAt: 1,
+      },
+    });
+    expect(outcome).toBe('2 fixes, 1 reply, approve');
+  });
+
+  test('a multi of verb picks counts verbs and leaves skips unsaid', () => {
+    const { outcome } = answeredGateSummary({
+      subject: MR_SUBJECT,
+      kind: 'respond-plan',
+      status: 'answered',
+      questions: RESPOND_QUESTIONS,
+      answer: {
+        answers: {
+          'threads-1': ['fix:t1aaaaaaaaaaaaaa', 'skip:t2bbbbbbbbbbbbbb'],
+          'code-changes': 'approve',
+        },
+        by: 'board',
+        answeredAt: 2,
+      },
+    });
+    expect(outcome).toBe('1 fix, approved');
+  });
+
+  test('a closed row reads its closed reason', () => {
+    const { outcome } = answeredGateSummary({
+      subject: MR_SUBJECT,
+      kind: 'respond-plan',
+      status: 'closed',
+      closedReason: 'superseded',
+      questions: RESPOND_QUESTIONS,
+      answer: null,
+    });
+    expect(outcome).toBe('superseded');
   });
 });

@@ -5,11 +5,24 @@
 
 import React, { StrictMode } from 'react';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
-import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  expect,
+  setSystemTime,
+  test,
+} from 'bun:test';
 import { createRoot, type Root } from 'react-dom/client';
 
 import type { GateRow } from '../../../gates/store.ts';
 import type { BoardMRWithReview } from '../../types.ts';
+import {
+  decidedEntries,
+  useDecisionQueue,
+  type DecisionQueue,
+  type QueueEntry,
+} from '../decision-queue.ts';
 import { DecisionQueueComplete } from '../DecisionQueueModal.tsx';
 import { signOff } from '../format.ts';
 
@@ -133,8 +146,9 @@ test('the finished queue recaps each decision in answer order and focuses done',
     '2 posted (1 edited), 1 resolved'
   );
   expect(rows[1]!.querySelector('.tui-triage-done-outcome')?.textContent).toBe(
-    'fix, approve'
+    '1 fix, approve'
   );
+  expect(container.querySelector('.tui-triage-done-by')).toBeNull();
   const done = [...container.querySelectorAll('button')].find(
     b => b.textContent === 'done'
   );
@@ -171,10 +185,14 @@ test('a gate the poll has not caught up with reads answered, and a gate with no 
   const lagOutcome = rows[0]!.querySelector('.tui-triage-done-outcome');
   expect(lagOutcome?.textContent).toBe('answered');
   expect(lagOutcome?.getAttribute('data-pending')).toBe('true');
-  expect(rows[1]!.querySelector('.tui-triage-done-ref')?.textContent).toBe(
+  expect(rows[1]!.querySelector('.tui-triage-done-ref')).toBeNull();
+  expect(rows[1]!.querySelector('.tui-triage-done-title')).toBeNull();
+  expect(rows[1]!.querySelector('.tui-triage-done-subject')?.textContent).toBe(
     'agent:pane-4'
   );
-  expect(rows[1]!.querySelector('.tui-triage-done-title')).toBeNull();
+  expect(rows[1]!.querySelector('.tui-respond-chip')?.textContent).toBe(
+    'pane attention'
+  );
   expect(rows[1]!.querySelector('.tui-triage-done-outcome')?.textContent).toBe(
     'resume'
   );
@@ -187,6 +205,99 @@ test('one decision reads singular, and an empty session has no recap card', asyn
   );
   await show([]);
   expect(container.querySelector('.tui-triage-done-recap')).toBeNull();
+});
+
+test('a gate answered elsewhere credits its decider on the outcome line', async () => {
+  await show([
+    {
+      gate: { ...planGate, answeredBy: 'dana' },
+      mr: mr(91, 'drain the queue on shutdown'),
+    },
+    { gate: postGate, mr: mr(87, 'retry the fetch queue with backoff') },
+  ]);
+  const rows = [...container.querySelectorAll('.tui-triage-done-row')];
+  expect(rows[0]!.querySelector('.tui-triage-done-outcome')?.textContent).toBe(
+    '1 fix, approve · by dana'
+  );
+  expect(rows[0]!.querySelector('.tui-triage-done-by')?.textContent).toBe(
+    ' · by dana'
+  );
+  expect(rows[1]!.querySelector('.tui-triage-done-by')).toBeNull();
+});
+
+test('the count line signs off for the local hour', async () => {
+  setSystemTime(new Date(2026, 8, 23, 19, 30));
+  try {
+    await show([{ gate: planGate, mr: mr(91, 'drain the queue on shutdown') }]);
+    expect(text('.tui-triage-done-counts')).toBe(
+      '1 decision this session. Enjoy your evening.'
+    );
+  } finally {
+    setSystemTime();
+  }
+});
+
+let queue: DecisionQueue | null = null;
+
+function QueueHost({ entries }: { entries: QueueEntry[] }) {
+  const q = useDecisionQueue(entries);
+  queue = q;
+  return q.open && q.complete ? (
+    <DecisionQueueComplete
+      decided={decidedEntries(q.answeredIds, { mrs: [] }, q.seenEntries)}
+      onClose={q.close}
+    />
+  ) : null;
+}
+
+test('the queue records entries only while open, recaps an answered gate after it leaves, and forgets on close', async () => {
+  const open = (gate: GateRow): GateRow => ({
+    ...gate,
+    status: 'open',
+    answers: undefined,
+    answeredBy: undefined,
+    answeredAt: undefined,
+  });
+  const post = {
+    gate: open(postGate),
+    mr: mr(87, 'retry the fetch queue with backoff'),
+  };
+  const plan = {
+    gate: open(planGate),
+    mr: mr(91, 'drain the queue on shutdown'),
+  };
+  const host = (entries: QueueEntry[]) =>
+    React.act(async () =>
+      root.render(
+        <StrictMode>
+          <QueueHost entries={entries} />
+        </StrictMode>
+      )
+    );
+
+  await host([post, plan]);
+  expect(queue!.seenEntries.size).toBe(0);
+
+  await React.act(async () => queue!.openAtStart());
+  expect([...queue!.seenEntries.keys()]).toEqual(['g-post', 'g-plan']);
+
+  await React.act(async () => queue!.noteAnswered('g-post'));
+  await host([plan]);
+  await React.act(async () => queue!.noteAnswered('g-plan'));
+  await host([]);
+  expect(queue!.complete).toBe(true);
+  const rows = [...container.querySelectorAll('.tui-triage-done-row')];
+  expect(
+    rows.map(r => r.querySelector('.tui-triage-done-ref')?.textContent)
+  ).toEqual(['!87', '!91']);
+  expect(
+    rows.map(r => r.querySelector('.tui-triage-done-outcome')?.textContent)
+  ).toEqual(['answered', 'answered']);
+
+  await React.act(async () => queue!.close());
+  expect(queue!.seenEntries.size).toBe(0);
+  await host([post]);
+  expect(queue!.seenEntries.size).toBe(0);
 });
 
 test('the sign-off follows the local hour', () => {
