@@ -224,7 +224,13 @@ function InlineTags({
           aria-label={def.key}
           size="xs"
           w={120}
-          styles={INPUT_TYPE.code}
+          styles={{
+            input: {
+              ...INPUT_TYPE.code.input,
+              height: TAG_HEIGHT,
+              minHeight: TAG_HEIGHT,
+            },
+          }}
           autoFocus
           readOnly={saving}
           value={draft}
