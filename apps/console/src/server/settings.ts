@@ -56,9 +56,9 @@ export function createSettingsRoutes(kit: SettingsHandlerOptions = {}) {
         // locality gate check the socket peer, not just the forgeable Host.
         const res = await settingsHandler(c.req.raw, {
           allowComposite: 'shaped',
+          ...kit,
           allowWrite: req =>
             isLocalRequest(req, c.env as LocalServer | undefined),
-          ...kit,
         });
         return res ?? c.json({ error: 'not found' }, 404);
       })
