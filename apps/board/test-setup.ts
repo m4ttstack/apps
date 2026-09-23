@@ -17,11 +17,12 @@
  * only reason this preload is sufficient today -- a new test that calls one
  * of them for real must pass its own override, not rely on this file.
  */
-import { afterAll } from 'bun:test';
+import { spawn } from 'child_process';
 import { lstatSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
+import { afterAll } from 'bun:test';
 
 import { guardTestDaemonEnv } from '@mattstack/rt-client';
 
@@ -36,14 +37,16 @@ guardTestDaemonEnv();
 // under tmpdir() lands in the machine's TMPDIR: hundreds of thousands of
 // leftover mkdtemp dirs there once made every file create on the machine
 // slow. HOME is a sibling, not nested, to keep socket paths under it inside
-// macOS's 104 bytes. bun test never fires process "exit", so removal is a
-// global afterAll; a run killed before it leaves its dirs behind, and the
+// macOS's 104 bytes. bun test never fires process "exit", so removal starts in
+// a global afterAll; a run killed before it leaves its dirs behind, and the
 // next start sweeps every dir whose run pid is gone.
 const testRoot = join(tmpdir(), 'mr-board-tests');
 mkdirSync(testRoot, { recursive: true, mode: 0o700 });
 const rootStat = lstatSync(testRoot);
 if (!rootStat.isDirectory() || rootStat.uid !== process.getuid?.()) {
-  throw new Error(`${testRoot} is not a directory this user owns; refusing to sweep it`);
+  throw new Error(
+    `${testRoot} is not a directory this user owns; refusing to sweep it`
+  );
 }
 for (const name of readdirSync(testRoot)) {
   const pid = Number(name.split('-')[0]);
@@ -53,9 +56,13 @@ for (const name of readdirSync(testRoot)) {
 const runTmp = mkdtempSync(join(testRoot, `${process.pid}-run-`));
 const runHome = mkdtempSync(join(testRoot, `${process.pid}-home-`));
 process.env.TMPDIR = runTmp;
+// A whole run's tree takes longer to delete than bun's 5s hook timeout, so
+// a detached rm does it after the process exits.
 afterAll(() => {
-  rmSync(runTmp, { recursive: true, force: true });
-  rmSync(runHome, { recursive: true, force: true });
+  spawn('rm', ['-rf', runTmp, runHome], {
+    detached: true,
+    stdio: 'ignore',
+  }).unref();
 });
 
 function pidIsAlive(pid: number): boolean {
