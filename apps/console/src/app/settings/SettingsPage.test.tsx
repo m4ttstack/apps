@@ -97,6 +97,9 @@ describe('SettingsPage', () => {
     expect(within(index).getByText('Agents')).toBeInTheDocument();
     expect(within(index).getByText('Board')).toBeInTheDocument();
     expect(within(index).getByText('13')).toBeInTheDocument();
+    expect(within(index).getByText('Apps')).not.toHaveStyle({
+      textTransform: 'uppercase',
+    });
     expect(screen.getByRole('heading', { name: 'Daemon' })).toBeInTheDocument();
   });
 

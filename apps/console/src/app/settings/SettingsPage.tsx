@@ -57,14 +57,12 @@ function Index({
       {TIERS.map((tier, i) => (
         <Box key={tier}>
           <Text
-            fz={11}
+            fz={12}
             fw={500}
-            tt="uppercase"
-            lts={0.8}
-            c="var(--tk-text-4)"
+            c="var(--tk-text-3)"
             px={8}
-            pt={i === 0 ? 8 : 22}
-            pb={6}
+            pt={i === 0 ? 8 : 20}
+            pb={4}
           >
             {TIER_LABEL[tier]}
           </Text>
@@ -79,6 +77,19 @@ function Index({
                   href={`#${s.group.id}`}
                   label={s.group.label}
                   active={current}
+                  leftSection={
+                    <Box
+                      component="span"
+                      aria-hidden
+                      w={7}
+                      h={7}
+                      style={{
+                        flex: 'none',
+                        borderRadius: '50%',
+                        border: '1.5px solid var(--tk-line-1)',
+                      }}
+                    />
+                  }
                   disabled={empty}
                   aria-disabled={empty || undefined}
                   tabIndex={empty ? -1 : undefined}
@@ -90,7 +101,7 @@ function Index({
                   styles={{
                     root: {
                       height: 30,
-                      padding: '0 8px',
+                      padding: '0 8px 0 20px',
                       borderRadius: 4,
                       background: current ? 'var(--tk-raised)' : undefined,
                       color:
