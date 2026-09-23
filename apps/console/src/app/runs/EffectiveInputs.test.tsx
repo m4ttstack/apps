@@ -254,9 +254,6 @@ describe('EffectiveInputs', () => {
     await userEvent.click(row);
 
     expect(window.location.pathname).toBe(before);
-    expect(new URLSearchParams(window.location.search).get('explain')).toBe(
-      'rt.runsPruneDays'
-    );
     expect(await screen.findByRole('dialog')).toHaveTextContent(
       'rt settings explain rt.runsPruneDays'
     );

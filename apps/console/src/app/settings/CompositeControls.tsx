@@ -241,6 +241,7 @@ function InlineTags({
             },
           }}
           autoFocus
+          data-mantine-stop-propagation
           readOnly={saving}
           value={draft}
           onTextChange={setDraft}

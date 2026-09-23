@@ -12,7 +12,7 @@ import {
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import { Icons } from '@mattstack/app-kit/icons';
 import type { RunDecisionRow } from '@mattstack/rt-client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type {
   ConfigDepRow,
@@ -21,8 +21,7 @@ import type {
 } from '../../server/effectiveInputs';
 import { client } from '../api';
 import { shortValue } from '../config/chain';
-import { StandaloneExplainModal } from '../settings/ExplainModal';
-import { useExplainParam } from '../settings/explainParam';
+import { ExplainModal } from '../settings/ExplainModal';
 import { useDrawerSurface } from '../wiring/drawerSurface';
 import { QuietBadge } from '../wiring/QuietBadge';
 import { CommandProvenance } from './CommandProvenance';
@@ -243,16 +242,21 @@ function ConfigRow({
 
 function ConfigSection({ config }: { config: ConfigDepRow[] }) {
   const { text } = useSchemeColors();
-  const explain = useExplainParam();
+  const queryClient = useQueryClient();
+  // Local, not ?explain=: this panel sits in a tab that a reload unmounts.
+  const [explaining, setExplaining] = useState<string | null>(null);
   return (
     <Stack gap="xs" data-testid="effective-inputs-config">
       <Text fw={700}>Configuration</Text>
       {config.map(row => (
-        <ConfigRow key={row.key} row={row} onExplain={explain.open} />
+        <ConfigRow key={row.key} row={row} onExplain={setExplaining} />
       ))}
-      <StandaloneExplainModal
-        settingKey={explain.key}
-        onClose={explain.close}
+      <ExplainModal
+        settingKey={explaining}
+        onClose={() => setExplaining(null)}
+        onChanged={() =>
+          void queryClient.invalidateQueries({ queryKey: ['effective-inputs'] })
+        }
       />
       <Text size="xs" c={text.dimmed}>
         Current values, not as-run — runs do not record the config they read.

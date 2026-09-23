@@ -144,6 +144,8 @@ export function ScalarControl({
       styles={INPUT_TYPE.code}
       placeholder="unset"
       defaultValue={current}
+      // Escape reverts the draft; inside a modal it must not also close it.
+      data-mantine-stop-propagation
       onKeyDown={e => {
         if (e.key === 'Escape') e.currentTarget.value = current;
         if (e.key === 'Enter' || e.key === 'Escape') e.currentTarget.blur();

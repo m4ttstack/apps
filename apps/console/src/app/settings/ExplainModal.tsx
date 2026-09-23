@@ -21,14 +21,16 @@ import {
   type SettingDefWire,
   type SettingsScopeState,
 } from '@mattstack/settings-kit/react';
+import { rowKind } from '@mattstack/settings-kit/shapes';
 
 import { analyzeChain, shortValue } from '../config/chain';
 import { useAgentModels } from '../config/useSettings';
 import { useEditorHref } from '../editorHref';
+import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
 import { SettingRow } from './SettingRow';
 import { useRowSave, type RowStore } from './useRowSave';
-import { isStoreScope } from './view';
+import { isStoreScope, type StoreScope } from './view';
 
 export type ExplainStore = Pick<
   SettingsScopeState,
@@ -39,42 +41,121 @@ const MODAL_WIDTH = 760;
 const SCOPE_COL = 88;
 
 type Role = 'winner' | 'overridden' | 'contributor' | 'inert';
+type Provider = 'claude' | 'codex';
 
-function modelSuggestionsFor(key: string): 'claude' | 'codex' | null {
-  const m = /^agent\.(claude|codex)\..*model$/.exec(key);
-  return m ? (m[1] as 'claude' | 'codex') : null;
+/** Same rule as the Agents section: a provider's `.model` keys suggest
+    that provider's model catalog. */
+function modelProvider(key: string): Provider | null {
+  const m = /^agent\.(claude|codex)\./.exec(key);
+  return m && key.endsWith('.model') ? (m[1] as Provider) : null;
 }
 
-function Suggested({
+function Catalog({
   provider,
   children,
 }: {
-  provider: 'claude' | 'codex';
-  children: (suggestions: string[]) => ReactNode;
+  provider: Provider;
+  children: (suggestions?: string[]) => ReactNode;
 }) {
   const models = useAgentModels(provider);
   return <>{children((models.data?.models ?? []).map(m => m.value))}</>;
+}
+
+function Suggested({
+  settingKey,
+  children,
+}: {
+  settingKey: string;
+  children: (suggestions?: string[]) => ReactNode;
+}) {
+  const provider = modelProvider(settingKey);
+  return provider ? (
+    <Catalog provider={provider}>{children}</Catalog>
+  ) : (
+    <>{children()}</>
+  );
+}
+
+/** The def as if `row` were the only layer, so a scalar control edits that
+    layer's own value. */
+function layerDef(def: SettingDefWire, row: ExplainRowWire): SettingDefWire {
+  return {
+    ...def,
+    effective: {
+      scope: row.scope,
+      file: row.file,
+      ...(row.present ? { value: row.value } : {}),
+    },
+  };
 }
 
 function LayerLine({
   def,
   row,
   role,
-  onRemove,
   busy,
+  onSet,
+  onRemove,
 }: {
   def: SettingDefWire;
   row: ExplainRowWire;
   role: Role;
-  onRemove: (scope: string) => void;
   busy: boolean;
+  onSet: (scope: StoreScope, value: unknown) => Promise<boolean>;
+  onRemove: (scope: StoreScope) => Promise<boolean>;
 }) {
   const { text } = useSchemeColors();
   const editorHref = useEditorHref();
+  const [editing, setEditing] = useState(false);
   const scope = row.scope;
   const store = isStoreScope(scope) ? scope : null;
   const allowed = store !== null && def.scopes.includes(store);
-  const removable = row.present && def.writable && allowed && !def.secret;
+  const writable = allowed && def.writable && !def.secret;
+  const kind = rowKind(def);
+  const editable = writable && (kind === 'scalar' || kind === 'enum');
+
+  let value: ReactNode;
+  if (editing && store)
+    value = (
+      <Suggested settingKey={def.key}>
+        {suggestions => (
+          <ScalarControl
+            def={layerDef(def, row)}
+            suggestions={suggestions}
+            onSave={v =>
+              void (v === undefined ? onRemove(store) : onSet(store, v)).then(
+                ok => ok && setEditing(false)
+              )
+            }
+          />
+        )}
+      </Suggested>
+    );
+  else if (!row.present)
+    value = (
+      <Text fz={12} c={text.muted}>
+        not set
+      </Text>
+    );
+  else if (def.secret)
+    value = (
+      <Text fz={12} c={text.muted}>
+        present, never shown here
+      </Text>
+    );
+  else
+    value = (
+      <Text
+        fz={13}
+        ff="monospace"
+        truncate
+        c={role === 'overridden' ? text.muted : undefined}
+        td={role === 'overridden' ? 'line-through' : undefined}
+        data-testid={`layer-value-${scope}`}
+      >
+        {shortValue(row.value)}
+      </Text>
+    );
 
   return (
     <Box
@@ -92,28 +173,7 @@ function LayerLine({
             </Text>
           )}
         </Box>
-        <Box style={{ flex: 1, minWidth: 0 }}>
-          {!row.present ? (
-            <Text fz={12} c={text.muted}>
-              not set
-            </Text>
-          ) : def.secret ? (
-            <Text fz={12} c={text.muted}>
-              present, never shown here
-            </Text>
-          ) : (
-            <Text
-              fz={13}
-              ff="monospace"
-              truncate
-              c={role === 'overridden' ? text.muted : undefined}
-              td={role === 'overridden' ? 'line-through' : undefined}
-              data-testid={`layer-value-${scope}`}
-            >
-              {shortValue(row.value)}
-            </Text>
-          )}
-        </Box>
+        <Box style={{ flex: 1, minWidth: 0 }}>{value}</Box>
         <Group gap={6} wrap="nowrap" style={{ flex: 'none' }}>
           {role === 'winner' && (
             <Badge size="sm" variant="light" tt="none" fw={500}>
@@ -136,22 +196,46 @@ function LayerLine({
             </Badge>
           )}
         </Group>
-        <Box w={28} style={{ flex: 'none' }}>
-          {removable && (
-            <Tooltip label={`Remove from ${scope}`}>
+        <Group
+          gap={4}
+          wrap="nowrap"
+          w={60}
+          justify="flex-end"
+          style={{ flex: 'none' }}
+        >
+          {editable && store && (
+            <Tooltip label={editing ? 'Cancel' : `Set at ${store}`}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
                 c={text.muted}
                 disabled={busy}
-                aria-label={`remove ${def.key} from ${scope}`}
-                onClick={() => onRemove(scope)}
+                aria-label={
+                  editing
+                    ? `cancel editing ${def.key} at ${store}`
+                    : `set ${def.key} at ${store}`
+                }
+                onClick={() => setEditing(e => !e)}
+              >
+                {editing ? <Icons.close size={14} /> : <Icons.edit size={14} />}
+              </ActionIcon>
+            </Tooltip>
+          )}
+          {writable && store && row.present && (
+            <Tooltip label={`Remove from ${store}`}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                c={text.muted}
+                disabled={busy}
+                aria-label={`remove ${def.key} from ${store}`}
+                onClick={() => void onRemove(store)}
               >
                 <Icons.trash size={14} />
               </ActionIcon>
             </Tooltip>
           )}
-        </Box>
+        </Group>
       </Group>
       <Stack gap={2} pl={SCOPE_COL + 12} pt={2}>
         {row.invalid && (
@@ -185,24 +269,39 @@ function LayerLine({
   );
 }
 
-function ExplainBody({ def, store }: { def: SettingDefWire; store: RowStore }) {
+function ExplainBody({
+  def: storeDef,
+  store,
+  onRead,
+  onChanged,
+}: {
+  def: SettingDefWire;
+  store: RowStore;
+  onRead: (at: Date) => void;
+  onChanged?: () => void;
+}) {
   const { text } = useSchemeColors();
-  const explained = useSettingKey(def.key);
-  const { refresh } = explained;
-  // Every write re-reads the layer stack, so the rows below never disagree
-  // with the control above.
+  const explained = useSettingKey(storeDef.key);
+  const { refresh, rows, loading } = explained;
+  // The explain read is fresher than a store loaded when the page mounted.
+  const def = explained.def ?? storeDef;
+  useEffect(() => {
+    if (!loading && rows.length > 0) onRead(new Date());
+  }, [loading, rows, onRead]);
+
+  // A failed move can still have written its target, so every settled write
+  // re-reads the stack.
   const tracked: RowStore = {
     set: async (...a) => after(await store.set(...a)),
     unset: async (...a) => after(await store.unset(...a)),
     move: async (...a) => after(await store.move(...a)),
   };
   function after(err: string | null) {
-    if (err === null) refresh();
+    refresh();
+    onChanged?.();
     return err;
   }
   const layers = useRowSave(tracked, def);
-  const provider = modelSuggestionsFor(def.key);
-  const rows = explained.rows;
   const verdict = rows.length > 0 ? analyzeChain(def, rows) : null;
   const roleOf = (row: ExplainRowWire): Role => {
     if (!verdict) return 'inert';
@@ -211,20 +310,21 @@ function ExplainBody({ def, store }: { def: SettingDefWire; store: RowStore }) {
     if (verdict.winner === row) return 'winner';
     return verdict.overridden.includes(row) ? 'overridden' : 'inert';
   };
-  const row = (suggestions?: string[]) => (
-    <SettingRow
-      def={def}
-      store={tracked}
-      subhead={null}
-      query=""
-      suggestions={suggestions}
-      fullDescription
-    />
-  );
 
   return (
     <Stack gap={0}>
-      {provider ? <Suggested provider={provider}>{row}</Suggested> : row()}
+      <Suggested settingKey={def.key}>
+        {suggestions => (
+          <SettingRow
+            def={def}
+            store={tracked}
+            subhead={null}
+            query=""
+            suggestions={suggestions}
+            fullDescription
+          />
+        )}
+      </Suggested>
       <Stack gap={8} pt={20}>
         {verdict && (
           <Text fz={14} data-testid="explain-sentence">
@@ -281,7 +381,8 @@ function ExplainBody({ def, store }: { def: SettingDefWire; store: RowStore }) {
             row={r}
             role={roleOf(r)}
             busy={layers.status === 'saving'}
-            onRemove={scope => void layers.clear(scope)}
+            onSet={(scope, v) => layers.setAt(scope, v)}
+            onRemove={scope => layers.clear(scope)}
           />
         ))
       )}
@@ -292,6 +393,60 @@ function ExplainBody({ def, store }: { def: SettingDefWire; store: RowStore }) {
       )}
     </Stack>
   );
+}
+
+function Resolved({
+  settingKey,
+  store,
+  onRead,
+  onChanged,
+}: {
+  settingKey: string;
+  store: ExplainStore;
+  onRead: (at: Date) => void;
+  onChanged?: () => void;
+}) {
+  const { text } = useSchemeColors();
+  const def = store.defs.find(d => d.key === settingKey);
+  if (def)
+    return (
+      <ExplainBody
+        key={def.key}
+        def={def}
+        store={store}
+        onRead={onRead}
+        onChanged={onChanged}
+      />
+    );
+  if (store.error)
+    return (
+      <Alert color="bad" variant="light">
+        <Text fz={12}>{store.error}</Text>
+      </Alert>
+    );
+  if (store.loading)
+    return (
+      <Stack gap={10}>
+        <Skeleton h={48} />
+        <Skeleton h={36} />
+        <Skeleton h={36} />
+      </Stack>
+    );
+  return (
+    <Text fz={14} c={text.muted}>
+      {`No setting named ${settingKey} is registered.`}
+    </Text>
+  );
+}
+
+/** Loads just this key, for pages with no settings store of their own. */
+function OwnStore(props: {
+  settingKey: string;
+  onRead: (at: Date) => void;
+  onChanged?: () => void;
+}) {
+  const store = useSettingsScope(props.settingKey);
+  return <Resolved {...props} store={store} />;
 }
 
 /** Keeps the last open key through the close transition, so the modal
@@ -305,31 +460,32 @@ function useLastKey(key: string | null): string | null {
 /**
  * Why is this value this? The settings row itself, so the value is edited
  * with the same control as on /settings, then the resolver's sentence and
- * every layer, weakest first. Mounted by each page that links here, with
- * that page's store, so a write shows on the page behind it at once.
+ * every layer, weakest first. With a `store`, writes land in the caller's
+ * store and show behind the modal at once; without one it loads the key
+ * itself and reports writes through `onChanged`.
  */
 export function ExplainModal({
   settingKey,
   store,
   onClose,
+  onChanged,
 }: {
   settingKey: string | null;
-  store: ExplainStore;
+  store?: ExplainStore;
   onClose: () => void;
+  onChanged?: () => void;
 }) {
   const { text, bg } = useSchemeColors();
   const key = useLastKey(settingKey);
-  const def = key === null ? undefined : store.defs.find(d => d.key === key);
-  const [openedAt, setOpenedAt] = useState(() => new Date());
-  useEffect(() => {
-    if (settingKey !== null) setOpenedAt(new Date());
-  }, [settingKey]);
+  const [readAt, setReadAt] = useState<Date | null>(null);
   const surface = { background: bg.level3 };
 
   return (
     <Modal
       opened={settingKey !== null}
       onClose={onClose}
+      onExitTransitionEnd={() => setReadAt(null)}
+      closeButtonProps={{ 'aria-label': 'Close modal' }}
       size={MODAL_WIDTH}
       padding="lg"
       styles={{
@@ -337,59 +493,29 @@ export function ExplainModal({
         header: { ...surface, borderBottom: '1px solid var(--tk-border-soft)' },
       }}
       title={
-        <Group gap={6} wrap="nowrap">
-          <Text fz={12} ff="monospace" c={text.muted}>
+        <Text span fz={12} c={text.muted}>
+          <Text span inherit ff="monospace">
             {`>_ rt settings explain ${key ?? ''}`}
           </Text>
-          <Text fz={12} c={text.muted}>
-            {`· as of ${openedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
-          </Text>
-        </Group>
+          {readAt && (
+            <Text span inherit aria-hidden>
+              {` · as of ${readAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
+            </Text>
+          )}
+        </Text>
       }
     >
-      {def ? (
-        <ExplainBody key={def.key} def={def} store={store} />
-      ) : store.error ? (
-        <Alert color="bad" variant="light">
-          <Text fz={12}>{store.error}</Text>
-        </Alert>
-      ) : store.loading ? (
-        <Stack gap={10}>
-          <Skeleton h={48} />
-          <Skeleton h={36} />
-          <Skeleton h={36} />
-        </Stack>
-      ) : (
-        <Text fz={14} c={text.muted}>
-          {`No setting named ${key ?? ''} is registered.`}
-        </Text>
-      )}
+      {key !== null &&
+        (store ? (
+          <Resolved
+            settingKey={key}
+            store={store}
+            onRead={setReadAt}
+            onChanged={onChanged}
+          />
+        ) : (
+          <OwnStore settingKey={key} onRead={setReadAt} onChanged={onChanged} />
+        ))}
     </Modal>
-  );
-}
-
-function OwnStoreModal({
-  settingKey,
-  onClose,
-}: {
-  settingKey: string;
-  onClose: () => void;
-}) {
-  const scope = useSettingsScope(settingKey);
-  return (
-    <ExplainModal settingKey={settingKey} store={scope} onClose={onClose} />
-  );
-}
-
-/** For pages with no settings store of their own: loads just this key. */
-export function StandaloneExplainModal({
-  settingKey,
-  onClose,
-}: {
-  settingKey: string | null;
-  onClose: () => void;
-}) {
-  return settingKey === null ? null : (
-    <OwnStoreModal settingKey={settingKey} onClose={onClose} />
   );
 }

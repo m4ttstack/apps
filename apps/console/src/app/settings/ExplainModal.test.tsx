@@ -148,7 +148,75 @@ describe('ExplainModal', () => {
       await screen.findByRole('button', { name: `remove ${KEY} from user` })
     );
     expect(await screen.findByText('store is read-only')).toBeInTheDocument();
-    expect(explainGet).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(explainGet).toHaveBeenCalledTimes(2));
+  });
+
+  it('sets a value at a layer other than the winning one', async () => {
+    explainGet.mockResolvedValue(ok({ def: DEF, rows: ROWS }));
+    const s = store();
+    renderModal(s);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: `set ${KEY} at user` })
+    );
+    const input = within(screen.getByTestId('layer-user')).getByRole(
+      'textbox',
+      { name: KEY }
+    );
+    await userEvent.clear(input);
+    await userEvent.type(input, 'm-other{Enter}');
+
+    expect(s.set).toHaveBeenCalledWith(KEY, 'user', 'm-other');
+    await waitFor(() => expect(explainGet).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: `set ${KEY} at user` })
+      ).toBeInTheDocument()
+    );
+  });
+
+  it('Escape inside an edit reverts it without closing the modal', async () => {
+    explainGet.mockResolvedValue(ok({ def: DEF, rows: ROWS }));
+    const { onClose } = renderModal(store());
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: `set ${KEY} at user` })
+    );
+    const input = within(screen.getByTestId('layer-user')).getByRole(
+      'textbox',
+      { name: KEY }
+    );
+    await userEvent.type(input, 'x{Escape}');
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes from its close button', async () => {
+    explainGet.mockResolvedValue(ok({ def: DEF, rows: ROWS }));
+    const { onClose } = renderModal(store());
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Close modal' })
+    );
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('loads the key itself when no store is passed', async () => {
+    explainGet.mockResolvedValue(ok({ def: DEF, rows: ROWS }));
+    vi.stubGlobal('fetch', (url: string) => {
+      if (url.startsWith('/api/settings/explain/')) return explainGet(url);
+      if (url.startsWith('/api/settings/defs'))
+        return Promise.resolve(ok({ defs: [DEF] }));
+      return Promise.resolve(ok({}));
+    });
+    const onClose = vi.fn();
+    const queryClient = new QueryClient();
+    renderWithProviders(
+      <QueryClientProvider client={queryClient}>
+        <ExplainModal settingKey={KEY} onClose={onClose} />
+      </QueryClientProvider>
+    );
+    expect(await screen.findByTestId('explain-sentence')).toHaveTextContent(
+      'because the machine layer sets it'
+    );
   });
 
   it('says so for an unknown key', async () => {

@@ -2,10 +2,11 @@ import { useSearchParams } from 'wouter';
 
 const PARAM = 'explain';
 
-/** The key whose explain modal is open, kept in `?explain=` so a reload or
-    a shared link reopens it over the same page. */
+/** The key whose explain modal is open on /settings, kept in `?explain=` so
+    a reload or a shared link reopens it. */
 export function useExplainParam() {
   const [params, setParams] = useSearchParams();
+  // Opening pushes so Back closes the modal before it leaves the page.
   const write = (key: string | null) =>
     setParams(
       prev => {
@@ -14,7 +15,7 @@ export function useExplainParam() {
         else next.delete(PARAM);
         return next;
       },
-      { replace: true }
+      { replace: key === null }
     );
   return {
     key: params.get(PARAM),
