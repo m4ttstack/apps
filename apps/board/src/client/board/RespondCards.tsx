@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { Markdown } from '@mattstack/tui-kit';
 import { useAutoGrowTextarea } from '@mattstack/tui-kit/hooks';
@@ -131,8 +131,21 @@ function EditableReply({
   const edited = value !== undefined && value.trim() !== draft.trim();
   const empty = canEdit && value !== undefined && value.trim() === '';
   const ref = useAutoGrowTextarea([open, text]);
+  const editRef = useRef<HTMLButtonElement | null>(null);
+  // Closing unmounts whatever held focus, which would drop it to the body,
+  // outside the sheet's Tab trap; a close the user asked for hands it back
+  // to the edit button instead. A hold closes the box without moving focus.
+  const refocus = useRef(false);
+  const close = () => {
+    refocus.current = true;
+    setEditing(false);
+  };
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      if (refocus.current) editRef.current?.focus();
+      refocus.current = false;
+      return;
+    }
     const el = ref.current;
     if (!el) return;
     el.focus();
@@ -152,7 +165,7 @@ function EditableReply({
           onKeyDown={e => {
             if (e.key === 'Escape') {
               e.stopPropagation();
-              setEditing(false);
+              close();
             }
           }}
         />
@@ -171,7 +184,7 @@ function EditableReply({
               <button
                 type="button"
                 className="tui-thread-reply-action"
-                onClick={() => setEditing(false)}
+                onClick={close}
               >
                 done
               </button>
@@ -179,7 +192,10 @@ function EditableReply({
                 <button
                   type="button"
                   className="tui-thread-reply-action"
-                  onClick={onReset}
+                  onClick={() => {
+                    onReset();
+                    ref.current?.focus();
+                  }}
                 >
                   reset to draft
                 </button>
@@ -187,6 +203,7 @@ function EditableReply({
             </>
           ) : (
             <button
+              ref={editRef}
               type="button"
               className="tui-thread-reply-action"
               aria-label={`${label}: edit reply`}

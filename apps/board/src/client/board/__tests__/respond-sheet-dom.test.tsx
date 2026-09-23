@@ -856,8 +856,10 @@ test('edit opens the reply in a box seeded with the draft; done closes it', asyn
   expect(replyBox(reply)).toBeNull();
   await React.act(async () => editButton(reply)!.click());
   expect(replyBox(reply)!.value).toBe('The delay is fixed by design.');
+  expect(document.activeElement).toBe(replyBox(reply));
   await React.act(async () => button(reply, 'done')!.click());
   expect(replyBox(reply)).toBeNull();
+  expect(document.activeElement).toBe(editButton(reply));
 });
 
 test('a changed reply shows the edited chip and posts; reset to draft clears both', async () => {
@@ -872,6 +874,7 @@ test('a changed reply shows the edited chip and posts; reset to draft clears bot
   await React.act(async () => button(reply, 'reset to draft')!.click());
   expect(reply.querySelector('[data-chip="edited"]')).toBeNull();
   expect(replyBox(reply)!.value).toBe('The delay is fixed by design.');
+  expect(document.activeElement).toBe(replyBox(reply));
 });
 
 test('an edit survives hold and back to post, and is what posts', async () => {
@@ -912,6 +915,7 @@ test('Escape in the reply box closes the box, not the sheet', async () => {
   expect(replyBox(reply)).toBeNull();
   expect(document.body.querySelector('.tui-gate-sheet')).not.toBeNull();
   expect(closes).toBe(0);
+  expect(document.activeElement).toBe(editButton(reply));
 });
 
 test('a card whose reply did not fit the gate offers no edit', async () => {
