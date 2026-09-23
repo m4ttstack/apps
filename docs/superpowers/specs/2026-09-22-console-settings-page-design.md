@@ -117,7 +117,9 @@ otherwise, the same CSRF rule board's `requireJsonBody` applies.
 
 **React.** `useSettingsScope` gains
 `move(key, from, to): Promise<string | null>`: `set` at `to` with the
-current effective value, then `unset` at `from`. If the unset fails it
+`from` layer's own authored value (never the effective one, which for a
+deep-merged key carries defaults and other layers), then `unset` at
+`from`. It refuses when `from` holds no value. If the unset fails it
 resolves `moved to <to>, but <from> still holds a value: <reason>` so the
 row can say the old layer still wins.
 

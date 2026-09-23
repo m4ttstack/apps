@@ -631,7 +631,7 @@ Note on `summarize` for `external`: board.members is an array of roster objects,
 
 - [ ] **Step 4: Wire the package entry**
 
-In `packages/settings-kit/package.json`, add to `exports`:
+In `packages/settings-kit/package.json`, add to `exports`, directly before the `"./react"` entry:
 
 ```json
     "./shapes": {
@@ -649,7 +649,7 @@ and append to the `build` script, before `&& tsc -p tsconfig.json`:
 - [ ] **Step 5: Run the tests and the build**
 
 Run: `bun test packages/settings-kit lib/__tests__/notification-shape-parity.test.ts`
-Expected: PASS. If the parity test fails because `lib/notifier.ts` pulls in something that needs a daemon at import time, move the assertion into an existing `lib/__tests__/notifier*.test.ts` that already imports it, unchanged in content.
+Expected: PASS.
 
 Run: `cd packages/settings-kit && bun run build && ls dist && grep -c "targetScope" dist/shapes.js`
 Expected: `shapes.js` and `shapes.d.ts` present; count at least 1.
@@ -683,6 +683,8 @@ Add these fixtures to `DEFS` in `server.test.ts`:
   "rt.repoRoots": { key: "rt.repoRoots", type: "array", scopes: ["machine"], merge: "replace", description: "Scan roots" },
   "board.members": { key: "board.members", type: "array", scopes: ["team"], merge: "replace", description: "Roster" },
 ```
+
+The new `board.*` fixture widens the existing test "defs?prefix= filters to one app's namespace": change its expected keys from `["board.rtRepos", "board.title"]` to `["board.members", "board.rtRepos", "board.title"]`. The external fixture must stay a `board.*` key, so do not rename it instead.
 
 Append:
 
@@ -758,7 +760,7 @@ describe("JSON-only writes", () => {
 - [ ] **Step 2: Run to verify failure**
 
 Run: `bun test packages/settings-kit/src/__tests__/server.test.ts`
-Expected: FAIL on the new describes (writable false for `rt.repoRoots`, 200 instead of 415).
+Expected: FAIL on the new describes (writable false for `rt.repoRoots`, 200 instead of 415). The widened prefix test already passes with the updated assertion.
 
 - [ ] **Step 3: Implement**
 
@@ -796,7 +798,7 @@ function isWritable(def: SettingDef, migrated: (def: SettingDef) => boolean = is
 export function defToWire(def: SettingDef, migrated: ((def: SettingDef) => boolean) | undefined, effective: EffectiveWire, composites: CompositeMode = false): SettingDefWire {
 ```
 
-(the body of `defToWire` keeps `writable: isWritable(def, migrated, composites)`).
+(the body of `defToWire` keeps `writable: isWritable(def, migrated, composites)`). Update the doc comment on `SettingDefWire.writable` to: "Computed once, server-side: migrated AND not secret AND (not composite, or composite writes admitted by `allowComposite`). Every client edit affordance keys off this instead of re-deriving it."
 
 Add the media-type gate:
 
