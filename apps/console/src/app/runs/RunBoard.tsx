@@ -197,8 +197,12 @@ export function RunBoard() {
                   className={classes.header}
                   onClick={() => onCollapseClick()}
                 >
-                  <AnimatedChevron opened={opened} size={16} />
                   {title}
+                  <AnimatedChevron
+                    opened={opened}
+                    size={16}
+                    style={{ marginLeft: 'auto' }}
+                  />
                 </UnstyledButton>
               ) : (
                 <div className={classes.header}>{title}</div>
