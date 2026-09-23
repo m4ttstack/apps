@@ -406,7 +406,6 @@ function DecisionQueueModal({
                 }}
               />
             );
-          // The context renders open, above the recorded answer.
           return (
             <div
               className="tui-triage-body"

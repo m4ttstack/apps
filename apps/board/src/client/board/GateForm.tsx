@@ -243,13 +243,14 @@ function useGateForm(gate: GateRow, onAnswered?: () => void) {
 
 export type GateFormState = ReturnType<typeof useGateForm>;
 
-/** The questionnaire form the triage modal renders. One question renders
+/** The stepped questionnaire form. The decision queue's sheets answer
+    through `useGateForm` directly and do not mount it. One question renders
     flat; two or more step through the primitive's own step mode (one active
     item, Previous / Next, Submit on the last). The code-changes item of a
     respond-plan gate joins the sequence only once a `fix:` value is picked,
     which in step mode means a new last step appears and Submit moves to it.
     `showFocusAction` keeps the nav's own focus-pane button out of hosts
-    that surface it elsewhere (the triage modal's head row). */
+    that surface it elsewhere. */
 function GateForm({
   gate,
   mr,
@@ -265,9 +266,8 @@ function GateForm({
   form: GateFormState;
   onFocusPane: (mr: BoardMRWithReview, domain: GateDomain) => void;
   showFocusAction?: boolean;
-  /** DecisionQueueModal renders the gate context in its own Decision context
-      pane above the form; a bare host with no such pane wants this on so
-      the context is not lost. */
+  /** A host that shows the gate context itself turns this off; a bare host
+      wants it on so the context is not lost. */
   showContextFallback?: boolean;
 }) {
   const {
