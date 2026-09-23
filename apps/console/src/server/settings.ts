@@ -14,7 +14,9 @@ import { Hono } from 'hono';
  * The typed routes must be registered first: Hono matches in order, and the
  * catch-all would otherwise answer them with a 404.
  */
-export function createSettingsRoutes(kit: SettingsHandlerOptions = {}) {
+export function createSettingsRoutes(
+  kit: Omit<SettingsHandlerOptions, 'allowWrite'> = {}
+) {
   return (
     new Hono()
       .get('/api/settings/runs-prune-days', c => {

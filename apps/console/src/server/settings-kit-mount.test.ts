@@ -186,7 +186,10 @@ describe('settings-kit behind console', () => {
   });
 
   it('a caller cannot drop the write gate by passing allowWrite: undefined', async () => {
-    const loose = createSettingsRoutes({ rt: RT, allowWrite: undefined });
+    const loose = createSettingsRoutes({
+      rt: RT,
+      allowWrite: undefined,
+    } as Parameters<typeof createSettingsRoutes>[0]);
     const res = await loose.fetch(
       post('localhost', LOG_LEVEL),
       peer('10.0.0.2')
