@@ -691,10 +691,21 @@ function RespondSheetBody({
       ? null
       : sheetAnswers(gate, shown, submitSelections, form.notes, edits);
 
-  const replyCount = mainQs.filter(q => {
+  const replyPicks = mainQs.filter(q => {
     const v = form.selections[q.name];
     return !q.multiple && typeof v === 'string' && v.startsWith('reply:');
-  }).length;
+  });
+  // A reply the developer has not read word for word (no verbatim draft), or
+  // whose note may change it, is redrafted and approved at gate 2 like a fix;
+  // an edited reply posts its text as written.
+  const sentTexts = edits ?? {};
+  const overrides = replyPicks.filter(
+    q =>
+      sentTexts[q.name] === undefined &&
+      (!planReplyList.some(r => r.name === q.name) ||
+        (form.notes[q.name] ?? '').trim() !== '')
+  ).length;
+  const replyCount = replyPicks.length - overrides;
   const threadsDecided = mainQs.filter(
     q => !q.multiple && typeof form.selections[q.name] === 'string'
   ).length;
@@ -786,14 +797,17 @@ function RespondSheetBody({
       return q.choices.find(c => c.value === v)?.label;
     })
     .find(Boolean);
+  const replyNoun = (n: number) => (n === 1 ? '1 reply' : `${n} replies`);
   const nextStep =
     !plan || !allDecided || dockRevise
       ? null
       : fixes > 0
-        ? `Next, ${fixes} ${fixes === 1 ? 'fix gets' : 'fixes get'} implemented, then you approve the fixed replies before anything posts.`
-        : replyCount > 0
-          ? `Next, ${replyCount} ${replyCount === 1 ? 'reply posts' : 'replies post'}.`
-          : 'Next, nothing posts.';
+        ? `Next, ${fixes} ${fixes === 1 ? 'fix gets' : 'fixes get'} implemented, then you approve ${replyNoun(fixes + overrides)} before anything posts.`
+        : overrides > 0
+          ? `Next, you approve ${replyNoun(overrides)} before anything posts.`
+          : replyCount > 0
+            ? `Next, ${replyCount} ${replyCount === 1 ? 'reply posts' : 'replies post'}.`
+            : 'Next, nothing posts.';
   const submitLabel = form.busy
     ? 'submitting…'
     : revising

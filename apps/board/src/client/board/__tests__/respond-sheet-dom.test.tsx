@@ -1060,7 +1060,7 @@ test('the dock says what happens next on the plan sheet', async () => {
   expect($('.tui-sheet-dock-next')!.textContent).toBe('Next, 2 replies post.');
   await pick('fix:t1');
   expect($('.tui-sheet-dock-next')!.textContent).toBe(
-    'Next, 1 fix gets implemented, then you approve the fixed replies before anything posts.'
+    'Next, 1 fix gets implemented, then you approve 1 reply before anything posts.'
   );
   await pick('skip:t1');
   await pick('skip:t2');
@@ -1236,4 +1236,48 @@ test('without its plan gate, a held post card also shows the draft without the c
   expect(reply.querySelector('[data-chip="edited"]')).toBeNull();
   await React.act(async () => control(reply, 'post')!.click());
   expect(reply.querySelector('[data-chip="edited"]')).not.toBeNull();
+});
+
+const dockNext = () => $('.tui-sheet-dock-next')!.textContent;
+
+test('a reply pick with a note is an override: you approve it at gate 2', async () => {
+  await render(planGate());
+  await pick('reply:t1');
+  await pick('reply:t2');
+  await type('Note for queue/enqueue.ts:10', '  say which test  ');
+  expect(dockNext()).toBe('Next, you approve 1 reply before anything posts.');
+});
+
+test('a reply pick with an edit and a note posts its edit: a plain reply', async () => {
+  await render(planGate());
+  await pick('reply:t1');
+  await pick('skip:t2');
+  const card = planCards()[0]!;
+  await React.act(async () => editButton(card)!.click());
+  await typeInto(replyBox(card)!, 'fixed in the next push, with a test.');
+  await type('Note for queue/enqueue.ts:10', 'say which test');
+  expect(dockNext()).toBe('Next, 1 reply posts.');
+});
+
+test('a reply pick on a thread with only a reply direction is an override', async () => {
+  const gate = planGate();
+  gate.questions[1] = {
+    ...gate.questions[1]!,
+    context: JSON.stringify({
+      'gate-ctx': 'thread@1',
+      author: 'renee',
+      severity: 'blocking',
+      claim: { summary: 'claim 2' },
+      verdict: { call: 'valid' },
+      reply: { kind: 'direction', text: 'say the retry is bounded now.' },
+    }),
+  };
+  await render(gate);
+  await pick('reply:t1');
+  await pick('reply:t2');
+  expect(dockNext()).toBe('Next, you approve 1 reply before anything posts.');
+  await pick('fix:t1');
+  expect(dockNext()).toBe(
+    'Next, 1 fix gets implemented, then you approve 2 replies before anything posts.'
+  );
 });
