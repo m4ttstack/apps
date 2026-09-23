@@ -21,6 +21,12 @@ export interface GateSheetQueue {
   nextPeek?: string;
 }
 
+/** Paging remounts the face (the host keys it by gate), so the pressed
+    chevron and the queue's original opener cross that remount here: the
+    outgoing sheet records its opener instead of refocusing it, and the
+    incoming one focuses the same chevron. */
+let navHandoff: { label: string; opener: HTMLElement | null } | null = null;
+
 /** The one full-screen frame every decision-queue face renders in: the head
     (title, gate-level actions, queue nav, tag, close) and a body the caller
     fills. */
@@ -41,20 +47,39 @@ function GateSheet({
   onClose: () => void;
   children: ReactNode;
 }) {
-  useEscapeClose(onClose);
+  const close = () => {
+    navHandoff = null;
+    onClose();
+  };
+  useEscapeClose(close);
   useBodyScrollLock();
 
   // aria-modal alone does not fence keyboard focus: take focus on mount,
   // keep Tab cycling inside, and hand focus back to the opener on unmount.
   const sheetRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    const opener =
-      document.activeElement instanceof HTMLElement
+    const carried = navHandoff;
+    navHandoff = null;
+    const opener = carried
+      ? carried.opener
+      : document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
-    sheetRef.current?.focus();
-    return () => opener?.focus();
+    const pressed = carried
+      ? sheetRef.current?.querySelector<HTMLButtonElement>(
+          `[aria-label="${carried.label}"]`
+        )
+      : null;
+    (pressed && !pressed.disabled ? pressed : sheetRef.current)?.focus();
+    return () => {
+      if (navHandoff) navHandoff.opener = opener;
+      else opener?.focus({ preventScroll: true });
+    };
   }, []);
+  const page = (label: string, go: () => void) => () => {
+    navHandoff = { label, opener: null };
+    go();
+  };
   const trapTab = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Tab') return;
     const root = sheetRef.current;
@@ -67,7 +92,9 @@ function GateSheet({
     if (focusable.length === 0) return;
     const first = focusable[0]!;
     const last = focusable[focusable.length - 1]!;
-    if (e.shiftKey && document.activeElement === first) {
+    const atStart =
+      document.activeElement === first || document.activeElement === root;
+    if (e.shiftKey && atStart) {
       e.preventDefault();
       last.focus();
     } else if (!e.shiftKey && document.activeElement === last) {
@@ -98,7 +125,7 @@ function GateSheet({
               iconOnly
               variant="default"
               size="sm"
-              onClick={queue.onPrev}
+              onClick={page('previous gate', queue.onPrev)}
               disabled={!queue.canPrev}
               title="previous gate"
               aria-label="previous gate"
@@ -123,7 +150,7 @@ function GateSheet({
               iconOnly
               variant="default"
               size="sm"
-              onClick={queue.onNext}
+              onClick={page('next gate', queue.onNext)}
               disabled={!queue.canNext}
               title="next gate"
               aria-label="next gate"
@@ -139,7 +166,7 @@ function GateSheet({
           <button
             type="button"
             className="tui-gate-sheet-close"
-            onClick={onClose}
+            onClick={close}
             aria-label="close"
           >
             ✕
