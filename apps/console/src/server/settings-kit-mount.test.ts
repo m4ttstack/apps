@@ -47,13 +47,23 @@ const RT = {
 
 const app = createSettingsRoutes({ rt: RT });
 
-function post(host: string, body: unknown, type = 'application/json') {
+const peer = (address: string) => ({ requestIP: () => ({ address }) });
+const LOOPBACK = peer('127.0.0.1');
+
+function post(
+  host: string,
+  body: unknown,
+  type = 'application/json',
+  headers: Record<string, string> = {}
+) {
   return new Request(`http://${host}/api/settings/set`, {
     method: 'POST',
-    headers: { 'content-type': type },
+    headers: { 'content-type': type, host, ...headers },
     body: JSON.stringify(body),
   });
 }
+
+const LOG_LEVEL = { key: 'rt.logLevel', scope: 'machine', value: 'debug' };
 
 beforeEach(() => {
   writes.length = 0;
@@ -78,25 +88,33 @@ describe('settings-kit behind console', () => {
   });
 
   it('writes from a local host', async () => {
-    const res = await app.fetch(
-      post('localhost', {
-        key: 'rt.logLevel',
-        scope: 'machine',
-        value: 'debug',
-      })
-    );
+    const res = await app.fetch(post('localhost', LOG_LEVEL), LOOPBACK);
     expect(res.status).toBe(200);
     expect(writes).toHaveLength(1);
   });
 
   it('refuses a write that arrives through a public host', async () => {
     const res = await app.fetch(
-      post('console.example.dev', {
-        key: 'rt.logLevel',
-        scope: 'machine',
-        value: 'debug',
-      })
+      post('console.example.dev', LOG_LEVEL),
+      LOOPBACK
     );
+    expect(res.status).toBe(403);
+    expect(writes).toHaveLength(0);
+  });
+
+  it('refuses a write the public edge stamped, even with a local host', async () => {
+    const res = await app.fetch(
+      post('localhost', LOG_LEVEL, 'application/json', {
+        'x-mattstack-edge': 'public',
+      }),
+      LOOPBACK
+    );
+    expect(res.status).toBe(403);
+    expect(writes).toHaveLength(0);
+  });
+
+  it('refuses a write from a peer off this machine', async () => {
+    const res = await app.fetch(post('localhost', LOG_LEVEL), peer('10.0.0.2'));
     expect(res.status).toBe(403);
     expect(writes).toHaveLength(0);
   });

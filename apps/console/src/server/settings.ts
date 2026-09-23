@@ -1,3 +1,7 @@
+import {
+  isLocalRequest,
+  type LocalServer,
+} from '@mattstack/app-server/local-request';
 import { getSetting } from '@mattstack/rt-client';
 import {
   settingsHandler,
@@ -48,8 +52,12 @@ export function createSettingsRoutes(kit: SettingsHandlerOptions = {}) {
         return c.json({ workspace: value?.linear?.workspace ?? null }, 200);
       })
       .all('/api/settings/*', async c => {
+        // Under Bun.serve, Hono's `c.env` is the Bun server, which lets the
+        // locality gate check the socket peer, not just the forgeable Host.
         const res = await settingsHandler(c.req.raw, {
           allowComposite: 'shaped',
+          allowWrite: req =>
+            isLocalRequest(req, c.env as LocalServer | undefined),
           ...kit,
         });
         return res ?? c.json({ error: 'not found' }, 404);
