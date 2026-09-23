@@ -74,6 +74,8 @@ const def = () => ({
   effective: effective(),
 });
 
+const realFetch = globalThis.fetch;
+
 const json = (body: unknown) =>
   ({ ok: true, status: 200, json: async () => body }) as Response;
 
@@ -111,6 +113,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  globalThis.fetch = realFetch;
   document.body.innerHTML = '';
   localStorage.clear();
 });
