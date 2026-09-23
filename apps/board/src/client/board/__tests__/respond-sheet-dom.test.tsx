@@ -1391,11 +1391,12 @@ test('on a per-thread post sheet the rail counts the replies this submit posts',
   expect(submit().textContent).toBe('post 2 · resolve 1');
 });
 
-test('a post sheet flattened to prose keeps the offered reply count in the rail', async () => {
+test('a post sheet flattened to prose counts the replies its submit posts in the rail', async () => {
   await render(prosePostGate());
   expect(repliesChip()).toBe('2 replies');
   await React.act(async () => control(postCards()[1]!, 'hold')!.click());
-  expect(repliesChip()).toBe('2 replies');
+  expect(repliesChip()).toBe('1 reply');
+  expect(submit().textContent).toBe('post 1 · resolve 1');
 });
 
 test('a prose-flattened post gate still counts the plan reply-only thread: holding the fix reads post 1', async () => {
@@ -1408,10 +1409,45 @@ test('a prose-flattened post gate still counts the plan reply-only thread: holdi
     'thread-3': 'skip:r3',
   };
   await render(gate, { ...MR, gates: [plan] } as unknown as BoardMRWithReview);
+  expect(repliesChip()).toBe('2 replies');
   const fix = postCards()[0]!;
   await React.act(async () => control(fix, 'hold')!.click());
   await React.act(async () => control(fix, 'resolve')!.click());
   expect(submit().textContent).toBe('post 1');
   expect($('.tui-sheet-list-tally')!.textContent).toBe('1 of 2 posting');
   expect(repliesChip()).toBe('1 reply');
+});
+
+test('a replies checklist joined to its plan counts a reply-only thread in the rail, the tally and the submit', async () => {
+  const plan = answeredPlan();
+  plan.answers = { ...plan.answers, 'thread-3': 'reply:r3' };
+  await render(postGate(), {
+    ...MR,
+    gates: [plan],
+  } as unknown as BoardMRWithReview);
+  expect(repliesChip()).toBe('3 replies');
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('3 of 3 posting');
+  expect(submit().textContent).toBe('post 3');
+  await holdAll();
+  expect(repliesChip()).toBe('1 reply');
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('1 of 3 posting');
+  expect(submit().textContent).toBe('post 1');
+});
+
+test('a newer plan gate still open is never the one a post gate follows', async () => {
+  const gate = prosePostGate();
+  gate.questions = [gate.questions[0]!];
+  const answered = answeredPlan();
+  answered.openedAt = Date.now() - 180_000;
+  answered.answers = {
+    'thread-1': 'fix:r1',
+    'thread-2': 'reply:r2',
+    'thread-3': 'skip:r3',
+  };
+  await render(gate, {
+    ...MR,
+    gates: [answered, { ...planGate(), gateId: 'g-plan-next' }],
+  } as unknown as BoardMRWithReview);
+  expect(repliesChip()).toBe('2 replies');
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('2 of 2 posting');
 });

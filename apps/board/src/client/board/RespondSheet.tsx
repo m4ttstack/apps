@@ -854,6 +854,13 @@ function RespondSheetBody({
           : replyCount > 0
             ? `Next, ${replyCount} ${replyCount === 1 ? 'reply posts' : 'replies post'}.`
             : 'Next, nothing posts.';
+  // The rail's reply count is the submit's own on every post shape that
+  // counts Gate 1's reply-only threads, so the two never disagree.
+  const railPosting = perThread
+    ? posting + withStep
+    : joined
+      ? repliesPicked + withStep
+      : undefined;
   const submitLabel = form.busy
     ? 'submitting…'
     : revising
@@ -1105,12 +1112,7 @@ function RespondSheetBody({
                   </p>
                 )}
                 <div className="tui-respond-chips">
-                  {headerChips(
-                    ctx,
-                    perThread && frame === undefined
-                      ? posting + withStep
-                      : undefined
-                  ).map(chip => (
+                  {headerChips(ctx, railPosting).map(chip => (
                     <span
                       key={chip.key}
                       className="tui-respond-chip"
