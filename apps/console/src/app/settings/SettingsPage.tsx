@@ -15,6 +15,7 @@ import {
   Text,
   TextInput,
   Title,
+  usePageShellContext,
 } from '@mattstack/app-kit/core';
 import { useHotkeys, useSchemeColors } from '@mattstack/app-kit/hooks';
 import { Icons } from '@mattstack/app-kit/icons';
@@ -47,6 +48,7 @@ function Index({
   filtering: boolean;
 }) {
   const { text } = useSchemeColors();
+  const { collapsedSidebar, toggleSidebar } = usePageShellContext();
   const [active, setActive] = useState(() =>
     window.location.hash.replace('#', '')
   );
@@ -112,6 +114,7 @@ function Index({
                     document
                       .getElementById(`settings-${s.group.id}`)
                       ?.scrollIntoView({ block: 'start' });
+                    if (collapsedSidebar) toggleSidebar();
                   }}
                 />
               );

@@ -159,6 +159,31 @@ describe('SettingsPage', () => {
     vi.useRealTimers();
   });
 
+  it('on a narrow screen, picking a group closes the index drawer', async () => {
+    const desktopWidth = window.innerWidth;
+    window.innerWidth = 500;
+    try {
+      renderPage();
+      await screen.findByLabelText('filter settings');
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Open sidebar' })
+      );
+      const index = await screen.findByRole('navigation', {
+        name: 'settings groups',
+      });
+      await userEvent.click(
+        within(index).getByRole('link', { name: /^Board/ })
+      );
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('navigation', { name: 'settings groups' })
+        ).toBeNull()
+      );
+    } finally {
+      window.innerWidth = desktopWidth;
+    }
+  });
+
   it('filters by key and description, keeps the query in the URL, and Esc clears it', async () => {
     renderPage();
     const filter = await screen.findByLabelText('filter settings');
