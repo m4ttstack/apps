@@ -2624,7 +2624,8 @@ body {
 }
 .tui-gate-summary-note {
   font-size: 0.6875rem;
-  opacity: 0.7;
+  color: var(--text-3);
+  white-space: pre-wrap;
 }
 /* The words that posted, so they read whole: their own line breaks, and a
    muted text role rather than the note's fade. */
