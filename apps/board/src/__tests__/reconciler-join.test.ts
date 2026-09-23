@@ -363,7 +363,59 @@ describe('joinExecutorOrphans', () => {
     ];
     const { mrs: joined, orphans } = joinExecutorOrphans(mrs, [executor]);
     expect(joined[0]?.orphan).toBeUndefined();
-    expect(orphans).toEqual([executor]);
+    expect(orphans).toEqual([]);
+  });
+
+  test("a finished doctor's closed pane neither attaches by subject nor reaches the strip", () => {
+    const executor = executorView({
+      agentId: 'ag-doctor',
+      state: 'gone',
+      subject: 'mr:https://gitlab.com/acme/webapp/-/merge_requests/8',
+    });
+    const mrs = [
+      {
+        webUrl: 'https://gitlab.com/acme/webapp/-/merge_requests/8',
+        doctor: { status: 'done', agentId: 'ag-doctor' },
+      },
+    ];
+    const { mrs: joined, orphans } = joinExecutorOrphans(mrs, [executor]);
+    expect(joined[0]?.orphan).toBeUndefined();
+    expect(orphans).toEqual([]);
+  });
+
+  test("a failed review's closed pane is teardown too, matched by agentId", () => {
+    const executor = executorView({
+      agentId: 'ag-review',
+      state: 'gone',
+      subject: 'mr:https://gitlab.com/acme/webapp/-/merge_requests/9',
+    });
+    const mrs = [
+      {
+        webUrl: 'https://gitlab.com/acme/webapp/-/merge_requests/9',
+        review: { status: 'error', agentId: 'ag-review', sessionId: 'sess-r' },
+      },
+    ];
+    const { mrs: joined, orphans } = joinExecutorOrphans(mrs, [executor]);
+    expect(joined[0]?.orphan).toBeUndefined();
+    expect(orphans).toEqual([]);
+  });
+
+  test('a pane owning a finished lane and an in-flight one still attaches', () => {
+    const executor = executorView({
+      agentId: 'ag-both',
+      state: 'gone',
+      subject: 'mr:https://gitlab.com/acme/webapp/-/merge_requests/10',
+    });
+    const mrs = [
+      {
+        webUrl: 'https://gitlab.com/acme/webapp/-/merge_requests/10',
+        review: { status: 'done', agentId: 'ag-both' },
+        respond: { status: 'implementing', agentId: 'ag-both' },
+      },
+    ];
+    const { mrs: joined, orphans } = joinExecutorOrphans(mrs, [executor]);
+    expect(joined[0]?.orphan).toEqual(executor);
+    expect(orphans).toEqual([]);
   });
 
   test("a 'gone' executor with an agent: subject attaches by review sessionId", () => {

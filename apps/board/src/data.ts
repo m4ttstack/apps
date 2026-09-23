@@ -437,10 +437,12 @@ export function joinGateExecutors<G extends { gateId: string }>(
 
 interface OrphanJoinRow {
   webUrl?: string | null;
-  review?: { status?: string; sessionId?: string | null } | null;
-  respond?: { status?: string; sessionId?: string | null } | null;
+  review?: ClearableLane | null;
+  respond?: ClearableLane | null;
+  doctor?: ClearableLane | null;
 }
 
+const LANE_FINISHED = new Set(['done', 'error']);
 const REVIEW_IN_FLIGHT = new Set(['queued', 'reviewing']);
 const RESPOND_IN_FLIGHT = new Set([
   'queued',
@@ -496,6 +498,36 @@ function activeLaneSessionId(mr: OrphanJoinRow): string | undefined {
   return undefined;
 }
 
+/** A pane that closed after its lane reached done/error is ordinary
+    teardown: the lane's own line already says how it ended. Ownership
+    matches the way lanesClearedByExecutor does (agentId, else sessionId on
+    a lane that never recorded one), and a pane that still owns an
+    in-flight lane stays an interruption. */
+function finishedLaneTeardown(
+  mrs: OrphanJoinRow[]
+): (executor: ExecutorView) => boolean {
+  const finished = new Set<string>();
+  const active = new Set<string>();
+  for (const mr of mrs) {
+    for (const lane of [mr.review, mr.respond, mr.doctor]) {
+      if (!lane?.status) continue;
+      const owner = lane.agentId
+        ? `agent:${lane.agentId}`
+        : lane.sessionId
+          ? `session:${lane.sessionId}`
+          : null;
+      if (!owner) continue;
+      (LANE_FINISHED.has(lane.status) ? finished : active).add(owner);
+    }
+  }
+  return executor => {
+    if (executor.state !== 'gone') return false;
+    const keys = [`agent:${executor.agentId}`];
+    if (executor.sessionId) keys.push(`session:${executor.sessionId}`);
+    return keys.some(k => finished.has(k)) && !keys.some(k => active.has(k));
+  };
+}
+
 /**
  * Splits the reconciler sweep's dead/hidden executors: a `gone` or `hidden`
  * one whose subject matches an MR row on this board -- or, failing that,
@@ -505,12 +537,15 @@ function activeLaneSessionId(mr: OrphanJoinRow): string | undefined {
  * A `gone` executor matching no row falls through to the top-level `orphans`
  * leftover. A `hidden` executor matching no row has nothing to anchor to and
  * is dropped -- it isn't gone yet, just off this board's radar, so surfacing
- * it board-wide would be noise.
+ * it board-wide would be noise. A `gone` executor whose lane already finished
+ * is dropped from both (see finishedLaneTeardown).
  */
 export function joinExecutorOrphans<T extends OrphanJoinRow>(
   mrs: T[],
-  executors: ExecutorView[]
+  allExecutors: ExecutorView[]
 ): { mrs: Array<T & { orphan?: ExecutorView }>; orphans: ExecutorView[] } {
+  const isTeardown = finishedLaneTeardown(mrs);
+  const executors = allExecutors.filter(e => !isTeardown(e));
   const bySubject = new Map<string, ExecutorView[]>();
   const bySessionId = new Map<string, ExecutorView>();
   for (const executor of executors) {
