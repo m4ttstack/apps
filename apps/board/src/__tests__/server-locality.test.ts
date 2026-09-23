@@ -110,3 +110,10 @@ test('member check-in/out refuses every public edge marker', async () => {
     expect({ edge, status: res.status }).toEqual({ edge, status: 403 });
   }
 }, 15_000);
+
+test('member check-in/out still accepts a local request', async () => {
+  await ready();
+  const res = await post('/settings', {}, { username: 'alice', hidden: false });
+  expect(res.status).not.toBe(403);
+  expect(res.ok).toBe(true);
+}, 15_000);

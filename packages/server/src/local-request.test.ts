@@ -145,21 +145,34 @@ describe('hasLocalOrigin', () => {
   });
 
   test.each([
-    'https://deck.mattstack',
-    'https://board.localhost',
-    'http://127.0.0.1:7930',
-    'http://localhost:5173',
-    'http://[::1]:7930',
-  ])('%s passes', origin => {
-    expect(hasLocalOrigin(req({ origin }))).toBe(true);
+    ['https://deck.mattstack', 'deck.mattstack'],
+    ['HTTPS://DECK.MATTSTACK', 'deck.mattstack'],
+    ['https://deck.mattstack:443', 'deck.mattstack'],
+    ['https://board.localhost', 'board.localhost:443'],
+    ['http://127.0.0.1:11007', '127.0.0.1:11007'],
+    ['http://[::1]:7930', '[::1]:7930'],
+  ])('%s on host %s passes', (origin, host) => {
+    expect(hasLocalOrigin(req({ origin, host }))).toBe(true);
   });
 
   test.each([
-    'https://evil.example.dev',
-    'https://deck.mattstack.example.dev',
-    'null',
-    'not a url',
-  ])('%s fails', origin => {
-    expect(hasLocalOrigin(req({ origin }))).toBe(false);
+    ['https://evil.example.dev', 'deck.mattstack'],
+    ['https://deck.mattstack.example.dev', 'deck.mattstack'],
+    ['https://evil.localhost', 'deck.mattstack'],
+    ['http://localhost:5173', 'deck.mattstack'],
+    ['https://deck.mattstack.', 'deck.mattstack'],
+    ['https://evil.example.dev', 'evil.example.dev'],
+    ['null', 'deck.mattstack'],
+    ['', 'deck.mattstack'],
+    ['file:///tmp/x.html', 'deck.mattstack'],
+    ['not a url', 'deck.mattstack'],
+  ])('%s on host %s fails', (origin, host) => {
+    expect(hasLocalOrigin(req({ origin, host }))).toBe(false);
+  });
+
+  test('an Origin with no Host to compare against fails', () => {
+    expect(hasLocalOrigin(req({ origin: 'https://deck.mattstack' }))).toBe(
+      false
+    );
   });
 });

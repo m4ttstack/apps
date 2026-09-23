@@ -72,13 +72,19 @@ export function isLocalRequest(req: Request, server?: LocalServer): boolean {
  * CSRF guard to pair with isLocalRequest: a hostile page in the local browser
  * sends a request isLocalRequest accepts. Browsers attach Origin to every
  * cross-origin write; CLI and daemon callers send none, so absence passes.
+ * Otherwise the Origin must be local and name the request's own Host, so
+ * another local app (any *.localhost dev server) cannot write either.
  */
 export function hasLocalOrigin(req: Request): boolean {
   const origin = req.headers.get('origin');
   if (origin === null) return true;
+  const host = req.headers.get('host');
+  if (!host) return false;
+  let originHost: string;
   try {
-    return isLocalHost(new URL(origin).host);
+    originHost = new URL(origin).host;
   } catch {
     return false;
   }
+  return isLocalHost(originHost) && hostnameOf(originHost) === hostnameOf(host);
 }
