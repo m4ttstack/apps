@@ -484,6 +484,7 @@ test('an unchunked findings question posts its answer under its own id', async (
   const unchunked: GateRow = {
     ...GATE,
     gateId: 'g-unchunked',
+    context: j({ ...REVIEW, findings: { important: 1, minor: 1 } }),
     questions: [
       {
         ...GATE.questions[1]!,

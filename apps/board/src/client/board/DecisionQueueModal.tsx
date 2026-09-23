@@ -153,10 +153,7 @@ function DecisionQueueModal({
     return ctx?.shape === 'plan@1' || ctx?.shape === 'post@1' ? ctx : null;
   }, [gate.context]);
   const proseContext = useMemo(() => paneContext(gate.context), [gate.context]);
-  const isReviewSheet = useMemo(
-    () => isReviewSheetGate(gate),
-    [gate.kind, gate.context, gate.questions]
-  );
+  const isReviewSheet = useMemo(() => isReviewSheetGate(gate), [gate]);
   const answered = gate.status === 'answered';
   const actionable = gate.status === 'open' || gate.status === 'parked';
   const deliveryStuck = answered && gate.delivery?.outcome === 'stuck';

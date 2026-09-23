@@ -289,13 +289,16 @@ describe('valid shapes', () => {
       round: 1,
       threads: { total: 2, blocking: 1 },
     });
-    const { file: _file, ...findingWithNoFile } = FINDING;
-    expect(
-      parseGateCtx(j({ ...FINDINGS, findings: [{ ...FINDING, file: '  ' }] }))
-    ).toEqual({
+    const parsed = parseGateCtx(
+      j({ ...FINDINGS, findings: [{ ...FINDING, file: '  ' }] })
+    );
+    expect(parsed).toEqual({
       shape: 'findings@1',
-      findings: [findingWithNoFile],
+      findings: [{ ...FINDING, file: undefined }],
     });
+    expect(
+      parsed?.shape === 'findings@1' && 'file' in parsed.findings[0]!
+    ).toBe(false);
   });
 });
 

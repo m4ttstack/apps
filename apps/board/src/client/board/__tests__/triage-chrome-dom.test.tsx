@@ -83,6 +83,7 @@ async function renderModal(
     position?: number;
     states?: TriageGateState[];
     onBack?: () => void;
+    onNext?: () => void;
     canBack?: boolean;
     canNext?: boolean;
   }
@@ -95,7 +96,7 @@ async function renderModal(
         states={opts?.states ?? ['active']}
         nextPeek={nextPeek}
         onClose={() => {}}
-        onNext={() => {}}
+        onNext={opts?.onNext ?? (() => {})}
         onBack={opts?.onBack ?? (() => {})}
         canBack={opts?.canBack}
         canNext={opts?.canNext}
@@ -241,11 +242,15 @@ test('a chevron with no gate to land on is disabled even mid-queue', async () =>
 
 test('the previous-gate control calls onBack, the next-gate control calls onNext', async () => {
   let backCalls = 0;
+  let nextCalls = 0;
   await renderModal(stepped(), undefined, {
     position: 2,
-    states: ['done', 'active'],
+    states: ['done', 'active', 'todo'],
     onBack: () => {
       backCalls++;
+    },
+    onNext: () => {
+      nextCalls++;
     },
   });
   await click($('[aria-label="previous gate"]'));
@@ -253,8 +258,8 @@ test('the previous-gate control calls onBack, the next-gate control calls onNext
 
   const posts0 = posts.length;
   await click($('[aria-label="next gate"]'));
-  // onNext is a no-op fetch-free callback in this harness; the click just
-  // needs to not throw and not touch the network.
+  expect(nextCalls).toBe(1);
+  // Paging is a view change: it never touches the network.
   expect(posts.length).toBe(posts0);
 });
 

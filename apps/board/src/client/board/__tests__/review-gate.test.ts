@@ -88,9 +88,14 @@ describe('readReviewGate', () => {
   });
 
   test('a clean review (outcome alone) routes', () => {
-    expect(isReviewSheetGate(gate({ questions: [gate().questions[2]!] }))).toBe(
-      true
-    );
+    expect(
+      isReviewSheetGate(
+        gate({
+          context: j({ ...REVIEW, findings: {} }),
+          questions: [gate().questions[2]!],
+        })
+      )
+    ).toBe(true);
   });
 
   test('a non-findings question context is never checked', () => {
@@ -101,6 +106,7 @@ describe('readReviewGate', () => {
 
   test('an unchunked question named exactly "findings" still joins', () => {
     const g = gate({
+      context: j({ ...REVIEW, findings: { important: 1 } }),
       questions: [
         {
           id: 'findings',
@@ -174,6 +180,14 @@ describe('everything else stays in the generic modal', () => {
     [
       'duplicate option values within one chunk',
       withQuestion(0, { options: [option('f1'), option('f1')] }),
+    ],
+    [
+      'summary counts with no findings to back them',
+      gate({ questions: [gate().questions[2]!] }),
+    ],
+    [
+      'summary counts that disagree with the joined findings',
+      gate({ questions: [gate().questions[0]!, gate().questions[2]!] }),
     ],
     [
       'a second single-choice question',

@@ -43,7 +43,8 @@ export function isFindingsQuestion(q: { id: string }): boolean {
 
 /** The review sheet's whole input, or null when the gate is not a
     review-post whose gate context is review@1, whose every findings chunk
-    is findings@1 joined one-to-one to its own options, and whose questions
+    is findings@1 joined one-to-one to its own options, whose per-severity
+    counts match the joined findings, and whose questions
     collapse to the two the sheet answers: at most one `findings` multi and
     exactly one single-choice verdict. There is no half-joined sheet: any
     mismatch routes the whole gate elsewhere. */
@@ -63,6 +64,11 @@ export function readReviewGate(gate: ReviewGateInput): ReviewGate | null {
       if (!values.has(entry.id) || findings.has(entry.id)) return null;
       findings.set(entry.id, entry);
     }
+  }
+  for (const s of SEVERITY_ORDER) {
+    let joined = 0;
+    for (const f of findings.values()) if (f.severity === s) joined++;
+    if (joined !== (review.findings[s] ?? 0)) return null;
   }
   let collapsed: GateQuestion[];
   try {

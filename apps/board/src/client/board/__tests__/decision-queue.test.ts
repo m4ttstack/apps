@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { expect, test } from 'bun:test';
 
 import type { GateRow } from '../../../gates/store.ts';
 import type { BoardMRWithReview } from '../../types.ts';
@@ -7,7 +7,6 @@ import {
   advanceOrWrap,
   backTo,
   forwardTo,
-  markAnswered,
   queueView,
   reconcile,
   stepBack,

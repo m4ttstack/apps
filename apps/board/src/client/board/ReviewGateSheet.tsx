@@ -16,7 +16,6 @@ import { Button, Chip, Markdown } from '@mattstack/tui-kit';
 import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview } from '../types.ts';
 import { Disclosure, DisclosureHead } from './Disclosure.tsx';
-import { ago, cleanTitle } from './format.ts';
 import type { Disposition, FindingEntry, FindingSeverity } from './gate-ctx.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
 import { GateSheet, type GateSheetQueue } from './GateSheet.tsx';
