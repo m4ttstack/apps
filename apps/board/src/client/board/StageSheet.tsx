@@ -204,6 +204,7 @@ function StageSheetBody({
                 rows={display.map(q => ({
                   key: q.name,
                   text: q.prompt,
+                  title: q.prompt,
                   chips: [pickChip(q, form.selections[q.name])],
                 }))}
               />

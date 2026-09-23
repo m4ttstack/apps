@@ -131,6 +131,8 @@ type RowChip = {
 interface SheetRow {
   key: string;
   text: ReactNode;
+  /** The row's full text on hover, for a dock that clips it. */
+  title?: string;
   chips: RowChip[];
 }
 
@@ -161,7 +163,9 @@ function SheetRows({ card, rows }: { card: string; rows: SheetRow[] }) {
               />
             )
           )}
-          <span className="tui-sheet-card-text">{r.text}</span>
+          <span className="tui-sheet-card-text" title={r.title}>
+            {r.text}
+          </span>
         </div>
       ))}
     </div>

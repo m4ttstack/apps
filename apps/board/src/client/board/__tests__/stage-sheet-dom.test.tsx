@@ -245,6 +245,30 @@ test('a stage gate stacks every question in the main column beside the rail', as
   ]);
 });
 
+test('a stage dock row holds one line and carries its full question as a title', async () => {
+  await render(ship(), MR);
+  expect(
+    $$('.tui-sheet-dock [data-card="answers"] .tui-sheet-card-text').map(t =>
+      t.getAttribute('title')
+    )
+  ).toEqual([
+    'How do we hand off?',
+    'Which preview environments?',
+    'Draft or ready?',
+  ]);
+  const css = readFileSync(join(import.meta.dir, '../../../style.css'), 'utf8');
+  const rule =
+    /\.tui-sheet-card-list\[data-card='answers'\] \.tui-sheet-card-text\s*\{([^}]*)\}/.exec(
+      css
+    )?.[1] ?? '';
+  expect(rule).toContain('white-space: nowrap');
+  expect(rule).toContain('text-overflow: ellipsis');
+  expect(rule).toContain('overflow: hidden');
+  expect(
+    /^\.tui-sheet-card-text\s*\{([^}]*)\}/m.exec(css)?.[1] ?? ''
+  ).not.toContain('nowrap');
+});
+
 test('one question reads in the singular', async () => {
   await render(ship({ questions: ship().questions.slice(2, 3) }));
   expect(text('.tui-sheet-list-title')).toBe('Ship: 1 question');

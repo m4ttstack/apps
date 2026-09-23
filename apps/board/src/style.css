@@ -4554,6 +4554,14 @@ body {
 .tui-sheet-card-list[data-card='answers'] > .tui-sheet-card-row {
   display: contents;
 }
+/* The question already heads its card in the main column; the dock only
+   needs enough of it to tell the rows apart. */
+.tui-sheet-card-list[data-card='answers'] .tui-sheet-card-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .tui-sheet-card-list[data-card='answers'] .tui-sheet-card-chip {
   display: block;
   width: auto;
