@@ -219,6 +219,20 @@ test('every thread renders at once in the main column', async () => {
   expect($('.tui-sheet-list-tally')!.textContent).toBe('0 of 2 decided');
 });
 
+test("each thread's choices form one named radio group that holds only its radios", async () => {
+  await render(planGate());
+  const groups = [...document.body.querySelectorAll('[role="radiogroup"]')];
+  expect(groups.map(g => g.getAttribute('aria-label'))).toEqual(
+    planGate()
+      .questions.slice(0, 2)
+      .map(q => q.label)
+  );
+  for (const g of groups) {
+    expect(g.querySelectorAll('input[type="radio"]').length).toBe(3);
+    expect(g.querySelector('input:not([type="radio"]), textarea')).toBeNull();
+  }
+});
+
 test('submit stays disabled until every thread is decided', async () => {
   await render(planGate());
   expect(submit().disabled).toBe(true);

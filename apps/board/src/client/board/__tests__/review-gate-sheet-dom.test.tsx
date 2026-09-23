@@ -348,6 +348,14 @@ test('unchecking a finding updates the tally and the submit label', async () => 
   expect(submitAfter?.textContent).toBe('post 5 · approve');
 });
 
+test('the verdict radios form one radio group named by the question', async () => {
+  await render();
+  const group = container.querySelector(
+    '[role="radiogroup"][aria-label="Verdict on !31"]'
+  );
+  expect(group?.querySelectorAll('input[type="radio"]').length).toBe(2);
+});
+
 test('the verdict renders as gate choices with the recommended badge', async () => {
   await render();
 

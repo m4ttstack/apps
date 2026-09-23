@@ -89,7 +89,11 @@ function Choices({
   const current = form.selections[q.name];
   const picked = new Set(Array.isArray(current) ? current : []);
   return (
-    <div className="tui-gate-choices">
+    <div
+      className="tui-gate-choices"
+      role={q.multiple ? 'group' : 'radiogroup'}
+      aria-label={q.prompt}
+    >
       {q.choices.map(choice => {
         const checked = q.multiple
           ? picked.has(choice.value)
@@ -196,7 +200,11 @@ function PostChoice({
     { post: false, label: 'hold', subtitle: 'keep it back; nothing is posted' },
   ];
   return (
-    <div className="tui-gate-choices">
+    <div
+      className="tui-gate-choices"
+      role="radiogroup"
+      aria-label={`${entry.label}: post or hold`}
+    >
       {choices.map(c => {
         const checked = posting === c.post;
         return (
@@ -568,7 +576,6 @@ function RespondSheetBody({
                   data-gate-ctx={
                     qctx?.shape === 'thread@1' ? 'thread' : undefined
                   }
-                  role="radiogroup"
                   aria-label={q.prompt}
                 >
                   <div className="tui-gate-question-head">

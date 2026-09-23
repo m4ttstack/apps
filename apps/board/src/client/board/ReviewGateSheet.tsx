@@ -676,7 +676,11 @@ function ReviewGateSheet({
                       reset
                     </button>
                   </div>
-                  <div className="tui-gate-choices">
+                  <div
+                    className="tui-gate-choices"
+                    role="radiogroup"
+                    aria-label={outcomeQuestion.label}
+                  >
                     {outcomeQuestion.options.map((o: GateOption) => {
                       const display = optionDisplayFor(o);
                       const value = optionValue(o);
