@@ -36,7 +36,7 @@ const SUBHEAD: Record<
   },
 };
 
-type Provider = 'claude' | 'codex';
+export type Provider = 'claude' | 'codex';
 
 function Header({
   section,
@@ -72,16 +72,20 @@ function AgentsSection({
   section,
   store,
   query,
+  initialProvider,
 }: {
   section: Section;
   store: RowStore;
   query: string;
+  initialProvider: Provider;
 }) {
   const all = section.subsections.flatMap(s => s.defs);
-  const current = all.find(d => d.key === 'agent.provider')?.effective.value;
-  const [provider, setProvider] = useState<Provider>(
-    current === 'codex' ? 'codex' : 'claude'
-  );
+  const [chosen, setChosen] = useState<Provider>(initialProvider);
+  const shownFor = (p: Provider) =>
+    all.some(d => d.key.startsWith(`agent.${p}.`));
+  const other: Provider = chosen === 'claude' ? 'codex' : 'claude';
+  // Derived, never written back: clearing the filter returns to `chosen`.
+  const provider = !shownFor(chosen) && shownFor(other) ? other : chosen;
   const models = useAgentModels(provider);
   const suggestions = (models.data?.models ?? []).map(m => m.value);
   const defs = all.filter(
@@ -95,7 +99,7 @@ function AgentsSection({
           <SegmentedControl
             size="xs"
             value={provider}
-            onChange={v => setProvider(v as Provider)}
+            onChange={v => setChosen(v as Provider)}
             data={[
               { value: 'claude', label: 'Claude' },
               { value: 'codex', label: 'Codex' },
@@ -121,14 +125,23 @@ export function SettingsSection({
   section,
   store,
   query,
+  agentProvider,
 }: {
   section: Section;
   store: RowStore;
   query: string;
+  agentProvider: Provider;
 }) {
   const { text } = useSchemeColors();
   if (section.group.id === 'agents')
-    return <AgentsSection section={section} store={store} query={query} />;
+    return (
+      <AgentsSection
+        section={section}
+        store={store}
+        query={query}
+        initialProvider={agentProvider}
+      />
+    );
   return (
     <Box component="section" id={`settings-${section.group.id}`}>
       <Header section={section} />

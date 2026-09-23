@@ -24,7 +24,7 @@ import { useSearchParams } from 'wouter';
 import { PAGE_ROW_HEIGHT } from '../chrome';
 import { TIER_LABEL, type Tier } from './groups';
 import { ScopeDot } from './ScopeBadge';
-import { SettingsSection } from './SettingsSection';
+import { SettingsSection, type Provider } from './SettingsSection';
 import {
   buildSections,
   isEditable,
@@ -146,6 +146,11 @@ function SettingsPageContent() {
     [store.defs, query, changedOnly, editableOnly, scope]
   );
   const total = store.defs.length;
+  const agentProvider: Provider =
+    store.defs.find(d => d.key === 'agent.provider')?.effective.value ===
+    'codex'
+      ? 'codex'
+      : 'claude';
   const shown = sections.reduce((n, s) => n + s.shown, 0);
   const filtering =
     query !== '' || changedOnly || editableOnly || scope !== 'any';
@@ -277,6 +282,7 @@ function SettingsPageContent() {
                 section={s}
                 store={store}
                 query={query}
+                agentProvider={agentProvider}
               />
             ))
           )}

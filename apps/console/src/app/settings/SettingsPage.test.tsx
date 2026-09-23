@@ -65,13 +65,16 @@ const DEFS = [
   ...BOARD,
 ];
 
-let defsResponse: () => unknown = () => ({
+const serve = (defs: SettingDefWire[]) => () => ({
   ok: true,
   status: 200,
-  json: async () => ({ defs: DEFS }),
+  json: async () => ({ defs }),
 });
 
+let defsResponse: () => unknown = serve(DEFS);
+
 beforeEach(() => {
+  defsResponse = serve(DEFS);
   window.history.replaceState(null, '', '/settings');
   vi.stubGlobal('fetch', async () => defsResponse());
 });
@@ -169,5 +172,40 @@ describe('SettingsPage', () => {
       status: 200,
       json: async () => ({ defs: DEFS }),
     });
+  });
+
+  it('Agents follows the filter to the provider that has matches, then returns to the chosen tab', async () => {
+    defsResponse = serve([
+      ...DEFS.filter(d => d.key !== 'agent.codex.effort'),
+      def('agent.codex.effort', {
+        effective: { scope: 'user', file: '/u', value: 'high' },
+      }),
+    ]);
+    renderPage();
+    expect(await screen.findByText('account')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Claude' })).toBeChecked();
+    const changed = screen.getByRole('checkbox', { name: /Changed/ });
+    await userEvent.click(changed);
+    expect(screen.getByText('effort')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Codex' })).toBeChecked();
+    await userEvent.click(changed);
+    expect(screen.getByRole('radio', { name: 'Claude' })).toBeChecked();
+    expect(screen.getByText('account')).toBeInTheDocument();
+    expect(screen.queryByText('effort')).toBeNull();
+  });
+
+  it('opens Agents on the effective provider even when the filter hides agent.provider', async () => {
+    window.history.replaceState(null, '', '/settings?q=effort');
+    defsResponse = serve([
+      def('agent.provider', {
+        effective: { scope: 'user', file: '/u', value: 'codex' },
+      }),
+      def('agent.claude.effort'),
+      def('agent.codex.effort'),
+    ]);
+    renderPage();
+    expect(await screen.findAllByText('agent.codex.')).not.toHaveLength(0);
+    expect(screen.getByRole('radio', { name: 'Codex' })).toBeChecked();
+    expect(screen.queryAllByText('agent.claude.')).toHaveLength(0);
   });
 });
