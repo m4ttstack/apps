@@ -99,6 +99,63 @@ describe('SettingRow', () => {
     );
   });
 
+  it('follows a refreshed effective value and writes nothing on a bare blur', async () => {
+    const s = store();
+    const { rerender } = renderWithProviders(
+      <SettingRow
+        def={def('agent.claude.effort', {
+          effective: { scope: 'user', file: '/u', value: 'high' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    rerender(
+      <SettingRow
+        def={def('agent.claude.effort', {
+          effective: { scope: 'default', file: null, value: 'medium' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    const input = screen.getByLabelText('agent.claude.effort');
+    expect(input).toHaveValue('medium');
+    await userEvent.click(input);
+    input.blur();
+    await new Promise(r => setTimeout(r, 0));
+    expect(s.set).not.toHaveBeenCalled();
+    expect(s.unset).not.toHaveBeenCalled();
+  });
+
+  it('Enter on a highlighted suggestion saves the suggestion, once', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('board.agent.model')}
+        store={s}
+        subhead={null}
+        query=""
+        suggestions={['sonnet-long', 'opus']}
+      />
+    );
+    const input = screen.getByRole('combobox', {
+      name: 'board.agent.model',
+    });
+    await userEvent.type(input, 'son');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith(
+        'board.agent.model',
+        'user',
+        'sonnet-long'
+      )
+    );
+    expect(s.set).toHaveBeenCalledTimes(1);
+  });
+
   it("shows rt's refusal verbatim under the row", async () => {
     const s = store();
     s.set.mockResolvedValue('rt: nope');

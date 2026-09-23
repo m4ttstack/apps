@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react';
+import { useRef, type KeyboardEvent } from 'react';
 import {
   Autocomplete,
   Group,
@@ -19,7 +19,8 @@ function blurOnEnter(e: KeyboardEvent<HTMLInputElement>) {
 }
 
 /** Uncontrolled on purpose: a refused save leaves the typed text in place
-    so the user can fix it. Callers key the row on `def.key`. */
+    so the user can fix it. Callers must key this on the effective scope and
+    value, or a refresh leaves stale text that the next blur writes back. */
 export function ScalarControl({
   def,
   onSave,
@@ -92,13 +93,11 @@ export function ScalarControl({
   };
   if (suggestions)
     return (
-      <Autocomplete
-        aria-label={label}
-        w={200}
-        data={suggestions}
-        defaultValue={current}
-        onKeyDown={blurOnEnter}
-        onBlur={e => commit(e.currentTarget.value)}
+      <SuggestInput
+        label={label}
+        initial={current}
+        suggestions={suggestions}
+        commit={commit}
       />
     );
   return (
@@ -111,6 +110,45 @@ export function ScalarControl({
         if (e.key === 'Enter' || e.key === 'Escape') e.currentTarget.blur();
       }}
       onBlur={e => commit(e.currentTarget.value)}
+    />
+  );
+}
+
+function SuggestInput({
+  label,
+  initial,
+  suggestions,
+  commit,
+}: {
+  label: string;
+  initial: string;
+  suggestions: string[];
+  commit: (next: string) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const picked = useRef<string | null>(null);
+  return (
+    <Autocomplete
+      ref={input}
+      aria-label={label}
+      w={200}
+      data={suggestions}
+      defaultValue={initial}
+      onKeyDown={e => {
+        // The combobox runs this before it submits the highlighted option,
+        // and the input still holds the typed fragment until that submit.
+        if (e.key !== 'Enter') return;
+        if (e.currentTarget.getAttribute('aria-activedescendant')) return;
+        e.currentTarget.blur();
+      }}
+      onOptionSubmit={v => {
+        picked.current = v;
+        input.current?.blur();
+      }}
+      onBlur={e => {
+        commit(picked.current ?? e.currentTarget.value);
+        picked.current = null;
+      }}
     />
   );
 }

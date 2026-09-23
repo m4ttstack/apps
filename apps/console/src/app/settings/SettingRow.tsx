@@ -40,7 +40,14 @@ function Marked({
   return query.trim() === '' ? (
     <Text {...props}>{text}</Text>
   ) : (
-    <Highlight {...props} highlight={query.trim()} color="warn">
+    <Highlight
+      {...props}
+      highlight={query.trim()}
+      highlightStyles={{
+        backgroundColor: 'var(--mantine-color-warn-light)',
+        color: 'inherit',
+      }}
+    >
       {text}
     </Highlight>
   );
@@ -98,6 +105,7 @@ export function SettingRow({
   if (kind === 'scalar' || kind === 'enum') {
     control = (
       <ScalarControl
+        key={JSON.stringify([def.effective.scope, def.effective.value])}
         def={def}
         onSave={v => void row.save(v)}
         suggestions={suggestions}
@@ -178,7 +186,7 @@ export function SettingRow({
               <Text size="xs" c="var(--tk-text-ok-small)">
                 saved
               </Text>
-              <Icons.check size={12} color="var(--tk-text-ok-small)" />
+              <Icons.check size={12} color="var(--tk-text-ok-vivid)" />
             </Group>
           )}
         </Group>
