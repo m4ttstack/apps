@@ -10,6 +10,7 @@ import {
   markAnswered,
   queueView,
   reconcile,
+  stepBack,
   stepForward,
   type QueueEntry,
   type QueueSession,
@@ -141,7 +142,7 @@ test('paging forward to the end and back to the start leaves every gate undecide
   let s: QueueSession = { order: four, answered: [], activeId: 'g1' };
   for (let i = 0; i < 3; i++) s = stepForward(s, fourEntries);
   expect(s.activeId).toBe('g4');
-  for (let i = 0; i < 3; i++) s = { ...s, activeId: backTo(s, s.activeId) };
+  for (let i = 0; i < 3; i++) s = stepBack(s, fourEntries);
   expect(s.activeId).toBe('g1');
   s = stepForward(s, fourEntries);
   expect(s.activeId).toBe('g2');
@@ -154,12 +155,37 @@ test('paging forward to the end and back to the start leaves every gate undecide
 });
 
 test('back from the second gate returns to the first', () => {
-  expect(backTo(session({ activeId: 'g2' }), 'g2')).toBe('g1');
+  expect(backTo(session({ activeId: 'g2' }), entries, 'g2')).toBe('g1');
 });
 
 test('back is unavailable at the first', () => {
-  expect(backTo(session({ activeId: 'g1' }), 'g1')).toBeNull();
-  expect(backTo(session(), null)).toBeNull();
+  expect(backTo(session({ activeId: 'g1' }), entries, 'g1')).toBeNull();
+  expect(backTo(session(), entries, null)).toBeNull();
+});
+
+test('back passes over a gate that has left the queue, as next does', () => {
+  // An answered gate drops out of entries, so there is nothing to show
+  // for it; landing there would leave the queue open with no face.
+  const s = session({ answered: ['g2'], activeId: 'g3' });
+  const left = [entry('g1', 1), entry('g3', 3)];
+  expect(backTo(s, left, 'g3')).toBe('g1');
+  expect(backTo(s, [entry('g3', 3)], 'g3')).toBeNull();
+  expect(stepBack(s, [entry('g3', 3)])).toBe(s);
+});
+
+test('each chevron is enabled only when it has a gate to land on', () => {
+  const middle = session({ activeId: 'g2' });
+  expect(queueView(middle, entries)).toMatchObject({
+    canBack: true,
+    canNext: true,
+  });
+  // g1 answered and g3 answered, both gone from entries: position still
+  // reads 2 of 3, but neither direction has anywhere to go.
+  expect(queueView(middle, [entry('g2', 2)])).toMatchObject({
+    position: 2,
+    canBack: false,
+    canNext: false,
+  });
 });
 
 test('next on the last gate changes nothing', () => {

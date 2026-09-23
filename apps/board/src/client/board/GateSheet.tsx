@@ -13,6 +13,8 @@ export interface GateSheetQueue {
   index: number;
   total: number;
   states: TriageGateState[];
+  canPrev: boolean;
+  canNext: boolean;
   onPrev: () => void;
   onNext: () => void;
   /** "!ref · title" of the gate after this one; omit on the last. */
@@ -97,7 +99,7 @@ function GateSheet({
               variant="default"
               size="sm"
               onClick={queue.onPrev}
-              disabled={queue.index <= 0}
+              disabled={!queue.canPrev}
               title="previous gate"
               aria-label="previous gate"
             >
@@ -122,7 +124,7 @@ function GateSheet({
               variant="default"
               size="sm"
               onClick={queue.onNext}
-              disabled={queue.index >= queue.total - 1}
+              disabled={!queue.canNext}
               title="next gate"
               aria-label="next gate"
             >

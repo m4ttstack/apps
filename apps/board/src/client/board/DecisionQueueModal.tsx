@@ -109,6 +109,8 @@ function DecisionQueueModal({
   onClose,
   onNext,
   onBack,
+  canBack = position > 1,
+  canNext = position < states.length,
   onFocusPane,
   onAnswered,
   onContinue,
@@ -129,6 +131,10 @@ function DecisionQueueModal({
   onNext: () => void;
   /** Returns to the previous gate in queue order; a no-op at the first. */
   onBack: () => void;
+  /** Whether each chevron has a gate to land on; answered gates leave the
+      queue, so position alone overstates it. */
+  canBack?: boolean;
+  canNext?: boolean;
   onFocusPane: (mr: BoardMRWithReview, domain: GateDomain) => void;
   onAnswered: () => void;
   onContinue: () => void;
@@ -166,6 +172,8 @@ function DecisionQueueModal({
     index: position - 1,
     total: states.length,
     states,
+    canPrev: canBack,
+    canNext,
     onPrev: onBack,
     onNext,
     nextPeek,

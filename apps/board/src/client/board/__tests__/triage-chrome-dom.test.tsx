@@ -83,6 +83,8 @@ async function renderModal(
     position?: number;
     states?: TriageGateState[];
     onBack?: () => void;
+    canBack?: boolean;
+    canNext?: boolean;
   }
 ) {
   await React.act(async () => {
@@ -95,6 +97,8 @@ async function renderModal(
         onClose={() => {}}
         onNext={() => {}}
         onBack={opts?.onBack ?? (() => {})}
+        canBack={opts?.canBack}
+        canNext={opts?.canNext}
         onFocusPane={() => {}}
         onAnswered={() => {}}
         onContinue={() => {}}
@@ -217,6 +221,21 @@ test('the next-gate control is disabled on the last gate, so navigating never la
   });
   expect(($('[aria-label="next gate"]') as HTMLButtonElement).disabled).toBe(
     false
+  );
+});
+
+test('a chevron with no gate to land on is disabled even mid-queue', async () => {
+  await renderModal(stepped(), undefined, {
+    position: 2,
+    states: ['done', 'active', 'done'],
+    canBack: false,
+    canNext: false,
+  });
+  expect(
+    ($('[aria-label="previous gate"]') as HTMLButtonElement).disabled
+  ).toBe(true);
+  expect(($('[aria-label="next gate"]') as HTMLButtonElement).disabled).toBe(
+    true
   );
 });
 

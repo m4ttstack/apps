@@ -188,6 +188,7 @@ const QUEUE = {
   index: 1,
   total: 3,
   states: ['done', 'active', 'todo'] as const,
+  canNext: true,
   onPrev: () => {},
   onNext: () => {},
 };
@@ -207,7 +208,13 @@ function Host({
       gate={gate}
       mr={MR}
       form={form}
-      queue={{ ...QUEUE, index: queueIndex, states: [...QUEUE.states], onPrev }}
+      queue={{
+        ...QUEUE,
+        index: queueIndex,
+        canPrev: queueIndex > 0,
+        states: [...QUEUE.states],
+        onPrev,
+      }}
       onClose={() => {}}
       onFocusPane={() => {}}
     />

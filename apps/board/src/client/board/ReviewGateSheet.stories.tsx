@@ -300,6 +300,8 @@ function Host({ gate, mr }: { gate: GateRow; mr: BoardMRWithReview }) {
         index: 1,
         total: 3,
         states: ['done', 'active', 'todo'],
+        canPrev: true,
+        canNext: true,
         onPrev: noop,
         onNext: noop,
       }}

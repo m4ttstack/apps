@@ -19,6 +19,8 @@ export interface QueueView {
   position: number;
   states: TriageGateState[];
   nextPeek: string | undefined;
+  canBack: boolean;
+  canNext: boolean;
   complete: boolean;
   answeredCount: number;
 }
@@ -83,12 +85,8 @@ export function queueView(
   const position = session.activeId
     ? session.order.indexOf(session.activeId) + 1
     : 0;
-  // The peek names where the next-gate control lands: the successor in
-  // order, none on the last gate.
-  const nextEntry = entryFor(
-    entries,
-    forwardTo(session, entries, session.activeId)
-  );
+  const nextId = forwardTo(session, entries, session.activeId);
+  const nextEntry = entryFor(entries, nextId);
   return {
     open: false,
     active,
@@ -99,6 +97,8 @@ export function queueView(
         ? `!${nextEntry.mr.iid} · ${cleanTitle(nextEntry.mr.title)}`
         : nextEntry.gate.label
       : undefined,
+    canBack: backTo(session, entries, session.activeId) !== null,
+    canNext: nextId !== null,
     complete: session.activeId === null && session.order.length > 0,
     answeredCount: session.answered.length,
   };
@@ -132,17 +132,21 @@ export function advanceOrWrap(
   return advance(session, entries, from) ?? advance(session, entries, null);
 }
 
-/** Walks `order` back to `from`'s predecessor. Never consults `answered`:
-    looking back is a view change, not a decision. Unavailable at (or before)
-    the first entry, where there is no predecessor to return to. */
+/** `from`'s nearest predecessor in `order` that still has an entry. Never
+    consults `answered`: looking back is a view change, not a decision. A
+    gate answered here has left `entries`, so there is nothing to land on. */
 export function backTo(
   session: QueueSession,
+  entries: QueueEntry[],
   from: string | null
 ): string | null {
   if (from === null) return null;
   const idx = session.order.indexOf(from);
-  if (idx <= 0) return null;
-  return session.order[idx - 1] ?? null;
+  for (let i = idx - 1; i >= 0; i--) {
+    const id = session.order[i]!;
+    if (entryFor(entries, id)) return id;
+  }
+  return null;
 }
 
 /** `backTo`'s mirror: `from`'s successor in `order` that still has an
@@ -161,6 +165,15 @@ export function forwardTo(
     if (entryFor(entries, id)) return id;
   }
   return null;
+}
+
+/** The previous-gate control's transition, `stepForward`'s mirror. */
+export function stepBack(
+  session: QueueSession,
+  entries: QueueEntry[]
+): QueueSession {
+  const target = backTo(session, entries, session.activeId);
+  return target === null ? session : { ...session, activeId: target };
 }
 
 /** The next-gate control's transition: onto the successor in order,
@@ -272,11 +285,8 @@ export function useDecisionQueue(
   );
 
   const back = useCallback(() => {
-    setSession(s => {
-      const prev = backTo(s, s.activeId);
-      return prev === null ? s : { ...s, activeId: prev };
-    });
-  }, []);
+    setSession(s => stepBack(s, entries));
+  }, [entries]);
 
   const hold = useCallback((gateId: string | null) => {
     setHeldId(gateId);
