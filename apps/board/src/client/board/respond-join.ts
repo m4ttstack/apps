@@ -19,8 +19,9 @@ export interface JoinedThread {
   label: string;
   /** Claim, verdict and severity, from the plan gate. */
   thread: ThreadCtx;
-  /** The final reply this gate would post; absent when there is nothing to
-      post for the thread (skipped, or a fix held back). */
+  /** The final reply this gate offers; absent when it offers none for the
+      thread: skipped, a fix held back, or a reply-only thread, which posts
+      without this gate's pick (see `replyOnly`). */
   reply?: ReplyEntry;
   /** The plan-step pick, when the plan gate recorded one. */
   decided?: PlanVerb;
@@ -112,4 +113,25 @@ export function joinPlan(
   if (replies.some(r => !joined.some(j => j.threadId === r.thread)))
     return null;
   return joined;
+}
+
+/** Gate 1's reply-only threads, counted from the plan's answers alone for a
+    post gate that cannot be joined card by card: every `reply:` answer whose
+    thread this gate does not offer posts once it proceeds. */
+export function replyOnlyCount(
+  ctx: PostCtx,
+  offered: readonly string[],
+  mr?: BoardMRWithReview
+): number {
+  const plan = planGateFor(ctx, mr);
+  if (!plan) return 0;
+  const offeredIds = new Set(offered);
+  return Object.values(plan.answers ?? {}).filter(raw => {
+    const value = unwrapGateAnswer(raw).value;
+    return (
+      typeof value === 'string' &&
+      verbOf(value) === 'reply' &&
+      !offeredIds.has(value.slice(value.indexOf(':') + 1))
+    );
+  }).length;
 }

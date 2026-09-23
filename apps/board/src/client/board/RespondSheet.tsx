@@ -26,7 +26,7 @@ import { AnsweredChip, type GateFormState } from './GateForm.tsx';
 import { MrCard } from './MrCard.tsx';
 import { forgeNoun } from './MrLinks.tsx';
 import { PersonLead, PersonTag } from './PersonLead.tsx';
-import { joinPlan, type JoinedThread } from './respond-join.ts';
+import { joinPlan, replyOnlyCount, type JoinedThread } from './respond-join.ts';
 import {
   editedText,
   isEdited,
@@ -828,7 +828,15 @@ function RespondSheetBody({
   const pickNames = new Set(picks.map(p => p.name));
   const displayOf = (name: string) => form.display.find(q => q.name === name);
   const postThreads = joined ?? threadJoin;
-  const withStep = postThreads?.filter(j => j.replyOnly).length ?? 0;
+  const withStep = postThreads
+    ? postThreads.filter(j => j.replyOnly).length
+    : ctx.shape === 'post@1' && perThread
+      ? replyOnlyCount(
+          ctx,
+          picks.map(p => p.threadId),
+          mr
+        )
+      : 0;
   const dockPick = dockQs
     .map(q => {
       const v = form.selections[q.name];

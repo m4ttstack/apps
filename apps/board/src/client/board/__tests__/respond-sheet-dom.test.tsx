@@ -1397,3 +1397,21 @@ test('a post sheet flattened to prose keeps the offered reply count in the rail'
   await React.act(async () => control(postCards()[1]!, 'hold')!.click());
   expect(repliesChip()).toBe('2 replies');
 });
+
+test('a prose-flattened post gate still counts the plan reply-only thread: holding the fix reads post 1', async () => {
+  const gate = prosePostGate();
+  gate.questions = [gate.questions[0]!];
+  const plan = answeredPlan();
+  plan.answers = {
+    'thread-1': 'fix:r1',
+    'thread-2': 'reply:r2',
+    'thread-3': 'skip:r3',
+  };
+  await render(gate, { ...MR, gates: [plan] } as unknown as BoardMRWithReview);
+  const fix = postCards()[0]!;
+  await React.act(async () => control(fix, 'hold')!.click());
+  await React.act(async () => control(fix, 'resolve')!.click());
+  expect(submit().textContent).toBe('post 1');
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('1 of 2 posting');
+  expect(repliesChip()).toBe('1 reply');
+});
