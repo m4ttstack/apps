@@ -82,6 +82,23 @@ test('the collapse trigger toggles the sidebar rail closed and open', () => {
   expect(rail().style.width).toContain('15rem');
 });
 
+test('a narrow load never saves the forced close for desktop', () => {
+  const desktopWidth = window.innerWidth;
+  window.innerWidth = 500;
+  const { unmount } = renderWithProviders(
+    <CompoundShell drawerStateKey="narrow-shell-sidebar" />
+  );
+  expect(window.localStorage.getItem('narrow-shell-sidebar')).not.toBe('false');
+  unmount();
+
+  window.innerWidth = desktopWidth;
+  const { container } = renderWithProviders(
+    <CompoundShell drawerStateKey="narrow-shell-sidebar" />
+  );
+  const rail = container.querySelector('#page-shell-sidebar') as HTMLElement;
+  expect(rail.style.width).toContain('15rem');
+});
+
 test('drawerStateKey persists the sidebar state and restores it on mount', () => {
   const { unmount } = renderWithProviders(
     <CompoundShell drawerStateKey="test-shell-sidebar" />
