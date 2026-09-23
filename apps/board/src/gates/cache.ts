@@ -142,7 +142,8 @@ export class GateCache {
     // An opened frame is the newest gate the bus has seen for its pair, and
     // its receipt-time openedAt is on the board's clock, not the daemon's,
     // so it replaces without applyRow's age comparison.
-    const kind = typeof payload.kind === 'string' ? payload.kind : 'review-post';
+    const kind =
+      typeof payload.kind === 'string' ? payload.kind : 'review-post';
     this.byKey.set(cacheKey(subject, kind), {
       id,
       subject,

@@ -95,8 +95,9 @@ function GateStateChips({ gate }: { gate: GateRow }) {
 }
 
 /** The queue-hosted face of one gate, the only place a gate's form mounts.
-    Every face renders in the full-screen `GateSheet`; a review-post gate
-    routes to `ReviewGateSheet`, everything else to `GateForm` below.
+    Every face renders in the full-screen `GateSheet`: a structured
+    review-post gate routes to `ReviewGateSheet`, a plan@1 or post@1 respond
+    gate to `RespondSheetBody`, everything else to `GateForm` below.
     Gate-level actions (focus pane) ride the head, queue nav (previous gate,
     pips, count, next gate) sits in the head's right, and step-level nav
     stays with `GateForm`'s own body. The host owns the queue itself. */
@@ -165,9 +166,6 @@ function DecisionQueueModal({
     onLostChange?.(form.lost !== null);
   }, [form.lost, onLostChange]);
 
-  // `actionable` also keeps a stuck/unassigned-delivery review-post gate on
-  // DeliveryStatusCard: the sheet has no face for retrying a stored answer,
-  // only for building a fresh one.
   const queue: GateSheetQueue = {
     index: position - 1,
     total: states.length,
@@ -219,6 +217,9 @@ function DecisionQueueModal({
     </>
   );
 
+  // `actionable` also keeps a stuck/unassigned-delivery review-post gate on
+  // DeliveryStatusCard: the sheet has no face for retrying a stored answer,
+  // only for building a fresh one.
   if (isReviewSheet && actionable) {
     return (
       <ReviewGateSheet

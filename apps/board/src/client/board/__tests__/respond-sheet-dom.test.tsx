@@ -142,7 +142,11 @@ beforeEach(() => {
     posts.push({ url, body: init?.body ? JSON.parse(init.body) : null });
     if (answeredElsewhere && url === '/gate/answer')
       return new Response(
-        JSON.stringify({ ok: false, conflict: true, row: { answer: { answers: {}, by: 'pane' } } }),
+        JSON.stringify({
+          ok: false,
+          conflict: true,
+          row: { answer: { answers: {}, by: 'pane' } },
+        }),
         { status: 409 }
       );
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
@@ -266,9 +270,9 @@ test('a gate answered elsewhere offers continue, which retires it from the queue
   await pick('reply:t2');
   await clickSubmit();
   expect($('.tui-sheet-lost')!.textContent).toContain('answered elsewhere');
-  const cont = [...document.body.querySelectorAll('.tui-sheet-lost button')].find(
-    b => b.textContent === 'continue'
-  );
+  const cont = [
+    ...document.body.querySelectorAll('.tui-sheet-lost button'),
+  ].find(b => b.textContent === 'continue');
   await React.act(async () => {
     (cont as HTMLButtonElement).click();
   });

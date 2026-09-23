@@ -1,6 +1,6 @@
 /** DOM-level test for the decision queue wired into Board.tsx: a real
     happy-dom document and a real Board render, covering the header entry
-    point (`decision queue · N`) through open, skip, and close, and the
+    point (`decision queue · N`) through open, next gate, and close, and the
     row's own way in (the status line's answer verb on a stuck or unassigned
     gate) -- the wiring a component-level test of the queue hook or the
     modal alone can't exercise, since it depends on Board's own entries
@@ -296,7 +296,7 @@ function findByText(root: ParentNode, tag: string, text: string): Element {
   return found;
 }
 
-test('decision queue: header entry opens, skip advances, close dismisses', async () => {
+test('decision queue: header entry opens, next gate advances, close dismisses', async () => {
   const container = document.createElement('div');
   document.body.appendChild(container);
 
@@ -326,9 +326,9 @@ test('decision queue: header entry opens, skip advances, close dismisses', async
     expect(dialog).not.toBeNull();
     expect(dialog?.textContent).toContain('first mr title');
 
-    const skipButton = dialog!.querySelector('[aria-label="next gate"]');
+    const nextButton = dialog!.querySelector('[aria-label="next gate"]');
     await React.act(async () => {
-      (skipButton as HTMLElement).click();
+      (nextButton as HTMLElement).click();
     });
 
     dialog = container.querySelector(
@@ -417,7 +417,7 @@ test('decision queue: a gate-less snapshot (server warm-up) does not complete th
   }
 });
 
-test('decision queue: skipping a gate does not bleed its selection into the next', async () => {
+test('decision queue: paging to the next gate does not bleed its selection into it', async () => {
   const container = document.createElement('div');
   document.body.appendChild(container);
 
@@ -451,9 +451,9 @@ test('decision queue: skipping a gate does not bleed its selection into the next
     });
     expect(firstChoice.checked).toBe(true);
 
-    const skipButton = dialog!.querySelector('[aria-label="next gate"]');
+    const nextButton = dialog!.querySelector('[aria-label="next gate"]');
     await React.act(async () => {
-      (skipButton as HTMLElement).click();
+      (nextButton as HTMLElement).click();
     });
 
     dialog = container.querySelector(

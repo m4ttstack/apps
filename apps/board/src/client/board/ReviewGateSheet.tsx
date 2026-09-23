@@ -187,9 +187,9 @@ function severityGroups(
 }
 
 /** The full-screen sheet a `review-post` gate opens (design doc §4). Header
-    carries queue chrome; the main column is the MR card, findings, and the
-    optional record cluster; the rail is decision context, checks, and the
-    verdict form. Selection state keys by the COLLAPSED question ids
+    carries queue chrome; the main column is the findings and the optional
+    record cluster; the rail is the MR card, decision context and checks,
+    over the pinned verdict dock. Selection state keys by the COLLAPSED question ids
     (`collapseChunks`), so a fresh gate defaults to every finding checked and
     the recommended verdict picked -- the reviewer opts OUT rather than in. */
 function ReviewGateSheet({

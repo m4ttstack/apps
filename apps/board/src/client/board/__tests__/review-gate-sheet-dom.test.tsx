@@ -243,7 +243,11 @@ beforeEach(() => {
     posts.push({ url, body: init?.body ? JSON.parse(init.body) : null });
     if (answeredElsewhere && url === '/gate/answer')
       return new Response(
-        JSON.stringify({ ok: false, conflict: true, row: { answer: { answers: {}, by: 'pane' } } }),
+        JSON.stringify({
+          ok: false,
+          conflict: true,
+          row: { answer: { answers: {}, by: 'pane' } },
+        }),
         { status: 409 }
       );
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
