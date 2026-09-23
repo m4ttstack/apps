@@ -18,9 +18,10 @@ function blurOnEnter(e: KeyboardEvent<HTMLInputElement>) {
   if (e.key === 'Enter') e.currentTarget.blur();
 }
 
-/** Uncontrolled on purpose: a refused save leaves the typed text in place
-    so the user can fix it. Callers must key this on the effective scope and
-    value, or a refresh leaves stale text that the next blur writes back. */
+/** The text and number inputs are uncontrolled so a refused save leaves the
+    typed text in place. They are keyed on the effective scope and value, or a
+    refresh leaves stale text that the next blur writes back. Switch and
+    Select are controlled and unkeyed, so a save never drops their focus. */
 export function ScalarControl({
   def,
   onSave,
@@ -33,6 +34,7 @@ export function ScalarControl({
   const { text } = useSchemeColors();
   const value = def.effective.value;
   const label = def.key;
+  const seed = JSON.stringify([def.effective.scope, value]);
 
   if (def.type === 'boolean')
     return (
@@ -63,6 +65,7 @@ export function ScalarControl({
     return (
       <Group gap={8} wrap="nowrap">
         <NumberInput
+          key={seed}
           aria-label={label}
           w={90}
           hideControls
@@ -94,6 +97,7 @@ export function ScalarControl({
   if (suggestions)
     return (
       <SuggestInput
+        key={seed}
         label={label}
         initial={current}
         suggestions={suggestions}
@@ -102,6 +106,7 @@ export function ScalarControl({
     );
   return (
     <TextInput
+      key={seed}
       aria-label={label}
       w={200}
       defaultValue={current}

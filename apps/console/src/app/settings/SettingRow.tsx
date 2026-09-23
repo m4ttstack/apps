@@ -83,7 +83,6 @@ export function SettingRow({
   if (kind === 'scalar' || kind === 'enum') {
     control = (
       <ScalarControl
-        key={JSON.stringify([def.effective.scope, def.effective.value])}
         def={def}
         onSave={v => void row.save(v)}
         suggestions={suggestions}

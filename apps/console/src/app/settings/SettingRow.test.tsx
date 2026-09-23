@@ -211,6 +211,26 @@ describe('SettingRow', () => {
     );
   });
 
+  it('a Switch keeps its node and focus across a save and refresh', async () => {
+    const s = store();
+    const at = (value: boolean) =>
+      def('agent.claude.yolo', {
+        type: 'boolean',
+        effective: { scope: 'user', file: '/u', value },
+      });
+    const { rerender } = renderWithProviders(
+      <SettingRow def={at(false)} store={s} subhead={null} query="" />
+    );
+    const toggle = screen.getByLabelText('agent.claude.yolo');
+    await userEvent.click(toggle);
+    await waitFor(() => expect(s.set).toHaveBeenCalled());
+    rerender(<SettingRow def={at(true)} store={s} subhead={null} query="" />);
+    const after = screen.getByLabelText('agent.claude.yolo');
+    expect(after).toBe(toggle);
+    expect(after).toHaveFocus();
+    expect(after).toBeChecked();
+  });
+
   it('offers the ENUMS options as a select', async () => {
     const s = store();
     renderWithProviders(
