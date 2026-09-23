@@ -335,10 +335,10 @@ conversation.
    showed a fix direction or nothing), or when its question context never
    reached the gate: you dropped it for the byte budget, or the open was a
    `fits: false` file or its `gate open` output flagged `contextOmitted`
-   (then count every question's context as dropped). On a resume,
-   `--report` carrying the line `gate-1-context: dropped` (step 4) counts
-   every question's context as dropped too. This holds whoever answered,
-   the pane included. Draft an override's
+   (then count every question's context as dropped). This holds whoever
+   answered, the pane included. On a resume, `--report` carrying the
+   line `gate-1-context: dropped` (step 4) counts every question's
+   context as dropped too. Draft an override's
    reply after Gate 1, with its note when it has one, write that reply
    into its row, and set the row to `gate-1: override` (the domain skill
    does this on its path). Step 6 offers it at Gate 2.
