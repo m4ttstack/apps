@@ -2254,10 +2254,13 @@ body {
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
+/* Wraps so a narrow column moves the chip under the label instead of
+   squeezing the label to one letter per line. */
 .tui-gate-choice-label-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px 6px;
 }
 /* An option's own `description`, one line under its label -- matching the
    pane's AskUserQuestion layout (label line, one-liner beneath). It reads
