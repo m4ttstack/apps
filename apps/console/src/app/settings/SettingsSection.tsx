@@ -38,6 +38,9 @@ const SUBHEAD: Record<
 
 export type Provider = 'claude' | 'codex';
 
+/** The page's sticky filter toolbar; a section scrolled to the top must clear it. */
+export const TOOLBAR_HEIGHT = 69;
+
 function Header({
   section,
   right,
@@ -92,7 +95,11 @@ function AgentsSection({
     d => d.key === 'agent.provider' || d.key.startsWith(`agent.${provider}.`)
   );
   return (
-    <Box component="section" id="settings-agents">
+    <Box
+      component="section"
+      id="settings-agents"
+      style={{ scrollMarginTop: TOOLBAR_HEIGHT }}
+    >
       <Header
         section={section}
         right={
@@ -143,7 +150,11 @@ export function SettingsSection({
       />
     );
   return (
-    <Box component="section" id={`settings-${section.group.id}`}>
+    <Box
+      component="section"
+      id={`settings-${section.group.id}`}
+      style={{ scrollMarginTop: TOOLBAR_HEIGHT }}
+    >
       <Header section={section} />
       {section.subsections.map(sub => (
         <Box key={sub.scope ?? 'all'}>

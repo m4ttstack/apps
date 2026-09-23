@@ -21,10 +21,14 @@ import { useSettingsScope } from '@mattstack/settings-kit/react';
 import { isSet } from '@mattstack/settings-kit/shapes';
 import { useSearchParams } from 'wouter';
 
-import { PAGE_ROW_HEIGHT } from '../chrome';
+import { PAGE_ROW_HEIGHT, SHELL_HEADER_HEIGHT } from '../chrome';
 import { TIER_LABEL, type Tier } from './groups';
 import { ScopeDot } from './ScopeBadge';
-import { SettingsSection, type Provider } from './SettingsSection';
+import {
+  SettingsSection,
+  TOOLBAR_HEIGHT,
+  type Provider,
+} from './SettingsSection';
 import {
   buildSections,
   isEditable,
@@ -34,6 +38,8 @@ import {
 
 const TIERS: Tier[] = ['rt', 'apps', 'suite'];
 const SCOPES = ['user', 'team', 'machine'] as const;
+// PageShell's scroll frame: the viewport under the shell header and title row.
+const VISIBLE_HEIGHT = `calc(100vh - ${SHELL_HEADER_HEIGHT + PAGE_ROW_HEIGHT}px)`;
 
 function Index({
   sections,
@@ -48,62 +54,71 @@ function Index({
   );
   return (
     <Box
-      component="nav"
-      aria-label="settings groups"
       w={232}
-      p="20px 12px 20px 16px"
       style={{
         flex: 'none',
         borderRight: '1px solid var(--tk-line-2)',
         alignSelf: 'stretch',
       }}
     >
-      {TIERS.map(tier => (
-        <Box key={tier}>
-          <Text
-            size="xs"
-            fw={500}
-            tt="uppercase"
-            c={text.muted}
-            px={8}
-            pt={14}
-            pb={6}
-          >
-            {TIER_LABEL[tier]}
-          </Text>
-          {sections
-            .filter(s => s.group.tier === tier)
-            .map(s => (
-              <NavLink
-                key={s.group.id}
-                href={`#${s.group.id}`}
-                label={s.group.label}
-                active={active === s.group.id}
-                rightSection={
-                  <Text size="xs" ff="monospace" c={text.muted}>
-                    {filtering ? s.shown : s.total}
-                  </Text>
-                }
-                style={{
-                  opacity: filtering && s.shown === 0 ? 0.45 : 1,
-                  borderRadius: 4,
-                }}
-                onClick={e => {
-                  e.preventDefault();
-                  setActive(s.group.id);
-                  window.history.replaceState(
-                    null,
-                    '',
-                    `${window.location.pathname}${window.location.search}#${s.group.id}`
-                  );
-                  document
-                    .getElementById(`settings-${s.group.id}`)
-                    ?.scrollIntoView({ block: 'start' });
-                }}
-              />
-            ))}
-        </Box>
-      ))}
+      <Box
+        component="nav"
+        aria-label="settings groups"
+        p="20px 12px 20px 16px"
+        style={{
+          position: 'sticky',
+          top: 0,
+          maxHeight: VISIBLE_HEIGHT,
+          overflowY: 'auto',
+        }}
+      >
+        {TIERS.map(tier => (
+          <Box key={tier}>
+            <Text
+              size="xs"
+              fw={500}
+              tt="uppercase"
+              c={text.muted}
+              px={8}
+              pt={14}
+              pb={6}
+            >
+              {TIER_LABEL[tier]}
+            </Text>
+            {sections
+              .filter(s => s.group.tier === tier)
+              .map(s => (
+                <NavLink
+                  key={s.group.id}
+                  href={`#${s.group.id}`}
+                  label={s.group.label}
+                  active={active === s.group.id}
+                  rightSection={
+                    <Text size="xs" ff="monospace" c={text.muted}>
+                      {filtering ? s.shown : s.total}
+                    </Text>
+                  }
+                  style={{
+                    opacity: filtering && s.shown === 0 ? 0.45 : 1,
+                    borderRadius: 4,
+                  }}
+                  onClick={e => {
+                    e.preventDefault();
+                    setActive(s.group.id);
+                    window.history.replaceState(
+                      null,
+                      '',
+                      `${window.location.pathname}${window.location.search}#${s.group.id}`
+                    );
+                    document
+                      .getElementById(`settings-${s.group.id}`)
+                      ?.scrollIntoView({ block: 'start' });
+                  }}
+                />
+              ))}
+          </Box>
+        ))}
+      </Box>
     </Box>
   );
 }
@@ -170,9 +185,15 @@ function SettingsPageContent() {
         <Group
           gap={12}
           px={32}
-          py={16}
+          h={TOOLBAR_HEIGHT}
           wrap="nowrap"
-          style={{ borderBottom: '1px solid var(--tk-line-2)' }}
+          style={{
+            borderBottom: '1px solid var(--tk-line-2)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 3,
+            background: 'var(--tk-bg)',
+          }}
         >
           <TextInput
             ref={filterRef}
