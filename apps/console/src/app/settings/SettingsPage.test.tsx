@@ -263,7 +263,7 @@ describe('SettingsPage', () => {
     ).toHaveLength(0);
     expect(
       within(board).getByRole('button', {
-        name: 'machine: move to another scope',
+        name: 'board.agent.model actions',
       })
     ).toBeInTheDocument();
   });

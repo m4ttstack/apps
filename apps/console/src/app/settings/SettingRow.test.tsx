@@ -339,24 +339,24 @@ describe('SettingRow', () => {
     );
   });
 
-  it('hides the badge under a matching subhead and moves a value from the badge menu', async () => {
+  it('hides the badge under a matching subhead and still moves from the row menu', async () => {
     const s = store();
-    const d = def('board.agent.model', {
-      effective: { scope: 'machine', file: '/m', value: 'x' },
-    });
-    const { unmount } = renderWithProviders(
-      <SettingRow def={d} store={s} subhead="machine" query="" />
+    renderWithProviders(
+      <SettingRow
+        def={def('board.agent.model', {
+          effective: { scope: 'machine', file: '/m', value: 'x' },
+        })}
+        store={s}
+        subhead="machine"
+        query=""
+      />
     );
     expect(screen.queryByText('machine')).toBeNull();
-    unmount();
-    renderWithProviders(
-      <SettingRow def={d} store={s} subhead="user" query="" />
+    await userEvent.click(
+      screen.getByRole('button', { name: 'board.agent.model actions' })
     );
     await userEvent.click(
-      screen.getByRole('button', { name: 'machine: move to another scope' })
-    );
-    await userEvent.click(
-      await screen.findByRole('menuitem', { name: 'user' })
+      await screen.findByRole('menuitem', { name: 'Move to user' })
     );
     await waitFor(() =>
       expect(s.move).toHaveBeenCalledWith(
@@ -365,6 +365,52 @@ describe('SettingRow', () => {
         'user'
       )
     );
+  });
+
+  it('removes a stored value from its layer through the row menu', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('agent.claude.yolo', {
+          type: 'boolean',
+          effective: { scope: 'user', file: '/u', value: false },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'agent.claude.yolo actions' })
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'Remove from user' })
+    );
+    await waitFor(() =>
+      expect(s.unset).toHaveBeenCalledWith('agent.claude.yolo', 'user')
+    );
+  });
+
+  it('a default or unset row has no row menu', () => {
+    renderWithProviders(
+      <>
+        <SettingRow
+          def={def('rt.logLevel', {
+            effective: { scope: 'default', file: null, value: 'info' },
+          })}
+          store={store()}
+          subhead={null}
+          query=""
+        />
+        <SettingRow
+          def={def('rt.daemonPath')}
+          store={store()}
+          subhead={null}
+          query=""
+        />
+      </>
+    );
+    expect(screen.queryByRole('button', { name: /actions$/ })).toBeNull();
   });
 
   it('an unset secret says unset once and shows no mask', () => {

@@ -21,6 +21,7 @@ import {
 import { Link } from 'wouter';
 
 import { compositeParts } from './CompositeControls';
+import { RowMenu } from './RowMenu';
 import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
 import { useRowSave, type RowStore } from './useRowSave';
@@ -73,10 +74,6 @@ export function SettingRow({
   const [ns, name] = splitKey(def.key);
   const badge = badgeScope(def, subhead);
   const plain = sourceText(def);
-  const moveTo =
-    def.writable && badge
-      ? (def.scopes as StoreScope[]).filter(s => s !== badge)
-      : [];
 
   let control: ReactNode;
   let body: ReactNode = null;
@@ -141,11 +138,7 @@ export function SettingRow({
               <Marked text={name} query={query} span inherit fw={500} />
             </Text>
             {badge ? (
-              <ScopeBadge
-                scope={badge}
-                moveTo={moveTo}
-                onMove={to => void row.move(badge, to)}
-              />
+              <ScopeBadge scope={badge} />
             ) : plain ? (
               <Text fz={12} c={text.muted}>
                 {plain}
@@ -177,16 +170,19 @@ export function SettingRow({
             </Group>
           )}
         </Group>
-        <ActionIcon
-          component={Link}
-          href={`/config/${encodeURIComponent(def.key)}`}
-          variant="subtle"
-          color="gray"
-          c={text.muted}
-          aria-label={`explain ${def.key}`}
-        >
-          <Icons.chevronRight size={16} />
-        </ActionIcon>
+        <Group gap={4} wrap="nowrap" style={{ flex: 'none' }}>
+          <RowMenu def={def} row={row} />
+          <ActionIcon
+            component={Link}
+            href={`/config/${encodeURIComponent(def.key)}`}
+            variant="subtle"
+            color="gray"
+            c={text.muted}
+            aria-label={`explain ${def.key}`}
+          >
+            <Icons.chevronRight size={16} />
+          </ActionIcon>
+        </Group>
       </Group>
       {(row.error || def.effective.invalid) && (
         <Stack gap={4} pb={12}>

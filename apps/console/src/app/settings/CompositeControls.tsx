@@ -402,7 +402,7 @@ function LeavesBody({
             }
             source={
               isStoreScope(source) ? (
-                <ScopeBadge scope={source} moveTo={[]} onMove={() => {}} />
+                <ScopeBadge scope={source} />
               ) : source ? (
                 <Text fz={12} c={text.muted}>
                   {source}

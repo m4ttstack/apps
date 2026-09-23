@@ -1,4 +1,4 @@
-import { Badge, Box, Menu, UnstyledButton } from '@mattstack/app-kit/core';
+import { Badge, Box } from '@mattstack/app-kit/core';
 
 import type { StoreScope } from './view';
 
@@ -24,16 +24,8 @@ export function ScopeDot({ scope }: { scope: StoreScope }) {
   );
 }
 
-export function ScopeBadge({
-  scope,
-  moveTo,
-  onMove,
-}: {
-  scope: StoreScope;
-  moveTo: StoreScope[];
-  onMove: (to: StoreScope) => void;
-}) {
-  const badge = (
+export function ScopeBadge({ scope }: { scope: StoreScope }) {
+  return (
     <Badge
       variant="light"
       color={SCOPE_COLOR[scope]}
@@ -53,27 +45,5 @@ export function ScopeBadge({
     >
       {scope}
     </Badge>
-  );
-  if (moveTo.length === 0) return badge;
-  return (
-    <Menu position="bottom-start" withinPortal>
-      <Menu.Target>
-        <UnstyledButton aria-label={`${scope}: move to another scope`}>
-          {badge}
-        </UnstyledButton>
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Label>Move value to</Menu.Label>
-        {moveTo.map(to => (
-          <Menu.Item
-            key={to}
-            leftSection={<ScopeDot scope={to} />}
-            onClick={() => onMove(to)}
-          >
-            {to}
-          </Menu.Item>
-        ))}
-      </Menu.Dropdown>
-    </Menu>
   );
 }
