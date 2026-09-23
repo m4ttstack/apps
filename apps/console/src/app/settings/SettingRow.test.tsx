@@ -326,6 +326,19 @@ describe('SettingRow', () => {
     );
   });
 
+  it('an unset secret says unset once and shows no mask', () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.linearToken', { secret: true, writable: false })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.getAllByText('unset')).toHaveLength(1);
+    expect(screen.queryByText('•••')).toBeNull();
+  });
+
   it('an external row summarises and names its owner', () => {
     renderWithProviders(
       <SettingRow

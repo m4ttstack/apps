@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Box,
   Group,
@@ -43,10 +43,12 @@ export const TOOLBAR_HEIGHT = 69;
 
 function Header({
   section,
+  count,
   right,
 }: {
   section: Section;
-  right?: React.ReactNode;
+  count: string;
+  right?: ReactNode;
 }) {
   const { text } = useSchemeColors();
   return (
@@ -57,7 +59,7 @@ function Header({
             {section.group.label}
           </Title>
           <Text size="xs" ff="monospace" c={text.muted}>
-            {section.total}
+            {count}
           </Text>
         </Group>
         {right}
@@ -71,15 +73,21 @@ function Header({
   );
 }
 
+function countText(filtering: boolean, shown: number, total: number) {
+  return filtering ? `${shown} of ${total}` : String(total);
+}
+
 function AgentsSection({
   section,
   store,
   query,
+  filtering,
   initialProvider,
 }: {
   section: Section;
   store: RowStore;
   query: string;
+  filtering: boolean;
   initialProvider: Provider;
 }) {
   const all = section.subsections.flatMap(s => s.defs);
@@ -102,6 +110,7 @@ function AgentsSection({
     >
       <Header
         section={section}
+        count={countText(filtering, defs.length, section.total)}
         right={
           <SegmentedControl
             size="xs"
@@ -132,11 +141,13 @@ export function SettingsSection({
   section,
   store,
   query,
+  filtering,
   agentProvider,
 }: {
   section: Section;
   store: RowStore;
   query: string;
+  filtering: boolean;
   agentProvider: Provider;
 }) {
   const { text } = useSchemeColors();
@@ -146,6 +157,7 @@ export function SettingsSection({
         section={section}
         store={store}
         query={query}
+        filtering={filtering}
         initialProvider={agentProvider}
       />
     );
@@ -155,7 +167,10 @@ export function SettingsSection({
       id={`settings-${section.group.id}`}
       style={{ scrollMarginTop: TOOLBAR_HEIGHT }}
     >
-      <Header section={section} />
+      <Header
+        section={section}
+        count={countText(filtering, section.shown, section.total)}
+      />
       {section.subsections.map(sub => (
         <Box key={sub.scope ?? 'all'}>
           {sub.scope && (

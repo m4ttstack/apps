@@ -111,6 +111,31 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('heading', { name: 'Board' })).toBeInTheDocument();
   });
 
+  it('greys out index groups with no match and says how many are hidden', async () => {
+    renderPage();
+    const index = await screen.findByRole('navigation', {
+      name: 'settings groups',
+    });
+    await userEvent.click(screen.getByRole('checkbox', { name: /Changed/ }));
+    await userEvent.type(screen.getByLabelText('filter settings'), 'days');
+    const board = within(index).getByRole('link', { name: /^Board/ });
+    expect(board).toHaveAttribute('data-disabled');
+    expect(board).toHaveAttribute('aria-disabled', 'true');
+    expect(
+      within(index).getByRole('link', { name: /^Daemon/ })
+    ).not.toHaveAttribute('data-disabled');
+    const daemon = screen
+      .getByRole('heading', { name: 'Daemon' })
+      .closest('section')!;
+    expect(within(daemon).getByText('1 of 2')).toBeInTheDocument();
+    expect(screen.getByText('2 groups have no match.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filter' }));
+    expect(screen.getByRole('heading', { name: 'Board' })).toBeInTheDocument();
+    expect(screen.getByLabelText('filter settings')).toHaveValue('');
+    expect(screen.getByRole('checkbox', { name: /Changed/ })).not.toBeChecked();
+    expect(within(daemon).getByText('2')).toBeInTheDocument();
+  });
+
   it('shows an empty state when nothing matches', async () => {
     renderPage();
     await userEvent.type(
@@ -207,5 +232,6 @@ describe('SettingsPage', () => {
     expect(await screen.findAllByText('agent.codex.')).not.toHaveLength(0);
     expect(screen.getByRole('radio', { name: 'Codex' })).toBeChecked();
     expect(screen.queryAllByText('agent.claude.')).toHaveLength(0);
+    expect(screen.getByText('1 of 3')).toBeInTheDocument();
   });
 });

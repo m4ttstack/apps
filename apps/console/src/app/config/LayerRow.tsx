@@ -20,8 +20,10 @@ import type {
   ExplainRowWire,
   SettingDefWire,
 } from '@mattstack/settings-kit/react';
+import { Link } from 'wouter';
 
 import { useEditorHref } from '../editorHref';
+import { isEditable as isShapeEditable } from '../settings/view';
 import { shortValue } from './chain';
 
 export type VerdictRole = 'winner' | 'overridden' | 'contributor' | 'inert';
@@ -160,9 +162,21 @@ export function LayerRow({
         )}
         <RowBody def={def} row={row} role={role} />
         {composite ? (
-          <Text size="xs" c={text.muted} style={{ flex: 'none' }}>
-            composite value — edit the file
-          </Text>
+          isShapeEditable(def) ? (
+            <Anchor
+              component={Link}
+              href={`/settings?q=${encodeURIComponent(def.key)}`}
+              size="xs"
+              c="var(--tk-text-accent-small)"
+              style={{ flex: 'none' }}
+            >
+              edit in Settings
+            </Anchor>
+          ) : (
+            <Text size="xs" c={text.muted} style={{ flex: 'none' }}>
+              composite value: edit the file
+            </Text>
+          )
         ) : editable ? (
           !editing && (
             <Tooltip label="Edit">

@@ -211,17 +211,38 @@ describe('LayerRow: staged edit-at-layer', () => {
     ).toBeInTheDocument();
   });
 
-  test('a composite def renders the file-edit copy, never an edit affordance', () => {
+  test('an unshaped composite def renders the file-edit copy, never an edit affordance', () => {
     renderWithProviders(
       <LayerRow def={COMPOSITE_DEF} row={COMPOSITE_ROW} role="contributor" />
     );
 
     expect(
-      screen.getByText('composite value — edit the file')
+      screen.getByText('composite value: edit the file')
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /edit/i })
     ).not.toBeInTheDocument();
+  });
+
+  test('a composite the settings page can edit links there instead', () => {
+    renderWithProviders(
+      <LayerRow
+        def={{
+          ...COMPOSITE_DEF,
+          key: 'rt.repoRoots',
+          type: 'array',
+          merge: 'replace',
+          writable: true,
+        }}
+        row={{ ...COMPOSITE_ROW, value: ['~/src'] }}
+        role="winner"
+      />
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'edit in Settings' })
+    ).toHaveAttribute('href', '/settings?q=rt.repoRoots');
+    expect(screen.queryByText(/edit the file/)).not.toBeInTheDocument();
   });
 
   test('a failed apply renders applyError inside the staged block', async () => {

@@ -87,35 +87,39 @@ function Index({
             </Text>
             {sections
               .filter(s => s.group.tier === tier)
-              .map(s => (
-                <NavLink
-                  key={s.group.id}
-                  href={`#${s.group.id}`}
-                  label={s.group.label}
-                  active={active === s.group.id}
-                  rightSection={
-                    <Text size="xs" ff="monospace" c={text.muted}>
-                      {filtering ? s.shown : s.total}
-                    </Text>
-                  }
-                  style={{
-                    opacity: filtering && s.shown === 0 ? 0.45 : 1,
-                    borderRadius: 4,
-                  }}
-                  onClick={e => {
-                    e.preventDefault();
-                    setActive(s.group.id);
-                    window.history.replaceState(
-                      null,
-                      '',
-                      `${window.location.pathname}${window.location.search}#${s.group.id}`
-                    );
-                    document
-                      .getElementById(`settings-${s.group.id}`)
-                      ?.scrollIntoView({ block: 'start' });
-                  }}
-                />
-              ))}
+              .map(s => {
+                const empty = filtering && s.shown === 0;
+                return (
+                  <NavLink
+                    key={s.group.id}
+                    href={`#${s.group.id}`}
+                    label={s.group.label}
+                    active={active === s.group.id}
+                    disabled={empty}
+                    aria-disabled={empty || undefined}
+                    tabIndex={empty ? -1 : undefined}
+                    rightSection={
+                      <Text size="xs" ff="monospace" c={text.muted}>
+                        {filtering ? s.shown : s.total}
+                      </Text>
+                    }
+                    style={{ borderRadius: 4 }}
+                    onClick={e => {
+                      e.preventDefault();
+                      if (empty) return;
+                      setActive(s.group.id);
+                      window.history.replaceState(
+                        null,
+                        '',
+                        `${window.location.pathname}${window.location.search}#${s.group.id}`
+                      );
+                      document
+                        .getElementById(`settings-${s.group.id}`)
+                        ?.scrollIntoView({ block: 'start' });
+                    }}
+                  />
+                );
+              })}
           </Box>
         ))}
       </Box>
@@ -303,17 +307,22 @@ function SettingsPageContent() {
                 section={s}
                 store={store}
                 query={query}
+                filtering={filtering}
                 agentProvider={agentProvider}
               />
             ))
           )}
           {filtering && visible.length > 0 && hiddenGroups > 0 && (
-            <Group gap={6} pt={20}>
-              <Icons.eyeOff size={14} />
-              <Text
-                size="xs"
-                c={text.muted}
-              >{`${hiddenGroups} groups have no match. Esc clears the filter.`}</Text>
+            <Group gap={8} pt={20}>
+              <Icons.eyeOff size={14} color={text.muted} />
+              <Text size="xs" c={text.muted}>
+                {hiddenGroups === 1
+                  ? '1 group has no match.'
+                  : `${hiddenGroups} groups have no match.`}
+              </Text>
+              <Button size="compact-xs" variant="default" onClick={clearAll}>
+                Clear filter
+              </Button>
             </Group>
           )}
         </Box>

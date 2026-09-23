@@ -90,10 +90,12 @@ export function SettingRow({
     );
   } else if (kind === 'external') {
     const shape = SHAPES[def.key];
+    const owner = shape?.kind === 'external' ? shape.app : 'another app';
     control = (
       <Text size="xs" c={text.muted}>
-        {summarize(def)} · edited in{' '}
-        {shape?.kind === 'external' ? shape.app : 'another app'}
+        {def.effective.value === undefined
+          ? `edited in ${owner}`
+          : `${summarize(def)} · edited in ${owner}`}
       </Text>
     );
   } else if (
@@ -101,15 +103,21 @@ export function SettingRow({
     def.type !== 'object' &&
     def.type !== 'array'
   ) {
-    control = (
-      <Text size="xs" c={text.muted} ff="monospace">
-        {def.secret
-          ? '•••'
-          : def.effective.value === undefined
-            ? 'unset'
-            : formatValue(def.effective.value)}
-      </Text>
-    );
+    // An unset or rejected value is already said by the source text or the
+    // error line; the control repeats nothing.
+    const shown = def.secret
+      ? def.effective.scope === null
+        ? null
+        : '•••'
+      : def.effective.value === undefined
+        ? null
+        : formatValue(def.effective.value);
+    control =
+      shown === null ? null : (
+        <Text size="xs" c={text.muted} ff="monospace">
+          {shown}
+        </Text>
+      );
   } else {
     const composite = compositeParts(def, kind, row, open, () =>
       setOpen(o => !o)
