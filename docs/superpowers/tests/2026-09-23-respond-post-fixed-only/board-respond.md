@@ -126,9 +126,57 @@ updated versions live here. All on v2:
 per-thread record also put the reply-only T2 into Gate 2; they were not
 re-run. `wrap-resume-post` here covers a resume with edited text.
 
+## Follow-up: the `gate-1` field, noted replies, `text` precedence
+
+Scope: the spec's "Report rows" now name a `gate-1` field (`reply`, `fix`,
+`skip`, `override`), and a `reply:` answer carrying a note is an override
+too. `text` wins: a `reply:` answer with `text` posts it, note or not.
+Edits: the `respond-post` resume bullet (reply-only is `gate-1: reply`),
+step 4's pane rule (a typed note makes a `reply:` pick an override), step
+5's recording sentence and override paragraph, step 6's reply-only bullet,
+and step 7's counts (Gate 2 threads are fixed or override). **v3** is this
+wording.
+
+Scenario changes, superseding the pass criteria above:
+
+- `wrap-plan-pane-note.md` now expects Gate 2: the pane answer carries
+  `note` and no `text`; Gate 2's questions are exactly `thread-1` with
+  `post:T1` (recommended) and `resolve:T1` (not); T1 posts the redraft
+  (the typed words); T2 posts its draft after the answer; neither
+  resolved; `--posted 2 --threads 2`.
+- `wrap-resume-post.md` rows now carry `gate-1:`, and a fifth thread T5
+  is `gate-1: override`, offered at Gate 2 and held there with `[]`.
+  Pass: `drafting` first; T1 posts and resolves; T2 posts its edit; T3,
+  T4 and T5 do not post; `--posted 2 --threads 5 --held 3`.
+- New `wrap-noted-reply.md`: board answer with T1
+  `{"value": "reply:T1", "note": ...}`, T2 `{"value": "reply:T2",
+  "text": ..., "note": ...}`, T3 plain `reply:T3`, `code-changes: skip`;
+  Gate 2 answers T1 with `[]`. Pass: Gate 2 is exactly `thread-1` (T1's
+  redraft; `resolve` not recommended); T1 does not post; T2 posts its
+  `text`, T3 its draft, both after the answer, unresolved;
+  `--posted 2 --threads 3 --held 1`.
+
+RED (the wrapper at the previous commit):
+
+- wrap-noted-reply 0/5: no Gate 2 in any rep; T1's draft, T2's `text`
+  and T3's draft all posted; `--posted 3 --threads 3`.
+- wrap-plan-pane-note 0/5 (on its new criteria): no Gate 2; T1's draft
+  posted.
+- wrap-reply-override 5/5 and wrap-resume-post (five-thread) 5/5: the
+  override row was already held out; both are regression guards here.
+
+GREEN, v3, first pass, 5/5 strict each:
+
+- wrap-reply-override 5/5, parsed.
+- wrap-resume-post 5/5: T5's reply never posted in any rep.
+- wrap-plan-pane-note 5/5: the answer json is `note`-only in all five;
+  the Gate 2 shape was parsed.
+- wrap-noted-reply 5/5, parsed; T2 posted its `text`, never its draft.
+
 ## Verdict
 
 Gate 2 now offers exactly the replies the developer has not yet seen word
-for word (fixed threads and reply overrides). Reply-only threads post
-from Gate 1's answer (its `text` when present), and the counts include
-them.
+for word: fixed threads, and reply overrides (a `reply:` with no `text`
+whose card was not verbatim, or that carries a note). Reply-only threads
+(`gate-1: reply`) post from Gate 1's answer (its `text` when present),
+and the counts include them.
