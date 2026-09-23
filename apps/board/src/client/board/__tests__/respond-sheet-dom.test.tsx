@@ -594,6 +594,10 @@ test('per-thread post step: a card per plan thread, each reply with post/hold an
   }
   expect(cards[2]!.textContent).toContain('Nothing to post for this thread.');
   expect(control(cards[2]!, 'resolve')).toBeNull();
+  // A post card approves the reply as shown; it takes no note.
+  expect(
+    document.body.querySelector('[data-step="post"] .tui-gate-note')
+  ).toBeNull();
 });
 
 test('per-thread post step starts from the recommended picks: post everywhere, resolve on the fix', async () => {

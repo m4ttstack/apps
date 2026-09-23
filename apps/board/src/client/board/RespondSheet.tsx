@@ -765,11 +765,9 @@ function RespondSheetBody({
           {threadJoin
             ? threadJoin.map(j => {
                 const pick = picks.find(p => p.threadId === j.threadId);
-                const display = pick && displayOf(pick.name);
                 return (
                   <PostStepCard key={j.threadId} j={j}>
                     {pick && <PostResolveChoice pick={pick} form={form} />}
-                    {display && <Note q={display} form={form} />}
                   </PostStepCard>
                 );
               })
@@ -793,7 +791,6 @@ function RespondSheetBody({
                       display && <ProseContext q={display} structured={false} />
                     )}
                     <PostResolveChoice pick={p} form={form} />
-                    {display && <Note q={display} form={form} />}
                   </section>
                 );
               })}
