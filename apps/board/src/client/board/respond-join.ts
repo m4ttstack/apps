@@ -42,10 +42,10 @@ function verbOf(value: string): PlanVerb | undefined {
   return PLAN_VERBS.find(v => v === verb);
 }
 
-/** The plan gate a post gate follows: the MR's latest respond-plan in the
-    same round, preferring one already answered. A flattened context has no
-    round, so a newer plan still open must not shadow the answered one; an
-    unanswered plan still joins when it is the only match. */
+/** The plan gate a post gate follows: the MR's latest answered respond-plan
+    in the same round, else the newest matching plan when none is answered.
+    A flattened context has no round, so a newer plan still open must not
+    shadow the answered one. */
 function planGateFor(
   ctx: PostCtx,
   mr?: BoardMRWithReview
@@ -62,9 +62,18 @@ function planGateFor(
       );
     })
     .sort((a, b) => b.openedAt - a.openedAt);
-  return (
-    plans.find(g => g.status !== 'open' && g.status !== 'parked') ?? plans[0]
-  );
+  return plans.find(g => g.status === 'answered') ?? plans[0];
+}
+
+/** The matched plan's thread ids in question order. */
+export function planThreadOrder(
+  ctx: PostCtx,
+  mr?: BoardMRWithReview
+): string[] {
+  return (planGateFor(ctx, mr)?.questions ?? []).flatMap(q => {
+    const first = q.options[0] ? optionValue(q.options[0]) : '';
+    return verbOf(first) ? [threadIdOf(q.options)] : [];
+  });
 }
 
 /** A respond-post gate's replies joined to the plan gate's threads by

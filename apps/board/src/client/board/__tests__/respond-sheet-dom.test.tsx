@@ -1530,3 +1530,35 @@ test('with the plan context flattened too, the reply-only card shows the Gate 1 
   expect(bare.querySelector('[data-chip="edited"]')).toBeNull();
   expect(bare.querySelector('input')).toBeNull();
 });
+
+test('an unjoined replies checklist counts its ticked replies in the rail, as its submit does', async () => {
+  await render(postGate());
+  await pick('r1');
+  await pick('r2');
+  expect(repliesChip()).toBe('2 replies');
+  expect(submit().textContent).toBe('post 2');
+  await pick('r1');
+  expect(repliesChip()).toBe('1 reply');
+  expect(submit().textContent).toBe('post 1');
+});
+
+test('on a prose-flattened post sheet, a reply-only thread keeps its plan place before a later fix', async () => {
+  const gate = perThreadPostGate();
+  gate.context = "Posting replies to renee's review · 1 reply";
+  gate.questions = [
+    { ...gate.questions[1]!, context: 'b.ts:2 FIX · ab12cd3: Fixed.' },
+  ];
+  const plan = answeredPlan();
+  plan.answers = {
+    'thread-1': 'reply:r1',
+    'thread-2': 'fix:r2',
+    'thread-3': 'skip:r3',
+  };
+  await render(gate, { ...MR, gates: [plan] } as unknown as BoardMRWithReview);
+  expect(postCards().map(c => c.getAttribute('aria-label'))).toEqual([
+    'a.ts:1',
+    'b.ts:2',
+  ]);
+  expect(outcomeOf(postCards()[0]!)).toBe('reply · posts with this step');
+  expect(dockRows()).toEqual(['posta.ts:1', 'postb.ts:2']);
+});

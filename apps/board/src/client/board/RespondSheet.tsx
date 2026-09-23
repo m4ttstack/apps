@@ -28,6 +28,7 @@ import { forgeNoun } from './MrLinks.tsx';
 import { PersonLead, PersonTag } from './PersonLead.tsx';
 import {
   joinPlan,
+  planThreadOrder,
   replyOnlyThreads,
   type JoinedThread,
   type StepReply,
@@ -506,9 +507,9 @@ type ResponseRow = { key: string; text: string; chips: RowChip[] };
 type RowThread = { threadId: string; label: string; postsWithStep: boolean };
 
 /** One line per thread (or reply) with what the submit will do with it,
-    filled in as picks are made; it sits in the dock above the submit. With
-    the plan joined, rows follow plan order and a reply-only thread gets its
-    own `post` row, since it posts with this step. */
+    filled in as picks are made; it sits in the dock above the submit. Given
+    `plan`, rows follow that plan order and a reply-only thread gets its own
+    `post` row, since it posts with this step. */
 function ResponseRows({
   mainQs,
   picks,
@@ -893,6 +894,31 @@ function RespondSheetBody({
   const withStep = postThreads
     ? postThreads.filter(j => j.replyOnly).length
     : stepThreads.length;
+  const planRank = new Map(
+    (stepThreads.length > 0 && ctx.shape === 'post@1'
+      ? planThreadOrder(ctx, mr)
+      : []
+    ).map((id, i) => [id, i])
+  );
+  const rank = (id: string) => planRank.get(id) ?? planRank.size;
+  // Offered and reply-only threads interleave in plan question order; with
+  // no reply-only thread every rank ties and the offered order stands.
+  const proseItems: Array<
+    { threadId: string; label: string } & (
+      { pick: PostPick } | { step: StepReply }
+    )
+  > = [
+    ...picks.map(pick => ({
+      threadId: pick.threadId,
+      label: pick.label,
+      pick,
+    })),
+    ...stepThreads.map(step => ({
+      threadId: step.threadId,
+      label: step.label,
+      step,
+    })),
+  ].sort((a, b) => rank(a.threadId) - rank(b.threadId));
   const rowThreads: RowThread[] | null = postThreads
     ? postThreads.map(j => ({
         threadId: j.threadId,
@@ -900,18 +926,11 @@ function RespondSheetBody({
         postsWithStep: !!j.replyOnly,
       }))
     : stepThreads.length > 0
-      ? [
-          ...picks.map(p => ({
-            threadId: p.threadId,
-            label: p.label,
-            postsWithStep: false,
-          })),
-          ...stepThreads.map(t => ({
-            threadId: t.threadId,
-            label: t.label,
-            postsWithStep: true,
-          })),
-        ]
+      ? proseItems.map(item => ({
+          threadId: item.threadId,
+          label: item.label,
+          postsWithStep: 'step' in item,
+        }))
       : null;
   const listCount = postThreads?.length ?? picks.length + stepThreads.length;
   const dockPick = dockQs
@@ -931,11 +950,11 @@ function RespondSheetBody({
           : replyCount > 0
             ? `Next, ${replyCount} ${replyCount === 1 ? 'reply posts' : 'replies post'}.`
             : 'Next, nothing posts.';
-  // The rail's reply count is the submit's own on every post shape that
-  // counts Gate 1's reply-only threads, so the two never disagree.
+  // The rail's reply count is the submit's own on every post sheet, so the
+  // two never disagree.
   const railPosting = perThread
     ? posting + withStep
-    : joined
+    : repliesQ
       ? repliesPicked + withStep
       : undefined;
   const submitLabel = form.busy
@@ -1022,7 +1041,15 @@ function RespondSheetBody({
                   </PostStepCard>
                 );
               })
-            : picks.map(p => {
+            : proseItems.map(item => {
+                if ('step' in item)
+                  return (
+                    <StepReplyCard
+                      key={`with-step:${item.threadId}`}
+                      s={item.step}
+                    />
+                  );
+                const p = item.pick;
                 const display = displayOf(p.name);
                 return (
                   <section
@@ -1053,9 +1080,6 @@ function RespondSheetBody({
                   </section>
                 );
               })}
-          {stepThreads.map(t => (
-            <StepReplyCard key={`with-step:${t.threadId}`} s={t} />
-          ))}
           {mainQs
             .filter(q => !pickNames.has(q.name))
             .map(q => {
