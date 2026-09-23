@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from 'fs';
 import { tmpdir } from 'os';
@@ -130,7 +131,7 @@ describe('retireHandAgent', () => {
     ).toBe(true);
   });
 
-  test('never touches an SMAppService job holding the bare label', async () => {
+  test('archives the hand plist but never boots out an SMAppService job holding the bare label', async () => {
     const { agentsDir, archiveDir } = agentsFixture();
     const { probe, run, ran } = launchdOf({
       'com.mattstack.deck': SMAPP_DEV.replace('deck.dev', 'deck'),
@@ -145,13 +146,35 @@ describe('retireHandAgent', () => {
       selfPid: 1,
     });
 
-    expect(retired).toBe(false);
+    expect(retired).toBe(true);
     expect(ran).toEqual([]);
-    expect(existsSync(join(agentsDir, 'com.mattstack.deck.plist'))).toBe(true);
+    expect(existsSync(join(agentsDir, 'com.mattstack.deck.plist'))).toBe(false);
+    expect(
+      existsSync(join(archiveDir, 'com.mattstack.deck.plist.retired'))
+    ).toBe(true);
   });
 
-  test('leaves things alone when launchd has no bare deck job', async () => {
+  test('archives a hand plist launchd has not loaded, booting nothing out', async () => {
     const { agentsDir, archiveDir } = agentsFixture();
+    const { probe, run, ran } = launchdOf({});
+
+    const retired = await retireHandAgent({
+      probe,
+      run,
+      agentsDir,
+      archiveDir,
+      uid: 501,
+      selfPid: 1,
+    });
+
+    expect(retired).toBe(true);
+    expect(ran).toEqual([]);
+    expect(existsSync(join(agentsDir, 'com.mattstack.deck.plist'))).toBe(false);
+  });
+
+  test('nothing to do without a hand plist or a hand-loaded job', async () => {
+    const { agentsDir, archiveDir } = agentsFixture();
+    rmSync(join(agentsDir, 'com.mattstack.deck.plist'));
     const { probe, run, ran } = launchdOf({});
 
     const retired = await retireHandAgent({
@@ -165,7 +188,6 @@ describe('retireHandAgent', () => {
 
     expect(retired).toBe(false);
     expect(ran).toEqual([]);
-    expect(existsSync(join(agentsDir, 'com.mattstack.deck.plist'))).toBe(true);
   });
 
   test('never boots out the process it is running in', async () => {

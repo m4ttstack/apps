@@ -97,22 +97,28 @@ function archivePath(archiveDir: string): string {
 }
 
 /**
- * Boot out and archive a hand-installed `com.mattstack.deck`, only when
- * launchd reports that label loaded from the LaunchAgents dir: the prod
- * helper shares the label, and an SMAppService job must never be touched.
- * A hand plist that execs a bundle binary would otherwise boot itself out,
- * and launchctl's exit code is no proof the job is gone, so both are
- * checked against launchd's own report.
+ * Retire a hand-installed `com.mattstack.deck`: archive its plist so the
+ * next login cannot load it, and boot it out only when launchd reports that
+ * label loaded from the LaunchAgents dir. The prod helper shares the label,
+ * so an SMAppService job is never booted out. A hand plist that execs a
+ * bundle binary would otherwise boot itself out, and launchctl's exit code
+ * is no proof the job is gone, so both are checked against launchd's report.
  */
 export async function retireHandAgent(deps: RetireDeps): Promise<boolean> {
+  const plist = join(resolve(deps.agentsDir), `${PLATFORM_LABEL}.plist`);
   const job = await printJob(deps.probe, PLATFORM_LABEL, deps.uid);
-  if (!loadedFromAgentsDir(job, deps.agentsDir)) return false;
-  if (job!.pid === deps.selfPid) return false;
-  await deps.run(['launchctl', 'bootout', `gui/${deps.uid}/${PLATFORM_LABEL}`]);
-  const after = await printJob(deps.probe, PLATFORM_LABEL, deps.uid);
-  if (loadedFromAgentsDir(after, deps.agentsDir)) return false;
-  if (existsSync(job!.path!))
-    renameSync(job!.path!, archivePath(deps.archiveDir));
+  if (loadedFromAgentsDir(job, deps.agentsDir)) {
+    if (job!.pid === deps.selfPid) return false;
+    await deps.run([
+      'launchctl',
+      'bootout',
+      `gui/${deps.uid}/${PLATFORM_LABEL}`,
+    ]);
+    const after = await printJob(deps.probe, PLATFORM_LABEL, deps.uid);
+    if (loadedFromAgentsDir(after, deps.agentsDir)) return false;
+  }
+  if (!existsSync(plist)) return false;
+  renameSync(plist, archivePath(deps.archiveDir));
   return true;
 }
 
@@ -136,7 +142,7 @@ export async function prepareHelperBoot(deps: HelperBootDeps): Promise<void> {
   try {
     if (await retireHandAgent(deps.retire)) {
       deps.log(
-        `[helper] booted out the hand-installed ${PLATFORM_LABEL} agent and archived its plist`
+        `[helper] retired the hand-installed ${PLATFORM_LABEL} agent and archived its plist`
       );
     }
   } catch (err) {
