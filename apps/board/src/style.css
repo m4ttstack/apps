@@ -2411,6 +2411,20 @@ body {
   font-size: var(--gate-font-meta);
   color: var(--text-3);
 }
+/* Post and hold are one choice, side by side; resolve is independent of
+   both, so it takes its own row. */
+.tui-post-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gate-gap-row);
+}
+.tui-post-controls > .tui-gate-choices {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.tui-post-controls > .tui-gate-choices > .tui-gate-choice {
+  flex: 1 1 220px;
+}
 .tui-thread-verdict-call {
   font-weight: 700;
   color: var(--text-2);
@@ -4091,7 +4105,8 @@ body {
 }
 /* The mock's checked box carries a white checkmark; the shared control is
    a bare accent fill, so the glyph rides a sheet-scoped background image. */
-.tui-review-finding-row .tui-gate-choice-input[data-checked] {
+.tui-review-finding-row .tui-gate-choice-input[data-checked],
+.tui-post-resolve .tui-gate-choice-input[data-checked] {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
@@ -4289,6 +4304,13 @@ body {
   width: 46px;
   justify-content: center;
   text-align: center;
+}
+/* A post row's resolve chip gets its own fixed slot, kept empty when the
+   thread is not resolving, so every row's text starts at one edge. */
+.tui-sheet-card-chip + .tui-sheet-card-chip,
+.tui-sheet-card-chip-slot {
+  flex-shrink: 0;
+  width: 64px;
 }
 .tui-sheet-card-text {
   color: var(--text-1);

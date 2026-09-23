@@ -399,7 +399,7 @@ function reviseAnswers(
 
 /** One line per thread (or reply) with what the submit will do with it,
     filled in as picks are made; it sits in the dock above the submit. */
-type RowChip = { text: string; intent: 'ok' | 'muted' | 'accent' };
+type RowChip = { text: string; intent: 'ok' | 'muted' | 'accent' } | null;
 
 function ResponseRows({
   mainQs,
@@ -419,9 +419,8 @@ function ResponseRows({
         picked.has(pick.post)
           ? { text: 'post', intent: 'ok' }
           : { text: 'hold', intent: 'muted' },
+        picked.has(pick.resolve) ? { text: 'resolve', intent: 'accent' } : null,
       ];
-      if (picked.has(pick.resolve))
-        chips.push({ text: 'resolve', intent: 'accent' });
       return [{ key: q.name, text: pick.label, chips }];
     }
     if (q.multiple) {
@@ -457,17 +456,25 @@ function ResponseRows({
     <div className="tui-sheet-card-list" data-card="responses">
       {rows.map(r => (
         <div className="tui-sheet-card-row" key={r.key}>
-          {r.chips.map(c => (
-            <Chip
-              key={c.text}
-              intent={c.intent}
-              variant="outline"
-              uppercase
-              className="tui-sheet-card-chip"
-            >
-              {c.text}
-            </Chip>
-          ))}
+          {r.chips.map((c, i) =>
+            c ? (
+              <Chip
+                key={c.text}
+                intent={c.intent}
+                variant="outline"
+                uppercase
+                className="tui-sheet-card-chip"
+              >
+                {c.text}
+              </Chip>
+            ) : (
+              <span
+                key={`slot-${i}`}
+                className="tui-sheet-card-chip-slot"
+                aria-hidden="true"
+              />
+            )
+          )}
           <span className="tui-sheet-card-text">{r.text}</span>
         </div>
       ))}
