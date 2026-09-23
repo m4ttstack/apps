@@ -26,6 +26,7 @@ function Choices({
 }: {
   q: GateItemDisplay;
   form: GateFormState;
+  /** A choice's own label markup; returning undefined keeps the default. */
   renderLabel?: (value: string, chip: ReactNode) => ReactNode;
 }) {
   const current = form.selections[q.name];
@@ -41,6 +42,7 @@ function Choices({
           ? picked.has(choice.value)
           : current === choice.value;
         const chip = choice.recommended ? <RecommendedChip /> : null;
+        const custom = renderLabel?.(choice.value, chip);
         return (
           <label
             className="tui-gate-choice"
@@ -67,9 +69,7 @@ function Choices({
               }
             />
             <span className="tui-gate-choice-label">
-              {renderLabel ? (
-                renderLabel(choice.value, chip)
-              ) : (
+              {custom ?? (
                 <>
                   <span className="tui-gate-choice-label-row">
                     <span title={choice.description}>{choice.label}</span>

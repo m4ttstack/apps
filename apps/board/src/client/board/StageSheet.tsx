@@ -129,7 +129,9 @@ function StageSheetBody({
               <section
                 key={q.name}
                 className="tui-gate-question"
-                data-gate-ctx={thread ? 'thread' : undefined}
+                data-gate-ctx={
+                  thread ? 'thread' : replies ? 'replies' : undefined
+                }
                 aria-label={q.prompt}
               >
                 <div className="tui-gate-question-head">
@@ -152,9 +154,7 @@ function StageSheetBody({
                             <ReplyChoiceBody entry={entry}>
                               {chip}
                             </ReplyChoiceBody>
-                          ) : (
-                            value
-                          );
+                          ) : undefined;
                         }
                       : undefined
                   }

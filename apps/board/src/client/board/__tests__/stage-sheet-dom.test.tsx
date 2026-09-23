@@ -127,6 +127,7 @@ let container: HTMLElement;
 let posts: Array<{ url: string; body: unknown }>;
 let answeredElsewhere: boolean;
 let continues: number;
+let answeredCount: number;
 let focused: Array<{ iid: number; domain: GateDomain }>;
 
 beforeEach(() => {
@@ -134,6 +135,7 @@ beforeEach(() => {
   posts = [];
   answeredElsewhere = false;
   continues = 0;
+  answeredCount = 0;
   focused = [];
   (globalThis as { fetch: unknown }).fetch = async (
     input: RequestInfo | URL,
@@ -176,7 +178,9 @@ async function render(row: GateRow, mr?: BoardMRWithReview) {
         onFocusPane={(m, domain) => {
           focused.push({ iid: m.iid, domain });
         }}
-        onAnswered={() => {}}
+        onAnswered={() => {
+          answeredCount++;
+        }}
         onContinue={() => {
           continues++;
         }}
@@ -292,7 +296,7 @@ test('a mid-label recommended marker becomes the label, the chip and the subtitl
   expect(multi.querySelector('.tui-gate-choice-subtitle')).toBeNull();
 });
 
-test('submit waits for every single-select, then posts the answer GateForm would', async () => {
+test("submit waits for every single-select, then posts the answer gate-kit's answersFromForm builds", async () => {
   const gate = ship();
   await render(gate, MR);
   expect(submit().disabled).toBe(true);
@@ -328,7 +332,7 @@ test('submit waits for every single-select, then posts the answer GateForm would
   });
 });
 
-test('a multi left empty submits an empty list; a question with no options sends nothing, as GateForm does', async () => {
+test('a multi left empty submits an empty list; a question with no options sends nothing, matching answersFromForm', async () => {
   const gate = ship();
   await render(gate);
   await pick('hold');
@@ -352,6 +356,94 @@ test('a multi left empty submits an empty list; a question with no options sends
       draft: 'ready',
     },
   });
+});
+
+test('a multi checked then cleared never blocks submit and answers with an empty list', async () => {
+  const gate = ship({ questions: ship().questions.slice(1, 3) });
+  await render(gate);
+  await pick('preview-a');
+  await pick('preview-a');
+  expect(submit().disabled).toBe(true);
+  await pick('draft');
+  expect(submit().disabled).toBe(false);
+  await click(submit());
+  expect(answerPosts().map(p => p.body)).toEqual([
+    { gateId: 'g-ship', answers: { preview: [], draft: 'draft' } },
+  ]);
+  expect(answeredCount).toBe(1);
+});
+
+test("a question's own context and an option's description render on its card; a plain question carries neither", async () => {
+  await render(
+    ship({
+      questions: [
+        {
+          id: 'outcome',
+          label: 'Verdict',
+          multi: false,
+          context: 'The reviewer flagged a possible race condition.',
+          options: [
+            {
+              value: 'approve',
+              label: 'Approve',
+              description: 'Ship as-is, no changes requested.',
+            },
+            { value: 'comment', label: 'Comment' },
+          ],
+        },
+        {
+          id: 'tiers',
+          label: 'Which severities?',
+          multi: true,
+          options: ['Major', 'Minor'],
+        },
+      ],
+    })
+  );
+  const [first, second] = $$('.tui-sheet-main .tui-gate-question');
+  expect(first!.querySelector('.tui-gate-question-context')?.textContent).toBe(
+    'The reviewer flagged a possible race condition.'
+  );
+  expect(
+    [...first!.querySelectorAll('.tui-gate-choice-subtitle')].map(
+      n => n.textContent
+    )
+  ).toEqual(['Ship as-is, no changes requested.']);
+  expect(second!.querySelector('.tui-gate-question-context')).toBeNull();
+  expect(second!.querySelector('.tui-gate-choice-subtitle')).toBeNull();
+});
+
+test('a review@1 gate context reads as flattened prose in the rail, never raw JSON', async () => {
+  await render(
+    ship({
+      context: JSON.stringify({
+        'gate-ctx': 'review@1',
+        readiness: 'yes',
+        summary: 'nothing worth a thread.',
+        findings: {},
+      }),
+    })
+  );
+  const card = $('.tui-sheet-context-card')!;
+  expect(card.textContent).toContain('Ready to merge: yes');
+  expect(card.textContent).toContain('nothing worth a thread.');
+  expect(document.body.textContent).not.toContain('gate-ctx');
+});
+
+test('a structured gate context with no card of its own shows nothing raw', async () => {
+  await render(
+    ship({
+      context: JSON.stringify({
+        'gate-ctx': 'replies@1',
+        replies: [{ thread: 't1', file: 'a.ts:1', verb: 'reply', text: 'x' }],
+      }),
+    })
+  );
+  expect($('.tui-sheet-context-card .tui-sheet-context-reasoning')).toBeNull();
+  expect(text('.tui-sheet-context-card .tui-sheet-context-meta')).toContain(
+    'run:20260923-0900-demo'
+  );
+  expect(document.body.textContent).not.toContain('gate-ctx');
 });
 
 test('picking two multis reads as a count in the dock', async () => {
