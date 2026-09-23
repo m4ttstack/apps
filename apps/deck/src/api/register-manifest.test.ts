@@ -510,9 +510,10 @@ test('with no self record on a machine the mattstack app owns, the refusal never
       runningLabel: async () => 'com.mattstack.deck.dev',
     },
   });
+  const error = String((r.body as { error?: unknown }).error);
   expect(r.status).toBe(400);
-  expect(String(r.body.error)).toContain('mattstack app');
-  expect(String(r.body.error)).not.toContain('run deck setup');
+  expect(error).toContain('mattstack app');
+  expect(error).not.toContain('run deck setup');
   expect(getRecord('deck')).toBeUndefined();
 });
 
