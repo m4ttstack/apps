@@ -120,23 +120,49 @@ export function joinPlan(
   return joined;
 }
 
-/** Gate 1's reply-only threads, counted from the plan's answers alone for a
-    post gate that cannot be joined card by card: every `reply:` answer whose
-    thread this gate does not offer posts once it proceeds. */
-export function replyOnlyCount(
+/** A Gate 1 reply-only thread read from the plan alone, for a post gate
+    that cannot be joined card by card. `text` is the answer's edit, else the
+    card's verbatim draft; absent when neither is known. `thread` is the plan
+    card, when its context still parses. */
+export interface StepReply {
+  threadId: string;
+  label: string;
+  text?: string;
+  edited: boolean;
+  thread?: ThreadCtx;
+}
+
+/** Every `reply:` answer in the matched plan whose thread this gate does not
+    offer, in plan order: each posts once this gate proceeds. */
+export function replyOnlyThreads(
   ctx: PostCtx,
   offered: readonly string[],
   mr?: BoardMRWithReview
-): number {
+): StepReply[] {
   const plan = planGateFor(ctx, mr);
-  if (!plan) return 0;
+  if (!plan) return [];
   const offeredIds = new Set(offered);
-  return Object.values(plan.answers ?? {}).filter(raw => {
-    const value = unwrapGateAnswer(raw).value;
-    return (
-      typeof value === 'string' &&
-      verbOf(value) === 'reply' &&
-      !offeredIds.has(value.slice(value.indexOf(':') + 1))
-    );
-  }).length;
+  return plan.questions.flatMap(q => {
+    const raw = plan.answers?.[q.id];
+    if (raw === undefined) return [];
+    const answer = unwrapGateAnswer(raw);
+    if (typeof answer.value !== 'string' || verbOf(answer.value) !== 'reply')
+      return [];
+    const threadId = answer.value.slice(answer.value.indexOf(':') + 1);
+    if (offeredIds.has(threadId)) return [];
+    const card = parseGateCtx(q.context);
+    const thread = card?.shape === 'thread@1' ? card : undefined;
+    const text =
+      answer.text ??
+      (thread?.reply.kind === 'verbatim' ? thread.reply.text : undefined);
+    return [
+      {
+        threadId,
+        label: q.label,
+        edited: answer.text !== undefined,
+        ...(text !== undefined ? { text } : {}),
+        ...(thread ? { thread } : {}),
+      },
+    ];
+  });
 }

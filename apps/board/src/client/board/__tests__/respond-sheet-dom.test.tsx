@@ -1451,3 +1451,82 @@ test('a newer plan gate still open is never the one a post gate follows', async 
   expect(repliesChip()).toBe('2 replies');
   expect($('.tui-sheet-list-tally')!.textContent).toBe('2 of 2 posting');
 });
+
+/** A prose-flattened Gate 2 offering only the fix, after a plan whose
+    Gate 1 reply-only thread (r2) posts with this step. */
+async function renderProseWithReplyOnly(
+  thread2: Partial<GateRow['questions'][number]> = {},
+  answer2: NonNullable<GateRow['answers']>[string] = 'reply:r2'
+) {
+  const gate = prosePostGate();
+  gate.questions = [gate.questions[0]!];
+  const plan = answeredPlan();
+  plan.questions = [
+    plan.questions[0]!,
+    { ...plan.questions[1]!, ...thread2 },
+    plan.questions[2]!,
+  ];
+  plan.answers = {
+    'thread-1': 'fix:r1',
+    'thread-2': answer2,
+    'thread-3': 'skip:r3',
+  };
+  await render(gate, { ...MR, gates: [plan] } as unknown as BoardMRWithReview);
+}
+
+const dockRows = () =>
+  [
+    ...document.body.querySelectorAll(
+      '[data-card="responses"] .tui-sheet-card-row'
+    ),
+  ].map(r => r.textContent);
+
+test('a prose-flattened post sheet shows the Gate 1 reply-only thread as a card, a dock row and in its title', async () => {
+  await renderProseWithReplyOnly();
+  expect($('.tui-sheet-list-title')!.textContent).toBe(
+    'Post replies on 2 threads'
+  );
+  const cards = postCards();
+  expect(cards.map(c => c.getAttribute('aria-label'))).toEqual([
+    'a.ts:1',
+    'b.ts:2',
+  ]);
+  const replyOnly = cards[1]!;
+  expect(outcomeOf(replyOnly)).toBe('reply · posts with this step');
+  expect(replyOnly.querySelector('.tui-thread-reply-text')!.textContent).toBe(
+    'fixed, with a test.'
+  );
+  expect(replyOnly.querySelector('input')).toBeNull();
+  expect(dockRows()).toEqual(['postresolvea.ts:1', 'postb.ts:2']);
+  const fix = cards[0]!;
+  await React.act(async () => control(fix, 'hold')!.click());
+  await React.act(async () => control(fix, 'resolve')!.click());
+  expect(dockRows()).toEqual(['holda.ts:1', 'postb.ts:2']);
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('1 of 2 posting');
+  expect(submit().textContent).toBe('post 1');
+  expect(repliesChip()).toBe('1 reply');
+});
+
+test('with the plan context flattened too, the reply-only card shows the Gate 1 edit, or says it was approved there', async () => {
+  await renderProseWithReplyOnly(
+    { context: 'b.ts:2 REPLY: fixed, with a test.' },
+    { value: 'reply:r2', text: 'kept on purpose.' }
+  );
+  const edited = postCards()[1]!;
+  expect(outcomeOf(edited)).toBe('reply · posts with this step');
+  expect(edited.querySelector('.tui-thread-reply-text')!.textContent).toBe(
+    'kept on purpose.'
+  );
+  expect(edited.querySelector('[data-chip="edited"]')).not.toBeNull();
+  await React.act(async () => root.unmount());
+  root = createRoot(container);
+  await renderProseWithReplyOnly({
+    context: 'b.ts:2 REPLY: fixed, with a test.',
+  });
+  const bare = postCards()[1]!;
+  expect(bare.textContent).toContain(
+    'Approved at Gate 1; posts with this step.'
+  );
+  expect(bare.querySelector('[data-chip="edited"]')).toBeNull();
+  expect(bare.querySelector('input')).toBeNull();
+});

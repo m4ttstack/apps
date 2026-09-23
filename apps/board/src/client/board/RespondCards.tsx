@@ -326,6 +326,7 @@ function ReplyChoiceBody({
 export {
   EditableReply,
   EditedChip,
+  ReplyBlock,
   ReplyChoiceBody,
   SeverityPill,
   ThreadCard,

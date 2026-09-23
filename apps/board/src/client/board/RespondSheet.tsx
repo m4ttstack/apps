@@ -26,7 +26,12 @@ import { AnsweredChip, type GateFormState } from './GateForm.tsx';
 import { MrCard } from './MrCard.tsx';
 import { forgeNoun } from './MrLinks.tsx';
 import { PersonLead, PersonTag } from './PersonLead.tsx';
-import { joinPlan, replyOnlyCount, type JoinedThread } from './respond-join.ts';
+import {
+  joinPlan,
+  replyOnlyThreads,
+  type JoinedThread,
+  type StepReply,
+} from './respond-join.ts';
 import {
   editedText,
   isEdited,
@@ -40,6 +45,7 @@ import {
 import {
   EditableReply,
   EditedChip,
+  ReplyBlock,
   ReplyChoiceBody,
   SeverityPill,
   ThreadCard,
@@ -318,6 +324,50 @@ function PostStepCard({
   );
 }
 
+/** A Gate 1 reply-only thread on a post sheet that could not be joined to
+    its plan card by card: the joined card when the plan card still parses
+    and the text is known, else a plain card with the text or a line saying
+    Gate 1 approved it. No controls either way. */
+function StepReplyCard({ s }: { s: StepReply }) {
+  if (s.thread && s.text !== undefined)
+    return (
+      <PostStepCard
+        j={{
+          threadId: s.threadId,
+          label: s.label,
+          thread: s.thread,
+          decided: 'reply',
+          replyOnly: { text: s.text, edited: s.edited },
+        }}
+      >
+        {null}
+      </PostStepCard>
+    );
+  return (
+    <section
+      className="tui-gate-question"
+      data-gate-ctx="thread"
+      data-step="post"
+      aria-label={s.label}
+    >
+      <div className="tui-gate-question-head">
+        <span className="tui-gate-question-label">{s.label}</span>
+        <ThreadOutcome verb="reply" withStep />
+        {s.edited && <EditedChip />}
+      </div>
+      <div className="tui-thread-card">
+        {s.text !== undefined ? (
+          <ReplyBlock text={s.text} />
+        ) : (
+          <p className="tui-thread-nothing">
+            Approved at Gate 1; posts with this step.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /** A per-thread post question's controls: post or hold its reply, and,
     independently of either, resolve the thread. */
 function PostResolveChoice({
@@ -451,6 +501,10 @@ type RowChip = { text: string; intent: 'ok' | 'muted' | 'accent' } | null;
 
 type ResponseRow = { key: string; text: string; chips: RowChip[] };
 
+/** A thread in plan order for the dock rows: one this gate offers, or one
+    that posts with this step on Gate 1's word. */
+type RowThread = { threadId: string; label: string; postsWithStep: boolean };
+
 /** One line per thread (or reply) with what the submit will do with it,
     filled in as picks are made; it sits in the dock above the submit. With
     the plan joined, rows follow plan order and a reply-only thread gets its
@@ -464,7 +518,7 @@ function ResponseRows({
   mainQs: GateItemDisplay[];
   picks: PostPick[];
   form: GateFormState;
-  plan?: JoinedThread[] | null;
+  plan?: RowThread[] | null;
 }) {
   const offered: ResponseRow[] = mainQs.flatMap(q => {
     const v = form.selections[q.name];
@@ -519,7 +573,7 @@ function ResponseRows({
           : checklist && `${checklist.name}:${j.threadId}`;
         const row = key ? offered.find(r => r.key === key) : undefined;
         if (row) return [row];
-        if (!j.replyOnly) return [];
+        if (!j.postsWithStep) return [];
         const post: RowChip = { text: 'post', intent: 'ok' };
         return [
           {
@@ -828,15 +882,38 @@ function RespondSheetBody({
   const pickNames = new Set(picks.map(p => p.name));
   const displayOf = (name: string) => form.display.find(q => q.name === name);
   const postThreads = joined ?? threadJoin;
-  const withStep = postThreads
-    ? postThreads.filter(j => j.replyOnly).length
-    : ctx.shape === 'post@1' && perThread
-      ? replyOnlyCount(
+  const stepThreads =
+    !postThreads && ctx.shape === 'post@1' && perThread
+      ? replyOnlyThreads(
           ctx,
           picks.map(p => p.threadId),
           mr
         )
-      : 0;
+      : [];
+  const withStep = postThreads
+    ? postThreads.filter(j => j.replyOnly).length
+    : stepThreads.length;
+  const rowThreads: RowThread[] | null = postThreads
+    ? postThreads.map(j => ({
+        threadId: j.threadId,
+        label: j.label,
+        postsWithStep: !!j.replyOnly,
+      }))
+    : stepThreads.length > 0
+      ? [
+          ...picks.map(p => ({
+            threadId: p.threadId,
+            label: p.label,
+            postsWithStep: false,
+          })),
+          ...stepThreads.map(t => ({
+            threadId: t.threadId,
+            label: t.label,
+            postsWithStep: true,
+          })),
+        ]
+      : null;
+  const listCount = postThreads?.length ?? picks.length + stepThreads.length;
   const dockPick = dockQs
     .map(q => {
       const v = form.selections[q.name];
@@ -890,10 +967,8 @@ function RespondSheetBody({
           <span className="tui-sheet-list-title">
             {postThreads || perThread ? (
               <>
-                Post replies on {postThreads?.length ?? picks.length}{' '}
-                {(postThreads?.length ?? picks.length) === 1
-                  ? 'thread'
-                  : 'threads'}
+                Post replies on {listCount}{' '}
+                {listCount === 1 ? 'thread' : 'threads'}
                 {frame === undefined && (
                   <>
                     {' '}
@@ -978,6 +1053,9 @@ function RespondSheetBody({
                   </section>
                 );
               })}
+          {stepThreads.map(t => (
+            <StepReplyCard key={`with-step:${t.threadId}`} s={t} />
+          ))}
           {mainQs
             .filter(q => !pickNames.has(q.name))
             .map(q => {
@@ -1165,7 +1243,7 @@ function RespondSheetBody({
                     mainQs={mainQs}
                     picks={picks}
                     form={form}
-                    plan={postThreads}
+                    plan={rowThreads}
                   />
                   {nextStep && (
                     <p className="tui-sheet-dock-next">{nextStep}</p>
