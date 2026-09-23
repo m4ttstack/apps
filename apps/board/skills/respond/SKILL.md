@@ -408,7 +408,7 @@ conversation.
      skill so it can execute the posting, or act per thread yourself on the
      generic no-domain-skill path: `post:<threadId>` posts that thread's
      reply, `resolve:<threadId>` resolves the thread (after the reply when
-     both are picked), and an empty array leaves it untouched — `by` is
+     both are picked), and an empty array leaves it untouched. `by` is
      the wait's own decider field, so the domain skill's decision record
      names who actually decided instead of guessing.
 7. **Mark done, with the counts.** After the run wraps, report what actually
@@ -451,8 +451,9 @@ offered thread, each an array of `post:<threadId>` and/or
 key other than `code-changes`, unwrapping a `{value, note}` object to its
 `value`, and splitting each value at the first `:` into the verb and the
 thread id: the thread id is in the value, and the `thread-<n>` key is never
-a join key. A Gate 2 opened before this shape (a `replies` multi of bare
-thread ids plus `disposition`) still reads as it did: post the selected
+a join key. A Gate 2 opened before this shape (a `replies` multi, or its
+`replies-1`, `replies-2`, ... chunks, of bare thread ids plus
+`disposition`) still reads as it did: post the union of the selected
 replies, and resolve them only on `resolve-addressed`.
 
 A PreToolUse hook may deny native AskUserQuestion when no gate is open; that

@@ -1,7 +1,7 @@
 import {
   Fragment,
-  useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -682,7 +682,8 @@ function RespondSheetBody({
     if (!repliesName || !joined) return;
     for (const id of postable) form.toggleMulti(repliesName, id, true);
   };
-  useEffect(() => {
+  // Seeds before the first paint, so an untouched gate never flashes as held.
+  useLayoutEffect(() => {
     if (!repliesName || form.selections[repliesName] !== undefined) return;
     seedPostable();
     // Seeds once per gate, and only a checklist no draft or pick has touched.
@@ -705,7 +706,7 @@ function RespondSheetBody({
       if (force || form.selections[p.name] === undefined)
         for (const v of p.defaults) form.toggleMulti(p.name, v, true);
   };
-  useEffect(() => {
+  useLayoutEffect(() => {
     seedPicks(false);
     // Seeds once per gate; a thread with a draft or a pick keeps it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
