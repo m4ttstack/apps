@@ -41,6 +41,7 @@ import {
 } from '../registry/serve-shape.ts';
 import { serviceEnv } from '../registry/service-env.ts';
 import { composeServicePath, resolveProgram } from '../services/exec-env.ts';
+import type { DeckOwner } from '../services/helper-owner.ts';
 import {
   readInstalledEnvironment,
   readInstalledProgramArguments,
@@ -66,6 +67,8 @@ export interface Drivers {
   dns?: CfDns;
   /** Only needed for the edge teardown call in `deck uninstall`; see src/cli/setup.ts. */
   tunnel?: TunnelDriver;
+  /** Live launchd view in production; absent means a hand-installed deck under its record's label. */
+  deckOwner?: DeckOwner;
 }
 
 export interface RegisterInput {

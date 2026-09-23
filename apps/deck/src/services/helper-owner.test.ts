@@ -13,6 +13,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   bundleHelperOwnsDeck,
+  deckStartHint,
   prepareHelperBoot,
   retireHandAgent,
   type Probe,
@@ -78,6 +79,36 @@ describe('bundleHelperOwnsDeck', () => {
     const probe = probeOf({ 'com.mattstack.deck': handAgent('/u/Library') });
 
     expect(await bundleHelperOwnsDeck(probe, null)).toBe(false);
+  });
+});
+
+describe('deckStartHint', () => {
+  test('a helper-owned machine is told to use the app or kickstart the helper launchd reports', async () => {
+    const probe = probeOf({ 'com.mattstack.deck.dev': SMAPP_DEV });
+
+    const hint = await deckStartHint(probe, null, 501);
+
+    expect(hint).toContain('mattstack app');
+    expect(hint).toContain(
+      '`launchctl kickstart -k gui/501/com.mattstack.deck.dev`'
+    );
+    expect(hint).not.toContain('deck setup');
+  });
+
+  test('a bundle process launchd reports no job for points at the app alone', async () => {
+    const hint = await deckStartHint(probeOf({}), '/Applications/m.app', 501);
+
+    expect(hint).toContain('mattstack app');
+    expect(hint).not.toContain('launchctl');
+    expect(hint).not.toContain('deck setup');
+  });
+
+  test('without a helper, deck serve and deck setup are still the way in', async () => {
+    const probe = probeOf({ 'com.mattstack.deck': handAgent('/u/Library') });
+
+    expect(await deckStartHint(probe, null, 501)).toBe(
+      'Start it with `deck serve` or install it with `deck setup`.'
+    );
   });
 });
 
