@@ -2,9 +2,21 @@
     mark: a real happy-dom document and a real Board render, fetch faked. */
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
-import { afterAll, beforeAll, beforeEach, expect, test } from 'bun:test';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  expect,
+  setSystemTime,
+  test,
+} from 'bun:test';
 
 GlobalRegistrator.register({ url: 'http://localhost/' });
+
+// Frozen for the whole suite (via setSystemTime in beforeAll below) so every
+// fixture built from "now" lands at the same instant the board's own
+// freshness math reads at render time.
+const NOW = Date.now();
 
 class FakeEventSource {
   onmessage: ((ev: MessageEvent) => void) | null = null;
@@ -51,6 +63,7 @@ const realFetch = globalThis.fetch;
 let servedData: Record<string, unknown> = BOARD_DATA;
 
 beforeAll(async () => {
+  setSystemTime(NOW);
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (url.startsWith('/data.json')) {
@@ -72,6 +85,7 @@ beforeEach(() => {
 });
 
 afterAll(async () => {
+  setSystemTime();
   globalThis.fetch = realFetch;
   delete (globalThis as unknown as { EventSource?: unknown }).EventSource;
   await GlobalRegistrator.unregister();
@@ -92,13 +106,12 @@ const banner = (container: HTMLElement) =>
   container.querySelector<HTMLElement>('.tui-banner[role="status"]');
 
 test('stale data with a GitLab timeout: a red banner naming the cause, and a marked tab', async () => {
-  const now = Date.now();
   servedData = {
     ...BOARD_DATA,
-    dataSyncedAt: now - 103 * 60_000,
+    dataSyncedAt: NOW - 103 * 60_000,
     syncError: {
-      since: now - 100 * 60_000,
-      lastAt: now - 60_000,
+      since: NOW - 100 * 60_000,
+      lastAt: NOW - 60_000,
       kind: 'timeout',
       message: 'GraphQL errors: Timeout on MergeRequest.id',
       projects: 1,
@@ -122,7 +135,7 @@ test('stale data with a GitLab timeout: a red banner naming the cause, and a mar
 });
 
 test('stale data without a cause: an amber banner (no data-intent)', async () => {
-  servedData = { ...BOARD_DATA, dataSyncedAt: Date.now() - 15 * 60_000 };
+  servedData = { ...BOARD_DATA, dataSyncedAt: NOW - 15 * 60_000 };
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = await renderBoard(container);
@@ -137,7 +150,7 @@ test('stale data without a cause: an amber banner (no data-intent)', async () =>
 });
 
 test('fresh data: no banner and an unmarked tab', async () => {
-  servedData = { ...BOARD_DATA, dataSyncedAt: Date.now() - 60_000 };
+  servedData = { ...BOARD_DATA, dataSyncedAt: NOW - 60_000 };
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = await renderBoard(container);
@@ -151,7 +164,7 @@ test('fresh data: no banner and an unmarked tab', async () => {
 });
 
 test('re-rendering while stale does not stack the tab mark', async () => {
-  servedData = { ...BOARD_DATA, dataSyncedAt: Date.now() - 45 * 60_000 };
+  servedData = { ...BOARD_DATA, dataSyncedAt: NOW - 45 * 60_000 };
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = await renderBoard(container);
