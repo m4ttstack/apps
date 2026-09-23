@@ -99,3 +99,14 @@ test('settings writes refuse every public edge marker', async () => {
     expect({ edge, status: res.status }).toEqual({ edge, status: 403 });
   }
 }, 15_000);
+
+test('member check-in/out refuses every public edge marker', async () => {
+  await ready();
+  for (const edge of EDGES) {
+    const res = await post('/settings', edge, {
+      username: 'alice',
+      hidden: true,
+    });
+    expect({ edge, status: res.status }).toEqual({ edge, status: 403 });
+  }
+}, 15_000);

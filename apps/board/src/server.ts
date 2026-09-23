@@ -1230,6 +1230,8 @@ const httpServer = Bun.serve({
       case '/settings': {
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
+        if (!isLocalRequest(req, server))
+          return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
           if (notJson) return notJson;
