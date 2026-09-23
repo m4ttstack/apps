@@ -1,0 +1,220 @@
+import { useState, type ReactNode } from 'react';
+import {
+  ActionIcon,
+  Box,
+  Collapse,
+  Group,
+  Highlight,
+  Stack,
+  Text,
+  UnstyledButton,
+  type TextProps,
+} from '@mattstack/app-kit/core';
+import { useSchemeColors } from '@mattstack/app-kit/hooks';
+import { Icons } from '@mattstack/app-kit/icons';
+import type { SettingDefWire } from '@mattstack/settings-kit/react';
+import {
+  formatValue,
+  rowKind,
+  SHAPES,
+  summarize,
+} from '@mattstack/settings-kit/shapes';
+import { Link } from 'wouter';
+
+import { ScalarControl } from './ScalarControl';
+import { ScopeBadge } from './ScopeBadge';
+import { useRowSave, type RowStore } from './useRowSave';
+import {
+  badgeScope,
+  firstSentence,
+  sourceText,
+  splitKey,
+  type StoreScope,
+} from './view';
+
+function Marked({
+  text,
+  query,
+  ...props
+}: { text: string; query: string } & Omit<TextProps, 'color'>) {
+  return query.trim() === '' ? (
+    <Text {...props}>{text}</Text>
+  ) : (
+    <Highlight {...props} highlight={query.trim()} color="warn">
+      {text}
+    </Highlight>
+  );
+}
+
+export function ExpandToggle({
+  label,
+  open,
+  onToggle,
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const { text } = useSchemeColors();
+  return (
+    <UnstyledButton onClick={onToggle} aria-expanded={open}>
+      <Group gap={4} wrap="nowrap">
+        <Text size="xs" c={text.muted}>
+          {label}
+        </Text>
+        {open ? <Icons.chevronUp size={14} /> : <Icons.chevronDown size={14} />}
+      </Group>
+    </UnstyledButton>
+  );
+}
+
+export function SettingRow({
+  def,
+  store,
+  subhead,
+  query,
+  suggestions,
+}: {
+  def: SettingDefWire;
+  store: RowStore;
+  subhead: StoreScope | null;
+  query: string;
+  suggestions?: string[];
+}) {
+  const { text } = useSchemeColors();
+  const row = useRowSave(store, def);
+  const [open, setOpen] = useState(false);
+  const kind = rowKind(def);
+  const [ns, name] = splitKey(def.key);
+  const badge = badgeScope(def, subhead);
+  const plain = sourceText(def);
+  const moveTo =
+    def.writable && badge
+      ? (def.scopes as StoreScope[]).filter(s => s !== badge)
+      : [];
+
+  let control: ReactNode;
+  let body: ReactNode = null;
+  if (kind === 'scalar' || kind === 'enum') {
+    control = (
+      <ScalarControl
+        def={def}
+        onSave={v => void row.save(v)}
+        suggestions={suggestions}
+      />
+    );
+  } else if (kind === 'external') {
+    const shape = SHAPES[def.key];
+    control = (
+      <Text size="xs" c={text.muted}>
+        {summarize(def)} · edited in{' '}
+        {shape?.kind === 'external' ? shape.app : 'another app'}
+      </Text>
+    );
+  } else if (
+    kind === 'readonly' &&
+    def.type !== 'object' &&
+    def.type !== 'array'
+  ) {
+    control = (
+      <Text size="xs" c={text.muted} ff="monospace">
+        {def.secret
+          ? '•••'
+          : def.effective.value === undefined
+            ? 'unset'
+            : formatValue(def.effective.value)}
+      </Text>
+    );
+  } else {
+    const composite = compositeParts(def, kind, row, open, () =>
+      setOpen(o => !o)
+    );
+    control = composite.control;
+    body = composite.body;
+  }
+
+  return (
+    <Box
+      data-key={def.key}
+      style={{ borderBottom: '1px solid var(--tk-border-soft)' }}
+    >
+      <Group gap={24} wrap="nowrap" py={12}>
+        <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
+          <Group gap={8} wrap="nowrap">
+            <Text size="sm" ff="monospace" span>
+              <Text span inherit c={text.muted}>
+                {ns}
+              </Text>
+              <Marked text={name} query={query} span inherit fw={500} />
+            </Text>
+            {badge ? (
+              <ScopeBadge
+                scope={badge}
+                moveTo={moveTo}
+                onMove={to => void row.move(badge, to)}
+              />
+            ) : plain ? (
+              <Text size="xs" c={text.muted}>
+                {plain}
+              </Text>
+            ) : null}
+          </Group>
+          <Marked
+            text={firstSentence(def.description)}
+            query={query}
+            size="xs"
+            c={text.muted}
+          />
+        </Stack>
+        <Group w={260} gap={8} wrap="nowrap" style={{ flex: 'none' }}>
+          {control}
+          {row.status === 'saving' && (
+            <Text size="xs" c={text.muted}>
+              saving…
+            </Text>
+          )}
+          {row.status === 'saved' && (
+            <Group gap={4} wrap="nowrap">
+              <Text size="xs" c="var(--tk-text-ok-small)">
+                saved
+              </Text>
+              <Icons.check size={12} color="var(--tk-text-ok-small)" />
+            </Group>
+          )}
+        </Group>
+        <ActionIcon
+          component={Link}
+          href={`/config/${encodeURIComponent(def.key)}`}
+          variant="subtle"
+          color="gray"
+          aria-label={`explain ${def.key}`}
+        >
+          <Icons.chevronRight size={16} />
+        </ActionIcon>
+      </Group>
+      {row.error && (
+        <Text size="xs" ff="monospace" c="var(--tk-text-bad-small)" pb={12}>
+          {row.error}
+        </Text>
+      )}
+      {body && <Collapse expanded={open}>{body}</Collapse>}
+    </Box>
+  );
+}
+
+/** Composite rows: the control column holds a summary toggle, the body
+    expands under the row. */
+function compositeParts(
+  def: SettingDefWire,
+  _kind: string,
+  _row: ReturnType<typeof useRowSave>,
+  open: boolean,
+  onToggle: () => void
+): { control: ReactNode; body: ReactNode } {
+  return {
+    control: (
+      <ExpandToggle label={summarize(def)} open={open} onToggle={onToggle} />
+    ),
+    body: null,
+  };
+}
