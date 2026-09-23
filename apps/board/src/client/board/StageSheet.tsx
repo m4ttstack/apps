@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
 
 import {
   optionValue,
@@ -11,7 +11,7 @@ import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview } from '../types.ts';
 import { Disclosure, DisclosureHead } from './Disclosure.tsx';
 import { ago } from './format.ts';
-import { parseGateCtx } from './gate-ctx.ts';
+import { parseGateCtx, type GateCtx } from './gate-ctx.ts';
 import type { GateFormState } from './GateForm.tsx';
 import { MrCard } from './MrCard.tsx';
 import { ReplyChoiceBody, SeverityPill, ThreadCard } from './RespondCards.tsx';
@@ -23,6 +23,7 @@ import {
   ProseContext,
   SheetLost,
   SheetRows,
+  type ChoiceState,
   type RowChip,
 } from './SheetParts.tsx';
 import { humanizeLabel, splitPaneScreen, stageDisplay } from './stage-gate.ts';
@@ -97,6 +98,99 @@ function inOptionOrder(
   return ordered;
 }
 
+/** One question's card: its head, its own context (a thread card, a reply,
+    or prose), its choices, and whatever the host puts under them. A
+    read-only card shows a recorded answer with every input disabled. */
+function QuestionCard({
+  q,
+  qctx,
+  picks,
+  readOnly = false,
+  replyText,
+  children,
+}: {
+  q: GateItemDisplay;
+  qctx: GateCtx | null;
+  picks: ChoiceState;
+  readOnly?: boolean;
+  /** The reply as posted, when it differs from a reply context's draft. */
+  replyText?: string;
+  children?: ReactNode;
+}) {
+  const thread = qctx?.shape === 'thread@1' ? qctx : null;
+  const replies = qctx?.shape === 'replies@1' ? qctx.replies : null;
+  const reply = qctx?.shape === 'reply@1' ? qctx : null;
+  return (
+    <section
+      className="tui-gate-question"
+      data-gate-ctx={thread ? 'thread' : replies ? 'replies' : undefined}
+      data-readonly={readOnly || undefined}
+      aria-label={q.prompt}
+    >
+      <div className="tui-gate-question-head">
+        <span className="tui-gate-question-label">{q.prompt}</span>
+        {thread && <SeverityPill severity={thread.severity} />}
+      </div>
+      {thread ? (
+        <ThreadCard ctx={thread} />
+      ) : reply ? (
+        <div className="tui-thread-card">
+          <ReplyChoiceBody
+            entry={{ ...reply, text: replyText ?? reply.text }}
+          />
+        </div>
+      ) : (
+        <ProseContext q={q} structured={qctx !== null} />
+      )}
+      <Choices
+        q={q}
+        form={picks}
+        disabled={readOnly}
+        renderLabel={
+          replies
+            ? (value, chip) => {
+                const entry = replies.find(r => r.thread === value);
+                return entry ? (
+                  <ReplyChoiceBody entry={entry}>{chip}</ReplyChoiceBody>
+                ) : undefined;
+              }
+            : undefined
+        }
+      />
+      {children}
+    </section>
+  );
+}
+
+/** The rail's decision context: an optional lead, the gate's prose context
+    and when and where it opened. */
+function ContextCard({
+  gate,
+  mr,
+  context,
+  children,
+}: {
+  gate: GateRow;
+  mr?: BoardMRWithReview;
+  context?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="tui-sheet-context-card">
+      <span className="tui-sheet-context-label">decision context</span>
+      {children}
+      {context && (
+        <div className="tui-sheet-context-reasoning">
+          <Markdown unstyled linkTargetBlank>
+            {context}
+          </Markdown>
+        </div>
+      )}
+      <p className="tui-sheet-context-meta">{openedMeta(gate, mr)}</p>
+    </div>
+  );
+}
+
 /** Every gate that is neither a respond nor a review gate: all of its
     questions at once in the main column, decided in any order; the rail
     holds the MR, the gate's context, and the docked answer. */
@@ -148,48 +242,16 @@ function StageSheetBody({
           </span>
         </div>
         <div className="tui-respond-list">
-          {display.map(q => {
-            const qctx = questionCtx.get(q.name) ?? null;
-            const thread = qctx?.shape === 'thread@1' ? qctx : null;
-            const replies = qctx?.shape === 'replies@1' ? qctx.replies : null;
-            return (
-              <section
-                key={q.name}
-                className="tui-gate-question"
-                data-gate-ctx={
-                  thread ? 'thread' : replies ? 'replies' : undefined
-                }
-                aria-label={q.prompt}
-              >
-                <div className="tui-gate-question-head">
-                  <span className="tui-gate-question-label">{q.prompt}</span>
-                  {thread && <SeverityPill severity={thread.severity} />}
-                </div>
-                {thread ? (
-                  <ThreadCard ctx={thread} />
-                ) : (
-                  <ProseContext q={q} structured={qctx !== null} />
-                )}
-                <Choices
-                  q={q}
-                  form={form}
-                  renderLabel={
-                    replies
-                      ? (value, chip) => {
-                          const entry = replies.find(r => r.thread === value);
-                          return entry ? (
-                            <ReplyChoiceBody entry={entry}>
-                              {chip}
-                            </ReplyChoiceBody>
-                          ) : undefined;
-                        }
-                      : undefined
-                  }
-                />
-                <Note q={q} form={form} />
-              </section>
-            );
-          })}
+          {display.map(q => (
+            <QuestionCard
+              key={q.name}
+              q={q}
+              qctx={questionCtx.get(q.name) ?? null}
+              picks={form}
+            >
+              <Note q={q} form={form} />
+            </QuestionCard>
+          ))}
         </div>
       </section>
       <aside className="tui-sheet-rail">
@@ -199,19 +261,7 @@ function StageSheetBody({
           <>
             <div className="tui-sheet-rail-scroll">
               {mr && <MrCard mr={mr} />}
-              <div className="tui-sheet-context-card">
-                <span className="tui-sheet-context-label">
-                  decision context
-                </span>
-                {context && (
-                  <div className="tui-sheet-context-reasoning">
-                    <Markdown unstyled linkTargetBlank>
-                      {context}
-                    </Markdown>
-                  </div>
-                )}
-                <p className="tui-sheet-context-meta">{openedMeta(gate, mr)}</p>
-              </div>
+              <ContextCard gate={gate} mr={mr} context={context} />
             </div>
             <div className="tui-sheet-dock">
               <div className="tui-sheet-dock-head">
@@ -450,4 +500,12 @@ function PaneSheetBody({
   );
 }
 
-export { paneReason, PaneSheetBody, StageSheetBody };
+export {
+  ContextCard,
+  dockRef,
+  paneReason,
+  PaneSheetBody,
+  pickChip,
+  QuestionCard,
+  StageSheetBody,
+};

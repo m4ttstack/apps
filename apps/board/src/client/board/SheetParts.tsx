@@ -19,13 +19,22 @@ function RecommendedChip() {
   );
 }
 
+/** What a question's choices read and write: a live form, or a recorded
+    answer shown read-only. */
+type ChoiceState = Pick<
+  GateFormState,
+  'selections' | 'setSingle' | 'toggleMulti'
+>;
+
 function Choices({
   q,
   form,
+  disabled = false,
   renderLabel,
 }: {
   q: GateItemDisplay;
-  form: GateFormState;
+  form: ChoiceState;
+  disabled?: boolean;
   /** A choice's own label markup; returning undefined keeps the default. */
   renderLabel?: (value: string, chip: ReactNode) => ReactNode;
 }) {
@@ -58,6 +67,7 @@ function Choices({
               name={q.name}
               value={choice.value}
               checked={checked}
+              disabled={disabled}
               onChange={e =>
                 q.multiple
                   ? form.toggleMulti(
@@ -210,4 +220,4 @@ function SheetLost({
 }
 
 export { Choices, Note, ProseContext, SheetLost, SheetRows };
-export type { RowChip, SheetRow };
+export type { ChoiceState, RowChip, SheetRow };

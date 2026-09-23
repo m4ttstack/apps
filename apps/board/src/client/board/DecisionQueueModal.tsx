@@ -5,85 +5,24 @@ import {
   domainForKind,
   type GateDomain,
 } from '@mattstack/gate-kit';
-import {
-  Button,
-  CHECK_ICON,
-  Chip,
-  Icon,
-  Markdown,
-  ScrollPane,
-} from '@mattstack/tui-kit';
+import { Button, CHECK_ICON, Chip, Icon } from '@mattstack/tui-kit';
 import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview, ExecutorState } from '../types.ts';
-import { ago, cleanTitle, signOff } from './format.ts';
+import { AnsweredSheetBody } from './AnsweredSheet.tsx';
+import { cleanTitle, signOff } from './format.ts';
 import { parseGateCtx, type PlanCtx, type PostCtx } from './gate-ctx.ts';
-import { AnsweredChip, useGateForm, type GateFormState } from './GateForm.tsx';
+import { useGateForm } from './GateForm.tsx';
 import { GateSheet, type GateSheetQueue } from './GateSheet.tsx';
-import { MrLinks } from './MrLinks.tsx';
 import { postPicks } from './respond-post.ts';
-import { RespondGateHeader } from './RespondGateHeader.tsx';
 import { RespondSheetBody } from './RespondSheet.tsx';
 import { isReviewSheetGate, paneContext } from './review-gate.ts';
 import { ReviewGateSheet } from './ReviewGateSheet.tsx';
-import {
-  DELIVERY_STUCK_MESSAGE,
-  EXECUTION_UNASSIGNED_MESSAGE,
-} from './row-status.ts';
 import { paneReason, PaneSheetBody, StageSheetBody } from './StageSheet.tsx';
-
-/** The face for an answered gate the daemon's executor guarantee could not
-    fully deliver: "stuck" reuses `form.focusGate()` (the same `/gate/focus`
-    POST the sheet head's focus button makes) to jump into the blocked pane;
-    "unassigned" reuses `form.submit` with the gate's OWN recorded answers to
-    retry the relaunch the daemon gave up on -- both paths lean on
-    `useGateForm`'s existing busy/error plumbing rather than a third fetch
-    implementation. */
-function DeliveryStatusCard({
-  kind,
-  gate,
-  form,
-}: {
-  kind: 'stuck' | 'unassigned';
-  gate: GateRow;
-  form: GateFormState;
-}) {
-  const stuck = kind === 'stuck';
-  return (
-    <div className="tui-gate-delivery-status" data-gate-delivery-state={kind}>
-      <p className="tui-gate-delivery-message">
-        {stuck ? DELIVERY_STUCK_MESSAGE : EXECUTION_UNASSIGNED_MESSAGE}
-      </p>
-      <Button
-        type="button"
-        variant="filled"
-        intent="warn"
-        size="lg"
-        disabled={stuck ? form.focusBusy : form.busy}
-        onClick={() =>
-          stuck
-            ? void form.focusGate()
-            : void form.submit({ answers: gate.answers ?? {} })
-        }
-      >
-        {stuck ? 'focus pane' : 'retry'}
-      </Button>
-      {stuck && form.focusError && (
-        <span className="tui-gate-error">{form.focusError}</span>
-      )}
-      {!stuck && form.failed && (
-        <span className="tui-gate-error">
-          retry failed... nothing was sent, try again
-        </span>
-      )}
-    </div>
-  );
-}
 
 /** One pip per queued gate. */
 export type TriageGateState = 'done' | 'active' | 'todo';
 
-/** The gate's own state chips; they ride the MR strip, or the action strip
-    when the header card has taken the strip's place. */
+/** The gate's own state chips, on the head's action strip. */
 function GateStateChips({ gate }: { gate: GateRow }) {
   return (
     <>
@@ -105,8 +44,8 @@ function GateStateChips({ gate }: { gate: GateRow }) {
     Every face renders in the full-screen `GateSheet`: a structured
     review-post gate routes to `ReviewGateSheet`, a plan@1 or post@1 respond
     gate to `RespondSheetBody`, a pane-attention notice to `PaneSheetBody`,
-    and every other open gate to `StageSheetBody`; an answered gate keeps its
-    summary face below. Gate-level actions (focus pane) ride the head, and
+    every other open gate to `StageSheetBody`, and an answered gate to
+    `AnsweredSheetBody`. Gate-level actions (focus pane) ride the head, and
     queue nav (previous gate, pips, count, next gate) sits in the head's
     right. The host owns the queue itself. */
 function DecisionQueueModal({
@@ -176,6 +115,8 @@ function DecisionQueueModal({
   const actionable = gate.status === 'open' || gate.status === 'parked';
   const deliveryStuck = answered && gate.delivery?.outcome === 'stuck';
   const executionUnassigned = answered && gate.execution === 'unassigned';
+  const reason = gate.kind === 'pane-attention' ? paneReason(gate) : undefined;
+  const tag = reason ? `pane ${reason}` : gate.label;
 
   useEffect(() => {
     onLostChange?.(form.lost !== null);
@@ -273,13 +214,12 @@ function DecisionQueueModal({
   }
 
   if (actionable && gate.kind === 'pane-attention') {
-    const reason = paneReason(gate);
     return (
       <GateSheet
         variant="pane"
         ariaLabel="decision queue"
         queue={queue}
-        tag={reason ? `pane ${reason}` : gate.label}
+        tag={tag}
         onClose={onClose}
         actions={actions(true)}
       >
@@ -317,112 +257,28 @@ function DecisionQueueModal({
 
   return (
     <GateSheet
-      variant="triage"
+      variant="answered"
       ariaLabel="decision queue"
       queue={queue}
-      tag={gate.label}
+      tag={tag}
       onClose={onClose}
-      actions={actions(headerCtx !== null)}
+      actions={actions(true)}
     >
-      <div className="tui-triage-sheet-body">
-        {headerCtx ? (
-          <RespondGateHeader
-            gate={gate}
-            mr={mr}
-            ctx={headerCtx}
-            people={people}
-          />
-        ) : (
-          <div className="tui-triage-strip">
-            <div className="tui-triage-row-1">
-              {mr ? (
-                <>
-                  <span className="tui-title">{cleanTitle(mr.title)}</span>
-                </>
-              ) : (
-                <span className="tui-title">{gate.label}</span>
-              )}
-              <GateStateChips gate={gate} />
-              {mr && <MrLinks mr={mr} />}
-            </div>
-            <div className="tui-row-2">
-              {mr ? (
-                <>
-                  {mr.author && (
-                    <span className="tui-author-tag">
-                      {mr.author.name || mr.author.username}
-                    </span>
-                  )}
-                  <span className="tui-mr-iid">!{mr.iid}</span>
-                  <span className="tui-row-sep">|</span>
-                  {mr.sourceBranch && (
-                    <span className="tui-branch">{mr.sourceBranch}</span>
-                  )}
-                </>
-              ) : (
-                <span className="tui-subject">{gate.subject}</span>
-              )}
-              <span className="tui-row-sep">·</span>
-              <span>
-                {ago(new Date(gate.openedAt).toISOString(), Date.now())}
-              </span>
-              {gate.origin && (
-                // Panes pass the worktree as a full path; the strip shows only
-                // its basename (the full value stays on hover).
-                <span title={gate.origin.worktree}>
-                  {[
-                    gate.origin.worktree?.split('/').filter(Boolean).pop(),
-                    gate.origin.paneId,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-        {(() => {
-          const face =
-            deliveryStuck || executionUnassigned ? (
-              <DeliveryStatusCard
-                kind={deliveryStuck ? 'stuck' : 'unassigned'}
-                gate={gate}
-                form={form}
-              />
-            ) : (
-              <AnsweredChip
-                row={{
-                  subject: gate.subject,
-                  kind: gate.kind,
-                  status: gate.status,
-                  questions: gate.questions,
-                  answer: gate.answers
-                    ? {
-                        answers: gate.answers,
-                        by: gate.answeredBy,
-                        answeredAt: gate.answeredAt,
-                      }
-                    : null,
-                }}
-              />
-            );
-          return (
-            <div
-              className="tui-triage-body"
-              data-respond={headerCtx ? 'true' : undefined}
-            >
-              {proseContext && (
-                <ScrollPane title="Decision context" maxHeight="46vh">
-                  <Markdown unstyled linkTargetBlank>
-                    {proseContext}
-                  </Markdown>
-                </ScrollPane>
-              )}
-              <div className="tui-triage-form-col">{face}</div>
-            </div>
-          );
-        })()}
-      </div>
+      <AnsweredSheetBody
+        gate={gate}
+        mr={mr}
+        form={form}
+        state={
+          deliveryStuck
+            ? 'stuck'
+            : executionUnassigned
+              ? 'unassigned'
+              : 'answered'
+        }
+        context={proseContext}
+        respondCtx={headerCtx ?? undefined}
+        people={people}
+      />
     </GateSheet>
   );
 }

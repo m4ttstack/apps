@@ -52,8 +52,7 @@ import {
   ThreadOutcome,
 } from './RespondCards.tsx';
 import {
-  headerChips,
-  headerMeta,
+  RespondCtxFacts,
   reviewerName,
   subjectRef,
 } from './RespondGateHeader.tsx';
@@ -1012,23 +1011,7 @@ function RespondSheetBody({
                 ) : (
                   frame && <p className="tui-sheet-context-meta">{frame}</p>
                 )}
-                {headerMeta(ctx).length > 0 && (
-                  <p className="tui-sheet-context-meta">
-                    {headerMeta(ctx).join(' · ')}
-                  </p>
-                )}
-                <div className="tui-respond-chips">
-                  {headerChips(ctx, railPosting).map(chip => (
-                    <span
-                      key={chip.key}
-                      className="tui-respond-chip"
-                      data-hue={chip.hue}
-                      data-chip={chip.key}
-                    >
-                      {chip.text}
-                    </span>
-                  ))}
-                </div>
+                <RespondCtxFacts ctx={ctx} posting={railPosting} />
               </div>
               {mr && <MrStatusCard mr={mr} />}
             </div>
