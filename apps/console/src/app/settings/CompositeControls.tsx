@@ -111,6 +111,7 @@ function strings(v: unknown): string[] {
 
 function StringListBody({ def, row }: { def: SettingDefWire; row: Row }) {
   const list = strings(def.effective.value);
+  const saving = row.status === 'saving';
   const [draft, setDraft] = useState('');
   return (
     <Body>
@@ -125,6 +126,7 @@ function StringListBody({ def, row }: { def: SettingDefWire; row: Row }) {
         >
           <UnstyledButton
             aria-label={`remove ${item}`}
+            disabled={saving}
             onClick={() => void row.save(list.filter(x => x !== item))}
           >
             <Icons.close size={14} />
@@ -134,6 +136,7 @@ function StringListBody({ def, row }: { def: SettingDefWire; row: Row }) {
       <Box py={6}>
         <TextInput
           aria-label={`add to ${def.key}`}
+          disabled={saving}
           size="xs"
           maw={360}
           ff="monospace"
@@ -161,6 +164,7 @@ function StringMapBody({
   labels: readonly [string, string];
 }) {
   const map = (def.effective.value ?? {}) as Record<string, string>;
+  const saving = row.status === 'saving';
   const [k, setK] = useState('');
   const [v, setV] = useState('');
   return (
@@ -180,6 +184,7 @@ function StringMapBody({
           <TextInput
             key={value}
             aria-label={`${labels[1]} for ${key}`}
+            disabled={saving}
             size="xs"
             w={200}
             defaultValue={value}
@@ -192,6 +197,7 @@ function StringMapBody({
           />
           <UnstyledButton
             aria-label={`remove ${key}`}
+            disabled={saving}
             onClick={() =>
               void row.save(
                 Object.fromEntries(
@@ -207,6 +213,7 @@ function StringMapBody({
       <Group gap={8} py={6} wrap="nowrap">
         <TextInput
           aria-label={`new ${labels[0]}`}
+          disabled={saving}
           size="xs"
           style={{ flex: 1 }}
           placeholder={labels[0]}
@@ -215,6 +222,7 @@ function StringMapBody({
         />
         <TextInput
           aria-label={`new ${labels[1]}`}
+          disabled={saving}
           size="xs"
           w={200}
           placeholder={labels[1]}
@@ -223,6 +231,7 @@ function StringMapBody({
         />
         <UnstyledButton
           aria-label={`add ${labels[0]}`}
+          disabled={saving}
           onClick={() => {
             if (!k.trim() || !v.trim()) return;
             void row
@@ -594,6 +603,8 @@ export function compositeParts(
             aria-label={def.key}
             size="xs"
             w={200}
+            splitChars={[]}
+            readOnly={row.status === 'saving'}
             styles={{ inputField: { ...PLACEHOLDER, minWidth: 48 } }}
             placeholder={
               list.length > 0

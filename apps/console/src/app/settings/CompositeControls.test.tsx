@@ -89,6 +89,59 @@ describe('composite rows', () => {
     );
   });
 
+  it('an inline tag keeps its commas', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('boxscore.excludeFilePatterns', {
+          scopes: ['team'],
+          effective: { scope: 'team', file: '/t', value: ['*.md'] },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.type(
+      screen.getByRole('combobox', { name: 'boxscore.excludeFilePatterns' }),
+      '*.{{js,ts}{enter}'
+    );
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith(
+        'boxscore.excludeFilePatterns',
+        'team',
+        ['*.md', '*.{js,ts}']
+      )
+    );
+    expect(s.set).toHaveBeenCalledTimes(1);
+  });
+
+  it('list editors hold still while a save is in flight', async () => {
+    const s = store();
+    s.set.mockImplementation(() => new Promise(() => {}));
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.repoRoots', {
+          effective: {
+            scope: 'machine',
+            file: '/m',
+            value: ['~/a', '~/b', '~/c', '~/d'],
+          },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /4 /, expanded: false })
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'remove ~/a' }));
+    await waitFor(() => expect(s.set).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', { name: 'remove ~/b' })).toBeDisabled();
+    expect(screen.getByLabelText('add to rt.repoRoots')).toBeDisabled();
+  });
+
   it('a long string list expands to rows with remove and add', async () => {
     const s = store();
     const value = ['~/a', '~/b', '~/c', '~/d'];
