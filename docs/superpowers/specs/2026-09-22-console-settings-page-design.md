@@ -38,12 +38,16 @@ type LeafType = 'string' | 'number' | 'boolean' | { enum: readonly string[] };
 type CompositeShape =
   | { kind: 'stringList' }
   | { kind: 'pairList'; fields: readonly [string, string] }
+  | { kind: 'stringMap'; labels: readonly [string, string] }
   | { kind: 'leaves'; fields: Record<string, LeafType>; fallbacks?: Record<string, string> }
   | { kind: 'external'; app: string };
 export const SHAPES: Record<string, CompositeShape>;
 export const ENUMS: Record<string, readonly string[]>;
 ```
 
+- `stringMap` is a plain object of string to string, edited as two
+  columns; `labels` names them. `pairList` (an array of two-field objects)
+  stays for parity with board, though no shipped key uses it today.
 - `external` replaces board's `roster` and `tabs` kinds. Settings-kit knows
   only that another app owns the editor; board keeps rendering its roster
   and tabs editors for those keys.
@@ -54,7 +58,8 @@ export const ENUMS: Record<string, readonly string[]>;
   string scalar listed in `ENUMS`.
 - New `summarize(def): string`: the collapsed composite line.
   `stringList` gives `N <noun>` (noun from the last key segment,
-  singularised when N is 1), `pairList` gives `N entries`, `leaves` gives
+  singularised when N is 1), `pairList` and `stringMap` give `N entries`,
+  `leaves` gives
   `S of F set` where S counts fields present in the effective value.
 - New `targetScope(def): string`: the scope an edit writes to. The winning
   layer when it is one of `def.scopes`; otherwise `def.scopes[0]`.
@@ -72,7 +77,7 @@ export const ENUMS: Record<string, readonly string[]>;
 | `rt.worktreeApp` | leaves: enabled, killProcesses bool; claudeHook string |
 | `rt.notifications` | leaves: one bool per key of `NOTIFICATION_TYPES` in rt's `lib/notifier.ts` (16 today) |
 | `rt.repoRoots`, `rt.trustedBrowserOrigins`, `setup.waived` | stringList |
-| `rt.repoIdentityOverrides` | pairList `['remote URL', 'identity']` |
+| `rt.repoIdentityOverrides` | stringMap `['remote URL', 'identity']` |
 | `boxscore.projects`, `boxscore.linearDoneStates`, `boxscore.excludeFilePatterns`, `boxscore.ignoredMrs`, `boxscore.botPatterns` | stringList |
 | `boxscore.sizeBand` | leaves: tooSmall, tooLarge number |
 | `gitq.workSlots` | leaves: workSlotLocation string, maxWorkSlots number |
@@ -87,6 +92,17 @@ maps (`rt.cron`, `rt.repoTracking`, `rt.workspacePrefs`,
 arrays of objects (`rt.notify.eventBridges`, `mattstack.roster`,
 `claude.*`), and repo-scoped keys (`rt.roles`, `rt.worktrees`, `rt.sync`,
 `rt.hooks`, and the rest flagged `repoScoped`).
+
+**Fix: the effective layer is the strongest, not the weakest.**
+`explainSetting` returns rows weakest-first (default, team, user, machine),
+but `effectiveFromRows` returns the first present row, so it reports the
+weakest layer as the winner. Measured on 2026-09-22: `rt.homeSnapshot`
+(default plus machine) reports `default`; `board.agent.model` (user plus
+machine) reports `user`. Board's settings modal shows those wrong values
+today. The fix walks the rows strongest-first. For a `merge: 'deep'` object
+it also reports the merged value (default, then each present valid layer
+overlaid in order, arrays replacing) instead of one layer's slice. An
+invalid strongest layer still reports `invalid` with no value.
 
 **Server.** `SettingsHandlerOptions.allowComposite` widens to
 `boolean | 'shaped'`. `'shaped'` admits a composite write only when
@@ -114,27 +130,35 @@ npm OTP from Bitwarden. The rt-client peer range is unchanged.
 - `ConfigModal` maps `external` rows to its existing `RosterControl` and
   `TabsControl` by key. Nothing it renders changes.
 - `server.ts` passes `allowComposite: 'shaped'`.
-- `@mattstack/settings-kit` moves to `^0.2.0` in the root catalog, which
-  bumps boxscore too. Boxscore adopting the shared shapes is out of scope.
+- `@mattstack/settings-kit` enters the root catalog at `0.2.0`; board,
+  boxscore and console declare `"catalog:"` (board and boxscore pin
+  `^0.1.3` directly today, against the catalog rule). Boxscore adopting the
+  shared shapes is out of scope.
 
 ## Console (`apps/console`)
 
 **Server.** `src/server/settings.ts` keeps its three console-only reads
 (`runs-prune-days`, `default-editor`, `linear-workspace`) and drops its own
 `defs`, `explain` and `set` routes, `defToWire` and `sanitizeRows`.
-`settingsHandler` mounts at `/api/settings/*` with
-`allowComposite: 'shaped'` and `allowWrite` set to the same Host rule board
-uses (`localhost`, `127.0.0.1`, `*.localhost`, `*.mattstack`). A tunnel
-forwards the public Host, so a tunnelled request never passes. The
-predicate moves to `packages/server` so both apps import one copy.
+`settingsHandler` mounts at `/api/settings/*`, after those three typed
+routes, with `allowComposite: 'shaped'` and settings-kit's default
+`allowWrite`. That default is already the Host rule board uses
+(`localhost`, `127.0.0.1`, `::1`, `*.localhost`, `*.mattstack`); a tunnel
+forwards the public Host, so a tunnelled write never passes. Today
+console's own `/api/settings/set` has no locality gate at all, so this
+closes that gap. The router is built by `createSettingsRoutes(kit)` so
+tests inject settings-kit's `rt` override instead of mocking rt-client.
 
 **Palette.** `ConsolePalette` drops `useSettingsDefs` and the config
 actions. It indexes runs plus the two static nav actions, as before config
 was added.
 
 **Routes.** `/settings` renders `SettingsPage`. `/config/:key` stays as the
-explain drill-in, rewritten onto `useSettingKey`. `AgentDefaultsPage`,
-`useSettingsDefs`, `useSettingsPrefix` and `useSetSetting` are deleted.
+explain drill-in with its current staging UI; only `useExplainKey` and
+`useSetSetting` change, from Hono RPC to plain `fetch` against
+settings-kit's `explain` and `set` routes (same JSON shapes).
+`AgentDefaultsPage`, `useSettingsDefs` and `useSettingsPrefix` are
+deleted, and client types come from `@mattstack/settings-kit/react`.
 
 **Page units** (`src/app/settings/`):
 
