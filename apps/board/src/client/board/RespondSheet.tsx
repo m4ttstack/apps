@@ -394,6 +394,8 @@ function PostResolveChoice({
 
 const VERB_ORDER = ['fix', 'reply', 'skip'] as const;
 
+const VERB_PLURAL = { fix: 'fixes', reply: 'replies', skip: 'skips' } as const;
+
 const VERB_INTENT = {
   fix: 'accent',
   reply: 'ok',
@@ -673,9 +675,14 @@ function RespondSheetBody({
     else delete submitSelections[CODE_CHANGES_QUESTION_ID];
   }
   const shown = new Set(form.display.map(q => q.name));
-  const edits = plan
-    ? planTexts(planReplyList, form.selections, form.texts)
-    : postTexts(picks, form.selections, form.texts);
+  // A revise answered in the dock re-plans: no reply posts, so no edit rides
+  // and an emptied one cannot block it.
+  const dockRevise = submitSelections[CODE_CHANGES_QUESTION_ID] === 'revise';
+  const edits = dockRevise
+    ? {}
+    : plan
+      ? planTexts(planReplyList, form.selections, form.texts)
+      : postTexts(picks, form.selections, form.texts);
   const payload = revising
     ? reason.trim()
       ? reviseAnswers(gate, form.selections, form.notes, reason)
@@ -691,12 +698,13 @@ function RespondSheetBody({
   const threadsDecided = mainQs.filter(
     q => !q.multiple && typeof form.selections[q.name] === 'string'
   ).length;
+  const allDecided = threadsDecided === mainQs.filter(q => !q.multiple).length;
   const tally = VERB_ORDER.map(verb => {
     const n = mainQs.filter(q => {
       const v = form.selections[q.name];
       return typeof v === 'string' && v.startsWith(`${verb}:`);
     }).length;
-    return n > 0 ? `${n} ${verb}` : null;
+    return n > 0 ? `${n} ${n === 1 ? verb : VERB_PLURAL[verb]}` : null;
   }).filter(Boolean);
   const repliesQ = perThread ? undefined : mainQs.find(q => q.multiple);
   const repliesPicked = repliesQ
@@ -772,13 +780,14 @@ function RespondSheetBody({
       return q.choices.find(c => c.value === v)?.label;
     })
     .find(Boolean);
-  const nextStep = !plan
-    ? null
-    : fixes > 0
-      ? `Next, ${fixes} ${fixes === 1 ? 'fix gets' : 'fixes get'} implemented, then you approve the fixed replies before anything posts.`
-      : replyCount > 0
-        ? `Next, ${replyCount} ${replyCount === 1 ? 'reply posts' : 'replies post'}.`
-        : 'Next, nothing posts.';
+  const nextStep =
+    !plan || !allDecided || dockRevise
+      ? null
+      : fixes > 0
+        ? `Next, ${fixes} ${fixes === 1 ? 'fix gets' : 'fixes get'} implemented, then you approve the fixed replies before anything posts.`
+        : replyCount > 0
+          ? `Next, ${replyCount} ${replyCount === 1 ? 'reply posts' : 'replies post'}.`
+          : 'Next, nothing posts.';
   const submitLabel = form.busy
     ? 'submitting…'
     : revising
@@ -893,6 +902,7 @@ function RespondSheetBody({
             .map(q => {
               const qctx = questionCtx.get(q.name);
               const pr = planReplyList.find(r => r.name === q.name);
+              const replying = !!pr && form.selections[q.name] === pr.value;
               if (!q.multiple)
                 return (
                   <section
@@ -910,17 +920,19 @@ function RespondSheetBody({
                       {qctx?.shape === 'thread@1' && (
                         <SeverityPill severity={qctx.severity} />
                       )}
-                      {pr && editedText(q.name, pr.draft, form.texts) && (
-                        <EditedChip />
-                      )}
+                      {pr &&
+                        replying &&
+                        editedText(q.name, pr.draft, form.texts) && (
+                          <EditedChip />
+                        )}
                     </div>
                     {qctx?.shape === 'thread@1' && pr ? (
                       <ThreadCard ctx={{ ...qctx, reply: { kind: 'none' } }}>
                         <EditableReply
                           label={q.prompt}
                           draft={pr.draft}
-                          value={form.texts[q.name]}
-                          canEdit={form.selections[q.name] === pr.value}
+                          value={replying ? form.texts[q.name] : undefined}
+                          canEdit={replying}
                           onChange={t => form.setText(q.name, t)}
                           onReset={() => form.clearText(q.name)}
                         />

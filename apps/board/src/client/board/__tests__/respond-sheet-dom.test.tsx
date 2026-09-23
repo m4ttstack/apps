@@ -248,7 +248,7 @@ test('submit stays disabled until every thread is decided', async () => {
   expect(submit().disabled).toBe(true);
   await pick('reply:t2');
   expect(submit().disabled).toBe(false);
-  expect(submit().textContent).toBe('submit · 2 reply');
+  expect(submit().textContent).toBe('submit · 2 replies');
 });
 
 test('with no fix picked, code-changes stays out of the rail and posts its sentinel', async () => {
@@ -1024,15 +1024,17 @@ test('a reply pick on the plan sheet can be edited and answers with its text', a
   await typeInto(replyBox(card)!, 'fixed in the next push, with a test.');
   expect(card.querySelector('[data-chip="edited"]')).not.toBeNull();
   await clickSubmit();
-  expect(
-    (answer() as { answers: Record<string, unknown> }).answers['thread-1']
-  ).toEqual({
-    value: 'reply:t1',
-    text: 'fixed in the next push, with a test.',
+  expect(answer()).toEqual({
+    gateId: 'g-plan',
+    answers: {
+      'thread-1': {
+        value: 'reply:t1',
+        text: 'fixed in the next push, with a test.',
+      },
+      'thread-2': 'reply:t2',
+      'code-changes': 'skip',
+    },
   });
-  expect(
-    (answer() as { answers: Record<string, unknown> }).answers['thread-2']
-  ).toBe('reply:t2');
 });
 
 test('a fix or skip pick offers no edit, and an edit made under reply is not sent after switching to fix', async () => {
@@ -1063,6 +1065,126 @@ test('the dock says what happens next on the plan sheet', async () => {
   await pick('skip:t1');
   await pick('skip:t2');
   expect($('.tui-sheet-dock-next')!.textContent).toBe('Next, nothing posts.');
+  expect(submit().textContent).toBe('submit · 2 skips');
+  await pick('fix:t1');
+  await pick('fix:t2');
+  expect(submit().textContent).toBe('submit · 2 fixes');
+});
+
+test('the plan dock waits for every thread to be picked before saying what comes next', async () => {
+  await render(planGate());
+  expect($('.tui-sheet-dock-next')).toBeNull();
+  await pick('reply:t1');
+  expect($('.tui-sheet-dock-next')).toBeNull();
+  await pick('reply:t2');
+  expect($('.tui-sheet-dock-next')!.textContent).toBe('Next, 2 replies post.');
+});
+
+const caption = (card: HTMLElement) =>
+  card.querySelector('.tui-thread-reply-k')!.textContent;
+
+test('a plan card shows only what will post: a fix pick shows the draft, and reply brings the edit back', async () => {
+  await render(planGate());
+  const card = planCards()[0]!;
+  expect(caption(card)).toBe('drafted reply');
+  await pick('reply:t1');
+  await pick('reply:t2');
+  expect(caption(card)).toBe('will post as reply');
+  await React.act(async () => editButton(card)!.click());
+  await typeInto(replyBox(card)!, 'fixed in the next push, with a test.');
+  await React.act(async () => button(card, 'done')!.click());
+  await pick('fix:t1');
+  expect(caption(card)).toBe('drafted reply');
+  expect(card.querySelector('.tui-thread-reply-text')!.textContent).toBe(
+    'fixed, with a test.'
+  );
+  expect(card.querySelector('[data-chip="edited"]')).toBeNull();
+  await pick('reply:t1');
+  expect(caption(card)).toBe('will post as reply');
+  expect(card.querySelector('.tui-thread-reply-text')!.textContent).toBe(
+    'fixed in the next push, with a test.'
+  );
+  expect(card.querySelector('[data-chip="edited"]')).not.toBeNull();
+});
+
+test('a held post-step reply is captioned as a draft, not as posting', async () => {
+  await render(perThreadPostGate(), withFixPlan());
+  const reply = postCards()[1]!;
+  expect(caption(reply)).toBe('will post as reply');
+  await React.act(async () => control(reply, 'hold')!.click());
+  expect(caption(reply)).toBe('drafted reply');
+});
+
+test('a fix pick beside an edited reply approves bare and wraps the reply', async () => {
+  await render(planGate());
+  await pick('reply:t1');
+  await pick('fix:t2');
+  const card = planCards()[0]!;
+  await React.act(async () => editButton(card)!.click());
+  await typeInto(replyBox(card)!, 'fixed in the next push, with a test.');
+  await clickSubmit();
+  expect(answer()).toEqual({
+    gateId: 'g-plan',
+    answers: {
+      'thread-1': {
+        value: 'reply:t1',
+        text: 'fixed in the next push, with a test.',
+      },
+      'thread-2': 'fix:t2',
+      'code-changes': 'approve',
+    },
+  });
+});
+
+test('sending the plan back carries no edited text and stays live', async () => {
+  await render(planGate());
+  await pick('reply:t1');
+  await pick('reply:t2');
+  const card = planCards()[0]!;
+  await React.act(async () => editButton(card)!.click());
+  await typeInto(replyBox(card)!, 'fixed in the next push, with a test.');
+  await click($('.tui-sheet-revise'));
+  await typeArea('What should the new plan change?', 'split the fix');
+  expect(submit().disabled).toBe(false);
+  await clickSubmit();
+  expect(answer()).toEqual({
+    gateId: 'g-plan',
+    answers: {
+      'thread-1': 'reply:t1',
+      'thread-2': 'reply:t2',
+      'code-changes': { value: 'revise', note: 'split the fix' },
+    },
+  });
+});
+
+test('a revise answered in the dock sends no edited text and is not blocked by an emptied reply', async () => {
+  const gate = planGate();
+  gate.questions[2] = { ...gate.questions[2]!, options: ['approve', 'revise'] };
+  await render(gate);
+  await pick('reply:t1');
+  await pick('reply:t2');
+  const card = planCards()[0]!;
+  await React.act(async () => editButton(card)!.click());
+  await typeInto(replyBox(card)!, '   ');
+  await pick('approve');
+  expect(submit().disabled).toBe(true);
+  expect(document.body.textContent).toContain(
+    'a reply is empty: write it or skip the thread'
+  );
+  await pick('revise');
+  expect(submit().disabled).toBe(false);
+  expect(document.body.textContent).not.toContain('a reply is empty:');
+  expect($('.tui-sheet-dock-next')).toBeNull();
+  await typeInto(replyBox(card)!, 'fixed in the next push, with a test.');
+  await clickSubmit();
+  expect(answer()).toEqual({
+    gateId: 'g-plan',
+    answers: {
+      'thread-1': 'reply:t1',
+      'thread-2': 'reply:t2',
+      'code-changes': 'revise',
+    },
+  });
 });
 
 test('an emptied reply pick blocks submit with a reason; send-back mode ignores edits', async () => {

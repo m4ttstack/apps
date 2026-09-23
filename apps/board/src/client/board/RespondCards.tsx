@@ -154,7 +154,9 @@ function EditableReply({
   }, [open, ref]);
   return (
     <div className="tui-thread-reply" data-kind="verbatim">
-      <span className="tui-thread-reply-k">will post as reply</span>
+      <span className="tui-thread-reply-k">
+        {canEdit ? 'will post as reply' : 'drafted reply'}
+      </span>
       {open ? (
         <textarea
           ref={ref}
