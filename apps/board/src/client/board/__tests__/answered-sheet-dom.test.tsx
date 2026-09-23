@@ -94,17 +94,30 @@ let root: Root;
 let container: HTMLElement;
 let posts: Array<{ url: string; body: unknown }>;
 let failing: string | null;
+let conflict: boolean;
+let continues: number;
 
 beforeEach(() => {
   localStorage.clear();
   posts = [];
   failing = null;
+  conflict = false;
+  continues = 0;
   (globalThis as { fetch: unknown }).fetch = async (
     input: RequestInfo | URL,
     init?: { body?: string }
   ) => {
     const url = typeof input === 'string' ? input : input.toString();
     posts.push({ url, body: init?.body ? JSON.parse(init.body) : null });
+    if (conflict && url === '/gate/answer')
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          conflict: true,
+          row: { answer: { answers: { draft: 'ready' }, by: 'pane' } },
+        }),
+        { status: 409 }
+      );
     if (failing === url)
       return new Response(JSON.stringify({ error: 'pane-9 is gone' }), {
         status: 404,
@@ -139,7 +152,9 @@ async function render(
         onBack={() => {}}
         onFocusPane={() => {}}
         onAnswered={() => {}}
-        onContinue={() => {}}
+        onContinue={() => {
+          continues++;
+        }}
       />
     );
   });
@@ -270,6 +285,20 @@ test('an answer with no agent to run it leads with why and docks retry, which re
   expect(posts).toEqual([
     { url: '/gate/answer', body: { gateId: 'g-ship', answers: gate.answers } },
   ]);
+});
+
+test('a retry that loses to another answer swaps the rail for the winner and continue', async () => {
+  conflict = true;
+  await render(shipped({ execution: 'unassigned' }), MR);
+  await click(dockButton('retry'));
+  expect(text('.tui-sheet-rail .tui-gate-error')).toBe('answered elsewhere');
+  expect($('.tui-sheet-rail [data-gate="chip"]')).not.toBeNull();
+  expect($('.tui-sheet-dock')).toBeNull();
+  const cont = $$('.tui-sheet-rail button').find(
+    b => b.textContent?.trim() === 'continue'
+  );
+  await click(cont);
+  expect(continues).toBe(1);
 });
 
 test('a failed retry says nothing was sent', async () => {

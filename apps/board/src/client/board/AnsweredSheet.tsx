@@ -24,7 +24,12 @@ import {
   DELIVERY_STUCK_MESSAGE,
   EXECUTION_UNASSIGNED_MESSAGE,
 } from './row-status.ts';
-import { SheetRows, type ChoiceState, type RowChip } from './SheetParts.tsx';
+import {
+  SheetLost,
+  SheetRows,
+  type ChoiceState,
+  type RowChip,
+} from './SheetParts.tsx';
 import { stageDisplay } from './stage-gate.ts';
 import { ContextCard, dockRef, pickChip, QuestionCard } from './StageSheet.tsx';
 
@@ -60,7 +65,8 @@ const noop = () => {};
 /** An answered gate on the two-column sheet: every question read-only with
     its recorded pick; the rail holds the MR and the decision context; the
     dock acts only when the answer is stuck (focus its pane) or had no agent
-    to run it (post the recorded answer again). */
+    to run it (post the recorded answer again). A retry that another answer
+    beats swaps the rail for the winning answer, as every sheet does. */
 function AnsweredSheetBody({
   gate,
   mr,
@@ -69,11 +75,14 @@ function AnsweredSheetBody({
   context,
   respondCtx,
   people,
+  onContinue,
 }: {
   gate: GateRow;
   mr?: BoardMRWithReview;
   form: GateFormState;
   state: AnsweredState;
+  /** Retires a gate another answer won from the queue. */
+  onContinue: () => void;
   /** The gate's own context as prose, when it has any. */
   context?: string;
   respondCtx?: PlanCtx | PostCtx;
@@ -209,78 +218,86 @@ function AnsweredSheetBody({
         </div>
       </section>
       <aside className="tui-sheet-rail">
-        <div className="tui-sheet-rail-scroll">
-          {mr && <MrCard mr={mr} />}
-          <ContextCard gate={gate} mr={mr} context={context}>
-            {state === 'stuck' && (
-              <p className="tui-sheet-context-lead">{DELIVERY_STUCK_MESSAGE}</p>
-            )}
-            {state === 'unassigned' && (
-              <p className="tui-sheet-context-lead">
-                {EXECUTION_UNASSIGNED_MESSAGE}
-              </p>
-            )}
-            {respondCtx && (
-              <>
-                <PersonLead
-                  id={respondCtx.reviewer}
-                  name={reviewerName(respondCtx.reviewer, mr, people)}
-                >
-                  reviewed your {forgeNoun(mr, gate.subject)}
-                </PersonLead>
-                <RespondCtxFacts ctx={respondCtx} />
-              </>
-            )}
-          </ContextCard>
-        </div>
-        <div className="tui-sheet-dock">
-          <div className="tui-sheet-dock-head">
-            <h3 className="tui-sheet-dock-heading">
-              Answer on {dockRef(gate, mr)}
-            </h3>
-          </div>
-          {state === 'answered' && <SheetRows card="answers" rows={rows} />}
-          {state === 'stuck' && (
-            <>
-              <Button
-                type="button"
-                variant="filled"
-                intent="accent"
-                size="lg"
-                className="tui-sheet-submit"
-                disabled={form.focusBusy}
-                onClick={() => void form.focusGate()}
-              >
-                focus pane
-              </Button>
-              {form.focusError && (
-                <span className="tui-gate-error">{form.focusError}</span>
+        {form.lost ? (
+          <SheetLost gate={gate} lost={form.lost} onContinue={onContinue} />
+        ) : (
+          <>
+            <div className="tui-sheet-rail-scroll">
+              {mr && <MrCard mr={mr} />}
+              <ContextCard gate={gate} mr={mr} context={context}>
+                {state === 'stuck' && (
+                  <p className="tui-sheet-context-lead">
+                    {DELIVERY_STUCK_MESSAGE}
+                  </p>
+                )}
+                {state === 'unassigned' && (
+                  <p className="tui-sheet-context-lead">
+                    {EXECUTION_UNASSIGNED_MESSAGE}
+                  </p>
+                )}
+                {respondCtx && (
+                  <>
+                    <PersonLead
+                      id={respondCtx.reviewer}
+                      name={reviewerName(respondCtx.reviewer, mr, people)}
+                    >
+                      reviewed your {forgeNoun(mr, gate.subject)}
+                    </PersonLead>
+                    <RespondCtxFacts ctx={respondCtx} />
+                  </>
+                )}
+              </ContextCard>
+            </div>
+            <div className="tui-sheet-dock">
+              <div className="tui-sheet-dock-head">
+                <h3 className="tui-sheet-dock-heading">
+                  Answer on {dockRef(gate, mr)}
+                </h3>
+              </div>
+              {state === 'answered' && <SheetRows card="answers" rows={rows} />}
+              {state === 'stuck' && (
+                <>
+                  <Button
+                    type="button"
+                    variant="filled"
+                    intent="accent"
+                    size="lg"
+                    className="tui-sheet-submit"
+                    disabled={form.focusBusy}
+                    onClick={() => void form.focusGate()}
+                  >
+                    focus pane
+                  </Button>
+                  {form.focusError && (
+                    <span className="tui-gate-error">{form.focusError}</span>
+                  )}
+                </>
               )}
-            </>
-          )}
-          {state === 'unassigned' && (
-            <>
-              <Button
-                type="button"
-                variant="filled"
-                intent="accent"
-                size="lg"
-                className="tui-sheet-submit"
-                disabled={form.busy}
-                onClick={() =>
-                  void form.submit({ answers: gate.answers ?? {} })
-                }
-              >
-                retry
-              </Button>
-              {form.failed && (
-                <span className="tui-gate-error">
-                  retry failed... nothing was sent, try again
-                </span>
+              {state === 'unassigned' && (
+                <>
+                  <Button
+                    type="button"
+                    variant="filled"
+                    intent="accent"
+                    size="lg"
+                    className="tui-sheet-submit"
+                    disabled={form.busy}
+                    onClick={() =>
+                      void form.submit({ answers: gate.answers ?? {} })
+                    }
+                  >
+                    retry
+                  </Button>
+                  {form.failed && (
+                    <span className="tui-gate-error">
+                      retry failed... nothing was sent, try again
+                    </span>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </aside>
     </div>
   );

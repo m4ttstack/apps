@@ -277,6 +277,7 @@ function DecisionQueueModal({
         context={proseContext}
         respondCtx={headerCtx ?? undefined}
         people={people}
+        onContinue={onContinue}
       />
     </GateSheet>
   );
