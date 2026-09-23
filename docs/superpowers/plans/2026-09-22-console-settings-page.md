@@ -510,7 +510,7 @@ export const settings = createSettingsRoutes();
 
 - [ ] **Step 3: Trim the old server test**
 
-In `settings.test.ts` delete every `it` from "lists defs with writability computed, not copied" to the end of the file, and the `DEFS`/`EXPLAIN` fixtures and the `post()` helper, which nothing left uses (an unused `post` fails typecheck with TS6133). Keep the five read-route tests. In the `vi.mock('@mattstack/rt-client', ...)` factory keep `getSetting` and add `unsetSetting: vi.fn(),` so a mocked module never lacks a name settings-kit imports.
+In `settings.test.ts` delete every `it` from "lists defs with writability computed, not copied" to the end of the file, and the `DEFS`/`EXPLAIN` fixtures, their now-unused `import type { ExplainRow, SettingDef }` line, and the `post()` helper, which nothing left uses (an unused `post` fails typecheck with TS6133). Keep the five read-route tests. In the `vi.mock('@mattstack/rt-client', ...)` factory keep `getSetting` and add `unsetSetting: vi.fn(),` so a mocked module never lacks a name settings-kit imports.
 
 - [ ] **Step 4: Gate and commit**
 
@@ -739,7 +739,7 @@ export const GROUPS: Group[] = [
   { id: 'chat', label: 'Chat', tier: 'apps', blurb: 'rt chat handles, the viewer, and push alerts.', match: prefix('chat.') },
   { id: 'deck', label: 'Deck', tier: 'apps', blurb: 'Published apps, access, and the public domain.', match: prefix('deck.') },
   { id: 'gitq', label: 'gitq', tier: 'apps', blurb: 'Work slots, forges, and the checkout board.', match: prefix('gitq.') },
-  { id: 'suite', label: 'Suite-wide', tier: 'suite', blurb: 'Team integrations, the roster, install mode, and Claude Code plugins.', match: key => /^(mattstack|setup|claude)\./.test(key) || key === 'rt.integrations' },
+  { id: 'suite', label: 'Suite-wide', tier: 'suite', blurb: 'Team integrations, the roster, install mode, and Claude Code plugins.', match: key => (/^(mattstack|setup|claude)\./.test(key) && key !== 'mattstack.tracking') || key === 'rt.integrations' },
 ];
 
 export function groupOf(key: string): Group {
@@ -750,7 +750,7 @@ export function groupOf(key: string): Group {
 }
 ```
 
-Note: `mattstack.tracking` matches `worktrees` and would also match `suite`'s regex; `suite.match` must exclude it. Replace suite's `match` with `key => (/^(mattstack|setup|claude)\./.test(key) && key !== 'mattstack.tracking') || key === 'rt.integrations'`. The exactly-one test catches any other overlap.
+`mattstack.tracking` belongs to `worktrees`, which is why `suite.match` excludes it. The exactly-one test catches any other overlap.
 
 - [ ] **Step 3: Implement `units.ts`**
 
@@ -1931,7 +1931,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Create: `apps/console/src/app/settings/SettingsSection.tsx`, `SettingsPage.tsx`
 - Modify: `apps/console/src/app/App.tsx` (route `settings`)
 - Modify: `apps/console/src/app/config/useSettings.ts` (delete `useSettingsDefs`, `useSettingsPrefix`)
-- Delete: `apps/console/src/app/settings/AgentDefaultsPage.tsx`, `AgentDefaultsPage.test.tsx`
+- Delete: `apps/console/src/app/settings/AgentDefaultsPage.tsx` (its test went in Task 2)
 - Modify: `apps/console/AGENTS.md` (routes paragraph: `settings` now renders the full settings page)
 - Test: `apps/console/src/app/settings/SettingsPage.test.tsx`
 
@@ -2389,7 +2389,7 @@ export function SettingsPage() {
 
 - [ ] **Step 4: Route swap and retirement**
 
-In `App.tsx`: replace the `AgentDefaultsPage` import with `import { SettingsPage } from './settings/SettingsPage';` and `case 'settings': return <SettingsPage />;`. Delete `AgentDefaultsPage.tsx` and `AgentDefaultsPage.test.tsx`. In `useSettings.ts` delete `useSettingsDefs` and `useSettingsPrefix` (nothing imports them now; `rg -n "useSettingsDefs|useSettingsPrefix" apps/console/src` prints nothing). In `apps/console/AGENTS.md`'s "Routes and chrome" paragraph, add `settings` to the route list and one sentence: "`/settings` is the grouped, filterable page over every registered key (`src/app/settings/`); `/config/:key` is its per-key explain drill-in."
+In `App.tsx`: replace the `AgentDefaultsPage` import with `import { SettingsPage } from './settings/SettingsPage';` and `case 'settings': return <SettingsPage />;`. Delete `AgentDefaultsPage.tsx`. In `useSettings.ts` delete `useSettingsDefs` and `useSettingsPrefix` (nothing imports them now; `rg -n "useSettingsDefs|useSettingsPrefix" apps/console/src` prints nothing). In `apps/console/AGENTS.md`'s "Routes and chrome" paragraph, add `settings` to the route list and one sentence: "`/settings` is the grouped, filterable page over every registered key (`src/app/settings/`); `/config/:key` is its per-key explain drill-in."
 
 - [ ] **Step 5: Run tests, gate, commit**
 
