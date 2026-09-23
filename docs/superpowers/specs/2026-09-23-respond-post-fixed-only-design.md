@@ -40,7 +40,10 @@ commit), text the developer has not seen yet.
   whose gate 1 reply was not shown verbatim (step 3 recommended `fix` or
   `skip`, so the card showed a direction or no reply), and the answer
   carries no `text`, that thread is drafted and offered at gate 2 like a
-  fixed thread. Gate 2 offers exactly the replies the developer has not yet
+  fixed thread. A `reply:` answer that carries a note is an override too:
+  the note may change the reply (in the pane form it is the only place a
+  typed replacement can go), so the reply is redrafted with it and offered
+  at gate 2. Gate 2 offers exactly the replies the developer has not yet
   seen word for word.
 - **`code-changes: revise`:** unchanged.
 - **`skip:`** still means no reply and no fix; it is how a reply is held
@@ -48,10 +51,12 @@ commit), text the developer has not seen yet.
 
 ## Report rows
 
-After gate 1, each thread's report row records the verb the developer
-answered (`reply`, `fix`, `skip`) and, for an edited reply, the edited text
-in place of the draft. Posting, a resume included, reads which threads are
-reply-only from those rows, never from step 3's recommendation.
+After gate 1, each thread's report row gains a `gate-1` field: `reply`,
+`fix`, `skip`, or `override` (a reply override, above). An edited reply's
+text replaces the draft in its row. Posting, a resume included, reads which
+threads are reply-only (`gate-1: reply`) from those rows, never from step
+3's recommendation. receive-review and the board:respond wrapper write and
+read this same field.
 
 ## Records
 
