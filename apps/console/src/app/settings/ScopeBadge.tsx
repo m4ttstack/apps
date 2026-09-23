@@ -35,11 +35,21 @@ export function ScopeBadge({
 }) {
   const badge = (
     <Badge
-      size="sm"
       variant="light"
       color={SCOPE_COLOR[scope]}
+      radius="sm"
       tt="none"
+      fw={500}
+      lts={0}
+      c={`var(--tk-text-${SCOPE_COLOR[scope]}-small)`}
       leftSection={<ScopeDot scope={scope} />}
+      style={{
+        '--badge-height': '17px',
+        '--badge-fz': '12px',
+        '--badge-padding-x': '6px',
+        paddingInlineStart: 5,
+      }}
+      styles={{ section: { marginInlineEnd: 4 } }}
     >
       {scope}
     </Badge>

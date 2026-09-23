@@ -181,6 +181,12 @@ describe('SettingsPage', () => {
     ).closest('section')!;
     expect(within(board).getByText('Team')).toBeInTheDocument();
     expect(within(board).getByText('You')).toBeInTheDocument();
+    const team = within(board).getByText('Team').parentElement!;
+    expect([...team.children].map(c => c.textContent)).toEqual([
+      'Team',
+      '7',
+      '· shared with everyone through the team repo',
+    ]);
     expect(
       within(board).queryAllByText('team', { selector: '.mantine-Badge-label' })
     ).toHaveLength(0);

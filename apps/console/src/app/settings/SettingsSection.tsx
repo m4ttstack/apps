@@ -10,7 +10,6 @@ import {
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
 
 import { useAgentModels } from '../config/useSettings';
-import { ScopeDot } from './ScopeBadge';
 import { SettingRow } from './SettingRow';
 import type { RowStore } from './useRowSave';
 import type { Section, StoreScope } from './view';
@@ -176,24 +175,25 @@ export function SettingsSection({
           {sub.scope && (
             <Group
               gap={8}
-              pt={20}
+              pt={22}
               pb={6}
+              wrap="nowrap"
               style={{ borderBottom: '1px solid var(--tk-line-2)' }}
             >
-              <ScopeDot scope={sub.scope} />
               <Text
-                size="xs"
+                fz={12}
                 fw={500}
                 tt="uppercase"
+                lts={0.6}
                 c={SUBHEAD[sub.scope].color}
               >
                 {SUBHEAD[sub.scope].label}
               </Text>
-              <Text size="xs" ff="monospace" c={text.muted}>
+              <Text fz={12} ff="monospace" c={text.muted}>
                 {sub.defs.length}
               </Text>
-              <Text size="xs" c={text.muted}>
-                {SUBHEAD[sub.scope].note}
+              <Text fz={12} c={text.muted}>
+                {`· ${SUBHEAD[sub.scope].note}`}
               </Text>
             </Group>
           )}
