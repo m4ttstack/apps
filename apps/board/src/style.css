@@ -4260,3 +4260,120 @@ body {
   border-radius: var(--gate-radius-control);
   color: var(--text-2);
 }
+
+/* The sheet in narrower windows. Above 1100px none of this applies. */
+@media (max-width: 1100px) {
+  .tui-sheet-rail {
+    width: clamp(300px, 38vw, 470px);
+  }
+  .tui-sheet-rail-scroll {
+    padding: 20px 20px 14px;
+  }
+  .tui-sheet-dock {
+    padding: 14px 20px 18px;
+  }
+  .tui-sheet-lost {
+    padding: 20px;
+  }
+  .tui-sheet-list-head,
+  .tui-gate-question-head {
+    flex-wrap: wrap;
+  }
+  .tui-gate-question-head {
+    row-gap: 6px;
+  }
+  .tui-gate-question-label,
+  .tui-sheet-card-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .tui-respond-chip {
+    white-space: nowrap;
+  }
+  .tui-gate-choice-label-row > .tui-gate-recommended {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+/* Stacked: the items being decided, then the rail's reference cards, all in
+   one scroll. The rail flattens so its dock (or lost panel) is a child of
+   the scroller itself: pinned to the scroller's bottom edge for the whole
+   scroll, not only while the rail's own box is on screen. */
+@media (max-width: 720px) {
+  /* The nav stays centred while the lead fits beside it; past that the
+     lead keeps its width and the tag gives way. */
+  .tui-gate-sheet-head {
+    grid-template-columns: minmax(max-content, 1fr) auto minmax(40px, 1fr);
+    padding: 12px 16px;
+  }
+  /* Filling its column, not sizing to its content, is what lets the tag
+     shrink at all. */
+  .tui-gate-sheet-trail {
+    justify-self: stretch;
+    justify-content: flex-end;
+  }
+  .tui-gate-sheet-tag {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tui-gate-sheet-close {
+    flex-shrink: 0;
+  }
+  /* The padding keeps a control that takes focus from scrolling in behind
+     the pinned dock; it approximates the tallest dock. */
+  .tui-sheet-body {
+    flex-direction: column;
+    overflow-y: auto;
+    scroll-padding-bottom: 40%;
+  }
+  .tui-sheet-main {
+    flex: none;
+    overflow-y: visible;
+    padding: 18px 16px 14px;
+  }
+  .tui-sheet-rail {
+    display: contents;
+  }
+  .tui-sheet-rail-scroll {
+    flex: none;
+    overflow-y: visible;
+    padding: 0 16px 18px;
+  }
+  .tui-sheet-dock,
+  .tui-sheet-lost {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: auto;
+    padding: 12px 16px 16px;
+  }
+  .tui-sheet-lost {
+    background: var(--surface-wash-fg-4-card);
+    border-top: 1px solid var(--border-soft);
+  }
+}
+/* Too narrow for the lead, the queue nav and the close on one line: the
+   nav takes a row of its own, and the lead wraps only once the tag has
+   given way entirely. */
+@media (max-width: 600px) {
+  .tui-gate-sheet-head {
+    grid-template-columns: minmax(0, max-content) minmax(40px, 1fr);
+    grid-template-areas: 'lead trail' 'nav nav';
+    row-gap: 10px;
+  }
+  .tui-gate-sheet-lead {
+    grid-area: lead;
+    flex-wrap: wrap;
+  }
+  .tui-gate-queue-nav {
+    grid-area: nav;
+    justify-self: center;
+  }
+  .tui-gate-sheet-trail {
+    grid-area: trail;
+  }
+}
