@@ -7,7 +7,6 @@ import {
   Highlight,
   Stack,
   Text,
-  UnstyledButton,
   type TextProps,
 } from '@mattstack/app-kit/core';
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
@@ -21,6 +20,7 @@ import {
 } from '@mattstack/settings-kit/shapes';
 import { Link } from 'wouter';
 
+import { compositeParts } from './CompositeControls';
 import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
 import { useRowSave, type RowStore } from './useRowSave';
@@ -50,28 +50,6 @@ function Marked({
     >
       {text}
     </Highlight>
-  );
-}
-
-export function ExpandToggle({
-  label,
-  open,
-  onToggle,
-}: {
-  label: string;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  const { text } = useSchemeColors();
-  return (
-    <UnstyledButton onClick={onToggle} aria-expanded={open}>
-      <Group gap={4} wrap="nowrap">
-        <Text size="xs" c={text.muted}>
-          {label}
-        </Text>
-        {open ? <Icons.chevronUp size={14} /> : <Icons.chevronDown size={14} />}
-      </Group>
-    </UnstyledButton>
   );
 }
 
@@ -208,21 +186,4 @@ export function SettingRow({
       {body && <Collapse expanded={open}>{body}</Collapse>}
     </Box>
   );
-}
-
-/** Composite rows: the control column holds a summary toggle, the body
-    expands under the row. */
-function compositeParts(
-  def: SettingDefWire,
-  _kind: string,
-  _row: ReturnType<typeof useRowSave>,
-  open: boolean,
-  onToggle: () => void
-): { control: ReactNode; body: ReactNode } {
-  return {
-    control: (
-      <ExpandToggle label={summarize(def)} open={open} onToggle={onToggle} />
-    ),
-    body: null,
-  };
 }

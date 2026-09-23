@@ -1,0 +1,310 @@
+import { renderWithProviders } from '@mattstack/app-kit/test-utils';
+import type { SettingDefWire } from '@mattstack/settings-kit/react';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { SettingRow } from './SettingRow';
+
+function def(key: string, over: Partial<SettingDefWire>): SettingDefWire {
+  return {
+    key,
+    type: 'array',
+    scopes: ['machine'],
+    merge: 'replace',
+    secret: false,
+    teamLocked: false,
+    repoScoped: false,
+    writable: true,
+    description: 'A composite.',
+    hasDefault: false,
+    defaultValue: null,
+    effective: { scope: null, file: null },
+    ...over,
+  };
+}
+const store = () => ({
+  set: vi.fn(async () => null),
+  unset: vi.fn(async () => null),
+  move: vi.fn(async () => null),
+});
+
+const SNAPSHOT_DEFAULTS = {
+  enabled: true,
+  debounceSec: 20,
+  pushDelaySec: 60,
+  janitorThresholdHours: 6,
+  janitorIntervalMin: 30,
+};
+
+function stubExplain() {
+  vi.stubGlobal('fetch', async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      def: {},
+      rows: [
+        {
+          scope: 'default',
+          file: null,
+          present: true,
+          value: SNAPSHOT_DEFAULTS,
+        },
+        {
+          scope: 'machine',
+          file: '/m',
+          present: true,
+          value: { enabled: false },
+        },
+      ],
+    }),
+  }));
+}
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('composite rows', () => {
+  it('a short string list edits inline as tags', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('board.ticketPrefixes', {
+          scopes: ['team'],
+          effective: { scope: 'team', file: '/t', value: ['RT'] },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.type(
+      screen.getByRole('combobox', { name: 'board.ticketPrefixes' }),
+      'MAT{enter}'
+    );
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('board.ticketPrefixes', 'team', [
+        'RT',
+        'MAT',
+      ])
+    );
+  });
+
+  it('a long string list expands to rows with remove and add', async () => {
+    const s = store();
+    const value = ['~/a', '~/b', '~/c', '~/d'];
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.repoRoots', {
+          effective: { scope: 'machine', file: '/m', value },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /4 roots/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'remove ~/b' }));
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('rt.repoRoots', 'machine', [
+        '~/a',
+        '~/c',
+        '~/d',
+      ])
+    );
+    await userEvent.type(
+      screen.getByLabelText('add to rt.repoRoots'),
+      '~/e{enter}'
+    );
+    await waitFor(() =>
+      expect(s.set).toHaveBeenLastCalledWith('rt.repoRoots', 'machine', [
+        '~/a',
+        '~/b',
+        '~/c',
+        '~/d',
+        '~/e',
+      ])
+    );
+  });
+
+  it('a string map edits a value in place', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.repoIdentityOverrides', {
+          type: 'object',
+          effective: {
+            scope: 'machine',
+            file: '/m',
+            value: { 'https://example.dev/a.git': 'a' },
+          },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /1 entry/ }));
+    const identity = screen.getByLabelText(
+      'identity for https://example.dev/a.git'
+    );
+    await userEvent.clear(identity);
+    await userEvent.type(identity, 'apps');
+    identity.blur();
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith(
+        'rt.repoIdentityOverrides',
+        'machine',
+        { 'https://example.dev/a.git': 'apps' }
+      )
+    );
+  });
+
+  it('a leaves field writes onto the target layer’s own object and shows its source', async () => {
+    stubExplain();
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.homeSnapshot', {
+          type: 'object',
+          merge: 'deep',
+          effective: {
+            scope: 'machine',
+            file: '/m',
+            value: { ...SNAPSHOT_DEFAULTS, enabled: false },
+          },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    expect(await screen.findByText('debounceSec')).toBeInTheDocument();
+    const debounce = screen.getByLabelText('rt.homeSnapshot.debounceSec');
+    await waitFor(() => expect(debounce).toBeEnabled());
+    await userEvent.clear(debounce);
+    await userEvent.type(debounce, '45');
+    debounce.blur();
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('rt.homeSnapshot', 'machine', {
+        enabled: false,
+        debounceSec: 45,
+      })
+    );
+  });
+
+  it('a leaves field follows a refreshed value and writes nothing on a bare blur', async () => {
+    stubExplain();
+    const s = store();
+    const at = (debounceSec: number) =>
+      def('rt.homeSnapshot', {
+        type: 'object',
+        merge: 'deep',
+        effective: {
+          scope: 'machine',
+          file: '/m',
+          value: { ...SNAPSHOT_DEFAULTS, enabled: false, debounceSec },
+        },
+      });
+    const { rerender } = renderWithProviders(
+      <SettingRow def={at(20)} store={s} subhead={null} query="" />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    await waitFor(() =>
+      expect(screen.getByLabelText('rt.homeSnapshot.debounceSec')).toBeEnabled()
+    );
+    rerender(<SettingRow def={at(90)} store={s} subhead={null} query="" />);
+    const debounce = screen.getByLabelText('rt.homeSnapshot.debounceSec');
+    expect(debounce).toHaveValue('90');
+    await userEvent.click(debounce);
+    debounce.blur();
+    await new Promise(r => setTimeout(r, 0));
+    expect(s.set).not.toHaveBeenCalled();
+  });
+
+  it('leaf fields stay disabled until the layer rows arrive', async () => {
+    vi.stubGlobal('fetch', () => new Promise(() => {}));
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.homeSnapshot', {
+          type: 'object',
+          merge: 'deep',
+          effective: {
+            scope: 'machine',
+            file: '/m',
+            value: { enabled: false },
+          },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /1 of 5 set/ }));
+    expect(
+      await screen.findByLabelText('rt.homeSnapshot.debounceSec')
+    ).toBeDisabled();
+    expect(screen.getByLabelText('rt.homeSnapshot.enabled')).toBeDisabled();
+  });
+
+  it('a stored value of the wrong shape locks behind Clear', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.repoRoots', {
+          effective: { scope: 'machine', file: '/m', value: [1, 2] },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.getByText('unexpected shape')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    await waitFor(() =>
+      expect(s.unset).toHaveBeenCalledWith('rt.repoRoots', 'machine')
+    );
+  });
+
+  it('an unshaped composite is read-only with a preview and its file', async () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.cron', {
+          type: 'object',
+          writable: false,
+          effective: {
+            scope: 'machine',
+            file: '/stores/local.jsonc',
+            value: { triggers: [] },
+          },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /1 field/ }));
+    expect(screen.getByText('/stores/local.jsonc')).toBeInTheDocument();
+    expect(screen.getByText(/"triggers"/)).toBeInTheDocument();
+  });
+
+  it('a shaped key that is not writable gets no editor and no Clear', async () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('board.ticketPrefixes', {
+          scopes: ['team'],
+          writable: false,
+          effective: { scope: 'team', file: '/t', value: ['RT', 7] },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /2 prefixes/ }));
+    expect(screen.getByText(/"RT"/)).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).toBeNull();
+  });
+});
