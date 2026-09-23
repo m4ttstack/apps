@@ -100,6 +100,22 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('heading', { name: 'Daemon' })).toBeInTheDocument();
   });
 
+  it('composes the kit shell: the index in its sidebar, sections in its content frame', async () => {
+    renderPage();
+    const index = await screen.findByRole('navigation', {
+      name: 'settings groups',
+    });
+    expect(document.getElementById('page-shell-sidebar')).toContainElement(
+      index
+    );
+    expect(document.getElementById('page-shell-header')).toHaveTextContent(
+      'Settings'
+    );
+    expect(document.getElementById('page-shell-content')).toContainElement(
+      screen.getByRole('heading', { name: 'Board' })
+    );
+  });
+
   it('filters by key and description, keeps the query in the URL, and Esc clears it', async () => {
     renderPage();
     const filter = await screen.findByLabelText('filter settings');

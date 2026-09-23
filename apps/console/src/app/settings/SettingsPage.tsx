@@ -21,7 +21,7 @@ import { useSettingsScope } from '@mattstack/settings-kit/react';
 import { isSet } from '@mattstack/settings-kit/shapes';
 import { useSearchParams } from 'wouter';
 
-import { PAGE_ROW_HEIGHT, SHELL_HEADER_HEIGHT } from '../chrome';
+import { PAGE_ROW_HEIGHT } from '../chrome';
 import { TIER_LABEL, type Tier } from './groups';
 import { ScopeDot } from './ScopeBadge';
 import {
@@ -38,8 +38,6 @@ import {
 
 const TIERS: Tier[] = ['rt', 'apps', 'suite'];
 const SCOPES = ['user', 'team', 'machine'] as const;
-// PageShell's scroll frame: the viewport under the shell header and title row.
-const VISIBLE_HEIGHT = `calc(100vh - ${SHELL_HEADER_HEIGHT + PAGE_ROW_HEIGHT}px)`;
 
 function Index({
   sections,
@@ -53,81 +51,62 @@ function Index({
     window.location.hash.replace('#', '')
   );
   return (
-    <Box
-      w={232}
-      style={{
-        flex: 'none',
-        borderRight: '1px solid var(--tk-line-2)',
-        alignSelf: 'stretch',
-      }}
-    >
-      <Box
-        component="nav"
-        aria-label="settings groups"
-        p="20px 12px 20px 16px"
-        style={{
-          position: 'sticky',
-          top: 0,
-          maxHeight: VISIBLE_HEIGHT,
-          overflowY: 'auto',
-        }}
-      >
-        {TIERS.map(tier => (
-          <Box key={tier}>
-            <Text
-              size="xs"
-              fw={500}
-              tt="uppercase"
-              c={text.muted}
-              px={8}
-              pt={14}
-              pb={6}
-            >
-              {TIER_LABEL[tier]}
-            </Text>
-            {sections
-              .filter(s => s.group.tier === tier)
-              .map(s => {
-                const empty = filtering && s.shown === 0;
-                return (
-                  <NavLink
-                    key={s.group.id}
-                    href={`#${s.group.id}`}
-                    label={s.group.label}
-                    active={active === s.group.id}
-                    disabled={empty}
-                    aria-disabled={empty || undefined}
-                    tabIndex={empty ? -1 : undefined}
-                    rightSection={
-                      <Text size="xs" ff="monospace" c={text.muted}>
-                        {filtering ? s.shown : s.total}
-                      </Text>
-                    }
-                    style={{ borderRadius: 4 }}
-                    onClick={e => {
-                      e.preventDefault();
-                      if (empty) return;
-                      setActive(s.group.id);
-                      window.history.replaceState(
-                        null,
-                        '',
-                        `${window.location.pathname}${window.location.search}#${s.group.id}`
-                      );
-                      document
-                        .getElementById(`settings-${s.group.id}`)
-                        ?.scrollIntoView({ block: 'start' });
-                    }}
-                  />
-                );
-              })}
-          </Box>
-        ))}
-      </Box>
+    <Box component="nav" aria-label="settings groups" p="20px 12px 20px 16px">
+      {TIERS.map(tier => (
+        <Box key={tier}>
+          <Text
+            size="xs"
+            fw={500}
+            tt="uppercase"
+            c={text.muted}
+            px={8}
+            pt={14}
+            pb={6}
+          >
+            {TIER_LABEL[tier]}
+          </Text>
+          {sections
+            .filter(s => s.group.tier === tier)
+            .map(s => {
+              const empty = filtering && s.shown === 0;
+              return (
+                <NavLink
+                  key={s.group.id}
+                  href={`#${s.group.id}`}
+                  label={s.group.label}
+                  active={active === s.group.id}
+                  disabled={empty}
+                  aria-disabled={empty || undefined}
+                  tabIndex={empty ? -1 : undefined}
+                  rightSection={
+                    <Text size="xs" ff="monospace" c={text.muted}>
+                      {filtering ? s.shown : s.total}
+                    </Text>
+                  }
+                  style={{ borderRadius: 4 }}
+                  onClick={e => {
+                    e.preventDefault();
+                    if (empty) return;
+                    setActive(s.group.id);
+                    window.history.replaceState(
+                      null,
+                      '',
+                      `${window.location.pathname}${window.location.search}#${s.group.id}`
+                    );
+                    document
+                      .getElementById(`settings-${s.group.id}`)
+                      ?.scrollIntoView({ block: 'start' });
+                  }}
+                />
+              );
+            })}
+        </Box>
+      ))}
     </Box>
   );
 }
 
-function SettingsPageContent() {
+export function SettingsPage() {
   const { text } = useSchemeColors();
   const store = useSettingsScope('');
   const [params, setParams] = useSearchParams();
@@ -183,158 +162,171 @@ function SettingsPageContent() {
   };
 
   return (
-    <Group align="stretch" gap={0} wrap="nowrap" mih="100%">
-      <Index sections={sections} filtering={filtering} />
-      <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
-        <Group
-          gap={12}
-          px={32}
-          h={TOOLBAR_HEIGHT}
-          wrap="nowrap"
-          style={{
-            borderBottom: '1px solid var(--tk-line-2)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 3,
-            background: 'var(--tk-bg)',
-          }}
-        >
-          <TextInput
-            ref={filterRef}
-            aria-label="filter settings"
-            style={{ flex: 1 }}
-            leftSection={<Icons.search size={16} />}
-            placeholder={`Filter ${total} settings by key or description`}
-            value={query}
-            onTextChange={setQuery}
-            onKeyDown={e => {
-              if (e.key === 'Escape' && query !== '') {
-                e.stopPropagation();
-                setQuery('');
-              }
-            }}
-            rightSectionWidth={query ? 110 : 36}
-            rightSection={
-              query ? (
-                <Group gap={6} wrap="nowrap">
-                  <Text size="xs" c={text.muted}>{`${shown} of ${total}`}</Text>
-                  <CloseButton
-                    size="sm"
-                    aria-label="clear filter"
-                    onClick={() => setQuery('')}
-                  />
-                </Group>
-              ) : (
-                <Kbd size="xs">/</Kbd>
-              )
-            }
-          />
-          <Chip
-            checked={changedOnly}
-            onChange={setChangedOnly}
-            variant="outline"
-            size="sm"
-          >
-            {`Changed ${store.defs.filter(isSet).length}`}
-          </Chip>
-          <Chip
-            checked={editableOnly}
-            onChange={setEditableOnly}
-            variant="outline"
-            size="sm"
-          >
-            {`Editable ${store.defs.filter(isEditable).length}`}
-          </Chip>
-          <SegmentedControl
-            size="xs"
-            value={scope}
-            onChange={v => setScope(v as ScopeFilter)}
-            data={[
-              { value: 'any', label: 'any' },
-              ...SCOPES.map(s => ({
-                value: s,
-                label: (
-                  <Group gap={6} wrap="nowrap">
-                    <ScopeDot scope={s} />
-                    <span>{s}</span>
-                  </Group>
-                ),
-              })),
-            ]}
-          />
-        </Group>
-        <Box px={32} pb={32}>
-          {store.error && (
-            <Alert
-              color="bad"
-              variant="light"
-              mt="md"
-              icon={<Icons.error size={14} />}
+    <PageShell
+      headerHeight={PAGE_ROW_HEIGHT}
+      compactHeader
+      sidebarWidth={232}
+      drawerStateKey="console-settings-index"
+    >
+      <PageShell.Sidebar>
+        <Index sections={sections} filtering={filtering} />
+      </PageShell.Sidebar>
+      <PageShell.Main>
+        <PageShell.Header title="Settings" />
+        <PageShell.Content contentContainer={false}>
+          {/* Tokyo grids every content frame; this page's rows sit on the
+              plain page surface, so the body paints over it. */}
+          <Box flex={1} style={{ background: 'var(--tk-bg)' }}>
+            <Group
+              gap={12}
+              px={32}
+              h={TOOLBAR_HEIGHT}
+              wrap="nowrap"
+              style={{
+                borderBottom: '1px solid var(--tk-line-2)',
+                position: 'sticky',
+                top: 0,
+                zIndex: 3,
+                background: 'var(--tk-bg)',
+              }}
             >
-              <Text size="xs">{store.error}</Text>
-            </Alert>
-          )}
-          {store.loading ? (
-            <Stack gap="md" pt={28}>
-              {[220, 280, 180, 240].map(w => (
-                <Group key={w} justify="space-between">
-                  <Stack gap={8}>
-                    <Skeleton h={12} w={w} />
-                    <Skeleton h={10} w={w + 160} />
-                  </Stack>
-                  <Skeleton h={30} w={200} />
-                </Group>
-              ))}
-            </Stack>
-          ) : visible.length === 0 && total > 0 ? (
-            <Stack align="center" gap={10} py={48}>
-              <Text size="sm" fw={500}>
-                {query
-                  ? `No settings match “${query}”`
-                  : 'No settings match these filters'}
-              </Text>
-              <Text size="xs" c={text.muted}>
-                The filter reads key names and descriptions, not values.
-              </Text>
-              <Button size="xs" variant="default" onClick={clearAll}>
-                Clear filter
-              </Button>
-            </Stack>
-          ) : (
-            visible.map(s => (
-              <SettingsSection
-                key={s.group.id}
-                section={s}
-                store={store}
-                query={query}
-                filtering={filtering}
-                agentProvider={agentProvider}
+              <TextInput
+                ref={filterRef}
+                aria-label="filter settings"
+                style={{ flex: 1 }}
+                leftSection={<Icons.search size={16} />}
+                placeholder={`Filter ${total} settings by key or description`}
+                value={query}
+                onTextChange={setQuery}
+                onKeyDown={e => {
+                  if (e.key === 'Escape' && query !== '') {
+                    e.stopPropagation();
+                    setQuery('');
+                  }
+                }}
+                rightSectionWidth={query ? 110 : 36}
+                rightSection={
+                  query ? (
+                    <Group gap={6} wrap="nowrap">
+                      <Text
+                        size="xs"
+                        c={text.muted}
+                      >{`${shown} of ${total}`}</Text>
+                      <CloseButton
+                        size="sm"
+                        aria-label="clear filter"
+                        onClick={() => setQuery('')}
+                      />
+                    </Group>
+                  ) : (
+                    <Kbd size="xs">/</Kbd>
+                  )
+                }
               />
-            ))
-          )}
-          {filtering && visible.length > 0 && hiddenGroups > 0 && (
-            <Group gap={8} pt={20}>
-              <Icons.eyeOff size={14} color={text.muted} />
-              <Text size="xs" c={text.muted}>
-                {hiddenGroups === 1
-                  ? '1 group has no match.'
-                  : `${hiddenGroups} groups have no match.`}
-              </Text>
-              <Button size="compact-xs" variant="default" onClick={clearAll}>
-                Clear filter
-              </Button>
+              <Chip
+                checked={changedOnly}
+                onChange={setChangedOnly}
+                variant="outline"
+                size="sm"
+              >
+                {`Changed ${store.defs.filter(isSet).length}`}
+              </Chip>
+              <Chip
+                checked={editableOnly}
+                onChange={setEditableOnly}
+                variant="outline"
+                size="sm"
+              >
+                {`Editable ${store.defs.filter(isEditable).length}`}
+              </Chip>
+              <SegmentedControl
+                size="xs"
+                value={scope}
+                onChange={v => setScope(v as ScopeFilter)}
+                data={[
+                  { value: 'any', label: 'any' },
+                  ...SCOPES.map(s => ({
+                    value: s,
+                    label: (
+                      <Group gap={6} wrap="nowrap">
+                        <ScopeDot scope={s} />
+                        <span>{s}</span>
+                      </Group>
+                    ),
+                  })),
+                ]}
+              />
             </Group>
-          )}
-        </Box>
-      </Stack>
-    </Group>
-  );
-}
-
-export function SettingsPage() {
-  return (
-    <PageShell title="Settings" headerHeight={PAGE_ROW_HEIGHT} compactHeader>
-      <SettingsPageContent />
+            <Box px={32} pb={32}>
+              {store.error && (
+                <Alert
+                  color="bad"
+                  variant="light"
+                  mt="md"
+                  icon={<Icons.error size={14} />}
+                >
+                  <Text size="xs">{store.error}</Text>
+                </Alert>
+              )}
+              {store.loading ? (
+                <Stack gap="md" pt={28}>
+                  {[220, 280, 180, 240].map(w => (
+                    <Group key={w} justify="space-between">
+                      <Stack gap={8}>
+                        <Skeleton h={12} w={w} />
+                        <Skeleton h={10} w={w + 160} />
+                      </Stack>
+                      <Skeleton h={30} w={200} />
+                    </Group>
+                  ))}
+                </Stack>
+              ) : visible.length === 0 && total > 0 ? (
+                <Stack align="center" gap={10} py={48}>
+                  <Text size="sm" fw={500}>
+                    {query
+                      ? `No settings match “${query}”`
+                      : 'No settings match these filters'}
+                  </Text>
+                  <Text size="xs" c={text.muted}>
+                    The filter reads key names and descriptions, not values.
+                  </Text>
+                  <Button size="xs" variant="default" onClick={clearAll}>
+                    Clear filter
+                  </Button>
+                </Stack>
+              ) : (
+                visible.map(s => (
+                  <SettingsSection
+                    key={s.group.id}
+                    section={s}
+                    store={store}
+                    query={query}
+                    filtering={filtering}
+                    agentProvider={agentProvider}
+                  />
+                ))
+              )}
+              {filtering && visible.length > 0 && hiddenGroups > 0 && (
+                <Group gap={8} pt={20}>
+                  <Icons.eyeOff size={14} color={text.muted} />
+                  <Text size="xs" c={text.muted}>
+                    {hiddenGroups === 1
+                      ? '1 group has no match.'
+                      : `${hiddenGroups} groups have no match.`}
+                  </Text>
+                  <Button
+                    size="compact-xs"
+                    variant="default"
+                    onClick={clearAll}
+                  >
+                    Clear filter
+                  </Button>
+                </Group>
+              )}
+            </Box>
+          </Box>
+        </PageShell.Content>
+      </PageShell.Main>
     </PageShell>
   );
 }
