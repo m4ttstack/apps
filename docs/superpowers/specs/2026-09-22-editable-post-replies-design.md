@@ -79,18 +79,18 @@ trimmed text differs from the trimmed draft.
 Record<string, string>` keyed by question id, saved and restored with the
 picks, so queue paging and a reload keep an edit. Reset deletes the key.
 
-**Answer (gate-kit `payload.ts`):** the payload builder takes the texts
-alongside the selections. A thread whose selection includes `post:<id>`
-and whose text is edited answers `{value: [...], text: <trimmed text>}`;
-every other thread answers the bare array as today. A held thread keeps
-its edit in the draft and sends nothing.
+**Answer (the board's `sheetAnswers`, which already wraps notes):** a
+thread whose selection includes `post:<id>` and whose text is edited
+answers `{value: [...], text: <trimmed text>}`; every other thread
+answers the bare array as today. A held thread keeps its edit in the
+draft and sends nothing.
 
 **Empty edit:** a thread set to post whose edited text is empty disables
 submit, and the card says "the reply is empty". Hold is how nothing posts.
 
-**Decided view:** the card shows the text that posted (the answer's
-`text` when present, the draft otherwise) with its `edited` chip.
-`unwrapGateAnswer` carries `text` through. The gate summary chip reads
+**Decided view (the answered chip):** `unwrapGateAnswer` carries `text`
+through, and the chip's detail row for an edited thread shows the text
+that posted, labelled as an edited reply. The chip line reads
 `2 posted (1 edited), 1 resolved, 1 held`; the edited count appears only
 when non-zero.
 
@@ -127,12 +127,12 @@ reason above. Step 2 is harmless alone: nothing sends `text` until step 3.)
   post-resume, and post-none to show no regression. Certify, then full
   reads of the preview-compiled receive-review, each pack's compiled
   receive-review and gate-protocol carriers after sync, and the wrapper.
-- **gate-kit:** payload builder (edited+post sends `{value, text}`, hold
-  sends the bare array, unedited sends the bare array), draft round-trip
-  of `texts`, `unwrapGateAnswer` carries `text`, summary chip edited count.
-- **Board:** RespondSheet tests for the edit button, seeded textarea,
-  edited chip, reset, empty-edit submit disable, hold dropping the text,
-  and the decided view showing the posted text. Capture baselines
+- **gate-kit:** draft round-trip of `texts`, `unwrapGateAnswer` carries
+  `text`, summary detail row carries `text`, chip edited count.
+- **Board:** answer building (edited+post sends `{value, text}`, hold and
+  unedited send the bare array), and RespondSheet tests for the edit
+  button, seeded textarea, edited chip, reset, empty-edit submit disable,
+  hold dropping the text, and the answered chip showing the posted text. Capture baselines
   re-pinned where the post step changes. Fast Browser screenshots of rest,
   editing, edited, and decided, in both schemes, looked at.
 
