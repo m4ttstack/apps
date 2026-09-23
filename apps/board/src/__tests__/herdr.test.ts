@@ -430,6 +430,39 @@ describe('launchReview / launchRespond / launchDoctor (rt agent)', () => {
     });
   });
 
+  test('launchRespond carries opts.round onto the dispatch prompt as --round, for a fresh launch that follows a prior recorded round', async () => {
+    const { io, startCalls } = fakeAgentIo();
+    await launchRespond(
+      {
+        mrUrl: 'https://x/mr/1',
+        iid: 4821,
+        cwd: '/repo',
+        repo: 'acme/webapp',
+        workspaceLabel: 'responds',
+        statePath: '/s/1.json',
+        round: 3,
+      },
+      io
+    );
+    expect(startCalls[0]!.prompt).toContain('--round 3');
+  });
+
+  test('launchRespond omits --round when opts.round is absent (first-ever run on this MR)', async () => {
+    const { io, startCalls } = fakeAgentIo();
+    await launchRespond(
+      {
+        mrUrl: 'https://x/mr/1',
+        iid: 4821,
+        cwd: '/repo',
+        repo: 'acme/webapp',
+        workspaceLabel: 'responds',
+        statePath: '/s/1.json',
+      },
+      io
+    );
+    expect(startCalls[0]!.prompt).not.toContain('--round');
+  });
+
   test('launchDoctor starts an rt agent with the doctor prompt and tier flag', async () => {
     const { io, startCalls } = fakeAgentIo();
     await launchDoctor(
@@ -951,6 +984,53 @@ describe('--resumed-gate flag (parked-gate resume marker)', () => {
   --skill myteam:respond
   --resumed-gate gate-9`
     );
+  });
+});
+
+describe('--round flag (respond resume round recovery)', () => {
+  test('respondPrompt emits --round alongside --resumed-gate, so a resumed pane can recover it', () => {
+    const p = respondPrompt({
+      mrUrl: 'https://x/mr/1',
+      statePath: '/s/1.json',
+      statusBin: '/b/board',
+      reportPath: '/s/1.md',
+      skill: 'myteam:respond',
+      resumedGate: 'gate-9',
+      resumedGateKind: 'respond-post',
+      round: 2,
+    });
+    expect(p).toBe(
+      `/board:respond https://x/mr/1
+  --state /s/1.json
+  --status-bin /b/board
+  --report /s/1.md
+  --skill myteam:respond
+  --resumed-gate gate-9
+  --resumed-gate-kind respond-post
+  --round 2`
+    );
+  });
+
+  test('a normal launch (no round on file) omits the flag entirely', () => {
+    const p = respondPrompt({
+      mrUrl: 'https://x/mr/1',
+      statePath: '/s/1.json',
+      statusBin: '/b/board',
+      reportPath: '/s/1.md',
+      skill: 'myteam:respond',
+    });
+    expect(p).not.toContain('--round');
+  });
+
+  test('reviewPrompt carries round too (SkillPromptOpts is shared), but only respond ever sets it', () => {
+    const p = reviewPrompt({
+      mrUrl: 'https://x/mr/1',
+      statePath: '/s/1.json',
+      statusBin: '/b/board',
+      reportPath: '/s/1.md',
+      round: 3,
+    });
+    expect(p).toContain('--round 3');
   });
 });
 

@@ -82,6 +82,7 @@ import {
   reviewSkillForTab,
   visibleMrsFor,
   type BoardMR,
+  type BoardSyncError,
   type SyncScopeRead,
 } from './data.ts';
 import {
@@ -211,7 +212,9 @@ import {
   readRespondReport,
   readRespondStates,
   respondFilePath,
+  respondFreshDispatchFields,
   respondReportPath,
+  respondResumeDispatchFields,
   writeRespondState,
   type RespondState,
   type RespondStatus,
@@ -262,6 +265,14 @@ import {
   sanitizeHeader,
   type MrFacts,
 } from './template.ts';
+import {
+  parseThreadReply,
+  parseThreadResolve,
+  replyToThread,
+  resolveThread,
+  type ThreadWriteResult,
+  type ThreadWriteSend,
+} from './thread-write.ts';
 import { loadReReviewConfig, loadTriageConfig } from './triage/config.ts';
 import {
   attachStandDown,
@@ -537,6 +548,7 @@ interface TeamMRsResult {
   scopeWindowDays: number | null;
   scopeUncoveredSections: string[];
   scopeKnownSections: string[] | null;
+  syncError: BoardSyncError | null;
   tags: Map<string, string[]>;
 }
 
@@ -572,7 +584,11 @@ async function fetchTeamMRs(force = false): Promise<TeamMRsResult> {
       errors.push(`${projectPath}: ${res.error ?? 'empty daemon response'}`);
       continue;
     }
-    reads.push({ syncedAt: res.data.syncedAt, scope: res.data.scope });
+    reads.push({
+      syncedAt: res.data.syncedAt,
+      scope: res.data.scope,
+      syncError: res.data.syncError,
+    });
     for (const entry of Object.values(res.data.mrs)) {
       if (entry.pr.state !== 'opened') continue;
       byId.set(entry.pr.id, entry.pr);
@@ -657,6 +673,22 @@ async function readLatchDetail(mr: BoardMR): Promise<MRDetail | null> {
   return { discussions: res.data.discussions } as MRDetail;
 }
 
+const sendThreadWrite: ThreadWriteSend = (verb, payload) =>
+  rtCommand(verb, payload, { timeoutMs: 30_000 });
+
+function threadWriteResponse(result: ThreadWriteResult): Response {
+  if (!result.ok) {
+    return new Response(JSON.stringify(result), {
+      status: 502,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+  const { threads, comments } = result;
+  return new Response(JSON.stringify({ threads, comments }), {
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
 /** The tabId a signal's launched pane is running in, from whichever of the
     three state stores its kind owns (see closeOnDone). */
 const resolveSignalTabId: TabIdResolver = signal => {
@@ -711,6 +743,7 @@ const cache = new SnapshotCache(async () => {
     scopeWindowDays,
     scopeUncoveredSections,
     scopeKnownSections,
+    syncError,
     tags,
   } = await fetchTeamMRs(force);
   const mrs = buildBoard(prs, config, undefined, tags);
@@ -722,6 +755,7 @@ const cache = new SnapshotCache(async () => {
     scopeWindowDays,
     scopeUncoveredSections,
     scopeKnownSections,
+    syncError,
   };
 });
 
@@ -1182,6 +1216,7 @@ const httpServer = Bun.serve({
             fetchedAt: snapshot.fetchedAt,
             fetchError: snapshot.fetchError,
             dataSyncedAt: snapshot.dataSyncedAt,
+            syncError: snapshot.syncError,
             scopeUncovered: snapshot.scopeUncovered,
             scopeWindowDays: snapshot.scopeWindowDays,
             scopeUncoveredSections: snapshot.scopeUncoveredSections,
@@ -1366,6 +1401,78 @@ const httpServer = Bun.serve({
         return new Response(JSON.stringify({ threads, comments }), {
           headers: { 'content-type': 'application/json' },
         });
+      }
+      case '/discussions/reply': {
+        if (req.method !== 'POST')
+          return new Response('method not allowed', { status: 405 });
+        if (!isLocalRequest(req))
+          return new Response('forbidden', { status: 403 });
+        {
+          const notJson = requireJsonBody(req);
+          if (notJson) return notJson;
+        }
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch {
+          return new Response('invalid json', { status: 400 });
+        }
+        const reply = parseThreadReply(body);
+        if (!reply)
+          return new Response(
+            'expected { repo, iid, discussionId, author, body }',
+            { status: 400 }
+          );
+        const repoId = repoIdentityField(reply.repo);
+        if (!repoId)
+          return new Response(
+            `"${reply.repo}" is not a recognized repo identity`,
+            { status: 400 }
+          );
+        return threadWriteResponse(
+          await replyToThread(
+            sendThreadWrite,
+            repoId,
+            reply,
+            config.botUsernames
+          )
+        );
+      }
+      case '/discussions/resolve': {
+        if (req.method !== 'POST')
+          return new Response('method not allowed', { status: 405 });
+        if (!isLocalRequest(req))
+          return new Response('forbidden', { status: 403 });
+        {
+          const notJson = requireJsonBody(req);
+          if (notJson) return notJson;
+        }
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch {
+          return new Response('invalid json', { status: 400 });
+        }
+        const change = parseThreadResolve(body);
+        if (!change)
+          return new Response(
+            'expected { repo, iid, discussionId, author, resolved }',
+            { status: 400 }
+          );
+        const repoId = repoIdentityField(change.repo);
+        if (!repoId)
+          return new Response(
+            `"${change.repo}" is not a recognized repo identity`,
+            { status: 400 }
+          );
+        return threadWriteResponse(
+          await resolveThread(
+            sendThreadWrite,
+            repoId,
+            change,
+            config.botUsernames
+          )
+        );
       }
       case '/review': {
         if (req.method !== 'POST')
@@ -1643,6 +1750,7 @@ const httpServer = Bun.serve({
           skill: resolveLaunchSkill('respond', parsed.mrUrl),
           author,
           ...loadAgentSettings(),
+          ...respondFreshDispatchFields(existing),
           note,
         })
           .then(result => {
@@ -3346,6 +3454,7 @@ function respondResumeIo(): KindResumeIo {
           skill,
           resumedGate,
           resumedGateKind,
+          ...respondResumeDispatchFields(readRespondStates().get(mrUrl)),
         },
         resolvePath
       ),

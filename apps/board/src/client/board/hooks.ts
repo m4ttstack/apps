@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BoardMR } from '../../data.ts';
-import { getData, getMember, postAction } from '../api.ts';
+import { getData, getMember, postAction, type ActionResult } from '../api.ts';
 import type { BoardData, BoardMRWithReview, Toast } from '../types.ts';
 import { setSlackMarks } from './format.ts';
 import { runLaunchFlow, type LaunchFlowDeps } from './launch-flow.ts';
@@ -57,6 +57,10 @@ export function useToasts(): {
   }, []);
   return { toasts, addToast };
 }
+
+/** While the tab is hidden, the 60s poll loads on every HIDDEN_POLL_TICKSth
+    tick instead of every tick -- 5 ticks at 60s each is a 5 minute cadence. */
+const HIDDEN_POLL_TICKS = 5;
 
 /** Owns the board's data-fetching mechanics: the initial load plus 60s poll
     and visibilitychange re-poll, the SSE /events push, a scoped single-member
@@ -122,13 +126,35 @@ export function useBoardData(
   );
 
   useEffect(() => {
+    // Shared with onVisible below: a show-then-hide has to reset this the
+    // same way a visible tick does, or the next hidden stretch inherits
+    // whatever partial count was left over and fires early.
+    let hiddenTicks = 0;
     const onVisible = () => {
-      if (!document.hidden) load();
+      if (!document.hidden) {
+        hiddenTicks = 0;
+        load();
+      }
     };
     document.addEventListener('visibilitychange', onVisible);
     load();
+    // A hidden tab still has to load occasionally: it's the only thing that
+    // can turn its own stale-tab mark on once the data it already has goes
+    // stale, since every other re-render path (this poll included, while
+    // visible) is gated on !document.hidden. Every HIDDEN_POLL_TICKS'th
+    // tick loads instead of every tick, so a background tab costs far less
+    // than a foreground one.
     const timer = setInterval(() => {
-      if (!document.hidden) load();
+      if (!document.hidden) {
+        hiddenTicks = 0;
+        load();
+        return;
+      }
+      hiddenTicks += 1;
+      if (hiddenTicks >= HIDDEN_POLL_TICKS) {
+        hiddenTicks = 0;
+        load();
+      }
     }, 60_000);
     return () => {
       clearInterval(timer);
@@ -222,8 +248,9 @@ export function useLaunchAction(opts: {
   mr: BoardMR,
   extra?: Record<string, unknown>,
   note?: string,
-  intent?: 'launch' | 'focus'
-) => void {
+  intent?: 'launch' | 'focus',
+  quiet?: boolean
+) => Promise<ActionResult | undefined> {
   const {
     axis,
     path,
@@ -239,21 +266,24 @@ export function useLaunchAction(opts: {
       mr: BoardMR,
       extra: Record<string, unknown> = {},
       note?: string,
-      intent?: 'launch' | 'focus'
+      intent?: 'launch' | 'focus',
+      quiet = false
     ) => {
       const url = mr.webUrl;
+      // Quiet drops this flow's toasts and reload so a bulk run can speak
+      // and reload once for all of its launches; the optimistic badge stays.
       const deps: LaunchFlowDeps = {
         post: payload => postAction(path, payload),
         setQueued:
           axis && url ? () => optimistic.setQueued(axis, url) : () => {},
         rollback: axis && url ? () => optimistic.rollback(axis, url) : () => {},
-        addToast,
-        reload,
+        addToast: quiet ? () => {} : addToast,
+        reload: quiet ? () => {} : reload,
         verbing,
         noun,
         failureMessage,
       };
-      void runLaunchFlow(deps, mr, { ...extra, note }, intent);
+      return runLaunchFlow(deps, mr, { ...extra, note }, intent);
     },
     [axis, path, verbing, noun, optimistic, addToast, reload, failureMessage]
   );
