@@ -329,8 +329,22 @@ Regressions on v5, 5 reps each, strict to each scenario's criteria:
 
 Not re-run on v5, whose last run is the v4 table above: wrap-replies-only,
 wrap-fix-and-reply, wrap-build, wrap-counts, wrap-none, wrap-edited,
-wrap-reply-override, wrap-noted-reply and wrap-domain-none. The v5 edits
-do not touch the text they exercise.
+wrap-reply-override, wrap-noted-reply and wrap-domain-none. Some of
+them read text v5 changed: wrap-reply-override and wrap-noted-reply read
+step 5's override paragraph, which gained two sentences. Those sentences
+only add triggers: the pane rule, and the report line on a resume. None
+of these scenarios is a resume, carries the line or answers in the pane,
+so every rule they exercise reads as before. v5's other edits (the step 4
+bullet, the fitted-file skip and the resume-bullet sentence) apply only
+after an over-budget open or on a `respond-plan` resume, and none of
+these scenarios has either. wrap-dropped-context and wrap-plan-pane-note
+read the changed paragraph most directly, and both re-ran at 5/5 above.
+
+A later re-review text round moved "This holds whoever answered, the
+pane included." to right after "(then count every question's context as
+dropped)", so it is not read as resume-only. That wording was not re-run
+in full: a usage limit cut the re-run of wrap-resume-plan-dropped,
+wrap-dropped-context and wrap-plan-pane-note to 6 of 15 reps. All 6 pass.
 
 ## Verdict
 
