@@ -58,6 +58,10 @@ export function useToasts(): {
   return { toasts, addToast };
 }
 
+/** While the tab is hidden, the 60s poll loads on every HIDDEN_POLL_TICKSth
+    tick instead of every tick -- 5 ticks at 60s each is a 5 minute cadence. */
+const HIDDEN_POLL_TICKS = 5;
+
 /** Owns the board's data-fetching mechanics: the initial load plus 60s poll
     and visibilitychange re-poll, the SSE /events push, a scoped single-member
     poll every 15s (skipped for the "all" view), and refreshNow/refreshing for
@@ -127,8 +131,24 @@ export function useBoardData(
     };
     document.addEventListener('visibilitychange', onVisible);
     load();
+    // A hidden tab still has to load occasionally: it's the only thing that
+    // can turn its own stale-tab mark on once the data it already has goes
+    // stale, since every other re-render path (this poll included, while
+    // visible) is gated on !document.hidden. Every HIDDEN_POLL_TICKS'th
+    // tick loads instead of every tick, so a background tab costs far less
+    // than a foreground one.
+    let hiddenTicks = 0;
     const timer = setInterval(() => {
-      if (!document.hidden) load();
+      if (!document.hidden) {
+        hiddenTicks = 0;
+        load();
+        return;
+      }
+      hiddenTicks += 1;
+      if (hiddenTicks >= HIDDEN_POLL_TICKS) {
+        hiddenTicks = 0;
+        load();
+      }
     }, 60_000);
     return () => {
       clearInterval(timer);
