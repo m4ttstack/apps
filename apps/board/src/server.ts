@@ -884,7 +884,7 @@ const httpServer = Bun.serve({
   // The cold fetch (paging the project MR list + batch-fetching) can exceed
   // Bun's 10s default; give it room so the first request doesn't time out.
   idleTimeout: 60,
-  async fetch(req) {
+  async fetch(req, server) {
     const redirect = canonicalHostRedirect(req);
     if (redirect) return redirect;
     const handoff = await shellHandoff(req);
@@ -996,7 +996,7 @@ const httpServer = Bun.serve({
     // locality rule; reads are as public as /data.json already is.
     if (pathname.startsWith('/api/settings/')) {
       const settingsRes = await settingsHandler(req, {
-        allowWrite: isLocalRequest,
+        allowWrite: r => isLocalRequest(r, server),
         allowComposite: true,
       });
       if (settingsRes) {
@@ -1098,7 +1098,8 @@ const httpServer = Bun.serve({
         // button). Local-only: a tunnel visitor's fresh=1 degrades to a
         // plain cached read instead of a forced daemon sync (FIX 3).
         const wantsFresh =
-          !!new URL(req.url).searchParams.get('fresh') && isLocalRequest(req);
+          !!new URL(req.url).searchParams.get('fresh') &&
+          isLocalRequest(req, server);
         if (wantsFresh) forceNextFetch = true;
         const snapshot = wantsFresh
           ? await cache.forceRefresh()
@@ -1199,9 +1200,9 @@ const httpServer = Bun.serve({
             // Enrolled peer usernames from the relay, when peering knows them.
             // Absent means unknown, and the pickers fall back to the roster.
             peers: peering.current()?.peers() ?? undefined,
-            local: isLocalRequest(req),
+            local: isLocalRequest(req, server),
             canInvite:
-              isLocalRequest(req) &&
+              isLocalRequest(req, server) &&
               !!switchboardAdminToken &&
               !!config.switchboard.url,
             peering: peering.current() ? peering.current()!.health() : null,
@@ -1276,7 +1277,7 @@ const httpServer = Bun.serve({
         // request and persists the result.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -1337,7 +1338,7 @@ const httpServer = Bun.serve({
         // drops so the next fetch declares the new sections to rt.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -1404,7 +1405,7 @@ const httpServer = Bun.serve({
       case '/discussions/reply': {
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -1440,7 +1441,7 @@ const httpServer = Bun.serve({
       case '/discussions/resolve': {
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -1476,7 +1477,7 @@ const httpServer = Bun.serve({
       case '/review': {
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -1651,7 +1652,7 @@ const httpServer = Bun.serve({
         // drive the badge.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -1780,7 +1781,7 @@ const httpServer = Bun.serve({
         // merge conflicts) on the caller's MR. Same shape as /respond.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -1951,7 +1952,7 @@ const httpServer = Bun.serve({
         // nothing here runs unattended.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2024,7 +2025,7 @@ const httpServer = Bun.serve({
         // sides (the menu item only renders for them, and this refuses others').
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2140,7 +2141,7 @@ const httpServer = Bun.serve({
         // view-model's button state); GitLab itself is the permission check.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2200,7 +2201,7 @@ const httpServer = Bun.serve({
         // (see gates/ingest.ts) so a console-answered gate resumes too.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2257,7 +2258,7 @@ const httpServer = Bun.serve({
       case '/gate/focus': {
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2331,7 +2332,7 @@ const httpServer = Bun.serve({
         // from the pane brings the lane back on its own.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2384,7 +2385,7 @@ const httpServer = Bun.serve({
         // a live pane if one is still running.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2482,7 +2483,7 @@ const httpServer = Bun.serve({
         // MR. An empty body clears it, which is the editor's only delete.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2522,7 +2523,7 @@ const httpServer = Bun.serve({
         // refetched fresh on the next /data.json poll rather than cached.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2585,7 +2586,7 @@ const httpServer = Bun.serve({
         // relays the human's click; all policy runs in the peer's triage.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2686,7 +2687,7 @@ const httpServer = Bun.serve({
         // reports so the UI never offers a button that can't work.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         // isLocal reads the Host header, which a cross-origin form can forge.
         // Requiring a json content-type takes that away: a form post can only
@@ -2725,7 +2726,7 @@ const httpServer = Bun.serve({
       case '/peer/boards': {
         if (req.method !== 'GET')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         if (!switchboardAdminToken || !config.switchboard.url)
           return new Response('inviting is not set up on this board', {
@@ -2748,7 +2749,7 @@ const httpServer = Bun.serve({
         // (token revoked, pending envelopes dropped). Same gates as invite.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2787,7 +2788,7 @@ const httpServer = Bun.serve({
         // peering, so joining costs no restart.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         // Same content-type gate as /peer/invite above: a forged Host header on
         // a cross-origin form must not be enough to re-point this board's
@@ -2893,7 +2894,7 @@ const httpServer = Bun.serve({
         // Find (and cache) the MR's review-request message in the team channel.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -2959,7 +2960,7 @@ const httpServer = Bun.serve({
         // re-checked against a fresh channel index; found refs are left alone.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         if (!slackToken)
           return new Response('slack not configured', { status: 400 });
@@ -2986,7 +2987,7 @@ const httpServer = Bun.serve({
         // accepted -- it's the local user's own words under their own token.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
@@ -3159,7 +3160,7 @@ const httpServer = Bun.serve({
         // on the MR's cached review-request message. `remove: true` unreacts.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req))
+        if (!isLocalRequest(req, server))
           return new Response('forbidden', { status: 403 });
         {
           const notJson = requireJsonBody(req);
