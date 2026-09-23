@@ -383,6 +383,35 @@ describe('joinExecutorOrphans', () => {
     expect(orphans).toEqual([]);
   });
 
+  test("an earlier run's closed pane on a row whose lanes all finished is teardown too", () => {
+    const earlier = executorView({
+      agentId: 'ag-doc-1',
+      state: 'gone',
+      subject: 'mr:https://gitlab.com/acme/webapp/-/merge_requests/11',
+      sessionId: 'sess-doc-1',
+      since: 1000,
+    });
+    const latest = executorView({
+      agentId: 'ag-doc-2',
+      state: 'gone',
+      subject: 'mr:https://gitlab.com/acme/webapp/-/merge_requests/11',
+      sessionId: 'sess-doc-2',
+      since: 2000,
+    });
+    const mrs = [
+      {
+        webUrl: 'https://gitlab.com/acme/webapp/-/merge_requests/11',
+        doctor: { status: 'done', agentId: 'ag-doc-2' },
+      },
+    ];
+    const { mrs: joined, orphans } = joinExecutorOrphans(mrs, [
+      earlier,
+      latest,
+    ]);
+    expect(joined[0]?.orphan).toBeUndefined();
+    expect(orphans).toEqual([]);
+  });
+
   test("a failed review's closed pane is teardown too, matched by agentId", () => {
     const executor = executorView({
       agentId: 'ag-review',

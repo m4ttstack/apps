@@ -499,18 +499,29 @@ function activeLaneSessionId(mr: OrphanJoinRow): string | undefined {
 }
 
 /** A pane that closed after its lane reached done/error is ordinary
-    teardown: the lane's own line already says how it ended. Ownership
-    matches the way lanesClearedByExecutor does (agentId, else sessionId on
-    a lane that never recorded one), and a pane that still owns an
-    in-flight lane stays an interruption. */
+    teardown: the lane's own line already says how it ended. That covers a
+    pane owning a finished lane (agentId, else sessionId on a lane that
+    never recorded one, as lanesClearedByExecutor matches) and any pane on
+    the subject of a row whose lanes have all finished, since a relaunch
+    overwrites the lane's agentId and orphans the earlier run's pane. A pane
+    that still owns an in-flight lane stays an interruption. */
 function finishedLaneTeardown(
   mrs: OrphanJoinRow[]
 ): (executor: ExecutorView) => boolean {
   const finished = new Set<string>();
   const active = new Set<string>();
+  const settledSubjects = new Set<string>();
   for (const mr of mrs) {
-    for (const lane of [mr.review, mr.respond, mr.doctor]) {
-      if (!lane?.status) continue;
+    const lanes = [mr.review, mr.respond, mr.doctor].filter(
+      (lane): lane is ClearableLane & { status: string } => !!lane?.status
+    );
+    if (
+      mr.webUrl &&
+      lanes.length > 0 &&
+      lanes.every(lane => LANE_FINISHED.has(lane.status))
+    )
+      settledSubjects.add(`mr:${mr.webUrl}`);
+    for (const lane of lanes) {
       const owner = lane.agentId
         ? `agent:${lane.agentId}`
         : lane.sessionId
@@ -524,7 +535,11 @@ function finishedLaneTeardown(
     if (executor.state !== 'gone') return false;
     const keys = [`agent:${executor.agentId}`];
     if (executor.sessionId) keys.push(`session:${executor.sessionId}`);
-    return keys.some(k => finished.has(k)) && !keys.some(k => active.has(k));
+    if (keys.some(k => active.has(k))) return false;
+    return (
+      keys.some(k => finished.has(k)) ||
+      (!!executor.subject && settledSubjects.has(executor.subject))
+    );
   };
 }
 
