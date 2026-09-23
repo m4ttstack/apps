@@ -1,8 +1,9 @@
 /** Keyboard focus in the full-screen GateSheet: Tab never leaves the
     sheet, and paging (which remounts the face, keyed by gate) keeps focus
-    on the chevron that was pressed. */
+    on the chevron that was pressed. Rendered in StrictMode, as the board
+    is, since its doubled effects are what a focus handoff must survive. */
 
-import React, { useState } from 'react';
+import React, { StrictMode, useState } from 'react';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { createRoot, type Root } from 'react-dom/client';
@@ -64,6 +65,23 @@ afterEach(async () => {
   opener.remove();
 });
 
+async function show(total: number) {
+  await React.act(async () =>
+    root.render(
+      <StrictMode>
+        <Paged total={total} />
+      </StrictMode>
+    )
+  );
+}
+
+async function clickSettled(el: HTMLElement) {
+  await React.act(async () => el.click());
+  await React.act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+}
+
 const $ = (selector: string) =>
   document.body.querySelector(selector) as HTMLElement;
 
@@ -76,7 +94,7 @@ async function press(el: HTMLElement, key: string, shiftKey = false) {
 }
 
 test('Shift+Tab from the sheet itself wraps to its last control, never the page behind', async () => {
-  await React.act(async () => root.render(<Paged total={3} />));
+  await show(3);
   const sheet = $('.tui-gate-sheet');
   expect(document.activeElement).toBe(sheet);
   await press(sheet, 'Tab', true);
@@ -84,25 +102,25 @@ test('Shift+Tab from the sheet itself wraps to its last control, never the page 
 });
 
 test('paging keeps focus on the chevron that was pressed', async () => {
-  await React.act(async () => root.render(<Paged total={4} />));
-  await React.act(async () => $('[aria-label="next gate"]').click());
-  await React.act(async () => $('[aria-label="next gate"]').click());
+  await show(4);
+  await clickSettled($('[aria-label="next gate"]'));
+  await clickSettled($('[aria-label="next gate"]'));
   expect($('[aria-label="gate 3 field"]')).not.toBeNull();
   expect(document.activeElement).toBe($('[aria-label="next gate"]'));
-  await React.act(async () => $('[aria-label="previous gate"]').click());
+  await clickSettled($('[aria-label="previous gate"]'));
   expect($('[aria-label="gate 2 field"]')).not.toBeNull();
   expect(document.activeElement).toBe($('[aria-label="previous gate"]'));
 });
 
 test('a chevron disabled by the page it lands on hands focus to the sheet', async () => {
-  await React.act(async () => root.render(<Paged total={2} />));
-  await React.act(async () => $('[aria-label="next gate"]').click());
+  await show(2);
+  await clickSettled($('[aria-label="next gate"]'));
   expect(document.activeElement).toBe($('.tui-gate-sheet'));
 });
 
 test('closing after paging returns focus to what opened the queue', async () => {
-  await React.act(async () => root.render(<Paged total={3} />));
-  await React.act(async () => $('[aria-label="next gate"]').click());
+  await show(3);
+  await clickSettled($('[aria-label="next gate"]'));
   await React.act(async () => root.render(<></>));
   expect(document.activeElement).toBe(opener);
 });

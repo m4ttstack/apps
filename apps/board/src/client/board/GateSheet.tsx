@@ -24,7 +24,8 @@ export interface GateSheetQueue {
 /** Paging remounts the face (the host keys it by gate), so the pressed
     chevron and the queue's original opener cross that remount here: the
     outgoing sheet records its opener instead of refocusing it, and the
-    incoming one focuses the same chevron. */
+    incoming one focuses the same chevron. The incoming sheet clears it a
+    task later, not on read, because StrictMode mounts effects twice. */
 let navHandoff: { label: string; opener: HTMLElement | null } | null = null;
 
 /** The one full-screen frame every decision-queue face renders in: the head
@@ -59,7 +60,11 @@ function GateSheet({
   const sheetRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const carried = navHandoff;
-    navHandoff = null;
+    const settle = carried
+      ? setTimeout(() => {
+          if (navHandoff === carried) navHandoff = null;
+        }, 0)
+      : undefined;
     const opener = carried
       ? carried.opener
       : document.activeElement instanceof HTMLElement
@@ -72,6 +77,7 @@ function GateSheet({
       : null;
     (pressed && !pressed.disabled ? pressed : sheetRef.current)?.focus();
     return () => {
+      clearTimeout(settle);
       if (navHandoff) navHandoff.opener = opener;
       else opener?.focus({ preventScroll: true });
     };
