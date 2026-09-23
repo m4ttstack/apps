@@ -56,6 +56,7 @@ const originalClipboard = navigator.clipboard;
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   Object.defineProperty(navigator, 'clipboard', {
     value: originalClipboard,
     configurable: true,
@@ -110,6 +111,29 @@ describe('ConsolePalette', () => {
 
   it('offers no settings keys: typing "config" finds nothing', async () => {
     runsGet.mockResolvedValue(ok({ runs: [] }));
+    // A palette that indexed settings again would find this def by "config".
+    vi.stubGlobal('fetch', async (url: string) =>
+      url.startsWith('/api/settings/defs')
+        ? ok({
+            defs: [
+              {
+                key: 'rt.runsPruneDays',
+                type: 'number',
+                scopes: ['user', 'machine'],
+                merge: 'replace',
+                secret: false,
+                teamLocked: false,
+                repoScoped: false,
+                writable: true,
+                description: 'Days before pruning.',
+                hasDefault: true,
+                defaultValue: 30,
+                effective: { scope: null, file: null },
+              },
+            ],
+          })
+        : { ok: false, status: 404, json: async () => ({ error: 'not found' }) }
+    );
     renderPalette();
     Spotlight.open();
     await userEvent.type(
