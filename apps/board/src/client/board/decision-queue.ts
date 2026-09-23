@@ -104,14 +104,12 @@ export function queueView(
   const position = session.activeId
     ? session.order.indexOf(session.activeId) + 1
     : 0;
-  // The peek mirrors where skip/answer actually lands (wraparound included);
-  // when the wrap would land back on the active gate itself, there is no
-  // "next" to glance at.
-  const wrapped = session.activeId
-    ? advanceOrWrap(session, entries, session.activeId)
-    : null;
-  const nextId = wrapped === session.activeId ? null : wrapped;
-  const nextEntry = entryFor(entries, nextId);
+  // The peek names where the next-gate control lands: the successor in
+  // order, none on the last gate.
+  const nextEntry = entryFor(
+    entries,
+    forwardTo(session, entries, session.activeId)
+  );
   return {
     open: false,
     active,
@@ -168,6 +166,40 @@ export function backTo(
   const idx = session.order.indexOf(from);
   if (idx <= 0) return null;
   return session.order[idx - 1] ?? null;
+}
+
+/** `backTo`'s mirror: `from`'s successor in `order` that still has an
+    entry. Also a view change, so it never consults `answered` or `skipped`
+    and never wraps; null on the last gate. */
+export function forwardTo(
+  session: QueueSession,
+  entries: QueueEntry[],
+  from: string | null
+): string | null {
+  if (from === null) return null;
+  const idx = session.order.indexOf(from);
+  if (idx < 0) return null;
+  for (let i = idx + 1; i < session.order.length; i++) {
+    const id = session.order[i]!;
+    if (entryFor(entries, id)) return id;
+  }
+  return null;
+}
+
+/** The next-gate control's transition: onto the successor in order,
+    marking the gate it leaves skipped unless that gate was answered; the
+    session unchanged on the last gate. */
+export function stepForward(
+  session: QueueSession,
+  entries: QueueEntry[]
+): QueueSession {
+  if (session.activeId === null) return session;
+  const target = forwardTo(session, entries, session.activeId);
+  if (target === null) return session;
+  const left = session.answered.includes(session.activeId)
+    ? session
+    : { ...session, skipped: markSkipped(session, session.activeId) };
+  return { ...left, activeId: target };
 }
 
 /** Appends unseen actionable gates to `order` without touching existing
@@ -259,11 +291,7 @@ export function useDecisionQueue(
   }, []);
 
   const skip = useCallback(() => {
-    setSession(s => {
-      if (s.activeId === null) return s;
-      const next = { ...s, skipped: markSkipped(s, s.activeId) };
-      return { ...next, activeId: advanceOrWrap(next, entries, s.activeId) };
-    });
+    setSession(s => stepForward(s, entries));
   }, [entries]);
 
   const noteAnswered = useCallback(
