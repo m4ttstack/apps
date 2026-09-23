@@ -23,9 +23,11 @@ and a sample of passing reps read in full.
 Wrapper versions below: **before** (the wrapper before this change),
 **v1** (Gate 2 for fixed threads only), **v2** (plus the reply override
 and report-row rulings), **v3** (plus the `gate-1` field, noted replies
-and `text` precedence) and **v4** (the fix round: dropped context,
+and `text` precedence), **v4** (the fix round: dropped context,
 `drafting` before every Gate 2, the legacy-resume guard, the domain-path
-wording). v4 is the committed wording; see "Final wording coverage".
+wording) and **v5** (the final-review round: the Gate 1 opener records
+a dropped context in the report). v5 is the committed wording; see
+"Final wording coverage" and "Fix round 2 (final review): v5".
 
 ## Scenarios
 
@@ -254,6 +256,82 @@ Not run on v4: the per-thread record's `wrap-text-no-post`,
 `wrap-pane-note` and `wrap-resume-edited` (retired premise; the last is
 superseded by `wrap-resume-legacy`).
 
+## Fix round 2 (final review): v5
+
+The final whole-branch review (finding I1) found the dropped-context
+trigger rested on facts only the pane that opened Gate 1 holds: the
+`fits: false` file, the `contextOmitted` output, or its own budget
+drop. Nothing wrote them into `--report`. A parked `respond-plan`
+resume in a fresh pane therefore read a no-`text` `reply:` on a
+recommended-reply thread as `gate-1: reply` and posted a draft the board
+never showed.
+
+Edits (v5):
+
+- Step 4 gains **Record a dropped context**. On either path, when the
+  open was a `fits: false` file, its output carried
+  `"contextOmitted": true`, or the wrapper dropped any question context
+  for the byte budget, it writes one line, `gate-1-context: dropped`,
+  into `--report` right after the open and before waiting on any answer.
+  The fitted-file path now skips to that bullet, not straight to the
+  presentation branches.
+- Step 5's override paragraph: on a resume, `--report` carrying that
+  line counts every question's context as dropped. The rule now says it
+  holds whoever answered, the pane included (the review's deferred
+  minor).
+- The `respond-plan` resume bullet names the line.
+
+receive-review (mattstack-skills, same round) writes and reads the
+identical line.
+
+New scenarios:
+
+- `wrap-plan-dropped-open.md`: domain path. The domain skill hands back
+  a `fits: false` Gate 1 file, and open-gate.sh prints no
+  `contextOmitted`. Pass: open-gate.sh with the file untouched, then the
+  line appended to `/tmp/st/report.md` with the rows unchanged, both
+  before the wait.
+- `wrap-resume-plan-dropped.md`: a generic-path `respond-plan` resume in
+  a fresh pane. The report holds two recommended-reply rows and the line;
+  the answer is `reply:T1`, `reply:T2`, neither with `text`, and
+  `code-changes: skip`. Pass: `implementing` first; both rows
+  `gate-1: override`; `drafting` before Gate 2; Gate 2 is exactly
+  `thread-1` (T1) and `thread-2` (T2), `post` recommended and `resolve`
+  not; nothing posts before its answer; then T1 posts its draft and T2
+  nothing; `--posted 1 --threads 2 --held 1`.
+- A control, not committed: `wrap-resume-plan-dropped.md` without its
+  `gate-1-context: dropped` line, which is the report v4 leaves behind.
+
+RED (v4, the wording at the previous commit):
+
+| scenario | v4 | notes |
+|---|---|---|
+| wrap-plan-dropped-open | 0/5 | Every rep opens the file untouched and writes nothing ("Files written or changed: none"). Four reps say they will count the contexts as dropped when they act on the answer in step 5, knowledge that lives only in this pane. |
+| control: resume, report without the line | 0/5 | Every rep posts both drafts at once, opens no Gate 2 and writes `--posted 2 --threads 2`. Reps 2 and 5 note the report does not say whether contexts were dropped and assume they were shown. This is I1's unseen post. |
+| wrap-resume-plan-dropped (with the line) | 5/5 | A guard: v4 already read the self-describing line ("The report says `gate-1-context: dropped`, so Gate 1 never showed either reply"). The failing half is the writer. |
+
+GREEN (v5, the committed wording), 5 reps each:
+
+| scenario | v5 | notes |
+|---|---|---|
+| wrap-plan-dropped-open | 5/5 | Open first, then the line with the rows unchanged, then the wait recipe. Every rep names the `fits: false` file alone as the trigger, since the output carried no `contextOmitted`. |
+| wrap-resume-plan-dropped | 5/5 | Parsed: both rows `gate-1: override`, Gate 2 over T1 and T2 with `resolve` unrecommended, T1 posted after the answer, `--posted 1 --threads 2 --held 1`. |
+
+Regressions on v5, 5 reps each, strict to each scenario's criteria:
+
+| scenario | v5 | notes |
+|---|---|---|
+| wrap-resume-post | 5/5 | T5 never posted; `--posted 2 --threads 5 --held 3`. |
+| wrap-resume-legacy | 5/5 | T2 once, T3 resolved only. |
+| wrap-domain-resume-post | 5/5 | Hands `{post: ..., by: "board-ui"}`, no own forge action. |
+| wrap-dropped-context | 5/5 | The same pane still offers T1 alone and posts T2 after the answer. Every rep also writes or confirms the line; none counts T2's context as dropped. |
+| wrap-plan-pane-note | 5/5 | `note`-only answer; Gate 2 over T1. |
+
+Not re-run on v5, whose last run is the v4 table above: wrap-replies-only,
+wrap-fix-and-reply, wrap-build, wrap-counts, wrap-none, wrap-edited,
+wrap-reply-override, wrap-noted-reply and wrap-domain-none. The v5 edits
+do not touch the text they exercise.
+
 ## Verdict
 
 On the 14 scenarios above, the v4 wording makes Gate 2 offer exactly the
@@ -263,3 +341,9 @@ not show the reply (recommended fix or skip, or its context dropped), or
 that carries a note. Reply-only (`gate-1: reply`) threads post from
 Gate 1's answer, its `text` when present, and never twice. The counts
 include them. Nothing outside those scenarios is claimed.
+
+v5 adds that a dropped Gate 1 context survives a resume. The pane that
+opens Gate 1 writes `gate-1-context: dropped` into the report, and a
+resumed pane that finds the line offers every no-`text` `reply:` at
+Gate 2 instead of posting its draft. The writer went from 0/5 to 5/5,
+the resume is 5/5, and the five re-run scenarios hold at 5/5.
