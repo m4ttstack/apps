@@ -20,6 +20,7 @@ import { CloudflaredCli } from './edge/tunnel.ts';
 import { bindGatewayOrExit } from './gateway-boot.ts';
 import { migrateManagedDevShape } from './registry/migrate-dev-shape.ts';
 import { listRecords } from './registry/records.ts';
+import { reconcileSelfPort } from './registry/self-port.ts';
 import { bundleRootFromExec } from './services/bundle-layout.ts';
 import {
   liveDeckOwner,
@@ -153,6 +154,19 @@ export async function serve(): Promise<void> {
     }
   } catch (err) {
     console.error('registry dev-shape migration failed:', err);
+  }
+
+  if (bundleRoot) {
+    try {
+      const moved = reconcileSelfPort(PORT);
+      if (moved.record || moved.routes.length) {
+        console.log(
+          `[helper] deck serves on ${PORT}: moved ${[...(moved.record ? ['self record'] : []), ...moved.routes].join(', ')}`
+        );
+      }
+    } catch (err) {
+      console.error('self port reconcile failed:', err);
+    }
   }
 
   // Ownership-driven TLD rehome: every managed record (mattstack product)

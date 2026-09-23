@@ -49,3 +49,26 @@ export function ensureRoute(hostname: string, port: number): boolean {
   writeFileSync(path, JSON.stringify(routes, null, 2));
   return true;
 }
+
+/** Point `name` and every host under it (`name.<tld>...`) at `port`, with the
+    same in-place write as setRoutePort. Returns the hostnames that moved;
+    nothing is written when none did. */
+export function repointRoutes(name: string, port: number): string[] {
+  const path = routesPath();
+  let routes: Array<Record<string, unknown>>;
+  try {
+    routes = JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return [];
+  }
+  const moved: string[] = [];
+  for (const r of routes) {
+    const host = String(r.hostname);
+    if (host !== name && !host.startsWith(`${name}.`)) continue;
+    if (r.port === port) continue;
+    r.port = port;
+    moved.push(host);
+  }
+  if (moved.length) writeFileSync(path, JSON.stringify(routes, null, 2));
+  return moved;
+}

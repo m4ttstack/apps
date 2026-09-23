@@ -14,7 +14,7 @@ const dir = mkdtempSync(join(tmpdir(), 'la-routes-'));
 process.env.LOCAL_APPS_ROUTES_PATH = join(dir, 'routes.json');
 const routesPath = process.env.LOCAL_APPS_ROUTES_PATH;
 
-const { setRoutePort } = await import('./routes-writer.ts');
+const { repointRoutes, setRoutePort } = await import('./routes-writer.ts');
 const { readRoutes } = await import('./discover.ts');
 
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -97,4 +97,48 @@ test('ensureRoute appends a missing hostname once and never duplicates', async (
     'a.localhost',
     'deck.mattstack',
   ]);
+});
+
+test('repointRoutes moves every host under a name to one port, in place, and nothing else', () => {
+  writeFileSync(
+    routesPath,
+    JSON.stringify([
+      { hostname: 'deck.localhost', port: 11007, pid: 0 },
+      { hostname: 'deck.mattstack', port: 11007, pid: 0 },
+      { hostname: 'deck.mattstack.localhost', port: 7940, pid: 0 },
+      { hostname: 'deckhand.localhost', port: 11007, pid: 0 },
+      { hostname: 'board.mattstack', port: 11007, pid: 0 },
+    ])
+  );
+  const before = statSync(routesPath).ino;
+
+  expect(repointRoutes('deck', 7940)).toEqual([
+    'deck.localhost',
+    'deck.mattstack',
+  ]);
+
+  const ports = Object.fromEntries(
+    JSON.parse(readFileSync(routesPath, 'utf8')).map(
+      (r: { hostname: string; port: number }) => [r.hostname, r.port]
+    )
+  );
+  expect(ports).toEqual({
+    'deck.localhost': 7940,
+    'deck.mattstack': 7940,
+    'deck.mattstack.localhost': 7940,
+    'deckhand.localhost': 11007,
+    'board.mattstack': 11007,
+  });
+  expect(statSync(routesPath).ino).toBe(before);
+});
+
+test('repointRoutes writes nothing when every host already serves the port', () => {
+  writeFileSync(
+    routesPath,
+    JSON.stringify([{ hostname: 'deck.localhost', port: 7940, pid: 0 }])
+  );
+  const raw = readFileSync(routesPath, 'utf8');
+
+  expect(repointRoutes('deck', 7940)).toEqual([]);
+  expect(readFileSync(routesPath, 'utf8')).toBe(raw);
 });
