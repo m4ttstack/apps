@@ -22,6 +22,7 @@ import { migrateManagedDevShape } from './registry/migrate-dev-shape.ts';
 import { listRecords } from './registry/records.ts';
 import { bundleRootFromExec } from './services/bundle-layout.ts';
 import {
+  liveDeckOwner,
   liveProbe,
   liveRun,
   prepareHelperBoot,
@@ -45,8 +46,9 @@ const APP_NAME =
 const CANARY_INTERVAL_MS = 5 * 60_000;
 
 export async function serve(): Promise<void> {
+  const bundleRoot = bundleRootFromExec();
   await prepareHelperBoot({
-    bundleRoot: bundleRootFromExec(),
+    bundleRoot,
     env: process.env,
     retire: {
       probe: liveProbe,
@@ -122,6 +124,7 @@ export async function serve(): Promise<void> {
       autoHeal: () => autoHeal,
       onRouteWrite: () => setTimeout(runCanaryCheck, 500),
       tunnel: new CloudflaredCli(),
+      deckOwner: liveDeckOwner(bundleRoot, process.pid),
     });
   } catch (err) {
     console.error('api failed to start, exiting so launchd retries:', err);

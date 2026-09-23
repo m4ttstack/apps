@@ -78,6 +78,7 @@ import {
 import {
   adoptApp,
   editApp,
+  kickstartLabelFor,
   knownRouteApp,
   registerApp,
   removeManagedApps,
@@ -637,8 +638,8 @@ export function startApi(deps: ApiDeps) {
             const record = getRecord(name);
             // Records restart via their label; legacy rows still restart via the
             // discovered-services whitelist exactly like the old /restart.
-            if (record?.label)
-              return json({ ok: await deps.manager.kickstart(record.label) });
+            const label = record && (await kickstartLabelFor(record, deps));
+            if (label) return json({ ok: await deps.manager.kickstart(label) });
             const svc = (await readServices()).find(
               s =>
                 s.label.endsWith(`.${name}`) ||

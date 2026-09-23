@@ -16,6 +16,7 @@ import {
   deckStartHint,
   prepareHelperBoot,
   retireHandAgent,
+  runningDeckLabel,
   type Probe,
 } from './helper-owner.ts';
 
@@ -79,6 +80,50 @@ describe('bundleHelperOwnsDeck', () => {
     const probe = probeOf({ 'com.mattstack.deck': handAgent('/u/Library') });
 
     expect(await bundleHelperOwnsDeck(probe, null)).toBe(false);
+  });
+});
+
+describe('runningDeckLabel', () => {
+  const devHelper = (pid?: number) =>
+    SMAPP_DEV.replace(
+      '\tstate = running\n',
+      pid
+        ? `\tstate = running\n\tpid = ${pid}\n`
+        : '\tstate = spawn scheduled\n'
+    );
+
+  test('the dev helper serving as this pid is the running deck', async () => {
+    const probe = probeOf({ 'com.mattstack.deck.dev': devHelper(900) });
+
+    expect(await runningDeckLabel(probe, 900, 501)).toBe(
+      'com.mattstack.deck.dev'
+    );
+  });
+
+  test('a hand agent holding the ports beats a crash-looping helper with no pid', async () => {
+    const probe = probeOf({
+      'com.mattstack.deck.dev': devHelper(),
+      'com.mattstack.deck': handAgent('/u/Library', 4242),
+    });
+
+    expect(await runningDeckLabel(probe, 4242, 501)).toBe('com.mattstack.deck');
+  });
+
+  test('without a pid to match, the first job launchd reports running wins', async () => {
+    const probe = probeOf({
+      'com.mattstack.deck.dev': devHelper(900),
+      'com.mattstack.deck': handAgent('/u/Library', 4242),
+    });
+
+    expect(await runningDeckLabel(probe, null, 501)).toBe(
+      'com.mattstack.deck.dev'
+    );
+  });
+
+  test('nothing running under either label is null', async () => {
+    const probe = probeOf({ 'com.mattstack.deck.dev': devHelper() });
+
+    expect(await runningDeckLabel(probe, 900, 501)).toBeNull();
   });
 });
 

@@ -373,6 +373,17 @@ export async function unregisterApp(
   };
 }
 
+/** Deck's own record keeps the label `deck setup` installed, which a
+    helper-owned machine no longer loads, so the platform restarts under
+    whichever deck launchd reports running. */
+export async function kickstartLabelFor(
+  record: AppRecord,
+  drivers: Drivers
+): Promise<string | undefined> {
+  if (!isPlatformManagedBy(record.managedBy)) return record.label;
+  return (await drivers.deckOwner?.runningLabel()) ?? record.label;
+}
+
 /**
  * Bulk lifecycle verb behind `deck restart --managed`: the app calls this on
  * its own version-change kickstart (installer spec §8), so it targets every

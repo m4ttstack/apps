@@ -107,6 +107,35 @@ export interface DeckOwner {
   runningLabel(): Promise<string | null>;
 }
 
+/** The label launchd runs `pid` under, the dev helper's or the bare one the
+    prod helper and a hand agent share. With no job serving as `pid`, the
+    first label launchd reports running; null when neither has a process. */
+export async function runningDeckLabel(
+  probe: Probe,
+  pid: number | null,
+  userId: number = uid()
+): Promise<string | null> {
+  let firstRunning: string | null = null;
+  for (const label of HELPER_LABELS) {
+    const job = await printJob(probe, label, userId);
+    if (job?.pid == null) continue;
+    if (job.pid === pid) return label;
+    firstRunning ??= label;
+  }
+  return firstRunning;
+}
+
+export function liveDeckOwner(
+  bundleRoot: string | null,
+  pid: number | null,
+  probe: Probe = liveProbe
+): DeckOwner {
+  return {
+    helperOwned: () => bundleHelperOwnsDeck(probe, bundleRoot),
+    runningLabel: () => runningDeckLabel(probe, pid),
+  };
+}
+
 export interface RetireDeps {
   probe: Probe;
   run: (argv: string[]) => Promise<number>;

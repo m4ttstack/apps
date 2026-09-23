@@ -2,6 +2,8 @@ import { chmodSync, mkdtempSync, renameSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { basename, join } from 'path';
 
+import { PLATFORM_LABEL } from '../services/manager.ts';
+
 /** Deck ships from the apps monorepo: releases are app-prefixed tags on
     m4ttstack/apps, so "latest" must be resolved by tag prefix, never by the
     repo-wide latest release (that is whichever app released most recently). */
@@ -103,7 +105,18 @@ export async function update(io: {
   }
   io.out('updated. restarting the platform service ...');
   const { LaunchdManager } = await import('../services/launchd.ts');
-  const { PLATFORM_LABEL } = await import('../services/manager.ts');
-  await new LaunchdManager().kickstart(PLATFORM_LABEL);
+  const { readApiInfo } = await import('../api/state.ts');
+  const { bundleRootFromExec } = await import('../services/bundle-layout.ts');
+  const { liveDeckOwner } = await import('../services/helper-owner.ts');
+  const manager = new LaunchdManager();
+  const owner = liveDeckOwner(bundleRootFromExec(), readApiInfo()?.pid ?? null);
+  await restartPlatform(label => manager.kickstart(label), owner.runningLabel);
   return 0;
+}
+
+export async function restartPlatform(
+  kickstart: (label: string) => Promise<boolean>,
+  runningLabel: () => Promise<string | null>
+): Promise<boolean> {
+  return await kickstart((await runningLabel()) ?? PLATFORM_LABEL);
 }

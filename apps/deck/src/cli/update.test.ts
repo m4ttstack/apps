@@ -1,6 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import { pickAsset, pickDeckAssetUrl, RELEASES_API } from './update.ts';
+import {
+  pickAsset,
+  pickDeckAssetUrl,
+  RELEASES_API,
+  restartPlatform,
+} from './update.ts';
 
 test('pickAsset matches the monorepo tarball naming deps.lock installs from', () => {
   expect(pickAsset('darwin', 'arm64')).toBe('deck-darwin-arm64.tgz');
@@ -78,4 +83,22 @@ test('pickDeckAssetUrl returns null when no deck release or no matching asset ex
       'deck-darwin-arm64.tgz'
     )
   ).toBeNull();
+});
+
+test('restartPlatform kickstarts the deck launchd reports running', async () => {
+  const kicked: string[] = [];
+  const kickstart = async (label: string) => (kicked.push(label), true);
+
+  await restartPlatform(kickstart, async () => 'com.mattstack.deck.dev');
+
+  expect(kicked).toEqual(['com.mattstack.deck.dev']);
+});
+
+test('restartPlatform falls back to the bare platform label when launchd reports none', async () => {
+  const kicked: string[] = [];
+  const kickstart = async (label: string) => (kicked.push(label), true);
+
+  await restartPlatform(kickstart, async () => null);
+
+  expect(kicked).toEqual(['com.mattstack.deck']);
 });
