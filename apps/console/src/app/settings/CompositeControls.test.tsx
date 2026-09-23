@@ -193,6 +193,57 @@ describe('composite rows', () => {
     );
   });
 
+  it('emptying a number leaf clears that field from the target layer', async () => {
+    vi.stubGlobal('fetch', async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        def: {},
+        rows: [
+          {
+            scope: 'default',
+            file: null,
+            present: true,
+            value: SNAPSHOT_DEFAULTS,
+          },
+          {
+            scope: 'machine',
+            file: '/m',
+            present: true,
+            value: { enabled: false, debounceSec: 45 },
+          },
+        ],
+      }),
+    }));
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.homeSnapshot', {
+          type: 'object',
+          merge: 'deep',
+          effective: {
+            scope: 'machine',
+            file: '/m',
+            value: { ...SNAPSHOT_DEFAULTS, enabled: false, debounceSec: 45 },
+          },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    const debounce = screen.getByLabelText('rt.homeSnapshot.debounceSec');
+    await waitFor(() => expect(debounce).toBeEnabled());
+    await userEvent.clear(debounce);
+    debounce.blur();
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('rt.homeSnapshot', 'machine', {
+        enabled: false,
+      })
+    );
+  });
+
   it('a leaves field follows a refreshed value and writes nothing on a bare blur', async () => {
     stubExplain();
     const s = store();

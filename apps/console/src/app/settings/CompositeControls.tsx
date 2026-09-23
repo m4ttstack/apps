@@ -285,8 +285,12 @@ function LeafInput({
           onKeyDown={blurOnEnter}
           onBlur={e => {
             const raw = e.currentTarget.value.trim();
+            if (raw === '') {
+              if (value !== undefined) onSave(undefined);
+              return;
+            }
             const n = Number(raw);
-            if (raw !== '' && Number.isFinite(n) && n !== value) onSave(n);
+            if (Number.isFinite(n) && n !== value) onSave(n);
           }}
         />
         {unit && (
