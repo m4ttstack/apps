@@ -174,7 +174,9 @@ test('a red freshness banner suppresses the empty-queue check mark', async () =>
   document.body.appendChild(container);
   try {
     await renderBoard(container);
-    const el = container.querySelector<HTMLElement>('.tui-banner[role="status"]');
+    const el = container.querySelector<HTMLElement>(
+      '.tui-banner[role="status"]'
+    );
     expect(el?.dataset.intent).toBe('bad');
     expect(container.querySelector('.tui-empty')).toBeNull();
   } finally {
