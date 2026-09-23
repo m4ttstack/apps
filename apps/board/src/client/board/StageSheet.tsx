@@ -1,6 +1,10 @@
 import { Fragment, useMemo, useState } from 'react';
 
-import { optionValue, type GateDomain } from '@mattstack/gate-kit';
+import {
+  optionValue,
+  type GateDomain,
+  type GateSelections,
+} from '@mattstack/gate-kit';
 import type { GateItemDisplay } from '@mattstack/gate-kit/react';
 import { Button, Markdown } from '@mattstack/tui-kit';
 import type { GateRow } from '../../gates/store.ts';
@@ -75,10 +79,27 @@ function openedMeta(gate: GateRow, mr?: BoardMRWithReview): string {
     .join(' · ');
 }
 
+/** A multi's picks in its options' order: toggles record click order, but
+    the wire answer lists them as the options do. */
+function inOptionOrder(
+  display: GateItemDisplay[],
+  selections: GateSelections
+): GateSelections {
+  const ordered: GateSelections = { ...selections };
+  for (const q of display) {
+    const v = selections[q.name];
+    if (!q.multiple || !Array.isArray(v)) continue;
+    const picked = new Set(v);
+    ordered[q.name] = q.choices
+      .map(c => c.value)
+      .filter(value => picked.has(value));
+  }
+  return ordered;
+}
+
 /** Every gate that is neither a respond nor a review gate: all of its
     questions at once in the main column, decided in any order; the rail
-    holds the MR, the gate's context, and the docked answer, which submits
-    exactly what the stepped questionnaire would have. */
+    holds the MR, the gate's context, and the docked answer. */
 function StageSheetBody({
   gate,
   mr,
@@ -99,12 +120,18 @@ function StageSheetBody({
     () => new Map(gate.questions.map(q => [q.id, parseGateCtx(q.context)])),
     [gate.questions]
   );
-  const payload = sheetAnswers(
-    gate,
-    new Set(display.map(q => q.name)),
-    form.selections,
-    form.notes
-  );
+  // The daemon rejects an answer that leaves any question out, and the
+  // board has no way to answer one with no options.
+  const answerable =
+    display.length > 0 && gate.questions.every(q => q.options.length > 0);
+  const payload = answerable
+    ? sheetAnswers(
+        gate,
+        new Set(display.map(q => q.name)),
+        inOptionOrder(display, form.selections),
+        form.notes
+      )
+    : null;
   const done = display.filter(q => answered(form.selections[q.name])).length;
   const count = display.length;
 
@@ -208,6 +235,12 @@ function StageSheetBody({
                   chips: [pickChip(q, form.selections[q.name])],
                 }))}
               />
+              {!answerable && (
+                <p className="tui-sheet-dock-next">
+                  This gate needs an answer the board can't give; answer it in
+                  its pane.
+                </p>
+              )}
               <Button
                 type="button"
                 variant="filled"

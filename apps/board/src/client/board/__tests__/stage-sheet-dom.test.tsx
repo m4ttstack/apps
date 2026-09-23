@@ -78,7 +78,6 @@ function ship(overrides: Partial<GateRow> = {}): GateRow {
         multi: false,
         options: ['draft', 'ready'],
       },
-      { id: 'anything', label: 'Anything else?', multi: false, options: [] },
     ],
     ...overrides,
   };
@@ -332,7 +331,7 @@ test("submit waits for every single-select, then posts the answer gate-kit's ans
   });
 });
 
-test('a multi left empty submits an empty list; a question with no options sends nothing, matching answersFromForm', async () => {
+test('a multi left empty submits an empty list, matching answersFromForm', async () => {
   const gate = ship();
   await render(gate);
   await pick('hold');
@@ -356,6 +355,76 @@ test('a multi left empty submits an empty list; a question with no options sends
       draft: 'ready',
     },
   });
+});
+
+test('multi picks post in option order, whatever order they were clicked in', async () => {
+  const gate = ship();
+  await render(gate);
+  await pick('hand-back');
+  await pick('preview-b');
+  await pick('preview-a');
+  await pick('draft');
+  await click(submit());
+  const form = new FormData();
+  form.set('handoff', 'hand-back');
+  form.append('preview', 'preview-a');
+  form.append('preview', 'preview-b');
+  form.set('draft', 'draft');
+  expect(answerPosts()[0]!.body).toEqual({
+    gateId: 'g-ship',
+    ...answersFromForm(gate, form),
+  });
+  expect(
+    (answerPosts()[0]!.body as { answers: Record<string, unknown> }).answers[
+      'preview'
+    ]
+  ).toEqual(['preview-a', 'preview-b']);
+});
+
+const CANT_ANSWER =
+  "This gate needs an answer the board can't give; answer it in its pane.";
+const dockNote = () => text('.tui-sheet-dock .tui-sheet-dock-next');
+
+test('a gate with no questions offers no submit and says why', async () => {
+  await render(ship({ questions: [] }));
+  expect(submit().disabled).toBe(true);
+  expect(dockNote()).toBe(CANT_ANSWER);
+  await click(submit());
+  expect(answerPosts()).toEqual([]);
+});
+
+test('a gate whose every question has no options offers no submit and says why', async () => {
+  await render(
+    ship({
+      questions: [
+        { id: 'why', label: 'Why hold?', multi: false, options: [] },
+        { id: 'what', label: 'What next?', multi: false, options: [] },
+      ],
+    })
+  );
+  expect(submit().disabled).toBe(true);
+  expect(dockNote()).toBe(CANT_ANSWER);
+});
+
+test('one question with no options blocks submit even once the rest are answered', async () => {
+  await render(
+    ship({
+      questions: [
+        ...ship().questions.slice(2, 3),
+        { id: 'why', label: 'Why hold?', multi: false, options: [] },
+      ],
+    })
+  );
+  await pick('draft');
+  expect(submit().disabled).toBe(true);
+  expect(dockNote()).toBe(CANT_ANSWER);
+  await click(submit());
+  expect(answerPosts()).toEqual([]);
+});
+
+test('an answerable gate carries no such note', async () => {
+  await render(ship());
+  expect($('.tui-sheet-dock .tui-sheet-dock-next')).toBeNull();
 });
 
 test('a multi checked then cleared never blocks submit and answers with an empty list', async () => {
