@@ -4560,6 +4560,15 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* A stage gate's context is often line-shaped plain text: markdown treats
+   its single newlines as soft breaks and runs the lines together, so the
+   rail card honors them instead, as the old context pane did. */
+.tui-stage-sheet .tui-sheet-context-reasoning {
+  overflow-wrap: anywhere;
+}
+.tui-stage-sheet .tui-sheet-context-reasoning :is(p, li) {
+  white-space: pre-wrap;
+}
 /* A pane's screen reads as the terminal drew it: its own line breaks and
    indentation, never reflowed as prose. */
 .tui-pane-screen {
