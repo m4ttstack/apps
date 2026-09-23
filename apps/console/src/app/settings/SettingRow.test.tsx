@@ -339,6 +339,27 @@ describe('SettingRow', () => {
     );
   });
 
+  it('labels the provider options by product name and writes the id', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('agent.provider', {
+          effective: { scope: 'default', file: null, value: 'claude' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    const select = screen.getByRole('combobox', { name: 'agent.provider' });
+    expect(select).toHaveValue('Claude');
+    await userEvent.click(select);
+    await userEvent.click(await screen.findByRole('option', { name: 'Codex' }));
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('agent.provider', 'user', 'codex')
+    );
+  });
+
   it('hides the badge under a matching subhead and still moves from the row menu', async () => {
     const s = store();
     renderWithProviders(
