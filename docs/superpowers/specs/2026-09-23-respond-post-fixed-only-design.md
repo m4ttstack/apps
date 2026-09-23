@@ -1,4 +1,4 @@
-# The respond post step asks only about fixed threads
+# The respond post step asks only about replies not yet seen
 
 Date: 2026-09-23. Status: direction approved in chat, spec under review.
 
@@ -29,12 +29,14 @@ commit), text the developer has not seen yet.
   thread, plus `code-changes`. A `reply:` answer may carry `text`, the
   edited reply (`{"value": "reply:<id>", "text": "..."}`, the same answer
   field rt-client 0.30.0 already declares).
-- **`code-changes: skip`, or no thread answered `fix:`:** post every
-  `reply:` thread's reply (the answer's `text` when present, the drafted
-  `reply.text` otherwise), never resolving; record; close. No gate 2.
-- **`code-changes: approve`:** implement the `fix:` threads (step 5), then
-  gate 2 offers only those fixed threads, post/resolve as today. After
-  gate 2, the reply-only threads post from gate 1 together with gate 2's
+- **Nothing to offer** (no fixed thread and no reply override, below):
+  post every reply-only thread's reply (the answer's `text` when present,
+  the drafted `reply.text` otherwise), never resolving; record; close. No
+  gate 2.
+- **Something to offer:** implement the `fix:` threads on
+  `code-changes: approve` (step 5) and draft any reply override, then
+  gate 2 offers exactly those threads, post/resolve as today. After gate 2
+  proceeds, the reply-only threads post from gate 1 together with gate 2's
   picks, so the reviewer gets every reply in one pass.
 - **A `reply:` override:** when the developer answers `reply:` on a thread
   whose gate 1 reply was not shown verbatim (step 3 recommended `fix` or
@@ -66,14 +68,17 @@ read this same field.
 - `respond-plan` gains an optional sibling map for edited replies, so the
   existing `threads` map keeps its string values:
   `{"threads": {"T1": "reply", "T2": "fix"}, "texts": {"T1": "<edited reply>"}, "code-changes": "approve"}`.
-- `respond-post` covers only the threads gate 2 offered, as today. With no
-  fixed thread there is no `respond-post` gate and no `respond-post`
+  It also lists reply overrides, so a run resumed from its record alone
+  never posts a draft an override was meant to replace:
+  `"overrides": ["T3"]` (omitted when empty).
+- `respond-post` covers only the threads gate 2 offered, as today. With
+  nothing offered there is no `respond-post` gate and no `respond-post`
   record; the plan record covers the replies that posted.
 
 ## Skills
 
 - **receive-review:** step 4 reads a `reply:` answer's `text` and records
-  it; step 6 offers only fix threads finalized in step 5 and posts the
+  it; step 6 offers fixed threads and reply overrides and posts the
   reply-only threads from gate 1; the "no thread offered" rule becomes
   "post the reply-only threads, open no gate 2". The in-pane form never
   sends `text`, as today.
