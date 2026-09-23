@@ -510,6 +510,55 @@ export const PaneGone: Story = {
   ),
 };
 
+// --- AnsweredGate / AnswerStuck / AgentNotRunning --------------------------
+
+const answeredShip: GateRow = {
+  ...shipGate,
+  gateId: 'answered-ship',
+  subject: 'mr:gitlab.example.com/acme/widgets/-/merge_requests/31',
+  status: 'answered',
+  answers: {
+    handoff: { value: 'hand-back', note: 'Push after the standup.' },
+    preview: ['preview-a'],
+  },
+  answeredBy: 'paul',
+  answeredAt: 1788964500000,
+};
+
+const answeredStory = (gate: GateRow): Story => ({
+  render: () => (
+    <DecisionQueueModal
+      gate={gate}
+      mr={boardMr}
+      position={2}
+      states={['done', 'active', 'todo']}
+      onClose={noop}
+      onNext={noop}
+      onBack={noop}
+      onFocusPane={noop}
+      onAnswered={noop}
+      onContinue={noop}
+    />
+  ),
+});
+
+/** A recorded answer, read-only: every pick checked, nothing to press. */
+export const AnsweredGate = answeredStory(answeredShip);
+
+/** The pane never picked the answer up: focus pane is the one action. */
+export const AnswerStuck = answeredStory({
+  ...answeredShip,
+  gateId: 'answered-stuck',
+  delivery: { outcome: 'stuck', at: 1788964600000 },
+});
+
+/** No agent was left to run the answer: retry posts it again. */
+export const AgentNotRunning = answeredStory({
+  ...answeredShip,
+  gateId: 'answered-unassigned',
+  execution: 'unassigned',
+});
+
 // --- QueueComplete ----------------------------------------------------------
 
 const decidedMr = (iid: number, title: string) =>
