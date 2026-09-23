@@ -1,3 +1,7 @@
+import type {
+  ExplainRowWire,
+  SettingDefWire,
+} from '@mattstack/settings-kit/react';
 import {
   useMutation,
   useQuery,
@@ -8,16 +12,24 @@ import {
 import type { AgentModelOption } from '../../server/agent-models';
 import { client } from '../api';
 
+export type ExplainPayload = { def: SettingDefWire; rows: ExplainRowWire[] };
+
+async function readJson<T>(res: Response, what: string): Promise<T> {
+  const body = (await res.json().catch(() => null)) as
+    (T & { error?: string }) | null;
+  if (!res.ok || body === null)
+    throw new Error(body?.error ?? `${what} failed: ${res.status}`);
+  return body;
+}
+
 export function useSettingsDefs() {
   return useQuery({
     queryKey: ['settings', 'defs'],
-    queryFn: async () => {
-      const res = await client.api.settings.defs.$get();
-      if (!res.ok) throw new Error(`settings defs failed: ${res.status}`);
-      return res.json();
-    },
-    // The registry is static per server process; refetching it on focus
-    // would only churn the palette.
+    queryFn: async () =>
+      readJson<{ defs: SettingDefWire[] }>(
+        await fetch('/api/settings/defs'),
+        'settings defs'
+      ),
     staleTime: Infinity,
   });
 }
@@ -25,13 +37,11 @@ export function useSettingsDefs() {
 export function useSettingsPrefix(prefix: string) {
   return useQuery({
     queryKey: ['settings', 'defs', prefix],
-    queryFn: async () => {
-      const res = await client.api.settings.defs.$get({ query: { prefix } });
-      if (!res.ok) throw new Error(`settings defs failed: ${res.status}`);
-      return res.json();
-    },
-    // The registry is static per server process; refetching it on focus
-    // would only churn the page.
+    queryFn: async () =>
+      readJson<{ defs: SettingDefWire[] }>(
+        await fetch(`/api/settings/defs?prefix=${encodeURIComponent(prefix)}`),
+        'settings defs'
+      ),
     staleTime: Infinity,
   });
 }
@@ -52,16 +62,11 @@ export function useAgentModels(provider: 'claude' | 'codex') {
 export function useExplainKey(key: string) {
   return useSuspenseQuery({
     queryKey: ['settings', 'explain', key],
-    queryFn: async () => {
-      const res = await client.api.settings.explain[':key'].$get({
-        param: { key },
-      });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? `explain failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    queryFn: async () =>
+      readJson<ExplainPayload>(
+        await fetch(`/api/settings/explain/${encodeURIComponent(key)}`),
+        'explain'
+      ),
   });
 }
 
@@ -71,16 +76,15 @@ export function useSetSetting(key: string) {
     mutationFn: async (input: {
       value: unknown;
       scope: 'user' | 'team' | 'machine';
-    }) => {
-      const res = await client.api.settings.set.$post({
-        json: { key, ...input },
-      });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? `set failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    }) =>
+      readJson<{ rows: ExplainRowWire[] }>(
+        await fetch('/api/settings/set', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ key, ...input }),
+        }),
+        'set'
+      ),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ['settings', 'explain', key],

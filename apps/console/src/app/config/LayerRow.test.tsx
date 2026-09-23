@@ -1,9 +1,11 @@
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
+import type {
+  ExplainRowWire,
+  SettingDefWire,
+} from '@mattstack/settings-kit/react';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
-
-import type { ExplainRowWire, SettingDefWire } from '../../server/settings';
 
 /** The real hook needs a QueryClient; these tests are about the row, so it
     is pinned to the vscode fallback the unfetched hook resolves to anyway. */
@@ -25,6 +27,7 @@ const NUMBER_DEF: SettingDefWire = {
   description: 'Days before pruning.',
   hasDefault: true,
   defaultValue: 30,
+  effective: { scope: null, file: null },
 };
 
 const USER_ROW: ExplainRowWire = {
@@ -46,6 +49,7 @@ const COMPOSITE_DEF: SettingDefWire = {
   description: 'Role map.',
   hasDefault: false,
   defaultValue: null,
+  effective: { scope: null, file: null },
 };
 
 const COMPOSITE_ROW: ExplainRowWire = {
@@ -67,6 +71,7 @@ const SECRET_DEF: SettingDefWire = {
   description: 'Forge API token.',
   hasDefault: false,
   defaultValue: null,
+  effective: { scope: null, file: null },
 };
 
 async function stageChange(newValue: string) {

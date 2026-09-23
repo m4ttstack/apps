@@ -20,10 +20,12 @@ import {
 } from '@mattstack/app-kit/core';
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import { notifications } from '@mattstack/app-kit/notifications';
+import type {
+  ExplainRowWire,
+  SettingDefWire,
+} from '@mattstack/settings-kit/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { ExplainRowWire, SettingDefWire } from '../../server/settings';
-import { client } from '../api';
 import { PAGE_ROW_HEIGHT } from '../chrome';
 import { analyzeChain } from '../config/chain';
 import {
@@ -50,12 +52,11 @@ function useCurrentValue(key: string) {
   return useSuspenseQuery({
     queryKey: ['settings', 'explain', key],
     queryFn: async (): Promise<ExplainPayload> => {
-      const res = await client.api.settings.explain[':key'].$get({
-        param: { key },
-      });
-      // The route's only non-200 response is 404 (unknown key) -- treated
-      // as "unset" here rather than thrown, so a key the registry doesn't
-      // know yet degrades this field instead of blanking the whole page.
+      const res = await fetch(
+        `/api/settings/explain/${encodeURIComponent(key)}`
+      );
+      // The only non-200 is 404 (unknown key): treated as unset so a key the
+      // registry doesn't know yet degrades this field, not the whole page.
       if (!res.ok) return null;
       return res.json();
     },

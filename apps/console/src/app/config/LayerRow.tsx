@@ -16,8 +16,11 @@ import {
 } from '@mattstack/app-kit/core';
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import { Icons } from '@mattstack/app-kit/icons';
+import type {
+  ExplainRowWire,
+  SettingDefWire,
+} from '@mattstack/settings-kit/react';
 
-import type { ExplainRowWire, SettingDefWire } from '../../server/settings';
 import { useEditorHref } from '../editorHref';
 import { shortValue } from './chain';
 

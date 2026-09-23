@@ -47,7 +47,7 @@ navigating away — Mantine has no error boundary of its own, and the run-detail
 throws on failure).
 
 `ConsolePalette` (`src/app/palette/ConsolePalette.tsx`) is a single global `Spotlight` instance
-(from `@mattstack/app-kit/spotlight`), mounted once in `App`, indexing runs, config keys, and the
+(from `@mattstack/app-kit/spotlight`), mounted once in `App`, indexing runs and the
 two static nav actions under `mod+K`.
 
 ## Runs domain (`src/app/runs/`, `src/server/runs.ts`)
