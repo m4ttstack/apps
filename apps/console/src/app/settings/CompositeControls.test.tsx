@@ -490,6 +490,61 @@ describe('composite rows', () => {
     expect(screen.getByPlaceholderText('none')).toBeInTheDocument();
   });
 
+  it('a deep key locked by a weaker layer clears that layer, not the winner', async () => {
+    vi.stubGlobal('fetch', async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        def: {},
+        rows: [
+          {
+            scope: 'default',
+            file: null,
+            present: true,
+            value: SNAPSHOT_DEFAULTS,
+          },
+          {
+            scope: 'user',
+            file: '/u',
+            present: true,
+            value: { enabled: 'yes' },
+          },
+          {
+            scope: 'machine',
+            file: '/m',
+            present: true,
+            value: { debounceSec: 45 },
+          },
+        ],
+      }),
+    }));
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.homeSnapshot', {
+          type: 'object',
+          merge: 'deep',
+          scopes: ['user', 'machine'],
+          effective: {
+            scope: 'machine',
+            file: '/m',
+            value: { ...SNAPSHOT_DEFAULTS, enabled: 'yes', debounceSec: 45 },
+          },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.getByText('unexpected shape')).toBeInTheDocument();
+    const clear = await screen.findByRole('button', { name: 'Clear' });
+    await waitFor(() => expect(clear).toBeEnabled());
+    await userEvent.click(clear);
+    await waitFor(() =>
+      expect(s.unset).toHaveBeenCalledWith('rt.homeSnapshot', 'user')
+    );
+  });
+
   it('a stored value of the wrong shape locks behind Clear', async () => {
     const s = store();
     renderWithProviders(

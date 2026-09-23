@@ -33,6 +33,7 @@ import {
   SHAPES,
   summarize,
   targetScope,
+  type CompositeShape,
   type LeafType,
   type RowKind,
 } from '@mattstack/settings-kit/shapes';
@@ -471,6 +472,66 @@ function ReadonlyBody({ def }: { def: SettingDefWire }) {
   );
 }
 
+function ShapeLock({
+  at,
+  row,
+  loading = false,
+}: {
+  at: string | null;
+  row: Row;
+  loading?: boolean;
+}) {
+  return (
+    <Group gap={8} wrap="nowrap">
+      <Text fz={12} fw={500} c="var(--tk-text-bad-small)">
+        unexpected shape
+      </Text>
+      {(loading || isStoreScope(at)) && (
+        <Button
+          size="compact-xs"
+          variant="default"
+          disabled={loading}
+          onClick={() => {
+            if (isStoreScope(at)) void row.clear(at);
+          }}
+        >
+          Clear
+        </Button>
+      )}
+    </Group>
+  );
+}
+
+/** A deep key's merged value can fail its shape because of any layer, so
+    Clear targets the strongest layer whose own value fails, not the winner. */
+function DeepShapeLock({
+  def,
+  row,
+  shape,
+}: {
+  def: SettingDefWire;
+  row: Row;
+  shape: CompositeShape;
+}) {
+  const { rows, loading } = useSettingKey(def.key);
+  const bad = [...rows]
+    .reverse()
+    .find(
+      r =>
+        r.present &&
+        isStoreScope(r.scope) &&
+        r.value !== undefined &&
+        !matchesShape(shape, r.value)
+    );
+  return (
+    <ShapeLock
+      at={bad?.scope ?? def.effective.scope}
+      row={row}
+      loading={loading}
+    />
+  );
+}
+
 function UnsetSummary() {
   const { text } = useSchemeColors();
   return (
@@ -510,24 +571,13 @@ export function compositeParts(
     (def.effective.invalid !== undefined ||
       (value !== undefined && !matchesShape(shape, value)))
   ) {
-    const at = def.effective.scope;
     return {
-      control: (
-        <Group gap={8} wrap="nowrap">
-          <Text fz={12} fw={500} c="var(--tk-text-bad-small)">
-            unexpected shape
-          </Text>
-          {isStoreScope(at) && (
-            <Button
-              size="compact-xs"
-              variant="default"
-              onClick={() => void row.clear(at)}
-            >
-              Clear
-            </Button>
-          )}
-        </Group>
-      ),
+      control:
+        def.merge === 'deep' && def.effective.invalid === undefined ? (
+          <DeepShapeLock def={def} row={row} shape={shape} />
+        ) : (
+          <ShapeLock at={def.effective.scope} row={row} />
+        ),
       body: null,
     };
   }
