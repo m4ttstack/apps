@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import {
   Autocomplete,
   Group,
@@ -13,6 +13,7 @@ import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import { ENUMS } from '@mattstack/settings-kit/shapes';
 
 import { unitOf } from './units';
+import { isStoreScope } from './view';
 
 function blurOnEnter(e: KeyboardEvent<HTMLInputElement>) {
   if (e.key === 'Enter') e.currentTarget.blur();
@@ -34,7 +35,14 @@ export function ScalarControl({
   const { text } = useSchemeColors();
   const value = def.effective.value;
   const label = def.key;
-  const seed = JSON.stringify([def.effective.scope, value]);
+  const [resets, setResets] = useState(0);
+  const seed = JSON.stringify([def.effective.scope, value, resets]);
+  // A default or unset value has no store layer to unset; emptying the field
+  // just restores the text the value still resolves to.
+  const clear = () =>
+    isStoreScope(def.effective.scope)
+      ? onSave(undefined)
+      : setResets(n => n + 1);
 
   if (def.type === 'boolean')
     return (
@@ -74,7 +82,7 @@ export function ScalarControl({
           onBlur={e => {
             const raw = e.currentTarget.value.trim();
             if (raw === '') {
-              if (value !== undefined) onSave(undefined);
+              if (value !== undefined) clear();
               return;
             }
             const n = Number(raw);
@@ -92,7 +100,9 @@ export function ScalarControl({
 
   const current = typeof value === 'string' ? value : '';
   const commit = (next: string) => {
-    if (next !== current) onSave(next === '' ? undefined : next);
+    if (next === current) return;
+    if (next === '') clear();
+    else onSave(next);
   };
   if (suggestions)
     return (

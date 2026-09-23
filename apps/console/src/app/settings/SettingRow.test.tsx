@@ -99,6 +99,51 @@ describe('SettingRow', () => {
     );
   });
 
+  it('emptying a value that comes from the default restores it without a write', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('agent.claude.effort', {
+          effective: { scope: 'default', file: null, value: 'high' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    const input = screen.getByLabelText('agent.claude.effort');
+    await userEvent.clear(input);
+    input.blur();
+    await waitFor(() =>
+      expect(screen.getByLabelText('agent.claude.effort')).toHaveValue('high')
+    );
+    expect(s.unset).not.toHaveBeenCalled();
+    expect(s.set).not.toHaveBeenCalled();
+    expect(screen.queryByText('saved')).toBeNull();
+  });
+
+  it('emptying a number that comes from the default restores it without a write', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.runsPruneDays', {
+          type: 'number',
+          effective: { scope: 'default', file: null, value: 30 },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    const input = screen.getByLabelText('rt.runsPruneDays');
+    await userEvent.clear(input);
+    input.blur();
+    await waitFor(() =>
+      expect(screen.getByLabelText('rt.runsPruneDays')).toHaveValue('30')
+    );
+    expect(s.unset).not.toHaveBeenCalled();
+  });
+
   it('follows a refreshed effective value and writes nothing on a bare blur', async () => {
     const s = store();
     const { rerender } = renderWithProviders(
