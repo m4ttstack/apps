@@ -78,7 +78,6 @@ function cacheKey(subject: string, kind: string): string {
 export class GateCache {
   private readonly byKey = new Map<string, FacilityGateRow>();
 
-  /** Set/replace one row wholesale, keyed by its subject+kind. */
   /** A different gate for the same subject+kind replaces the cached one
       only when it is not older, so a reconcile listing several rounds keeps
       the latest whatever order the daemon returns them in. */
@@ -140,10 +139,14 @@ export class GateCache {
     if (typeof subject !== 'string' || !subject) return;
     if (!Array.isArray(questions)) return;
 
-    this.applyRow({
+    // An opened frame is the newest gate the bus has seen for its pair, and
+    // its receipt-time openedAt is on the board's clock, not the daemon's,
+    // so it replaces without applyRow's age comparison.
+    const kind = typeof payload.kind === 'string' ? payload.kind : 'review-post';
+    this.byKey.set(cacheKey(subject, kind), {
       id,
       subject,
-      kind: typeof payload.kind === 'string' ? payload.kind : 'review-post',
+      kind,
       questions: sanitizeQuestions(id, questions),
       meta: isRecord(meta) ? meta : null,
       status: 'open',
