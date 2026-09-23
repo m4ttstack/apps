@@ -349,10 +349,16 @@ function ReviewGateSheet({
           ? { value: selectedOutcome, note: trimmedNote }
           : selectedOutcome,
     };
-    void form.submit({ answers }, submitted => ({
-      ...splitChunkSelections(groups, gate.questions, pickMultis(submitted)),
-      ...singles(submitted),
-    }));
+    void form.submit({ answers }, submitted => {
+      const multis = pickMultis(submitted);
+      return {
+        ...Object.fromEntries(
+          Object.entries(multis).filter(([id]) => !groups.has(id))
+        ),
+        ...splitChunkSelections(groups, gate.questions, multis),
+        ...singles(submitted),
+      };
+    });
   };
 
   const parked = gate.status === 'parked';

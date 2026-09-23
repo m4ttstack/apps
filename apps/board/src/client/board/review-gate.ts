@@ -1,4 +1,8 @@
-import { optionValue } from '@mattstack/gate-kit';
+import {
+  collapseChunks,
+  optionValue,
+  type GateQuestion,
+} from '@mattstack/gate-kit';
 import type { GateRow } from '../../gates/store.ts';
 import {
   parseGateCtx,
@@ -38,9 +42,11 @@ export function isFindingsQuestion(q: { id: string }): boolean {
 }
 
 /** The review sheet's whole input, or null when the gate is not a
-    review-post whose gate context is review@1 and whose every findings
-    chunk is findings@1 joined one-to-one to its own options. There is no
-    half-joined sheet: any mismatch routes the whole gate elsewhere. */
+    review-post whose gate context is review@1, whose every findings chunk
+    is findings@1 joined one-to-one to its own options, and whose questions
+    collapse to the two the sheet answers: at most one `findings` multi and
+    exactly one single-choice verdict. There is no half-joined sheet: any
+    mismatch routes the whole gate elsewhere. */
 export function readReviewGate(gate: ReviewGateInput): ReviewGate | null {
   if (gate.kind !== 'review-post') return null;
   const review = parseGateCtx(gate.context);
@@ -58,6 +64,15 @@ export function readReviewGate(gate: ReviewGateInput): ReviewGate | null {
       findings.set(entry.id, entry);
     }
   }
+  let collapsed: GateQuestion[];
+  try {
+    collapsed = collapseChunks(gate.questions).questions;
+  } catch {
+    return null;
+  }
+  const multis = collapsed.filter(q => q.multi);
+  if (collapsed.length - multis.length !== 1) return null;
+  if (multis.length > 1 || multis.some(q => q.id !== 'findings')) return null;
   return { review, findings };
 }
 

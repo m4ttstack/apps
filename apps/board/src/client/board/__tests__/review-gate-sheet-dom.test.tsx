@@ -438,6 +438,27 @@ test('a note on the outcome question posts as {value, note}, not silently droppe
   expect(body.answers['findings-2']).toEqual(['f5', 'f6']);
 });
 
+test('an unchunked findings question posts its answer under its own id', async () => {
+  const unchunked: GateRow = {
+    ...GATE,
+    gateId: 'g-unchunked',
+    questions: [
+      {
+        ...GATE.questions[1]!,
+        id: 'findings',
+      },
+      GATE.questions[2]!,
+    ],
+  };
+  await render(unchunked);
+
+  await click(buttonByText('post 2 · approve'));
+
+  const answerPost = posts.find(p => p.url === '/gate/answer');
+  const body = answerPost!.body as { answers: Record<string, unknown> };
+  expect(body.answers).toEqual({ findings: ['f5', 'f6'], outcome: 'approve' });
+});
+
 test('a blank or whitespace-only note posts the bare selection, not an empty note', async () => {
   seedDraft(GATE.gateId, { notes: { outcome: '   ' } });
   await render();

@@ -175,6 +175,38 @@ describe('everything else stays in the generic modal', () => {
       'duplicate option values within one chunk',
       withQuestion(0, { options: [option('f1'), option('f1')] }),
     ],
+    [
+      'a second single-choice question',
+      gate({
+        questions: [
+          ...gate().questions,
+          { id: 'tone', label: 'Tone', multi: false, options: ['a', 'b'] },
+        ],
+      }),
+    ],
+    [
+      'a multi beside the findings',
+      gate({
+        questions: [
+          ...gate().questions,
+          { id: 'tiers', label: 'Tiers', multi: true, options: ['x', 'y'] },
+        ],
+      }),
+    ],
+    [
+      'no single-choice question to carry the verdict',
+      gate({ questions: gate().questions.slice(0, 2) }),
+    ],
+    [
+      'findings chunks split apart by another question',
+      gate({
+        questions: [
+          gate().questions[0]!,
+          gate().questions[2]!,
+          gate().questions[1]!,
+        ],
+      }),
+    ],
   ];
   for (const [name, row] of cases)
     test(name, () => {
