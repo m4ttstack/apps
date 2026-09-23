@@ -11,7 +11,7 @@ description: >-
 allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/resolve-args.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/open-gate.sh:*)
 metadata:
   slots: "respond"
-  slot-respond: "required mr-respond@2 -- owns processing review feedback on one MR: fetching threads, adjudicating, drafting, implementing decided fixes, and executing posting once handed the decisions. Never presents decision gates or decides what posts."
+  slot-respond: "required mr-respond@2 -- owns processing review feedback on one MR: fetching threads, adjudicating, drafting, implementing decided fixes, and executing posting once handed the decisions. Never presents decision gates or decides what posts. When gate 2 offers nothing, posts the reply-only threads on {plan}."
 ---
 
 # mr-board respond runner
@@ -45,7 +45,7 @@ The board tracks five in-flight statuses; emit each as you cross the milestone:
 |--------|--------------|
 | `triaging` | Immediately, before fetching threads. |
 | `implementing` | Only after Gate 1's `code-changes` question comes back `approve`, before touching code. Skip when no threads need code changes. |
-| `drafting` | When presenting the verdict table + drafted replies (before Gate 1), and again once implementation is finished and finalized replies are ready to post (before Gate 2). |
+| `drafting` | When presenting the verdict table + drafted replies (before Gate 1), and again right before Gate 2 opens, on every path: after implementing, and after drafting a reply override with nothing implemented. |
 | `done` | After the run finishes. REQUIRED: `--posted <n> --threads <n>`, plus `--held <n>` whenever a gate decision kept any reply from posting (see step 7). |
 | `error` | Anything unrecoverable (bad MR, no threads to process, delegated skill failed). |
 
@@ -124,16 +124,17 @@ old one. Instead:
     `value` first, then split at the first `:`), never by the `thread-<n>`
     question id, which is only a container. Hand the report
     and those answers to the domain skill exactly as step 5 would have, then
-    carry on exactly as steps 5-6 describe below: Gate 2 opens **fresh**
-    over only the threads step 6 offers, and the reply-only threads post
-    as step 6 says.
+    carry on exactly as steps 5-6 describe below: emit `drafting` and open
+    Gate 2 **fresh** over only the threads step 6 offers (even with nothing
+    implemented, e.g. `code-changes: skip` with a reply override), and the
+    reply-only threads post as step 6 says.
   - `respond-post` → execute posting FROM THE REPORT's finalized replies plus
     the wait's `{post: <answers>, by: <by>}` (a thread answer's `text`
     replaces that thread's report reply), never re-adjudicating or
     re-implementing. The report's reply-only threads (rows with
     `gate-1: reply`, read from the rows, never from the recommendation)
     post in the same pass, each with the reply its row records,
-    unresolved.
+    unresolved, unless the answer names one (step 6's act paragraph).
     Hand both to the domain skill exactly as step 6 would have.
 - `<status-bin> respond-status <state> done "<one-line summary>" --posted <n> --threads <n> [--held <n>]`
   (the counts follow step 7's definitions, `--held` included)
@@ -170,8 +171,8 @@ conversation.
      plus whether it is proposing code changes, and the absolute path of a
      fitted Gate 1 open file when it built one. It never presents a gate or decides what gets implemented or
      posted; this wrapper owns both facility gates (steps 4 and 6) and hands
-     the domain skill `{plan: ...}` and later `{post: ...}` to act on once a
-     human has answered.
+     the domain skill `{plan: ...}` to act on once a human has answered, and
+     `{post: ...}` only when Gate 2 opened.
    - **If no domain skill resolved:** fetch the MR's unresolved review threads
      yourself, adjudicate each on its merits, and draft replies and any
      proposed fixes. Build your own verdict table for the gates below.
@@ -317,12 +318,16 @@ conversation.
    A `reply:` answer that carries `text` posts that text, note or not: the
    human wrote the exact words. A `reply:` answer with no `text` is a
    **reply override** when its Gate 1 card did not show its reply word for
-   word (the verdict table recommended `fix` or `skip`, so the card showed
-   a fix direction or nothing), or when the answer carries a `note` (in
-   the pane form a note is the only place a typed replacement can go).
-   Draft an override's reply after Gate 1, with its note when it has one
-   (the domain skill does this on its path), and set its row to
-   `gate-1: override`. Step 6 offers it at Gate 2.
+   word, or when the answer carries a `note` (in the pane form a note is
+   the only place a typed replacement can go). A card did not show its
+   reply when the verdict table recommended `fix` or `skip` (the card
+   showed a fix direction or nothing), or when its question context never
+   reached the gate: you dropped it for the byte budget, or the open was a
+   `fits: false` file or its `gate open` output flagged `contextOmitted`
+   (then count every question's context as dropped). Draft an override's
+   reply after Gate 1, with its note when it has one, write that reply
+   into its row, and set the row to `gate-1: override` (the domain skill
+   does this on its path). Step 6 offers it at Gate 2.
 
    - **`code-changes: approve`**: emit `implementing`
      (`<status-bin> respond-status <state> implementing`) before touching
@@ -342,10 +347,10 @@ conversation.
      shape, opened from its fresh open file when it hands one back, and the
      report update from step 3 applies again, recording the new round). On `skip`,
      go to step 6 with no fixed thread: Gate 2 opens only for a reply
-     override, and otherwise the `reply:` threads post right away. A
-     thread answered `fix:` under `skip` stays unimplemented and has no
-     finalized reply, so nothing posts for it and step 7 counts it as
-     held.
+     override, and otherwise the reply-only (`gate-1: reply`) threads post
+     right away. A thread answered `fix:` under `skip` stays unimplemented
+     and has no finalized reply, so nothing posts for it and step 7 counts
+     it as held.
 6. **Post; Gate 2 only for replies not yet seen.** Gate 1 already approved
    each reply it showed word for word, so Gate 2 (`respond-post`) offers
    exactly the replies the human has not yet seen: each thread a fix
@@ -355,12 +360,16 @@ conversation.
      otherwise), never resolved, so the reviewer can answer. On the
      generic path you post them; with a domain skill it posts them, so
      never post one twice.
-   - **Nothing to offer** (no fixed thread and no reply override): open
+   - **Nothing to offer** (no fixed thread and no reply override; never on
+     `code-changes: revise`, which posts nothing and reopens Gate 1): open
      no Gate 2. The reply-only threads post right after Gate 1 (a domain
-     skill posts them on `{plan: ...}` and hands back no Gate 2 file);
-     then go to step 7.
-   - **Threads to offer:** open Gate 2 over them as below. The reply-only
-     threads wait for its answer, then post together with its picks.
+     skill posts them on `{plan: ...}` and hands back no Gate 2 file, so
+     post nothing yourself); then go to step 7.
+   - **Threads to offer:** emit `drafting`
+     (`<status-bin> respond-status <state> drafting`), then open Gate 2
+     over them as below, whether or not anything was implemented. The
+     reply-only threads wait for its answer, then post together with its
+     picks.
 
    **Handed a fitted open file?** (the domain skill hands one back with
    its finalized replies when it builds one.) Open it exactly as Gate 1's
@@ -452,7 +461,10 @@ conversation.
      reply (the answer's `text` when it carries one, the report's finalized
      reply otherwise), `resolve:<threadId>` resolves the thread (after the
      reply when both are picked), and an empty array leaves it untouched;
-     then post each reply-only thread's recorded reply, unresolved.
+     then post each reply-only thread's recorded reply, unresolved. When
+     Gate 2 offered a `gate-1: reply` thread, or an answer value names one
+     (a gate opened before this rule), that thread's answer decides it
+     instead, an empty array included, and no reply posts twice.
      `by` is the wait's own decider field, so the domain skill's decision
      record names who actually decided instead of guessing.
 7. **Mark done, with the counts.** After the run wraps, report what actually

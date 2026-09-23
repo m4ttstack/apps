@@ -7,7 +7,7 @@ The report at /tmp/st/report.md holds the verdict table. After Gate 1, each row 
 - T4, queue/worker.ts:20, recommended reply; gate-1: skip; reply: "Should the worker retry on a timeout too, or only on a crash?"
 - T5, queue/metrics.ts:31, recommended fix; gate-1: override; reply drafted after Gate 1: "The counter resets per worker by design; a global total needs a new gauge."
 
-The open file for gate g-42 offered thread-1 (T1) and thread-2 (T5). Assume `gate wait` returns:
+Assume `gate wait` returns:
 {"answers": {"thread-1": ["post:T1", "resolve:T1"], "thread-2": []}, "by": "board-ui", "answeredAt": 1790000000000}
 
 Tools are unavailable in this test. List, in order, every command you run and every forge action you take (post a reply, resolve a thread) from the start of this pane until you stop: every command with every flag and value written out, and each forge action with the thread id and the exact body it posts.

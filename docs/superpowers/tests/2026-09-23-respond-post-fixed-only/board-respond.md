@@ -15,12 +15,17 @@ Method: the same as
 Single-shot, tool-less reps, `claude --model sonnet --tools ""
 --strict-mcp-config --append-system-prompt-file <system-file> -p
 <scenario>`, a fresh empty directory per rep, 5 reps per scenario. System
-file: the wrapper's SKILL.md itself. Every rep was read in full; Gate 2
-`--questions` json was also parsed by a script.
+file: the wrapper's SKILL.md itself. The first round's reps were read in
+full; later rounds were scored by script (Gate 2 `--questions` parsed as
+json, bodies, order and the `done` line matched), with every flagged rep
+and a sample of passing reps read in full.
 
-Three wrapper versions appear below: **before** (the wrapper before this
-change), **v1** (Gate 2 for fixed threads only) and **v2** (the final
-wording: the spec's reply override and report-row rulings added to v1).
+Wrapper versions below: **before** (the wrapper before this change),
+**v1** (Gate 2 for fixed threads only), **v2** (plus the reply override
+and report-row rulings), **v3** (plus the `gate-1` field, noted replies
+and `text` precedence) and **v4** (the fix round: dropped context,
+`drafting` before every Gate 2, the legacy-resume guard, the domain-path
+wording). v4 is the committed wording; see "Final wording coverage".
 
 ## Scenarios
 
@@ -173,10 +178,88 @@ GREEN, v3, first pass, 5/5 strict each:
   the Gate 2 shape was parsed.
 - wrap-noted-reply 5/5, parsed; T2 posted its `text`, never its draft.
 
+## Fix round (review): v4
+
+Edits: a `reply:` with no `text` whose question context never reached
+Gate 1 (dropped for the budget, a `fits: false` open, or `contextOmitted`)
+is an override; an override's drafted reply is written into its row;
+`drafting` is re-emitted right before Gate 2 on every path (the status
+table row and the `respond-plan` resume bullet say so); "Nothing to
+offer" never applies on `code-changes: revise`; the skip branch names the
+reply-only (`gate-1: reply`) threads; the act paragraph lets an answer
+that names or was offered a `gate-1: reply` thread decide it, with no
+reply posted twice; step 2 hands `{post}` only when Gate 2 opened; the
+slot note says a bound provider posts the reply-only threads on `{plan}`
+when nothing is offered.
+
+New scenarios:
+
+- `wrap-dropped-context.md`: T1 recommended `reply` but its Gate 1
+  context was dropped for the budget, answered `reply:T1` with no `text`;
+  T2 plain `reply:T2`; `code-changes: skip`. Pass: `drafting` before
+  Gate 2; Gate 2 is exactly `thread-1` (T1, `resolve` not recommended);
+  T2 posts after the answer; `--posted 2 --threads 2`.
+- `wrap-resume-legacy.md` (a reworked `wrap-resume-edited`, the
+  parked-across-deploy guard): a `respond-post` resume whose gate the old
+  wrapper opened over every reply; T1 `fix` answered with `text`, post
+  and resolve; T2 `gate-1: reply` answered `post:T2`; T3 `gate-1: reply`
+  answered `resolve:T3`. Pass: `drafting` first; T1 posts the `text` and
+  resolves; T2 posts once; T3 is resolved and never posted;
+  `--posted 2 --threads 3 --held 1`.
+- `wrap-domain-none.md`: domain path, nothing offered; the skill reports
+  it posted both replies on `{plan}`. Pass: the wrapper takes no forge
+  action and opens no Gate 2; `--posted 2 --threads 2`.
+- `wrap-domain-resume-post.md`: domain-path `respond-post` resume. Pass:
+  `drafting` first; the wrapper hands `{post: <answers>, by: "board-ui"}`
+  to the skill and takes no forge action itself;
+  `--posted 2 --threads 3 --held 1`.
+
+Changed scoring: `wrap-counts` now also passes only when the wrapper
+does not post T2 itself and does not flag T2's post as a gate bypass.
+`wrap-resume-post` drops its "open file for gate g-42" line, which a
+generic-path resume never has.
+
+RED (v3, the wording at the previous commit):
+
+- wrap-dropped-context 0/5 strict: every rep already offered T1 at
+  Gate 2 and posted T2 after it, but none re-emitted `drafting` first.
+- Guards at 5/5 already: wrap-resume-legacy (each rep reasoned its way to
+  letting the old gate's answer decide T2 and T3), wrap-domain-none,
+  wrap-domain-resume-post, wrap-counts on its new scoring, and
+  wrap-resume-post without the open-file line.
+
+## Final wording coverage
+
+Every scenario in `scenarios/`, plus the per-thread record's `wrap-build`
+and `wrap-none`, ran 5 reps each on v4, the committed text. All strict:
+
+| scenario | v4 |
+|---|---|
+| wrap-replies-only | 5/5 |
+| wrap-fix-and-reply | 5/5 (parsed; `drafting` before Gate 2) |
+| wrap-build | 5/5 (parsed; nothing posted before the wait) |
+| wrap-counts | 5/5 (no own post, no bypass flag) |
+| wrap-none | 5/5 |
+| wrap-edited | 5/5 |
+| wrap-reply-override | 5/5 (parsed; `drafting` before Gate 2) |
+| wrap-resume-post | 5/5 (T5 never posted) |
+| wrap-plan-pane-note | 5/5 (`note`-only answer; parsed) |
+| wrap-noted-reply | 5/5 (parsed; T2's `text` posted) |
+| wrap-dropped-context | 5/5 (parsed; `drafting` before Gate 2) |
+| wrap-resume-legacy | 5/5 (T2 once, T3 resolved only) |
+| wrap-domain-none | 5/5 (no own forge action) |
+| wrap-domain-resume-post | 5/5 (handed `{post}`, no own forge action) |
+
+Not run on v4: the per-thread record's `wrap-text-no-post`,
+`wrap-pane-note` and `wrap-resume-edited` (retired premise; the last is
+superseded by `wrap-resume-legacy`).
+
 ## Verdict
 
-Gate 2 now offers exactly the replies the developer has not yet seen word
-for word: fixed threads, and reply overrides (a `reply:` with no `text`
-whose card was not verbatim, or that carries a note). Reply-only threads
-(`gate-1: reply`) post from Gate 1's answer (its `text` when present),
-and the counts include them.
+On the 14 scenarios above, the v4 wording makes Gate 2 offer exactly the
+replies the developer has not yet seen word for word. Those are fixed
+threads, and reply overrides: a `reply:` with no `text` whose card did
+not show the reply (recommended fix or skip, or its context dropped), or
+that carries a note. Reply-only (`gate-1: reply`) threads post from
+Gate 1's answer, its `text` when present, and never twice. The counts
+include them. Nothing outside those scenarios is claimed.
