@@ -28,7 +28,7 @@ import { useEditorHref } from '../editorHref';
 import { ScopeBadge } from './ScopeBadge';
 import { SettingRow } from './SettingRow';
 import { useRowSave, type RowStore } from './useRowSave';
-import { firstSentence, isStoreScope } from './view';
+import { isStoreScope } from './view';
 
 export type ExplainStore = Pick<
   SettingsScopeState,
@@ -211,8 +211,6 @@ function ExplainBody({ def, store }: { def: SettingDefWire; store: RowStore }) {
     if (verdict.winner === row) return 'winner';
     return verdict.overridden.includes(row) ? 'overridden' : 'inert';
   };
-  const rest = def.description.slice(firstSentence(def.description).length);
-
   const row = (suggestions?: string[]) => (
     <SettingRow
       def={def}
@@ -220,6 +218,7 @@ function ExplainBody({ def, store }: { def: SettingDefWire; store: RowStore }) {
       subhead={null}
       query=""
       suggestions={suggestions}
+      fullDescription
     />
   );
 
@@ -227,11 +226,6 @@ function ExplainBody({ def, store }: { def: SettingDefWire; store: RowStore }) {
     <Stack gap={0}>
       {provider ? <Suggested provider={provider}>{row}</Suggested> : row()}
       <Stack gap={8} pt={20}>
-        {rest.trim() !== '' && (
-          <Text fz={12} c={text.muted}>
-            {def.description}
-          </Text>
-        )}
         {verdict && (
           <Text fz={14} data-testid="explain-sentence">
             {verdict.sentence}

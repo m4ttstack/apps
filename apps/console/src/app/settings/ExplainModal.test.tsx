@@ -92,6 +92,7 @@ describe('ExplainModal', () => {
       within(dialog).getByText(`>_ rt settings explain ${KEY}`)
     ).toBeInTheDocument();
     expect(within(dialog).getByText('model')).toBeInTheDocument();
+    expect(within(dialog).getByText(DEF.description)).toBeInTheDocument();
     expect(
       await within(dialog).findByTestId('explain-sentence')
     ).toHaveTextContent(

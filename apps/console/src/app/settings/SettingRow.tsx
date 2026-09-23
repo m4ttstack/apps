@@ -60,6 +60,7 @@ export function SettingRow({
   query,
   suggestions,
   onExplain,
+  fullDescription = false,
 }: {
   def: SettingDefWire;
   store: RowStore;
@@ -67,6 +68,7 @@ export function SettingRow({
   query: string;
   suggestions?: string[];
   onExplain?: (key: string) => void;
+  fullDescription?: boolean;
 }) {
   const { text } = useSchemeColors();
   const row = useRowSave(store, def);
@@ -147,12 +149,14 @@ export function SettingRow({
             ) : null}
           </Group>
           <Marked
-            text={firstSentence(def.description)}
+            text={
+              fullDescription ? def.description : firstSentence(def.description)
+            }
             query={query}
             fz={12}
             lh="15px"
             c={text.muted}
-            lineClamp={1}
+            lineClamp={fullDescription ? undefined : 1}
           />
         </Stack>
         <Group w={260} gap={8} wrap="nowrap" style={{ flex: 'none' }}>
