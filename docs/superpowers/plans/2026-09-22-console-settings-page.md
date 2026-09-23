@@ -14,8 +14,8 @@
 
 - Starts only after Plan A: `npm view @mattstack/settings-kit version` prints `0.2.0`.
 - Work in this worktree (`console-settings-page` branch). Every commit ends with exactly: `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`
-- Task gate (run from the repo root, all must pass before the commit):
-  `bun run tui-kit:build && bun run board:typecheck && bun run board:test && bun run console:typecheck && bun run console:lint && bun run console:test && bun run format:check && sh scripts/repo-purity.sh`
+- Task gate (run from the repo root, all must pass before the commit). The plan's code blocks are not prettier-formatted, so run `bun run format` first, then:
+  `bun run tui-kit:build && bun run board:typecheck && bun run board:test && bun run boxscore:typecheck && bun run boxscore:lint && bun run boxscore:test && bun run console:typecheck && bun run console:lint && bun run console:test && bun run format:check && sh scripts/repo-purity.sh`
 - Colour and type follow `docs/ui-authoring.md`: role tokens only (`--tk-*`, `useSchemeColors`, Mantine `color="<hue>"`), no raw hex, weights 400/500/700 only, muted text via `useSchemeColors().text.muted`, 12px hue text on `--tk-text-<hue>-small`. No scheme branching.
 - Scope colours: team `purple`, user `cyan`, machine `accent`. `default`/`unset` are muted text, never a badge.
 - Public repo: invented data only in fixtures (no employer, customer or teammate names). `scripts/repo-purity.sh` enforces part of this.
@@ -60,7 +60,7 @@ import { DEFAULT_SLACK_EMOJI } from '../../slack-emoji.ts';
 
 describe('shared shapes', () => {
   test("settings-kit's slack emoji fallbacks match the board's", () => {
-    expect(KIT_SLACK_EMOJI).toEqual(DEFAULT_SLACK_EMOJI);
+    expect(DEFAULT_SLACK_EMOJI).toEqual(KIT_SLACK_EMOJI);
   });
 });
 ```
@@ -167,7 +167,8 @@ This lands before the server swap (Task 3) so nothing ever calls a route that no
 - Modify: `apps/console/package.json` (add dependency)
 - Modify: `apps/console/src/app/config/useSettings.ts`
 - Modify: `apps/console/src/app/settings/AgentDefaultsPage.tsx` (`useCurrentValue` only)
-- Modify: `apps/console/src/app/config/chain.ts:1`, `apps/console/src/app/config/LayerRow.tsx:20` (type import)
+- Modify: `apps/console/src/app/config/chain.ts:1`, `apps/console/src/app/config/LayerRow.tsx:20`, `apps/console/src/app/config/chain.test.ts`, `apps/console/src/app/config/LayerRow.test.tsx` (type imports)
+- Delete: `apps/console/src/app/settings/AgentDefaultsPage.test.tsx` (it mocks the RPC client; the page itself is retired in Task 7 and its replacement is tested there)
 - Modify: `apps/console/src/app/palette/ConsolePalette.tsx`
 - Test: `apps/console/src/app/config/ExplainKeyPage.test.tsx`, `apps/console/src/app/palette/ConsolePalette.test.tsx`
 
@@ -183,11 +184,17 @@ In `apps/console/package.json` dependencies add `"@mattstack/settings-kit": "cat
 In `ExplainKeyPage.test.tsx` replace the whole `vi.mock('../api', ...)` block with:
 
 ```ts
-vi.stubGlobal('fetch', (url: string, init?: RequestInit) =>
-  url.startsWith('/api/settings/explain/')
-    ? explainGet(url)
-    : setPost(url, init)
-);
+vi.stubGlobal('fetch', (url: string, init?: RequestInit) => {
+  if (url.startsWith('/api/settings/explain/')) return explainGet(url);
+  if (url === '/api/settings/set') return setPost(url, init);
+  // LayerRow's useEditorHref reads /api/settings/default-editor; it must not
+  // reach setPost, whose call counts the tests assert.
+  return Promise.resolve({
+    ok: false,
+    status: 404,
+    json: async () => ({ error: 'not found' }),
+  });
+});
 ```
 
 Run: `bun run console:test -- src/app/config/ExplainKeyPage.test.tsx`
@@ -309,11 +316,11 @@ In `AgentDefaultsPage.tsx`, replace `useCurrentValue`'s `queryFn` body with:
     },
 ```
 
-drop its `client` import, and change its type import line to `import type { ExplainRowWire, SettingDefWire } from '@mattstack/settings-kit/react';`. Make the same type-import change in `chain.ts` and `LayerRow.tsx`.
+drop its `client` import, and change its type import line to `import type { ExplainRowWire, SettingDefWire } from '@mattstack/settings-kit/react';`. Make the same type-import change in `chain.ts`, `LayerRow.tsx`, `chain.test.ts` and `LayerRow.test.tsx` (all four import these types from `'../../server/settings'` today, and Task 3 deletes them there). Delete `apps/console/src/app/settings/AgentDefaultsPage.test.tsx`: it mocks `client.api.settings.*`, so all seven of its tests fail once the page reads through `fetch`, and the page itself is retired in Task 7.
 
 - [ ] **Step 4: Fixture types**
 
-Run: `bun run console:typecheck`. The kit's `SettingDefWire` has a required `effective` field. For every test fixture typed as `SettingDefWire` that now fails, add `effective: { scope: null, file: null },`. Change nothing else in those fixtures.
+Run: `bun run console:typecheck`. The kit's `SettingDefWire` has a required `effective` field. For every test fixture typed as `SettingDefWire` that now fails (expect `chain.test.ts` and `LayerRow.test.tsx` among them), add `effective: { scope: null, file: null },`. Change nothing else in those fixtures. Then `rg -n "server/settings'" apps/console/src/app` must print nothing.
 
 - [ ] **Step 5: Remove settings from the palette**
 
@@ -499,11 +506,11 @@ export function createSettingsRoutes(kit: SettingsHandlerOptions = {}) {
 export const settings = createSettingsRoutes();
 ```
 
-(`/* unchanged body */` means paste the current handler body verbatim; do not leave the comment.) Delete `SettingDefWire`, `ExplainRowWire`, `defToWire`, `sanitizeRows`, `isComposite`, `isWritable`, `COMPOSITE_COPY` and the `validator` import. Nothing in `src/app` imports them any more after Task 2.
+(`/* unchanged body */` means paste the current handler body verbatim; do not leave the comment.) Delete `SettingDefWire`, `ExplainRowWire`, `defToWire`, `sanitizeRows`, `isComposite`, `isWritable`, `COMPOSITE_COPY` and the `validator` import. Nothing in `src/app` imports them any more after Task 2 (Task 2 Step 4's `rg` proves it).
 
 - [ ] **Step 3: Trim the old server test**
 
-In `settings.test.ts` delete every `it` from "lists defs with writability computed, not copied" to the end of the file, and the `DEFS`/`EXPLAIN` fixtures if nothing left uses them. Keep the five read-route tests. In the `vi.mock('@mattstack/rt-client', ...)` factory keep `getSetting` and add `unsetSetting: vi.fn(),` so a mocked module never lacks a name settings-kit imports.
+In `settings.test.ts` delete every `it` from "lists defs with writability computed, not copied" to the end of the file, and the `DEFS`/`EXPLAIN` fixtures and the `post()` helper, which nothing left uses (an unused `post` fails typecheck with TS6133). Keep the five read-route tests. In the `vi.mock('@mattstack/rt-client', ...)` factory keep `getSetting` and add `unsetSetting: vi.fn(),` so a mocked module never lacks a name settings-kit imports.
 
 - [ ] **Step 4: Gate and commit**
 
@@ -532,9 +539,10 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Write the failing tests**
 
-`groups.test.ts`:
+`groups.test.ts` (console's `no-restricted-imports` rule allows only type imports from rt-client under `src/app`; this test needs the live registry and never ships in the bundle, hence the disable):
 
 ```ts
+// eslint-disable-next-line no-restricted-imports -- test-only: reads the live registry under vitest; never bundled
 import { allDefs } from '@mattstack/rt-client';
 import { describe, expect, it } from 'vitest';
 
@@ -939,7 +947,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: Task 4's `view.ts`, `units.ts`; kit `rowKind`, `summarize`, `targetScope`, `SHAPES`, `ENUMS`, `SettingsScopeState`.
 - Produces:
   - `type RowStore = Pick<SettingsScopeState, 'set' | 'unset' | 'move'>`
-  - `useRowSave(store: RowStore, def): { status: 'idle' | 'saving' | 'saved'; error: string | null; save(value: unknown): Promise<boolean>; clear(scope: string): Promise<boolean> }`
+  - `useRowSave(store: RowStore, def): { status: 'idle' | 'saving' | 'saved'; error: string | null; save(value: unknown): Promise<boolean>; clear(scope: string): Promise<boolean>; move(from: string, to: string): Promise<boolean> }`
   - `SCOPE_COLOR`, `ScopeDot({scope})`, `ScopeBadge({scope, moveTo, onMove})`
   - `ScalarControl({def, onSave, suggestions?})`
   - `SettingRow({def, store, subhead, query, suggestions?})` and `ExpandToggle({label, open, onToggle})`. Task 6 fills the composite branches through `CompositeBody`/`CompositeSummary` hooks declared here as a switch.
@@ -1022,7 +1030,7 @@ describe('SettingRow', () => {
   it('offers the ENUMS options as a select', async () => {
     const s = store();
     renderWithProviders(<SettingRow def={def('rt.logLevel', { scopes: ['machine', 'user'], effective: { scope: 'default', file: null, value: 'info' } })} store={s} subhead={null} query="" />);
-    await userEvent.click(screen.getByLabelText('rt.logLevel'));
+    await userEvent.click(screen.getByRole('combobox', { name: 'rt.logLevel' }));
     await userEvent.click(await screen.findByRole('option', { name: 'debug' }));
     await waitFor(() => expect(s.set).toHaveBeenCalledWith('rt.logLevel', 'machine', 'debug'));
   });
@@ -1311,6 +1319,7 @@ import {
   Stack,
   Text,
   UnstyledButton,
+  type TextProps,
 } from '@mattstack/app-kit/core';
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import { Icons } from '@mattstack/app-kit/icons';
@@ -1334,7 +1343,7 @@ import {
   type StoreScope,
 } from './view';
 
-function Marked({ text, query, ...props }: { text: string; query: string } & Parameters<typeof Text>[0]) {
+function Marked({ text, query, ...props }: { text: string; query: string } & Omit<TextProps, 'color'>) {
   return query.trim() === '' ? (
     <Text {...props}>{text}</Text>
   ) : (
@@ -1458,7 +1467,7 @@ export function SettingRow({
           {row.error}
         </Text>
       )}
-      {body && <Collapse in={open}>{body}</Collapse>}
+      {body && <Collapse expanded={open}>{body}</Collapse>}
     </Box>
   );
 }
@@ -1479,7 +1488,7 @@ function compositeParts(
 }
 ```
 
-If `Highlight` rejects the `span`/`inherit` props, render the key name as `<Text span inherit fw={500}>` inside a `Highlight` wrapper component instead; the test only checks the rendered text.
+Mantine 9.5's `Collapse` takes `expanded`, not `in`. `Marked` types its props as `Omit<TextProps, 'color'>` because `Parameters<typeof Text>[0]` resolves to `never` on Mantine's polymorphic `Text`. If `Highlight` rejects the `span`/`inherit` props, render the key name as `<Text span inherit fw={500}>` inside a `Highlight` wrapper component instead; the test only checks the rendered text.
 
 - [ ] **Step 6: Run the test, gate, commit**
 
@@ -1531,7 +1540,7 @@ describe('composite rows', () => {
   it('a short string list edits inline as tags', async () => {
     const s = store();
     renderWithProviders(<SettingRow def={def('board.ticketPrefixes', { scopes: ['team'], effective: { scope: 'team', file: '/t', value: ['RT'] } })} store={s} subhead={null} query="" />);
-    await userEvent.type(screen.getByLabelText('board.ticketPrefixes'), 'MAT{enter}');
+    await userEvent.type(screen.getByRole('combobox', { name: 'board.ticketPrefixes' }), 'MAT{enter}');
     await waitFor(() => expect(s.set).toHaveBeenCalledWith('board.ticketPrefixes', 'team', ['RT', 'MAT']));
   });
 
@@ -1574,10 +1583,19 @@ describe('composite rows', () => {
     await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
     expect(await screen.findByText('debounceSec')).toBeInTheDocument();
     const debounce = screen.getByLabelText('rt.homeSnapshot.debounceSec');
+    await waitFor(() => expect(debounce).toBeEnabled());
     await userEvent.clear(debounce);
     await userEvent.type(debounce, '45');
     debounce.blur();
     await waitFor(() => expect(s.set).toHaveBeenCalledWith('rt.homeSnapshot', 'machine', { enabled: false, debounceSec: 45 }));
+  });
+
+  it('leaf fields stay disabled until the layer rows arrive', async () => {
+    vi.stubGlobal('fetch', () => new Promise(() => {}));
+    renderWithProviders(<SettingRow def={def('rt.homeSnapshot', { type: 'object', merge: 'deep', effective: { scope: 'machine', file: '/m', value: { enabled: false } } })} store={store()} subhead={null} query="" />);
+    await userEvent.click(screen.getByRole('button', { name: /1 of 5 set/ }));
+    expect(await screen.findByLabelText('rt.homeSnapshot.debounceSec')).toBeDisabled();
+    expect(screen.getByLabelText('rt.homeSnapshot.enabled')).toBeDisabled();
   });
 
   it('a stored value of the wrong shape locks behind Clear', async () => {
@@ -1723,7 +1741,7 @@ function StringMapBody({ def, row, labels }: { def: SettingDefWire; row: Row; la
               if (next && next !== value) void row.save({ ...map, [key]: next });
             }}
           />
-          <UnstyledButton aria-label={`remove ${key}`} onClick={() => { const { [key]: _gone, ...rest } = map; void row.save(rest); }}>
+          <UnstyledButton aria-label={`remove ${key}`} onClick={() => void row.save(Object.fromEntries(Object.entries(map).filter(([k]) => k !== key)))}>
             <Icons.close size={14} />
           </UnstyledButton>
         </FieldRow>
@@ -1745,18 +1763,19 @@ function StringMapBody({ def, row, labels }: { def: SettingDefWire; row: Row; la
   );
 }
 
-function LeafInput({ label, type, value, placeholder, onSave }: { label: string; type: LeafType; value: unknown; placeholder?: string; onSave: (v: unknown) => void }) {
+function LeafInput({ label, type, value, placeholder, disabled, onSave }: { label: string; type: LeafType; value: unknown; placeholder?: string; disabled: boolean; onSave: (v: unknown) => void }) {
   const { text } = useSchemeColors();
   if (type === 'boolean')
-    return <Switch aria-label={label} checked={value === true} onChange={e => onSave(e.currentTarget.checked)} />;
+    return <Switch aria-label={label} disabled={disabled} checked={value === true} onChange={e => onSave(e.currentTarget.checked)} />;
   if (typeof type === 'object')
-    return <Select aria-label={label} size="xs" w={160} data={[...type.enum]} value={typeof value === 'string' ? value : null} onChange={v => v !== null && onSave(v)} />;
+    return <Select aria-label={label} disabled={disabled} size="xs" w={160} data={[...type.enum]} value={typeof value === 'string' ? value : null} onChange={v => v !== null && onSave(v)} />;
   if (type === 'number') {
     const unit = unitOf(label);
     return (
       <Group gap={8} wrap="nowrap">
         <NumberInput
           aria-label={label}
+          disabled={disabled}
           size="xs"
           w={80}
           hideControls
@@ -1773,6 +1792,7 @@ function LeafInput({ label, type, value, placeholder, onSave }: { label: string;
   return (
     <TextInput
       aria-label={label}
+      disabled={disabled}
       size="xs"
       w={200}
       placeholder={placeholder}
@@ -1807,6 +1827,10 @@ function LeavesBody({ def, row, shape }: { def: SettingDefWire; row: Row; shape:
               type={shape.fields[path]!}
               value={getLeaf(def.effective.value, path)}
               placeholder={shape.fallbacks?.[path]}
+              // leafWrite needs the target layer's own object; with no rows
+              // yet (or stale rows mid-refresh) it would drop that layer's
+              // other fields.
+              disabled={explained.loading}
               onSave={v => void row.save(leafWrite(explained.rows, target, path, v)).then(ok => ok && explained.refresh())}
             />
           </FieldRow>
@@ -1882,7 +1906,9 @@ export function compositeParts(
 }
 ```
 
-In `SettingRow.tsx` delete the placeholder `compositeParts` and add `import { compositeParts } from './CompositeControls';`. Change the body render to `{body && <Collapse in={open}>{body}</Collapse>}` (unchanged) so only an open composite mounts its body (the `useSettingKey` explain fetch runs only when expanded).
+In `SettingRow.tsx` delete the placeholder `compositeParts` and add `import { compositeParts } from './CompositeControls';`. Keep the body render as `{body && <Collapse expanded={open}>{body}</Collapse>}` (unchanged) so only an open composite mounts its body (the `useSettingKey` explain fetch runs only when expanded).
+
+`pairList` rows fall through to the read-only body on purpose: settings-kit keeps the kind for board parity, but no shipped key uses it, so the spec's `PairListControl` is deferred until one does.
 
 `CompositeControls.tsx` imports `ExpandToggle` from `SettingRow.tsx` and `SettingRow.tsx` imports `compositeParts` from it; if the cycle trips lint (`import/no-cycle`) or a runtime `undefined`, move `ExpandToggle` into its own `ExpandToggle.tsx` and import it from both.
 
@@ -1919,7 +1945,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
 import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -2142,7 +2168,7 @@ export function SettingsSection({ section, store, query }: { section: Section; s
 - [ ] **Step 3: `SettingsPage.tsx`**
 
 ```tsx
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -2221,6 +2247,13 @@ function SettingsPageContent() {
   const [scope, setScope] = useState<ScopeFilter>('any');
   const filterRef = useRef<HTMLInputElement>(null);
   useHotkeys([['/', () => filterRef.current?.focus()]]);
+
+  // A deep link (/settings#board) can only scroll once the sections exist.
+  useEffect(() => {
+    if (store.loading) return;
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(`settings-${id}`)?.scrollIntoView({ block: 'start' });
+  }, [store.loading]);
 
   const setQuery = (q: string) =>
     setParams(
