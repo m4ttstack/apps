@@ -372,6 +372,14 @@ row, T1. Pass: `drafting` first; T1 neither posted nor resolved;
 text round): 5/5. Every rep reasons that the old gate offered T1, so its
 empty list decides it.
 
+A stand-in review then found that step 7's `--held` list did not cover
+that expected `--held 1`. The list now adds "a `gate-1: reply` thread an
+older Gate 2's answer kept down (a retired `replies` list that leaves it
+out, or an answer that names it without `post:`)". It was a guard before
+the edit (5/5, above) and is 5/5 after it. wrap-resume-legacy (T3 named
+without `post:`) and wrap-resume-post re-ran at 5/5 each on the new
+wording, and one legacy rep cites the new clause for T3's `--held 1`.
+
 ## Verdict
 
 On the 14 scenarios above, the v4 wording makes Gate 2 offer exactly the
