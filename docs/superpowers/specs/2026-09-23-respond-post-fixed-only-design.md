@@ -36,9 +36,22 @@ commit), text the developer has not seen yet.
   gate 2 offers only those fixed threads, post/resolve as today. After
   gate 2, the reply-only threads post from gate 1 together with gate 2's
   picks, so the reviewer gets every reply in one pass.
+- **A `reply:` override:** when the developer answers `reply:` on a thread
+  whose gate 1 reply was not shown verbatim (step 3 recommended `fix` or
+  `skip`, so the card showed a direction or no reply), and the answer
+  carries no `text`, that thread is drafted and offered at gate 2 like a
+  fixed thread. Gate 2 offers exactly the replies the developer has not yet
+  seen word for word.
 - **`code-changes: revise`:** unchanged.
 - **`skip:`** still means no reply and no fix; it is how a reply is held
   at gate 1.
+
+## Report rows
+
+After gate 1, each thread's report row records the verb the developer
+answered (`reply`, `fix`, `skip`) and, for an edited reply, the edited text
+in place of the draft. Posting, a resume included, reads which threads are
+reply-only from those rows, never from step 3's recommendation.
 
 ## Records
 
