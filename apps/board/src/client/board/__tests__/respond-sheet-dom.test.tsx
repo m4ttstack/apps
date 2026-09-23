@@ -882,9 +882,16 @@ test('an edit survives hold and back to post, and is what posts', async () => {
   const reply = postCards()[1]!;
   await React.act(async () => editButton(reply)!.click());
   await typeInto(replyBox(reply)!, 'Kept on purpose.');
-  await React.act(async () => control(reply, 'hold')!.click());
+  const hold = control(reply, 'hold')!;
+  await React.act(async () => {
+    hold.focus();
+    hold.click();
+  });
   expect(editButton(reply)).toBeNull();
+  expect(replyBox(reply)).toBeNull();
+  expect(document.activeElement).toBe(hold);
   await React.act(async () => control(reply, 'post')!.click());
+  expect(replyBox(reply)).toBeNull();
   await clickSubmit();
   expect(
     (answer() as { answers: Record<string, unknown> }).answers['thread-2']
@@ -901,6 +908,48 @@ test('an emptied reply says so on its card', async () => {
   await typeInto(replyBox(reply)!, '  ');
   expect(reply.textContent).toContain('the reply is empty');
   expect(submit().disabled).toBe(true);
+  const hint = replyBox(reply)!.getAttribute('aria-describedby');
+  expect(hint && document.getElementById(hint)?.textContent).toBe(
+    'the reply is empty'
+  );
+});
+
+const DOCK_EMPTY = 'a reply is empty: write it or hold the thread';
+
+test('the dock says why submit is off while a posting reply is empty', async () => {
+  await render(perThreadPostGate(), withFixPlan());
+  const dock = () => $('.tui-sheet-dock')!.textContent;
+  expect(dock()).not.toContain(DOCK_EMPTY);
+  const reply = postCards()[1]!;
+  await React.act(async () => editButton(reply)!.click());
+  await typeInto(replyBox(reply)!, '');
+  expect(dock()).toContain(DOCK_EMPTY);
+  await React.act(async () => control(reply, 'hold')!.click());
+  expect(dock()).not.toContain(DOCK_EMPTY);
+  expect(submit().disabled).toBe(false);
+});
+
+test('the reply controls are named by their thread', async () => {
+  await render(perThreadPostGate(), withFixPlan());
+  const reply = postCards()[1]!;
+  await React.act(async () => editButton(reply)!.click());
+  await typeInto(replyBox(reply)!, 'Kept on purpose.');
+  expect(
+    [...reply.querySelectorAll('.tui-thread-reply-action')].map(b =>
+      b.getAttribute('aria-label')
+    )
+  ).toEqual(['b.ts:2: done editing', 'b.ts:2: reset to draft']);
+  expect(replyBox(reply)!.hasAttribute('aria-describedby')).toBe(false);
+});
+
+test("the edited chip is grey, never the fix chip's accent", async () => {
+  await render(perThreadPostGate(), withFixPlan());
+  const fix = postCards()[0]!;
+  await React.act(async () => editButton(fix)!.click());
+  await typeInto(replyBox(fix)!, 'Fixed, and bounded.');
+  expect(
+    fix.querySelector('[data-chip="edited"]')!.getAttribute('data-hue')
+  ).toBe('grey');
 });
 
 test('Escape in the reply box closes the box, not the sheet', async () => {

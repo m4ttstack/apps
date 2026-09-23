@@ -2491,11 +2491,13 @@ body {
 .tui-thread-reply[data-kind='direction'] .tui-thread-reply-k {
   color: var(--text-2);
 }
+/* The margins undo the padding plus border, so the words sit exactly where
+   the resting reply drew them and opening the box moves nothing. */
 .tui-thread-reply-input {
-  width: 100%;
+  width: calc(100% + 18px);
   box-sizing: border-box;
-  margin: 0;
-  padding: 6px 8px;
+  margin: -4px -9px;
+  padding: 3px 8px;
   font: inherit;
   color: var(--text-1);
   background: var(--panel);
@@ -2504,9 +2506,11 @@ body {
   resize: none;
   overflow: hidden;
 }
+/* Drawn over the border, inside the box: outside it, the ring would crowd
+   the label above and the reply fill's edge. */
 .tui-thread-reply-input:focus-visible {
   outline: 2px solid var(--fill-accent);
-  outline-offset: 1px;
+  outline-offset: -2px;
 }
 .tui-thread-reply-actions {
   display: flex;

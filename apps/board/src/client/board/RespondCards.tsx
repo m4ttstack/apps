@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 import { Markdown } from '@mattstack/tui-kit';
 import { useAutoGrowTextarea } from '@mattstack/tui-kit/hooks';
@@ -131,6 +131,7 @@ function EditableReply({
   const edited = value !== undefined && value.trim() !== draft.trim();
   const empty = canEdit && value !== undefined && value.trim() === '';
   const ref = useAutoGrowTextarea([open, text]);
+  const emptyHint = useId();
   const editRef = useRef<HTMLButtonElement | null>(null);
   // Closing unmounts whatever held focus, which would drop it to the body,
   // outside the sheet's Tab trap; a close the user asked for hands it back
@@ -161,6 +162,7 @@ function EditableReply({
           rows={1}
           value={text}
           aria-label={`${label}: reply`}
+          aria-describedby={empty ? emptyHint : undefined}
           onChange={e => onChange(e.currentTarget.value)}
           onKeyDown={e => {
             if (e.key === 'Escape') {
@@ -176,7 +178,11 @@ function EditableReply({
           </Markdown>
         </div>
       )}
-      {empty && <span className="tui-gate-error">the reply is empty</span>}
+      {empty && (
+        <span className="tui-gate-error" id={emptyHint}>
+          the reply is empty
+        </span>
+      )}
       {canEdit && (
         <div className="tui-thread-reply-actions">
           {open ? (
@@ -184,6 +190,7 @@ function EditableReply({
               <button
                 type="button"
                 className="tui-thread-reply-action"
+                aria-label={`${label}: done editing`}
                 onClick={close}
               >
                 done
@@ -192,6 +199,7 @@ function EditableReply({
                 <button
                   type="button"
                   className="tui-thread-reply-action"
+                  aria-label={`${label}: reset to draft`}
                   onClick={() => {
                     onReset();
                     ref.current?.focus();
@@ -223,7 +231,7 @@ function EditedChip() {
   return (
     <span
       className="tui-respond-chip tui-thread-edited"
-      data-hue="accent"
+      data-hue="grey"
       data-chip="edited"
     >
       edited

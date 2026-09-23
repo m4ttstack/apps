@@ -1074,6 +1074,11 @@ function RespondSheetBody({
                   send the plan back for revision
                 </button>
               )}
+              {edits === null && (
+                <span className="tui-gate-error">
+                  a reply is empty: write it or hold the thread
+                </span>
+              )}
               {form.failed && (
                 <span className="tui-gate-error">
                   submit failed... nothing was sent, try again
