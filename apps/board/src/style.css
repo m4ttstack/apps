@@ -2304,6 +2304,17 @@ body {
   text-transform: uppercase;
   color: var(--text-2);
 }
+/* The post step's outcome chip holds the card head's right edge. */
+.tui-respond-chip.tui-thread-outcome {
+  margin-left: auto;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+.tui-thread-nothing {
+  margin: 0;
+  font-size: var(--gate-font-meta);
+  color: var(--text-3);
+}
 .tui-thread-verdict-call {
   font-weight: 700;
   color: var(--text-2);

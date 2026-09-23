@@ -86,6 +86,28 @@ function ThreadCard({ ctx }: { ctx: ThreadCtx }) {
   );
 }
 
+const OUTCOME_HUE = { fix: 'accent', reply: 'green', skip: 'grey' } as const;
+
+const OUTCOME_TEXT = {
+  fix: 'fixed',
+  reply: 'reply only',
+  skip: 'skipped',
+} as const;
+
+/** A post-step thread's outcome, in its card's head: what the plan step
+    decided for it. */
+function ThreadOutcome({ verb }: { verb: 'reply' | 'fix' | 'skip' }) {
+  return (
+    <span
+      className="tui-respond-chip tui-thread-outcome"
+      data-hue={OUTCOME_HUE[verb]}
+      data-outcome={verb}
+    >
+      {OUTCOME_TEXT[verb]}
+    </span>
+  );
+}
+
 /** A respond-post reply option's label: where the reply lands, whether it
     rides a pushed fix, and the full text that will be posted. `children`
     joins the label row (the recommended chip). */
@@ -125,4 +147,4 @@ function ReplyChoiceBody({
   );
 }
 
-export { ReplyChoiceBody, SeverityPill, ThreadCard };
+export { ReplyChoiceBody, SeverityPill, ThreadCard, ThreadOutcome };

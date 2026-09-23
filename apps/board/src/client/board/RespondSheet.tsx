@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import {
   CODE_CHANGES_QUESTION_ID,
@@ -18,7 +18,13 @@ import { AnsweredChip, type GateFormState } from './GateForm.tsx';
 import { MrCard } from './MrCard.tsx';
 import { forgeNoun } from './MrLinks.tsx';
 import { PersonLead, PersonTag } from './PersonLead.tsx';
-import { ReplyChoiceBody, SeverityPill, ThreadCard } from './RespondCards.tsx';
+import { joinPlan, type JoinedThread } from './respond-join.ts';
+import {
+  ReplyChoiceBody,
+  SeverityPill,
+  ThreadCard,
+  ThreadOutcome,
+} from './RespondCards.tsx';
 import {
   headerChips,
   headerMeta,
@@ -165,6 +171,56 @@ function ProseContext({
       <Markdown unstyled linkTargetBlank>
         {q.context}
       </Markdown>
+    </div>
+  );
+}
+
+/** A post-step thread's decision: post its final reply or hold it. Both
+    write the replies checklist the gate answers with. */
+function PostChoice({
+  q,
+  entry,
+  form,
+}: {
+  q: GateItemDisplay;
+  entry: JoinedThread;
+  form: GateFormState;
+}) {
+  const current = form.selections[q.name];
+  const posting = new Set(Array.isArray(current) ? current : []).has(
+    entry.threadId
+  );
+  const choices = [
+    { post: true, label: 'post', subtitle: 'post this reply to the thread' },
+    { post: false, label: 'hold', subtitle: 'keep it back; nothing is posted' },
+  ];
+  return (
+    <div className="tui-gate-choices">
+      {choices.map(c => {
+        const checked = posting === c.post;
+        return (
+          <label
+            className="tui-gate-choice"
+            data-checked={checked || undefined}
+            key={c.label}
+          >
+            <input
+              type="radio"
+              className="tui-gate-choice-input"
+              data-type="radio"
+              data-checked={checked ? '' : undefined}
+              name={`${q.name}:${entry.threadId}`}
+              value={c.label}
+              checked={checked}
+              onChange={() => form.toggleMulti(q.name, entry.threadId, c.post)}
+            />
+            <span className="tui-gate-choice-label">
+              <span className="tui-gate-choice-label-row">{c.label}</span>
+              <span className="tui-gate-choice-subtitle">{c.subtitle}</span>
+            </span>
+          </label>
+        );
+      })}
     </div>
   );
 }
@@ -410,6 +466,22 @@ function RespondSheetBody({
   const repliesPicked = repliesQ
     ? ((form.selections[repliesQ.name] as string[] | undefined)?.length ?? 0)
     : 0;
+  const repliesCtx = repliesQ ? questionCtx.get(repliesQ.name) : undefined;
+  // The post step draws each reply with its plan-step card when the plan
+  // gate it follows is still on the MR row; otherwise the plain checklist.
+  const joined =
+    ctx.shape === 'post@1' && repliesCtx?.shape === 'replies@1'
+      ? joinPlan(ctx, repliesCtx.replies, mr)
+      : null;
+  const postable = joined?.filter(j => j.reply).map(j => j.threadId) ?? [];
+  const repliesName = repliesQ?.name;
+  useEffect(() => {
+    if (!repliesName || !joined) return;
+    if (form.selections[repliesName] !== undefined) return;
+    for (const id of postable) form.toggleMulti(repliesName, id, true);
+    // Seeds once per gate, and only a checklist no draft or pick has touched.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gate.gateId, joined !== null]);
   const dockPick = dockQs
     .map(q => {
       const v = form.selections[q.name];
@@ -434,7 +506,16 @@ function RespondSheetBody({
       <section className="tui-sheet-main">
         <div className="tui-sheet-list-head">
           <span className="tui-sheet-list-title">
-            {repliesQ ? (
+            {joined ? (
+              <>
+                Post replies on {joined.length}{' '}
+                {joined.length === 1 ? 'thread' : 'threads'} from{' '}
+                <PersonTag
+                  id={ctx.reviewer}
+                  name={reviewerName(ctx.reviewer, mr, people)}
+                />
+              </>
+            ) : repliesQ ? (
               repliesQ.prompt
             ) : (
               <>
@@ -448,9 +529,11 @@ function RespondSheetBody({
             )}
           </span>
           <span className="tui-sheet-list-tally">
-            {repliesQ
-              ? `${repliesPicked} of ${repliesQ.choices.length} selected`
-              : `${threadsDecided} of ${mainQs.length} decided`}
+            {joined
+              ? `${repliesPicked} of ${postable.length} posting`
+              : repliesQ
+                ? `${repliesPicked} of ${repliesQ.choices.length} selected`
+                : `${threadsDecided} of ${mainQs.length} decided`}
           </span>
         </div>
         <div className="tui-respond-list">
@@ -481,6 +564,46 @@ function RespondSheetBody({
                   <Choices q={q} form={form} />
                   <Note q={q} form={form} />
                 </section>
+              );
+            if (joined)
+              return (
+                <Fragment key={q.name}>
+                  {joined.map(j => (
+                    <section
+                      key={j.threadId}
+                      className="tui-gate-question"
+                      data-gate-ctx="thread"
+                      data-step="post"
+                      aria-label={j.label}
+                    >
+                      <div className="tui-gate-question-head">
+                        <span className="tui-gate-question-label">
+                          {j.label}
+                        </span>
+                        <SeverityPill severity={j.thread.severity} />
+                        {(j.reply ?? j.decided) && (
+                          <ThreadOutcome verb={j.reply?.verb ?? j.decided!} />
+                        )}
+                      </div>
+                      <ThreadCard
+                        ctx={{
+                          ...j.thread,
+                          reply: j.reply
+                            ? { kind: 'verbatim', text: j.reply.text }
+                            : { kind: 'none' },
+                        }}
+                      />
+                      {j.reply ? (
+                        <PostChoice q={q} entry={j} form={form} />
+                      ) : (
+                        <p className="tui-thread-nothing">
+                          Nothing to post for this thread.
+                        </p>
+                      )}
+                    </section>
+                  ))}
+                  <Note q={q} form={form} />
+                </Fragment>
               );
             const replies = qctx?.shape === 'replies@1' ? qctx.replies : [];
             return (

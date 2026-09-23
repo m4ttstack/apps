@@ -79,8 +79,15 @@ export class GateCache {
   private readonly byKey = new Map<string, FacilityGateRow>();
 
   /** Set/replace one row wholesale, keyed by its subject+kind. */
+  /** A different gate for the same subject+kind replaces the cached one
+      only when it is not older, so a reconcile listing several rounds keeps
+      the latest whatever order the daemon returns them in. */
   applyRow(row: FacilityGateRow): void {
-    this.byKey.set(cacheKey(row.subject, row.kind), row);
+    const key = cacheKey(row.subject, row.kind);
+    const existing = this.byKey.get(key);
+    if (existing && existing.id !== row.id && existing.openedAt > row.openedAt)
+      return;
+    this.byKey.set(key, row);
   }
 
   /** `gateList`'s result is authoritative for every subject+kind it names; a

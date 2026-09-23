@@ -148,12 +148,12 @@ afterEach(async () => {
   container.remove();
 });
 
-async function render(row: GateRow) {
+async function render(row: GateRow, mr: BoardMRWithReview = MR) {
   await React.act(async () => {
     root.render(
       <DecisionQueueModal
         gate={row}
-        mr={MR}
+        mr={mr}
         position={1}
         states={['active']}
         onClose={() => {}}
@@ -352,4 +352,70 @@ test('cancel leaves send-back mode and restores the submit', async () => {
 test('a replies gate offers no send-back action', async () => {
   await render(postGate());
   expect($('.tui-sheet-revise')).toBeNull();
+});
+
+/** The answered plan gate a post gate follows: three threads, r1 and r2
+    answered with replies, r3 skipped. */
+function answeredPlan(): GateRow {
+  return {
+    ...planGate(),
+    gateId: 'g-plan-done',
+    status: 'answered',
+    questions: ['r1', 'r2', 'r3'].map((id, i) => ({
+      id: `thread-${i + 1}`,
+      label: `${'abc'[i]}.ts:${i + 1}`,
+      multi: false,
+      context: thread(`claim ${id}`),
+      options: [`reply:${id}`, `fix:${id}`, `skip:${id}`],
+    })),
+    answers: {
+      'thread-1': 'reply:r1',
+      'thread-2': 'reply:r2',
+      'thread-3': 'skip:r3',
+    },
+  };
+}
+
+const withPlan = () =>
+  ({ ...MR, gates: [answeredPlan()] }) as unknown as BoardMRWithReview;
+
+test('with its plan gate on the row, the post step draws every plan thread as a card', async () => {
+  await render(postGate(), withPlan());
+  const cards = [...document.body.querySelectorAll('[data-step="post"]')];
+  expect(cards.map(c => c.getAttribute('aria-label'))).toEqual([
+    'a.ts:1',
+    'b.ts:2',
+    'c.ts:3',
+  ]);
+  expect(
+    cards.map(c => c.querySelector('[data-outcome]')?.textContent)
+  ).toEqual(['reply only', 'reply only', 'skipped']);
+  expect(cards[0]!.querySelector('.tui-thread-claim')!.textContent).toBe(
+    'claim r1'
+  );
+  expect(cards[2]!.textContent).toContain('Nothing to post for this thread.');
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('2 of 2 posting');
+});
+
+test('the post step defaults every reply to post; hold keeps one back', async () => {
+  await render(postGate(), withPlan());
+  await pick('resolve-addressed');
+  const holdFirst = document.body.querySelectorAll(
+    '[data-step="post"] input[value="hold"]'
+  )[0] as HTMLInputElement;
+  await React.act(async () => {
+    holdFirst.click();
+  });
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('1 of 2 posting');
+  await clickSubmit();
+  expect(answer()).toEqual({
+    gateId: 'g-post',
+    answers: { replies: ['r2'], disposition: 'resolve-addressed' },
+  });
+});
+
+test('without its plan gate the post step keeps the plain checklist', async () => {
+  await render(postGate());
+  expect($('[data-step="post"]')).toBeNull();
+  expect($('[data-gate-ctx="replies"]')).not.toBeNull();
 });

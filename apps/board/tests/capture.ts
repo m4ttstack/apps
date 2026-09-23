@@ -248,7 +248,7 @@ try {
     // gate, and skips forward to its gate.
     for (const [marker, name] of [
       ['.tui-thread-card', 'queueplan'],
-      ['[data-gate-ctx="replies"]', 'queuepost'],
+      ['[data-step="post"]', 'queuepost'],
     ] as const) {
       await page.click('.tui-dq-open');
       await page.waitForSelector('.tui-gate-sheet');

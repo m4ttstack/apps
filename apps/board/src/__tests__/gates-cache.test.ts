@@ -35,6 +35,24 @@ function row(overrides: Partial<FacilityGateRow> = {}): FacilityGateRow {
 }
 
 describe('GateCache.applyRow / reconcile', () => {
+  test('reconcile keeps the newest gate per subject+kind whatever order rows arrive in', () => {
+    const older = row({ id: 'plan-r1', kind: 'respond-plan', openedAt: 1000 });
+    const newer = row({ id: 'plan-r2', kind: 'respond-plan', openedAt: 2000 });
+    const newestLast = new GateCache();
+    newestLast.reconcile([older, newer]);
+    expect(newestLast.get(SUBJECT_A, 'respond-plan')?.id).toBe('plan-r2');
+    const newestFirst = new GateCache();
+    newestFirst.reconcile([newer, older]);
+    expect(newestFirst.get(SUBJECT_A, 'respond-plan')?.id).toBe('plan-r2');
+  });
+
+  test('a patch to the same gate always applies, even with an older openedAt', () => {
+    const cache = new GateCache();
+    cache.applyRow(row({ openedAt: 2000 }));
+    cache.applyRow(row({ openedAt: 1000, status: 'answered' }));
+    expect(cache.get(SUBJECT_A, 'review-post')?.status).toBe('answered');
+  });
+
   test('applyRow sets a row, retrievable by subject+kind', () => {
     const cache = new GateCache();
     cache.applyRow(
