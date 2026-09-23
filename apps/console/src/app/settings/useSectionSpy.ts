@@ -69,6 +69,7 @@ export function useSectionSpy(
 
   const jump = useCallback(
     (id: string) => {
+      if (!key.split(' ').includes(id)) return;
       const pin: { id: string; at?: number } = { id };
       pinned.current = pin;
       document
@@ -77,7 +78,7 @@ export function useSectionSpy(
       pin.at = frame.current?.scrollTop;
       setActive(id);
     },
-    [frame]
+    [frame, key]
   );
 
   return [active, jump];

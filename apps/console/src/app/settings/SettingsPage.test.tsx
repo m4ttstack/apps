@@ -402,4 +402,34 @@ describe('SettingsPage', () => {
     await userEvent.type(screen.getByLabelText('filter settings'), 'Prune');
     await waitFor(() => expect(marked()).toEqual(['#daemon']));
   });
+
+  it('a deep link marks its group', async () => {
+    window.history.replaceState(null, '', '/settings#board');
+    renderPage();
+    await screen.findByRole('heading', { name: 'Board' });
+    await waitFor(() => expect(marked()).toEqual(['#board']));
+  });
+
+  it('a deep link to a group the filter hides marks nothing hidden', async () => {
+    window.history.replaceState(null, '', '/settings?q=Prune#board');
+    renderPage();
+    await screen.findByRole('heading', { name: 'Daemon' });
+    expect(screen.queryByRole('heading', { name: 'Board' })).toBeNull();
+    await waitFor(() => expect(marked()).toEqual(['#daemon']));
+  });
+
+  it('a picked group stays marked through the scroll its jump causes', async () => {
+    renderPage();
+    await screen.findByRole('heading', { name: 'Board' });
+    const f = frame({ agents: 0, daemon: 300, board: 600 }, 800);
+    document.getElementById('settings-daemon')!.scrollIntoView = () => {
+      f.viewport.scrollTop = 100;
+    };
+    const index = screen.getByRole('navigation', { name: 'settings groups' });
+    await userEvent.click(within(index).getByRole('link', { name: /^Daemon/ }));
+    fireEvent.scroll(f.viewport);
+    expect(marked()).toEqual(['#daemon']);
+    f.scrollTo(60);
+    expect(marked()).toEqual(['#agents']);
+  });
 });
