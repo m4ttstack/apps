@@ -352,6 +352,33 @@ describe('composite rows', () => {
     );
   });
 
+  it('an invalid winning layer on a composite offers Clear, not an editor', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.repoRoots', {
+          effective: {
+            scope: 'machine',
+            file: '/m',
+            invalid: 'expected array',
+          },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(
+      screen.getByText('stored value rejected: expected array')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    await waitFor(() =>
+      expect(s.unset).toHaveBeenCalledWith('rt.repoRoots', 'machine')
+    );
+    expect(s.set).not.toHaveBeenCalled();
+  });
+
   it('an unshaped composite is read-only with a preview and its file', async () => {
     renderWithProviders(
       <SettingRow

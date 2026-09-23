@@ -473,10 +473,12 @@ export function compositeParts(
   // reach neither an editor nor the Clear escape hatch.
   if (kind === 'readonly' || !shape) return readonly;
 
+  // An invalid winning layer arrives with no value; an editor seeded from
+  // nothing would discard whatever that layer stores on its first edit.
   if (
     shape.kind !== 'external' &&
-    value !== undefined &&
-    !matchesShape(shape, value)
+    (def.effective.invalid !== undefined ||
+      (value !== undefined && !matchesShape(shape, value)))
   ) {
     const at = def.effective.scope;
     return {

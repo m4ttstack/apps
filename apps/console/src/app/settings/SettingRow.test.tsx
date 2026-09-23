@@ -173,6 +173,28 @@ describe('SettingRow', () => {
     expect(await screen.findByText('rt: nope')).toBeInTheDocument();
   });
 
+  it('an invalid winning layer says so and the next save still targets it', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('agent.claude.yolo', {
+          type: 'boolean',
+          effective: { scope: 'user', file: '/u', invalid: 'expected boolean' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(
+      screen.getByText('stored value rejected: expected boolean')
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('agent.claude.yolo'));
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('agent.claude.yolo', 'user', true)
+    );
+  });
+
   it('toggles a boolean immediately', async () => {
     const s = store();
     renderWithProviders(

@@ -178,10 +178,19 @@ export function SettingRow({
           <Icons.chevronRight size={16} />
         </ActionIcon>
       </Group>
-      {row.error && (
-        <Text size="xs" ff="monospace" c="var(--tk-text-bad-small)" pb={12}>
-          {row.error}
-        </Text>
+      {(row.error || def.effective.invalid) && (
+        <Stack gap={4} pb={12}>
+          {row.error && (
+            <Text size="xs" ff="monospace" c="var(--tk-text-bad-small)">
+              {row.error}
+            </Text>
+          )}
+          {def.effective.invalid && (
+            <Text size="xs" ff="monospace" c="var(--tk-text-bad-small)">
+              stored value rejected: {def.effective.invalid}
+            </Text>
+          )}
+        </Stack>
       )}
       {body && <Collapse expanded={open}>{body}</Collapse>}
     </Box>
