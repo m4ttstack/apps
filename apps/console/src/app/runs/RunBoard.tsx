@@ -194,6 +194,7 @@ export function RunBoard() {
               {collapsible ? (
                 <UnstyledButton
                   data-testid="band-finished-toggle"
+                  aria-expanded={opened}
                   className={classes.header}
                   onClick={() => onCollapseClick()}
                 >
