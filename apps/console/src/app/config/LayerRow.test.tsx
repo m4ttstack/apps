@@ -245,6 +245,27 @@ describe('LayerRow: staged edit-at-layer', () => {
     expect(screen.queryByText(/edit the file/)).not.toBeInTheDocument();
   });
 
+  test('a composite layer that does not win points at its file, not Settings', () => {
+    renderWithProviders(
+      <LayerRow
+        def={{
+          ...COMPOSITE_DEF,
+          key: 'rt.repoRoots',
+          type: 'array',
+          merge: 'replace',
+          writable: true,
+        }}
+        row={{ ...COMPOSITE_ROW, value: ['~/src'] }}
+        role="overridden"
+      />
+    );
+
+    expect(
+      screen.queryByRole('link', { name: 'edit in Settings' })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/edit the file/)).toBeInTheDocument();
+  });
+
   test('a failed apply renders applyError inside the staged block', async () => {
     renderWithProviders(
       <LayerRow

@@ -162,7 +162,7 @@ export function LayerRow({
         )}
         <RowBody def={def} row={row} role={role} />
         {composite ? (
-          isShapeEditable(def) ? (
+          isShapeEditable(def) && role === 'winner' ? (
             <Anchor
               component={Link}
               href={`/settings?q=${encodeURIComponent(def.key)}`}
