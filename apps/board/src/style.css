@@ -2080,19 +2080,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-/* The questionnaire Item renders as a <fieldset>, so the UA groove border,
-   padding and inline margin have to be cleared here; min-inline-size resets
-   the fieldset's min-content default, which otherwise refuses to shrink.
-   The primitive hides every non-active item with the `hidden` attribute,
-   and an author `display` rule beats the UA [hidden] rule, hence the
-   explicit override. `.tui-gate-items` is a plain scroll container, not a
-   flex container, so this card is never given a constrained height and
-   always renders at its natural size: the head, the choices, the note and
-   the error line need no protecting, since nothing ever asks them to
-   shrink. Only the card's context (prose or a thread card, see
+/* A question card always renders at its natural height inside its scrolling
+   column; only its context (prose or a thread card, see
    `.tui-gate-question-context` / `.tui-thread-card`) carries its own
-   viewport-relative cap; whatever the card's own natural height does not
-   fit in `.tui-gate-items`'s box is what that scrolls past. */
+   viewport-relative cap. */
 .tui-gate-question {
   display: flex;
   flex-direction: column;
@@ -2103,9 +2094,6 @@ body {
   margin: 0;
   padding: var(--gate-pad-card);
   min-inline-size: 0;
-}
-.tui-gate-question[hidden] {
-  display: none;
 }
 /* Bleeds through the card padding to the frame, a shade under the ground,
    sealed with a soft rule. */
@@ -2126,56 +2114,6 @@ body {
   font-weight: 600;
   line-height: 1.35;
   color: var(--text-1);
-}
-/* The form itself never scrolls or gets clipped by an ancestor: the
-   question area below is the one flexible child, shrinking to whatever
-   height the modal leaves it and scrolling internally past that, so the
-   nav (outside this flex item, fixed) always stays on screen. */
-.tui-gate-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gate-gap-inner);
-  min-width: 0;
-  max-width: 36rem;
-  min-height: 0;
-}
-.tui-gate-items {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-.tui-gate-progress {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font: 500 var(--gate-font-meta) / 1.4 var(--font-sans);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-3);
-}
-.tui-gate-qdots {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.tui-gate-qdot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  box-sizing: border-box;
-}
-.tui-gate-qdot[data-state='done'] {
-  background: color-mix(in srgb, var(--fg) 55%, transparent);
-}
-.tui-gate-qdot[data-state='active'] {
-  background: var(--fill-accent);
-  outline: 2px solid color-mix(in srgb, var(--fill-accent) 35%, transparent);
-  outline-offset: 1px;
-}
-.tui-gate-qdot[data-state='todo'] {
-  background: transparent;
-  border: 1px solid var(--border);
 }
 .tui-gate-choices {
   display: flex;
@@ -2217,9 +2155,8 @@ body {
    with zero rules on the input itself (Field.module.css only lays out the
    option row), so there is no existing look to reuse here. This draws the
    control by hand instead: appearance:none plus a checked fill from the
-   tokens already used across this block. The primitive sets data-type to
-   "radio" or "checkbox" on every choice input on its own, so one class
-   covers both shapes. */
+   tokens already used across this block. Every choice input carries
+   data-type "radio" or "checkbox", so one class covers both shapes. */
 .tui-gate-choice-input {
   appearance: none;
   margin: 0;
@@ -2272,32 +2209,6 @@ body {
   line-height: 1.4;
   color: var(--text-2);
 }
-/* No `display` here on purpose: the primitive hides the hint with the
-   `hidden` attribute when an option has no key. */
-.tui-gate-key {
-  margin-left: auto;
-  flex-shrink: 0;
-  font: 500 var(--gate-font-micro) / 1 var(--font-mono);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  box-sizing: border-box;
-  padding: 0 5px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--text-4);
-  background: var(--surface-inset);
-  pointer-events: none;
-}
-.tui-gate-question-ord {
-  flex-shrink: 0;
-  font: 600 var(--gate-font-micro) / 1.4 var(--font-sans);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-4);
-}
 /* A question's own `context` field, rendered with its card above its
    choices. It is the material the choice is made on, so it reads in ink.
    A viewport-relative cap keeps an unusually long one from pushing the
@@ -2349,18 +2260,10 @@ body {
 .tui-respond-pill-sha {
   text-transform: none;
 }
-/* A structured thread's head: file:line and its severity lead, the
-   ordinal and the step dots hold the right edge. */
+/* A structured thread's head: file:line and its severity lead. */
 .tui-gate-question[data-gate-ctx='thread'] .tui-gate-question-head {
   justify-content: flex-start;
   align-items: center;
-}
-.tui-gate-question[data-gate-ctx='thread'] .tui-gate-question-ord {
-  margin-left: auto;
-  font: 400 var(--gate-font-meta) / 1.4 var(--font-sans);
-  letter-spacing: normal;
-  text-transform: none;
-  color: var(--text-2);
 }
 /* Same role as `.tui-gate-question-context`, for a structured thread's
    claim / points / verdict / reply instead of plain prose: the whole card
@@ -2566,11 +2469,6 @@ body {
   border-color: color-mix(in srgb, var(--fill-accent) 55%, var(--border));
   background: color-mix(in srgb, var(--fill-accent) 7%, transparent);
 }
-.tui-gate-invalid {
-  margin: 0;
-  font-size: var(--gate-font-meta);
-  color: var(--text-bad-small);
-}
 .tui-gate-note {
   width: 100%;
   box-sizing: border-box;
@@ -2589,20 +2487,6 @@ body {
 .tui-gate-note:focus-visible {
   outline: 2px solid var(--fill-accent);
   outline-offset: 1px;
-}
-.tui-gate-actions {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 0 0.2rem;
-}
-.tui-gate-actions-end {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 .tui-gate-error {
   margin-right: auto;
@@ -2647,17 +2531,10 @@ body {
   overflow-wrap: anywhere;
 }
 /* ── gate triage modal ────────────────────────────────────────────── */
-/* Context sits ABOVE the form, the way a real pane reads: transcript on
-   top, prompt below. Nothing here scrolls the body itself, and the nav is
-   never compressed or pushed below the fold: a container that can outgrow
-   its box owns its own scroll instead. The pane and the form's own question
-   area below (`.tui-gate-items`, see `.tui-gate-form`) are not equal
-   competitors: the choices are what the reviewer is at the gate to act on,
-   the pane is reference, so the pane's flex-shrink is set far above the
-   form column's (200 to 1): the pane absorbs about 200/201 of any deficit,
-   the question area the remaining ~0.5%, so in practice the pane reaches
-   its floor first. The law this buys: if `.tui-gate-items` scrolls, the
-   pane is already at its floor. */
+/* An answered gate's face: its context pane sits above the recorded answer
+   (or the retry card). The pane's flex-shrink is set far above the answer
+   column's (200 to 1), so the pane gives way first and the answer never
+   leaves the screen. */
 .tui-triage-body {
   display: flex;
   flex-direction: column;
@@ -2671,11 +2548,8 @@ body {
   flex: 0 200 auto;
   min-height: 6.75rem;
 }
-/* No floor of its own: the nav below `.tui-gate-items` is what must never
-   be pushed off screen, and it is protected structurally (a fixed sibling
-   after the one flexible child), not by a minimum height on the form. The
-   low flex-shrink (against the pane's 200) is what keeps this the second
-   thing to give, not the first. */
+/* The low flex-shrink (against the pane's 200) keeps this the second thing
+   to give, not the first. */
 .tui-triage-body > .tui-triage-form-col {
   flex: 0 1 auto;
   min-height: 0;
@@ -2686,10 +2560,6 @@ body {
   flex-direction: column;
   align-items: center;
   gap: var(--gate-gap-inner);
-}
-.tui-triage-form-col .tui-gate-form {
-  width: 100%;
-  max-width: none;
 }
 .tui-subject {
   flex: 0 0 auto;
@@ -2967,9 +2837,6 @@ body {
 }
 .tui-triage-done-action {
   margin-top: 0.5rem;
-}
-.tui-gate-question legend.tui-gate-question-label {
-  padding: 0;
 }
 /* Gate context, rendered as markdown -- same prose recipe as .tui-cd-note-body
    (see its own comment for why the first/last-child margin collapse has to

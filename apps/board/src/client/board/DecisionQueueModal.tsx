@@ -33,7 +33,7 @@ import { paneReason, PaneSheetBody, StageSheetBody } from './StageSheet.tsx';
 
 /** The face for an answered gate the daemon's executor guarantee could not
     fully deliver: "stuck" reuses `form.focusGate()` (the same `/gate/focus`
-    POST GateForm's own focus button makes) to jump into the blocked pane;
+    POST the sheet head's focus button makes) to jump into the blocked pane;
     "unassigned" reuses `form.submit` with the gate's OWN recorded answers to
     retry the relaunch the daemon gave up on -- both paths lean on
     `useGateForm`'s existing busy/error plumbing rather than a third fetch

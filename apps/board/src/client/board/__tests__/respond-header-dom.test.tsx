@@ -16,7 +16,6 @@ import type { GateRow } from '../../../gates/store.ts';
 import type { BoardMRWithReview } from '../../types.ts';
 import { DecisionQueueModal } from '../DecisionQueueModal.tsx';
 import type { PlanCtx, PostCtx } from '../gate-ctx.ts';
-import { GateForm, useGateForm } from '../GateForm.tsx';
 import {
   headerChips,
   headerMeta,
@@ -365,19 +364,6 @@ test('a prose gate carries the same links on its MR card', async () => {
     'open !87 in GitLab',
     'open DEMO-12 in Linear',
   ]);
-});
-
-test('a bare GateForm host never pours a structured gate context out raw', async () => {
-  const row = gate({});
-  function Host() {
-    const form = useGateForm(row, () => {});
-    return <GateForm gate={row} mr={MR} form={form} onFocusPane={() => {}} />;
-  }
-  await React.act(async () => {
-    root.render(<Host />);
-  });
-  expect(container.querySelector('.tui-gate-context-raw')).toBeNull();
-  expect(container.textContent).not.toContain('gate-ctx');
 });
 
 const plan = (over: Partial<PlanCtx> = {}): PlanCtx => ({
