@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest';
 
-import { answeredGateSummary } from '@mattstack/gate-kit';
+import {
+  answeredGateSummary,
+  type GateSummaryInput,
+} from '@mattstack/gate-kit';
 import type { GateQuestion } from '@mattstack/rt-client';
 
 const MR_SUBJECT =
@@ -38,6 +41,32 @@ const RESPOND_QUESTIONS: GateQuestion[] = [
   },
 ];
 
+const postThread = (n: number, t: string): GateQuestion => ({
+  id: `thread-${n}`,
+  label: `${t}.ts:1`,
+  multi: true,
+  options: [
+    { value: `post:${t}`, label: 'Post' },
+    { value: `resolve:${t}`, label: 'Resolve' },
+  ],
+});
+
+const EDITED_POST_ROW: GateSummaryInput = {
+  subject: 'mr:https://gitlab.example.invalid/group/proj/-/merge_requests/87',
+  kind: 'respond-post',
+  status: 'answered',
+  questions: [postThread(1, 'T1'), postThread(2, 'T2'), postThread(3, 'T3')],
+  answer: {
+    answers: {
+      'thread-1': { value: ['post:T1', 'resolve:T1'], text: 'edited reply' },
+      'thread-2': ['post:T2'],
+      'thread-3': [],
+    },
+    by: 'board',
+    answeredAt: 1,
+  },
+};
+
 describe('answeredGateSummary chip', () => {
   test('a clean review chip: answered fragments first, then the zero-option marker', () => {
     const { chip } = answeredGateSummary({
@@ -52,21 +81,16 @@ describe('answeredGateSummary chip', () => {
   });
 
   test('per-thread post questions add up across threads: posted, resolved, held', () => {
-    const thread = (n: number, t: string): GateQuestion => ({
-      id: `thread-${n}`,
-      label: `${t}.ts:1`,
-      multi: true,
-      options: [
-        { value: `post:${t}`, label: 'Post' },
-        { value: `resolve:${t}`, label: 'Resolve' },
-      ],
-    });
     const { chip } = answeredGateSummary({
       subject:
         'mr:https://gitlab.example.invalid/group/proj/-/merge_requests/87',
       kind: 'respond-post',
       status: 'answered',
-      questions: [thread(1, 'T1'), thread(2, 'T2'), thread(3, 'T3')],
+      questions: [
+        postThread(1, 'T1'),
+        postThread(2, 'T2'),
+        postThread(3, 'T3'),
+      ],
       answer: {
         answers: {
           'thread-1': ['post:T1', 'resolve:T1'],
@@ -81,39 +105,19 @@ describe('answeredGateSummary chip', () => {
   });
 
   test('an edited posted thread counts on the chip and carries its text in the detail', () => {
-    const thread = (n: number, t: string): GateQuestion => ({
-      id: `thread-${n}`,
-      label: `${t}.ts:1`,
-      multi: true,
-      options: [
-        { value: `post:${t}`, label: 'Post' },
-        { value: `resolve:${t}`, label: 'Resolve' },
-      ],
-    });
-    const { chip, detail } = answeredGateSummary({
-      subject:
-        'mr:https://gitlab.example.invalid/group/proj/-/merge_requests/87',
-      kind: 'respond-post',
-      status: 'answered',
-      questions: [thread(1, 'T1'), thread(2, 'T2'), thread(3, 'T3')],
-      answer: {
-        answers: {
-          'thread-1': {
-            value: ['post:T1', 'resolve:T1'],
-            text: 'edited reply',
-          },
-          'thread-2': ['post:T2'],
-          'thread-3': [],
-        },
-        by: 'board',
-        answeredAt: 1,
-      },
-    });
+    const { chip, detail } = answeredGateSummary(EDITED_POST_ROW);
     expect(chip).toBe(
       'respond !87 · 2 posted (1 edited), 1 resolved, 1 held · by board'
     );
     expect(detail.find(d => d.id === 'thread-1')!.text).toBe('edited reply');
     expect(detail.find(d => d.id === 'thread-2')!.text).toBeUndefined();
+  });
+
+  test('outcome is the chip without its subject head or by suffix', () => {
+    const { outcome } = answeredGateSummary(EDITED_POST_ROW);
+    expect(outcome).toBe('2 posted (1 edited), 1 resolved, 1 held');
+    expect(outcome).not.toContain('!87');
+    expect(outcome).not.toContain('· by');
   });
 
   test('an explicit empty multi answer chips the same nothing-posted marker as the zero-option shape', () => {

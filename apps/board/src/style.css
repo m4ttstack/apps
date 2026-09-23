@@ -2856,14 +2856,110 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
+  max-width: 560px;
+  min-height: 0;
   padding: 1.6rem 0 0.8rem;
 }
-.tui-triage-done-line {
-  font-size: 0.85rem;
+.tui-triage-done-badge {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--text-ok-vivid);
+  background: color-mix(in srgb, var(--fill-ok) 17%, transparent);
+}
+.tui-triage-done-heading {
+  margin: 0.2rem 0 0;
+  font-size: 20px;
+  font-weight: 500;
   color: var(--text-1);
 }
 .tui-triage-done-counts {
-  font: 500 0.7rem/1.4 var(--font-mono);
+  margin: 0;
+  font-size: var(--gate-font-meta);
+  color: var(--text-3);
+}
+.tui-triage-done-badge,
+.tui-triage-done-heading {
+  animation: tui-done-rise 220ms ease-out both;
+}
+.tui-triage-done-heading {
+  animation-delay: 50ms;
+}
+@keyframes tui-done-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tui-triage-done-badge,
+  .tui-triage-done-heading {
+    animation: none;
+  }
+}
+.tui-triage-done-recap {
+  align-self: stretch;
+  min-height: 0;
+  margin-top: 0.8rem;
+}
+/* Rows share the list's columns through subgrid, so every title starts at
+   the same x whatever width its ref and kind take. */
+.tui-triage-done-list {
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr);
+  column-gap: 10px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.tui-triage-done-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  row-gap: 2px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border-soft);
+}
+.tui-triage-done-row:first-child {
+  padding-top: 4px;
+  border-top: none;
+}
+.tui-triage-done-row:last-child {
+  padding-bottom: 0;
+}
+.tui-triage-done-ref {
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 var(--gate-font-meta) / 1.4 var(--font-mono);
+  color: var(--text-2);
+}
+.tui-triage-done-row > .tui-respond-chip {
+  justify-self: start;
+}
+.tui-triage-done-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-1);
+}
+.tui-triage-done-outcome {
+  grid-column: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--gate-font-meta);
+  color: var(--text-2);
+}
+.tui-triage-done-outcome[data-pending] {
   color: var(--text-4);
 }
 .tui-triage-done-action {
@@ -3898,7 +3994,7 @@ body {
   gap: var(--gate-gap);
 }
 .tui-triage-sheet-body > .tui-triage-done {
-  margin: auto 0;
+  margin: auto;
 }
 .tui-sheet-main {
   flex: 1;

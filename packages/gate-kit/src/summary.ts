@@ -31,6 +31,9 @@ export interface GateSummaryDetailRow {
 
 export interface GateSummary {
   chip: string;
+  /** The chip's answer fragments alone: no kind and subject head, no
+      decider suffix. */
+  outcome: string;
   detail: GateSummaryDetailRow[];
 }
 
@@ -194,5 +197,6 @@ export function answeredGateSummary(row: GateSummaryInput): GateSummary {
   const by = row.answer?.by;
   const bySuffix =
     by !== undefined && by !== '' && by !== BY_PANE ? ` · by ${by}` : '';
-  return { chip: `${head} · ${fragments.join(', ')}${bySuffix}`, detail };
+  const outcome = fragments.join(', ');
+  return { chip: `${head} · ${outcome}${bySuffix}`, outcome, detail };
 }
