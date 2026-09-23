@@ -222,6 +222,92 @@ describe('composite rows', () => {
     expect(s.set).not.toHaveBeenCalled();
   });
 
+  it('after a scope move, leaf fields wait for fresh rows and write onto the new layer', async () => {
+    const machineRows = [
+      { scope: 'default', file: null, present: true, value: SNAPSHOT_DEFAULTS },
+      {
+        scope: 'machine',
+        file: '/m',
+        present: true,
+        value: { enabled: false },
+      },
+      { scope: 'team', file: '/t', present: false },
+    ];
+    const teamRows = [
+      { scope: 'default', file: null, present: true, value: SNAPSHOT_DEFAULTS },
+      { scope: 'machine', file: '/m', present: false },
+      { scope: 'team', file: '/t', present: true, value: { enabled: false } },
+    ];
+    let release: () => void = () => {};
+    const moved = new Promise<void>(r => (release = r));
+    let calls = 0;
+    vi.stubGlobal('fetch', async () => {
+      const rows = calls++ === 0 ? machineRows : (await moved, teamRows);
+      return { ok: true, status: 200, json: async () => ({ def: {}, rows }) };
+    });
+    const s = store();
+    const at = (scope: string) =>
+      def('rt.homeSnapshot', {
+        type: 'object',
+        merge: 'deep',
+        scopes: ['machine', 'team'],
+        effective: {
+          scope,
+          file: '/x',
+          value: { ...SNAPSHOT_DEFAULTS, enabled: false },
+        },
+      });
+    const { rerender } = renderWithProviders(
+      <SettingRow def={at('machine')} store={s} subhead={null} query="" />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    await waitFor(() =>
+      expect(screen.getByLabelText('rt.homeSnapshot.debounceSec')).toBeEnabled()
+    );
+    rerender(<SettingRow def={at('team')} store={s} subhead={null} query="" />);
+    expect(screen.getByLabelText('rt.homeSnapshot.debounceSec')).toBeDisabled();
+    release();
+    const debounce = screen.getByLabelText('rt.homeSnapshot.debounceSec');
+    await waitFor(() => expect(debounce).toBeEnabled());
+    await userEvent.clear(debounce);
+    await userEvent.type(debounce, '45');
+    debounce.blur();
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('rt.homeSnapshot', 'team', {
+        enabled: false,
+        debounceSec: 45,
+      })
+    );
+  });
+
+  it('other leaf fields are disabled while a leaf save is pending', async () => {
+    stubExplain();
+    const s = store();
+    s.set.mockImplementation(() => new Promise(() => {}));
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.homeSnapshot', {
+          type: 'object',
+          merge: 'deep',
+          effective: {
+            scope: 'machine',
+            file: '/m',
+            value: { ...SNAPSHOT_DEFAULTS, enabled: false },
+          },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    const debounce = screen.getByLabelText('rt.homeSnapshot.debounceSec');
+    await waitFor(() => expect(debounce).toBeEnabled());
+    await userEvent.click(screen.getByLabelText('rt.homeSnapshot.enabled'));
+    await waitFor(() => expect(s.set).toHaveBeenCalledTimes(1));
+    expect(debounce).toBeDisabled();
+  });
+
   it('leaf fields stay disabled until the layer rows arrive', async () => {
     vi.stubGlobal('fetch', () => new Promise(() => {}));
     renderWithProviders(

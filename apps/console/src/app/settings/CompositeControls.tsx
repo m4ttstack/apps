@@ -1,4 +1,10 @@
-import { useState, type KeyboardEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 import {
   Box,
   Button,
@@ -17,6 +23,7 @@ import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import { Icons } from '@mattstack/app-kit/icons';
 import {
   useSettingKey,
+  type ExplainRowWire,
   type SettingDefWire,
 } from '@mattstack/settings-kit/react';
 import {
@@ -325,10 +332,33 @@ function LeavesBody({
   const paths = Object.keys(shape.fields);
   const shown = all ? paths : paths.slice(0, LEAVES_FIRST);
   const target = targetScope(def);
-  // leafWrite rebuilds the target layer's own object from these rows; without
-  // them (loading, failed, or mid-refresh) a write would drop that layer's
-  // other fields.
-  const disabled = explained.loading || explained.error !== null;
+
+  // leafWrite rebuilds the target layer's own object from these rows, so they
+  // must postdate the def's current scope and value and our last write, or a
+  // leaf edit drops the fields a move or a previous edit just put there. The
+  // kit raises `loading` only a render after refresh(), so staleness is
+  // tracked against the rows array that was current when the def changed.
+  const fingerprint = JSON.stringify([
+    def.effective.scope,
+    def.effective.value,
+  ]);
+  const [seen, setSeen] = useState(fingerprint);
+  const [staleRows, setStaleRows] = useState<ExplainRowWire[] | null>(null);
+  if (fingerprint !== seen) {
+    setSeen(fingerprint);
+    setStaleRows(explained.rows);
+  }
+  const { refresh } = explained;
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (mounted.current) refresh();
+    mounted.current = true;
+  }, [fingerprint, refresh]);
+  const disabled =
+    explained.loading ||
+    explained.error !== null ||
+    explained.rows === staleRows ||
+    row.status === 'saving';
   return (
     <Body>
       {shown.map(path => {
@@ -362,7 +392,11 @@ function LeavesBody({
               onSave={v =>
                 void row
                   .save(leafWrite(explained.rows, target, path, v))
-                  .then(ok => ok && explained.refresh())
+                  .then(ok => {
+                    if (!ok) return;
+                    setStaleRows(explained.rows);
+                    refresh();
+                  })
               }
             />
           </FieldRow>
