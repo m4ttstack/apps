@@ -252,7 +252,9 @@ conversation.
 
    - **Open the gate:**
      `<status-bin> gate open <state> --kind respond-plan --questions <json> --context <context text>`
-     The output is one JSON line: `{"gateId": "...", "presentation": "form"}` or `"wait"`.
+     The output is one JSON line: `{"gateId": "...", "presentation": "form"}` or `"wait"`,
+     with `"contextOmitted": true` added when the daemon dropped the question
+     contexts; step 5 then counts every thread's context as dropped.
      Each thread's material rides its own question's `context` field (the
      shape above), so every surface shows the quote and draft WITH the
      question it belongs to. `--context` itself carries only what is shared
@@ -413,7 +415,9 @@ conversation.
 
    - **Open the gate:**
      `<status-bin> gate open <state> --kind respond-post --questions <json> --context <context text>`
-     The output is one JSON line: `{"gateId": "...", "presentation": "form"}` or `"wait"`.
+     The output is one JSON line: `{"gateId": "...", "presentation": "form"}` or `"wait"`,
+     with `"contextOmitted": true` added when the daemon dropped the question
+     contexts.
      Each thread's finalized reply rides its own question's `context`, so
      the decision material sits with the question. `--context` carries only the shared
      frame (the MR and round); `--context` plus question `context` fields
