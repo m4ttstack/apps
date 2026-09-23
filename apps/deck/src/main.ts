@@ -20,6 +20,8 @@ import { CloudflaredCli } from './edge/tunnel.ts';
 import { bindGatewayOrExit } from './gateway-boot.ts';
 import { migrateManagedDevShape } from './registry/migrate-dev-shape.ts';
 import { listRecords } from './registry/records.ts';
+import { bundleRootFromExec } from './services/bundle-layout.ts';
+import { adoptHelperPath } from './services/exec-env.ts';
 import { LaunchdManager } from './services/launchd.ts';
 import { isPlatformManagedBy } from './services/manager.ts';
 
@@ -39,6 +41,8 @@ const APP_NAME =
 const CANARY_INTERVAL_MS = 5 * 60_000;
 
 export function serve(): void {
+  adoptHelperPath(process.env, bundleRootFromExec());
+
   // ---- canary / auto-heal state, lifted verbatim from core/server.ts ----
   let proxyFreshness: Freshness = 'unknown';
   let lastHealAt = 0;
