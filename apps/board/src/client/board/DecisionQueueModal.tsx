@@ -15,15 +15,9 @@ import {
 } from '@mattstack/tui-kit';
 import type { GateRow } from '../../gates/store.ts';
 import type { BoardMRWithReview, ExecutorState } from '../types.ts';
-import { AttentionCard } from './AttentionCard.tsx';
 import { ago, cleanTitle, signOff } from './format.ts';
 import { parseGateCtx, type PlanCtx, type PostCtx } from './gate-ctx.ts';
-import {
-  AnsweredChip,
-  GateForm,
-  useGateForm,
-  type GateFormState,
-} from './GateForm.tsx';
+import { AnsweredChip, useGateForm, type GateFormState } from './GateForm.tsx';
 import { GateSheet, type GateSheetQueue } from './GateSheet.tsx';
 import { MrLinks } from './MrLinks.tsx';
 import { postPicks } from './respond-post.ts';
@@ -35,6 +29,7 @@ import {
   DELIVERY_STUCK_MESSAGE,
   EXECUTION_UNASSIGNED_MESSAGE,
 } from './row-status.ts';
+import { paneReason, PaneSheetBody, StageSheetBody } from './StageSheet.tsx';
 
 /** The face for an answered gate the daemon's executor guarantee could not
     fully deliver: "stuck" reuses `form.focusGate()` (the same `/gate/focus`
@@ -109,10 +104,11 @@ function GateStateChips({ gate }: { gate: GateRow }) {
 /** The queue-hosted face of one gate, the only place a gate's form mounts.
     Every face renders in the full-screen `GateSheet`: a structured
     review-post gate routes to `ReviewGateSheet`, a plan@1 or post@1 respond
-    gate to `RespondSheetBody`, everything else to `GateForm` below.
-    Gate-level actions (focus pane) ride the head, queue nav (previous gate,
-    pips, count, next gate) sits in the head's right, and step-level nav
-    stays with `GateForm`'s own body. The host owns the queue itself. */
+    gate to `RespondSheetBody`, a pane-attention notice to `PaneSheetBody`,
+    and every other open gate to `StageSheetBody`; an answered gate keeps its
+    summary face below. Gate-level actions (focus pane) ride the head, and
+    queue nav (previous gate, pips, count, next gate) sits in the head's
+    right. The host owns the queue itself. */
 function DecisionQueueModal({
   gate,
   mr,
@@ -196,7 +192,7 @@ function DecisionQueueModal({
     nextPeek,
   };
 
-  const actions = (
+  const actions = (stateChips: boolean) => (
     <>
       {/* A parked gate has no pane: the board closed it on park, and the
             recorded answer is what brings it back (resumeParkedGate). The
@@ -232,7 +228,7 @@ function DecisionQueueModal({
           focus pane
         </Button>
       )}
-      {headerCtx && <GateStateChips gate={gate} />}
+      {stateChips && <GateStateChips gate={gate} />}
     </>
   );
 
@@ -261,7 +257,7 @@ function DecisionQueueModal({
         queue={queue}
         tag={gate.label}
         onClose={onClose}
-        actions={actions}
+        actions={actions(headerCtx !== null)}
       >
         <RespondSheetBody
           gate={gate}
@@ -276,6 +272,49 @@ function DecisionQueueModal({
     );
   }
 
+  if (actionable && gate.kind === 'pane-attention') {
+    const reason = paneReason(gate);
+    return (
+      <GateSheet
+        variant="pane"
+        ariaLabel="decision queue"
+        queue={queue}
+        tag={reason ? `pane ${reason}` : gate.label}
+        onClose={onClose}
+        actions={actions(true)}
+      >
+        <PaneSheetBody
+          gate={gate}
+          mr={mr}
+          form={form}
+          onFocusPane={onFocusPane}
+          onContinue={onContinue}
+        />
+      </GateSheet>
+    );
+  }
+
+  if (actionable) {
+    return (
+      <GateSheet
+        variant="stage"
+        ariaLabel="decision queue"
+        queue={queue}
+        tag={gate.label}
+        onClose={onClose}
+        actions={actions(true)}
+      >
+        <StageSheetBody
+          gate={gate}
+          mr={mr}
+          form={form}
+          context={proseContext}
+          onContinue={onContinue}
+        />
+      </GateSheet>
+    );
+  }
+
   return (
     <GateSheet
       variant="triage"
@@ -283,7 +322,7 @@ function DecisionQueueModal({
       queue={queue}
       tag={gate.label}
       onClose={onClose}
-      actions={actions}
+      actions={actions(headerCtx !== null)}
     >
       <div className="tui-triage-sheet-body">
         {headerCtx ? (
@@ -350,7 +389,7 @@ function DecisionQueueModal({
                 gate={gate}
                 form={form}
               />
-            ) : answered || !actionable ? (
+            ) : (
               <AnsweredChip
                 row={{
                   subject: gate.subject,
@@ -366,48 +405,8 @@ function DecisionQueueModal({
                     : null,
                 }}
               />
-            ) : form.lost ? (
-              <>
-                <div className="tui-gate-error">answered elsewhere</div>
-                <AnsweredChip
-                  startOpen
-                  row={{
-                    subject: gate.subject,
-                    kind: gate.kind,
-                    status: 'answered',
-                    questions: gate.questions,
-                    answer: { answers: form.lost.answers, by: form.lost.by },
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="filled"
-                  intent="accent"
-                  size="lg"
-                  onClick={onContinue}
-                >
-                  continue
-                </Button>
-              </>
-            ) : gate.kind === 'pane-attention' ? (
-              <AttentionCard
-                gate={gate}
-                form={form}
-                mr={mr}
-                onFocusPane={onFocusPane}
-              />
-            ) : (
-              <GateForm
-                gate={gate}
-                mr={mr}
-                form={form}
-                onFocusPane={onFocusPane}
-                showFocusAction={false}
-                showContextFallback={false}
-              />
             );
-          // The modal exists to give context room: unlike the row card's
-          // collapsed disclosure, context renders open, above the form.
+          // The context renders open, above the recorded answer.
           return (
             <div
               className="tui-triage-body"

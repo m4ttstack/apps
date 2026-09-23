@@ -2688,27 +2688,6 @@ body {
   width: 100%;
   max-width: none;
 }
-.tui-attention-card {
-  width: 100%;
-  max-width: 34rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--gate-gap-inner);
-}
-.tui-attention-reason {
-  margin: 0;
-  color: var(--text-3);
-  font-size: var(--gate-font-meta);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.tui-attention-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-}
 .tui-subject {
   flex: 0 0 auto;
   min-width: 0;
@@ -2719,8 +2698,7 @@ body {
   color: var(--text-3);
 }
 /* The queue's face for an answered gate stuck on delivery or left
-   execution-unassigned -- same column shape as .tui-attention-card, in
-   place of the plain answered-chip summary. */
+   execution-unassigned, in place of the plain answered-chip summary. */
 .tui-gate-delivery-status {
   width: 100%;
   max-width: 30rem;
@@ -4118,9 +4096,11 @@ body {
   max-height: none;
   overflow: visible;
 }
-/* The rail's secondary action: sending the plan back is rarer and heavier
-   than submitting it, so it reads as a link under the primary button. */
-.tui-sheet-revise {
+/* The rail's secondary actions: sending the plan back, or a pane notice's
+   other answers, are rarer than the primary button, so they read as links
+   under it. */
+.tui-sheet-revise,
+.tui-sheet-text-action {
   align-self: center;
   border: none;
   background: none;
@@ -4129,9 +4109,24 @@ body {
   color: var(--text-2);
   cursor: pointer;
 }
-.tui-sheet-revise:hover {
+.tui-sheet-revise:hover,
+.tui-sheet-text-action:hover:enabled {
   color: var(--text-accent-small);
   text-decoration: underline;
+}
+.tui-sheet-text-action:disabled {
+  cursor: default;
+  color: var(--text-4);
+}
+.tui-sheet-text-actions {
+  align-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--gate-font-meta);
+  color: var(--text-4);
 }
 .tui-sheet-dock-next {
   margin: 0;
@@ -4543,4 +4538,45 @@ body {
   flex-direction: column;
   gap: 10px;
   padding: 22px 26px;
+}
+/* A stage gate's pick can be any option's label, so its chip sizes to the
+   pick and clips a long one instead of the fixed verb width. */
+.tui-sheet-card-list[data-card='answers'] .tui-sheet-card-chip {
+  display: inline-block;
+  width: auto;
+  min-width: 46px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A pane's screen reads as the terminal drew it: its own line breaks and
+   indentation, never reflowed as prose. */
+.tui-pane-screen {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--gate-font-meta);
+  line-height: 1.5;
+  color: var(--text-1);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tui-pane-earlier {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+}
+.tui-pane-earlier > .tui-disclosure-head {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--gate-font-meta);
+  color: var(--text-2);
+}
+.tui-pane-earlier .tui-pane-screen {
+  padding: 12px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--gate-radius-control);
+  color: var(--text-2);
 }

@@ -1,7 +1,7 @@
-/** The queue sheet's chrome: the step nav renders inline in the gate body,
-    and the head is one row -- title, compact (size="sm") focus pane, then
-    the queue nav (previous gate, pips, gate count, next gate), the tag and
-    close. */
+/** The queue sheet's chrome: a gate's questions render at once with the
+    submit docked in the rail, and the head is one row -- title, compact
+    (size="sm") focus pane, then the queue nav (previous gate, pips, gate
+    count, next gate), the tag and close. */
 
 import React from 'react';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
@@ -118,23 +118,20 @@ async function click(el: Element | null) {
   });
 }
 
-const navButton = (text: string) =>
-  [...document.body.querySelectorAll('.tui-gate-actions button')].find(
-    b => b.textContent?.trim() === text && !b.hasAttribute('hidden')
-  ) ?? null;
-
-test('the step nav renders in the gate body, never in the head', async () => {
+test('every question renders at once, with no step nav anywhere', async () => {
   await renderModal(stepped());
-  expect($('.tui-triage-body .tui-gate-actions')).not.toBeNull();
-  expect($('.tui-gate-sheet-head .tui-gate-actions')).toBeNull();
+  expect(
+    document.body.querySelectorAll('.tui-sheet-main .tui-gate-question')
+  ).toHaveLength(2);
+  expect($('.tui-gate-actions')).toBeNull();
+  expect($('.tui-sheet-dock .tui-sheet-submit')).not.toBeNull();
 });
 
-test('the nav still drives the form: pick, next, pick, submit posts both answers', async () => {
+test('the docked submit posts both answers once both are picked', async () => {
   await renderModal(stepped());
   await click($('input[value="keep"]'));
-  await click(navButton('next'));
   await click($('input[value="yes"]'));
-  await click(navButton('submit'));
+  await click($('.tui-sheet-submit'));
   const answer = posts.find(p => p.url === '/gate/answer');
   expect(answer?.body).toMatchObject({
     gateId: 'g-steps',
@@ -142,10 +139,10 @@ test('the nav still drives the form: pick, next, pick, submit posts both answers
   });
 });
 
-test('reset in the gate body clears the picks', async () => {
+test('reset in the dock clears the picks', async () => {
   await renderModal(stepped());
   await click($('input[value="keep"]'));
-  await click(navButton('reset'));
+  await click($('.tui-sheet-reset'));
   expect(($('input[value="keep"]') as HTMLInputElement).checked).toBe(false);
 });
 
@@ -187,7 +184,7 @@ test('the head queue nav holds a previous-gate control, the count stacked over t
   expect(prev.getAttribute('title')).toBe('previous gate');
   expect(next.getAttribute('aria-label')).toBe('next gate');
   expect(next.getAttribute('title')).toBe('next gate');
-  // Distinct from the in-gate step nav's text buttons ("previous"/"next").
+  // Icon-only chevrons, never text buttons.
   expect(prev.textContent?.trim()).not.toBe('previous');
   expect(next.textContent?.trim()).not.toBe('next');
 });

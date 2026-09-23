@@ -1,8 +1,8 @@
 /** Real-layout check for the decision queue's full-screen sheet, run in
     headless chromium against the fixture server: happy-dom does no layout.
     Every gate face fills the window, the sheet itself never scrolls, and
-    the control that moves the decision forward (the gate body's step nav,
-    or the review sheet's submit) always stays on screen. Boots on a free
+    the control that moves the decision forward (the rail's docked submit)
+    always stays on screen. Boots on a free
     port so a concurrent `capture` run on 7941 is untouched. */
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
@@ -15,8 +15,7 @@ const ROOT = join(import.meta.dir, '..');
 const LAPTOP = { width: 1440, height: 900 };
 /** A short laptop window. */
 const SHORT = { width: 1000, height: 812 };
-/** Shorter than any real laptop window: only here should the question
-    area's own scroll fallback fire. */
+/** Shorter than any real laptop window: the main column has to scroll. */
 const VERY_SHORT = { width: 1000, height: 700 };
 
 /** The slice of the page's DOM the measurements touch; this tsconfig has no
@@ -109,16 +108,14 @@ async function nextUntil(page: Page, selector: string): Promise<void> {
 }
 
 type Layout = {
-  kind: 'review' | 'respond' | 'triage';
+  kind: 'review' | 'respond' | 'stage' | 'other';
   sheetTop: number;
   sheetBottom: number;
   sheetScrolls: boolean;
-  /** The rail's docked submit (review, respond) or the step nav (triage):
-      the one control that moves the decision forward. */
+  /** The rail's docked submit: the one control that moves the decision
+      forward. */
   forwardBottom: number;
-  itemsScrolls: boolean;
-  paneRootHeight: number;
-  paneFloorPx: number;
+  mainScrolls: boolean;
 };
 
 function measure(page: Page): Promise<Layout> {
@@ -127,31 +124,24 @@ function measure(page: Page): Promise<Layout> {
     const sheet = document.querySelector('.tui-gate-sheet')!;
     const review = document.querySelector('.tui-review-sheet');
     const respond = document.querySelector('.tui-respond-sheet');
-    const forward =
-      document.querySelector('.tui-sheet-submit') ??
-      document.querySelector('.tui-gate-actions');
-    const items = document.querySelector('.tui-gate-items');
-    const root = document.querySelector(
-      '.tui-triage-sheet [data-part="scrollpane"]'
-    );
-    const win = globalThis as unknown as {
-      getComputedStyle(el: unknown): { minHeight: string };
-    };
+    const stage = document.querySelector('.tui-stage-sheet');
+    const forward = document.querySelector('.tui-sheet-submit');
+    const main = document.querySelector('.tui-sheet-main');
     const sheetRect = sheet.getBoundingClientRect();
     return {
       kind: review
         ? ('review' as const)
         : respond
           ? ('respond' as const)
-          : ('triage' as const),
+          : stage
+            ? ('stage' as const)
+            : ('other' as const),
       sheetTop: sheetRect.top,
       sheetBottom: sheetRect.bottom,
       sheetScrolls: sheet.scrollHeight > sheet.clientHeight + 1,
       forwardBottom: forward ? forward.getBoundingClientRect().bottom : 0,
       // +1: Blink's 1/64px layout units round apart by a fraction.
-      itemsScrolls: items ? items.scrollHeight > items.clientHeight + 1 : false,
-      paneRootHeight: root ? root.getBoundingClientRect().height : 0,
-      paneFloorPx: root ? parseFloat(win.getComputedStyle(root).minHeight) : 0,
+      mainScrolls: main ? main.scrollHeight > main.clientHeight + 1 : false,
     };
   });
 }
@@ -178,7 +168,7 @@ test('every gate fills the window, never scrolls, and keeps its forward control 
       await page.waitForTimeout(150);
     }
     expect(await page.locator('.tui-triage-done').count()).toBe(0);
-    expect([...kinds].sort()).toEqual(['respond', 'review', 'triage']);
+    expect([...kinds].sort()).toEqual(['respond', 'review', 'stage']);
     await page.context().close();
   }
 }, 60_000);
@@ -200,16 +190,13 @@ test('laptop: a respond gate lists every thread at full height beside a docked s
   await page.context().close();
 }, 30_000);
 
-test('very short: the question area scrolls as the fallback, the step nav stays on screen', async () => {
+test('very short: a stage gate scrolls its questions and keeps the docked submit on screen', async () => {
   const page = await openQueue(VERY_SHORT);
-  await nextUntil(page, '.tui-triage-sheet [data-part="scrollpane-body"] p');
+  await nextUntil(page, '.tui-stage-sheet');
   const m = await measure(page);
+  expect(m.kind).toBe('stage');
   expectSheetLaw(m, VERY_SHORT);
-  // The pane is reference material and yields first: if the question area
-  // had to scroll, the pane is already at its floor.
-  if (m.itemsScrolls) {
-    expect(m.paneRootHeight).toBeLessThanOrEqual(m.paneFloorPx + 1);
-  }
+  expect(m.mainScrolls).toBe(true);
   await page.context().close();
 }, 30_000);
 
@@ -232,8 +219,8 @@ test('the head is one row: title, focus pane, queue nav and close share a line -
         .locator('.tui-gate-sheet-head button:has-text("skip gate")')
         .count()
     ).toBe(0);
-    // Once on the review sheet (gate 1), once on a triage gate.
-    await nextUntil(page, '.tui-triage-sheet');
+    // Once on the review sheet (gate 1), once on a stage gate.
+    await nextUntil(page, '.tui-stage-sheet');
   }
   await page.context().close();
 }, 30_000);
