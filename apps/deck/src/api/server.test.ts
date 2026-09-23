@@ -418,6 +418,24 @@ test('mutations need positive proof of locality, not just a local-looking host',
   }
 });
 
+test('a cross-site write from a page in the local browser is forbidden', async () => {
+  const res = await post(
+    '/api/v1/apps',
+    { name: 'evil', staticPort: 1 },
+    { host: 'deck.mattstack', origin: 'https://evil.example.dev' }
+  );
+  expect(res.status).toBe(403);
+});
+
+test("the board's own same-origin write still passes the origin gate", async () => {
+  const res = await post(
+    '/api/v1/apps/nope-missing/restart',
+    {},
+    { host: 'deck.mattstack', origin: 'https://deck.mattstack' }
+  );
+  expect(res.status).not.toBe(403);
+});
+
 test('legacy /api/status still answers with the board document', async () => {
   const legacy = await (await api('/api/status')).json();
   expect(legacy).toHaveProperty('apps');

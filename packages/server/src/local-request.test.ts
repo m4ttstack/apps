@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'vitest';
 
-import { isLocalRequest, type LocalServer } from './local-request';
+import {
+  hasLocalOrigin,
+  isLocalRequest,
+  type LocalServer,
+} from './local-request';
 
 const req = (headers: Record<string, string>) =>
   new Request('http://127.0.0.1:7930/x', { headers });
@@ -132,5 +136,30 @@ describe('edge markers', () => {
     expect(isLocalRequest(req({ host: 'localhost', [name]: value }))).toBe(
       false
     );
+  });
+});
+
+describe('hasLocalOrigin', () => {
+  test('no Origin header passes: CLI and daemon callers never send one', () => {
+    expect(hasLocalOrigin(req({ host: 'localhost' }))).toBe(true);
+  });
+
+  test.each([
+    'https://deck.mattstack',
+    'https://board.localhost',
+    'http://127.0.0.1:7930',
+    'http://localhost:5173',
+    'http://[::1]:7930',
+  ])('%s passes', origin => {
+    expect(hasLocalOrigin(req({ origin }))).toBe(true);
+  });
+
+  test.each([
+    'https://evil.example.dev',
+    'https://deck.mattstack.example.dev',
+    'null',
+    'not a url',
+  ])('%s fails', origin => {
+    expect(hasLocalOrigin(req({ origin }))).toBe(false);
   });
 });

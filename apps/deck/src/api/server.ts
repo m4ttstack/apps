@@ -1,7 +1,10 @@
 import { userInfo } from 'os';
 import { join } from 'path';
 
-import { isLocalRequest } from '@mattstack/app-server/local-request';
+import {
+  hasLocalOrigin,
+  isLocalRequest,
+} from '@mattstack/app-server/local-request';
 import { boardCss, boardHtml, boardJs } from '../../core/board-assets.ts';
 import { CANARY_PATH } from '../../core/canary.ts';
 import { DECK_ICON_SVG } from '../../core/deck-icon.ts';
@@ -383,7 +386,7 @@ export function startApi(deps: ApiDeps) {
 
       // ---- versioned API ----
       if (pathname.startsWith('/api/v1/')) {
-        if (req.method !== 'GET' && !local)
+        if (req.method !== 'GET' && (!local || !hasLocalOrigin(req)))
           return json({ error: 'forbidden' }, 403);
         const caller = callerOf(req);
         const force = url.searchParams.get('force') === 'true';

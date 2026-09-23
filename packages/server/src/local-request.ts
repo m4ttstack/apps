@@ -67,3 +67,18 @@ export function isLocalRequest(req: Request, server?: LocalServer): boolean {
   if (!list(headers.get('x-forwarded-for')).every(isLoopbackIP)) return false;
   return EDGE_MARKERS.every(name => !headers.has(name));
 }
+
+/**
+ * CSRF guard to pair with isLocalRequest: a hostile page in the local browser
+ * sends a request isLocalRequest accepts. Browsers attach Origin to every
+ * cross-origin write; CLI and daemon callers send none, so absence passes.
+ */
+export function hasLocalOrigin(req: Request): boolean {
+  const origin = req.headers.get('origin');
+  if (origin === null) return true;
+  try {
+    return isLocalHost(new URL(origin).host);
+  } catch {
+    return false;
+  }
+}
