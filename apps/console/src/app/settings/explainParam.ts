@@ -6,8 +6,7 @@ const PARAM = 'explain';
     a reload or a shared link reopens it. */
 export function useExplainParam() {
   const [params, setParams] = useSearchParams();
-  // Opening pushes so Back closes the modal before it leaves the page.
-  const write = (key: string | null) =>
+  const write = (key: string | null, push: boolean) =>
     setParams(
       prev => {
         const next = new URLSearchParams(prev);
@@ -15,12 +14,18 @@ export function useExplainParam() {
         else next.delete(PARAM);
         return next;
       },
-      { replace: key === null }
+      push ? { state: { [PARAM]: true } } : { replace: true }
     );
   return {
     key: params.get(PARAM),
-    open: (key: string) => write(key),
-    close: () => write(null),
+    // Opening pushes so Back closes the modal before it leaves the page;
+    // closing an entry we pushed pops it, so no duplicate is left behind.
+    open: (key: string) => write(key, true),
+    close: () => {
+      const state = window.history.state as Record<string, unknown> | null;
+      if (state?.[PARAM] === true) window.history.back();
+      else write(null, false);
+    },
   };
 }
 

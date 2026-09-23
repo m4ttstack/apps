@@ -38,6 +38,8 @@ export type ExplainStore = Pick<
 >;
 
 const MODAL_WIDTH = 760;
+const ESCAPE_OWNERS =
+  'input, textarea, select, [contenteditable="true"], [role="menu"], [role="listbox"]';
 const SCOPE_COL = 88;
 
 type Role = 'winner' | 'overridden' | 'contributor' | 'inert';
@@ -107,6 +109,13 @@ function LayerLine({
   const { text } = useSchemeColors();
   const editorHref = useEditorHref();
   const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
+  // Close on the re-read, not the write, so the old value never flashes.
+  useEffect(() => {
+    if (!saved) return;
+    setSaved(false);
+    setEditing(false);
+  }, [row]); // eslint-disable-line react-hooks/exhaustive-deps
   const scope = row.scope;
   const store = isStoreScope(scope) ? scope : null;
   const allowed = store !== null && def.scopes.includes(store);
@@ -124,7 +133,7 @@ function LayerLine({
             suggestions={suggestions}
             onSave={v =>
               void (v === undefined ? onRemove(store) : onSet(store, v)).then(
-                ok => ok && setEditing(false)
+                ok => ok && setSaved(true)
               )
             }
           />
@@ -283,8 +292,9 @@ function ExplainBody({
   const { text } = useSchemeColors();
   const explained = useSettingKey(storeDef.key);
   const { refresh, rows, loading } = explained;
-  // The explain read is fresher than a store loaded when the page mounted.
-  const def = explained.def ?? storeDef;
+  // A settled explain read is fresher than a store loaded when the page
+  // mounted; while a re-read runs, the store already holds the write.
+  const def = !loading && explained.def ? explained.def : storeDef;
   useEffect(() => {
     if (!loading && rows.length > 0) onRead(new Date());
   }, [loading, rows, onRead]);
@@ -479,11 +489,26 @@ export function ExplainModal({
   const key = useLastKey(settingKey);
   const [readAt, setReadAt] = useState<Date | null>(null);
   const surface = { background: bg.level3 };
+  const opened = settingKey !== null;
+  // Mantine's own Escape fires first, from any focused field or open menu;
+  // there Escape abandons the edit or closes the menu, not the modal.
+  useEffect(() => {
+    if (!opened) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(ESCAPE_OWNERS)) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [opened, onClose]);
 
   return (
     <Modal
-      opened={settingKey !== null}
+      opened={opened}
       onClose={onClose}
+      closeOnEscape={false}
       onExitTransitionEnd={() => setReadAt(null)}
       closeButtonProps={{ 'aria-label': 'Close modal' }}
       size={MODAL_WIDTH}

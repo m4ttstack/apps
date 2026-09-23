@@ -152,7 +152,9 @@ describe('ExplainModal', () => {
   });
 
   it('sets a value at a layer other than the winning one', async () => {
-    explainGet.mockResolvedValue(ok({ def: DEF, rows: ROWS }));
+    explainGet.mockImplementation(async () =>
+      ok(structuredClone({ def: DEF, rows: ROWS }))
+    );
     const s = store();
     renderModal(s);
 
@@ -188,6 +190,55 @@ describe('ExplainModal', () => {
     );
     await userEvent.type(input, 'x{Escape}');
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('Escape in a number edit abandons it: no save, modal stays', async () => {
+    const days: SettingDefWire = {
+      ...DEF,
+      key: 'rt.runsPruneDays',
+      type: 'number',
+      effective: { scope: 'user', file: '/stores/user.jsonc', value: 30 },
+    };
+    explainGet.mockResolvedValue(
+      ok({
+        def: days,
+        rows: [
+          { scope: 'default', file: null, present: false },
+          {
+            scope: 'user',
+            file: '/stores/user.jsonc',
+            present: true,
+            value: 30,
+          },
+          { scope: 'machine', file: '/stores/local.jsonc', present: false },
+        ],
+      })
+    );
+    const s = store({ defs: [days] });
+    const { onClose } = renderModal(s, 'rt.runsPruneDays');
+
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'set rt.runsPruneDays at machine',
+      })
+    );
+    const input = within(screen.getByTestId('layer-machine')).getByRole(
+      'textbox',
+      { name: 'rt.runsPruneDays' }
+    );
+    await userEvent.type(input, '45{Escape}');
+
+    expect(s.set).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(input).not.toHaveFocus();
+  });
+
+  it('Escape outside a field closes', async () => {
+    explainGet.mockResolvedValue(ok({ def: DEF, rows: ROWS }));
+    const { onClose } = renderModal(store());
+    await screen.findByTestId('explain-sentence');
+    await userEvent.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalled();
   });
 
   it('closes from its close button', async () => {
