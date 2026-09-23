@@ -1,6 +1,10 @@
-import type { SettingDefWire } from '@mattstack/settings-kit/react';
+import type {
+  ExplainRowWire,
+  SettingDefWire,
+} from '@mattstack/settings-kit/react';
 import {
   matchesShape as matchesKitShape,
+  setLeaf,
   SHAPES,
   type CompositeShape as KitShape,
 } from '@mattstack/settings-kit/shapes';
@@ -17,6 +21,24 @@ export {
 } from '@mattstack/settings-kit/shapes';
 
 export type ConfigDef = SettingDefWire;
+
+/** The target layer's own authored value, from the key's explain rows. */
+export function ownValue(rows: ExplainRowWire[], target: string): unknown {
+  return rows.find(r => r.scope === target && r.present)?.value;
+}
+
+/** The object to write to `target` after changing one field. A deep-merged
+    key's effective value is the merge of the default and every layer, so the
+    edit starts from the target layer's own value instead, or it would bake
+    the default and other layers into that store. */
+export function leafWrite(
+  rows: ExplainRowWire[],
+  target: string,
+  path: string,
+  value: unknown
+): Record<string, unknown> {
+  return setLeaf(ownValue(rows, target), path, value);
+}
 
 export type CompositeShape =
   | Exclude<KitShape, { kind: 'external' }>
