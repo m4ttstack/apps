@@ -171,6 +171,7 @@ describe('composite rows', () => {
             scope: 'machine',
             file: '/m',
             value: { ...SNAPSHOT_DEFAULTS, enabled: false },
+            authored: { enabled: false },
           },
         })}
         store={s}
@@ -178,7 +179,7 @@ describe('composite rows', () => {
         query=""
       />
     );
-    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    await userEvent.click(screen.getByRole('button', { name: /1 of 5 set/ }));
     expect(await screen.findByText('debounceSec')).toBeInTheDocument();
     const debounce = screen.getByLabelText('rt.homeSnapshot.debounceSec');
     await waitFor(() => expect(debounce).toBeEnabled());
@@ -225,6 +226,7 @@ describe('composite rows', () => {
             scope: 'machine',
             file: '/m',
             value: { ...SNAPSHOT_DEFAULTS, enabled: false, debounceSec: 45 },
+            authored: { enabled: false, debounceSec: 45 },
           },
         })}
         store={s}
@@ -232,7 +234,7 @@ describe('composite rows', () => {
         query=""
       />
     );
-    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    await userEvent.click(screen.getByRole('button', { name: /2 of 5 set/ }));
     const debounce = screen.getByLabelText('rt.homeSnapshot.debounceSec');
     await waitFor(() => expect(debounce).toBeEnabled());
     await userEvent.clear(debounce);
@@ -255,12 +257,13 @@ describe('composite rows', () => {
           scope: 'machine',
           file: '/m',
           value: { ...SNAPSHOT_DEFAULTS, enabled: false, debounceSec },
+          authored: { enabled: false, debounceSec },
         },
       });
     const { rerender } = renderWithProviders(
       <SettingRow def={at(20)} store={s} subhead={null} query="" />
     );
-    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    await userEvent.click(screen.getByRole('button', { name: /2 of 5 set/ }));
     await waitFor(() =>
       expect(screen.getByLabelText('rt.homeSnapshot.debounceSec')).toBeEnabled()
     );
@@ -306,12 +309,13 @@ describe('composite rows', () => {
           scope,
           file: '/x',
           value: { ...SNAPSHOT_DEFAULTS, enabled: false },
+          authored: { enabled: false },
         },
       });
     const { rerender } = renderWithProviders(
       <SettingRow def={at('machine')} store={s} subhead={null} query="" />
     );
-    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    await userEvent.click(screen.getByRole('button', { name: /1 of 5 set/ }));
     await waitFor(() =>
       expect(screen.getByLabelText('rt.homeSnapshot.debounceSec')).toBeEnabled()
     );
@@ -344,6 +348,7 @@ describe('composite rows', () => {
             scope: 'machine',
             file: '/m',
             value: { ...SNAPSHOT_DEFAULTS, enabled: false },
+            authored: { enabled: false },
           },
         })}
         store={s}
@@ -351,7 +356,7 @@ describe('composite rows', () => {
         query=""
       />
     );
-    await userEvent.click(screen.getByRole('button', { name: /5 of 5 set/ }));
+    await userEvent.click(screen.getByRole('button', { name: /1 of 5 set/ }));
     const debounce = screen.getByLabelText('rt.homeSnapshot.debounceSec');
     await waitFor(() => expect(debounce).toBeEnabled());
     await userEvent.click(screen.getByLabelText('rt.homeSnapshot.enabled'));
@@ -370,6 +375,7 @@ describe('composite rows', () => {
             scope: 'machine',
             file: '/m',
             value: { enabled: false },
+            authored: { enabled: false },
           },
         })}
         store={store()}
