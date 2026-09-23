@@ -28,7 +28,8 @@ export function splitRecommended(label: string): {
 }
 
 /** A question's choices with any mid-label marker lifted off; an option's
-    own description stays its subtitle when it has one. */
+    own description stays its subtitle when it has one, and the label's
+    words after the marker then ride the label's hover title instead. */
 export function stageDisplay(q: GateItemDisplay): GateItemDisplay {
   return {
     ...q,
@@ -36,11 +37,13 @@ export function stageDisplay(q: GateItemDisplay): GateItemDisplay {
       const s = splitRecommended(choice.label);
       if (!s.recommended) return choice;
       const subtitle = choice.subtitle ?? s.rest;
+      const title = choice.subtitle !== undefined ? s.rest : undefined;
       return {
         ...choice,
         label: s.text,
         recommended: true,
         ...(subtitle !== undefined ? { subtitle } : {}),
+        ...(title !== undefined ? { description: title } : {}),
       };
     }),
   };

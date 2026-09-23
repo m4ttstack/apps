@@ -220,13 +220,14 @@ describe('stageDisplay', () => {
     ]);
   });
 
-  test("an option's own description stays its subtitle", () => {
+  test("an option's own description stays its subtitle; the label's words after the marker ride its title", () => {
     expect(
       stageDisplay(
         q([
           {
             value: 'draft',
             label: 'Draft (Recommended). Evidence is outstanding.',
+            description: 'draft',
             subtitle: 'Opens the MR as a draft.',
           },
         ])
@@ -234,6 +235,7 @@ describe('stageDisplay', () => {
     ).toEqual({
       value: 'draft',
       label: 'Draft',
+      description: 'Evidence is outstanding.',
       subtitle: 'Opens the MR as a draft.',
       recommended: true,
     });

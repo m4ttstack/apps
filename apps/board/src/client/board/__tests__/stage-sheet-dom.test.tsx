@@ -125,6 +125,7 @@ let root: Root;
 let container: HTMLElement;
 let posts: Array<{ url: string; body: unknown }>;
 let answeredElsewhere: boolean;
+let focusFails: boolean;
 let continues: number;
 let answeredCount: number;
 let focused: Array<{ iid: number; domain: GateDomain }>;
@@ -133,6 +134,7 @@ beforeEach(() => {
   localStorage.clear();
   posts = [];
   answeredElsewhere = false;
+  focusFails = false;
   continues = 0;
   answeredCount = 0;
   focused = [];
@@ -142,6 +144,10 @@ beforeEach(() => {
   ) => {
     const url = typeof input === 'string' ? input : input.toString();
     posts.push({ url, body: init?.body ? JSON.parse(init.body) : null });
+    if (focusFails && url === '/gate/focus')
+      return new Response(JSON.stringify({ error: 'pane w18:p1 is gone' }), {
+        status: 404,
+      });
     if (answeredElsewhere && url === '/gate/answer')
       return new Response(
         JSON.stringify({
@@ -593,6 +599,16 @@ test('a gate answered elsewhere swaps the rail for the winning answer and contin
   expect(continues).toBe(1);
 });
 
+test("a failed focus from the head shows the daemon's reason in the stage dock", async () => {
+  focusFails = true;
+  await render(ship(), MR);
+  const focus = $$('.tui-gate-sheet-actions button').find(
+    b => b.textContent?.trim() === 'focus pane'
+  );
+  await click(focus ?? null);
+  expect(text('.tui-sheet-dock .tui-gate-error')).toBe('pane w18:p1 is gone');
+});
+
 test('a failed submit says nothing was sent', async () => {
   (globalThis as { fetch: unknown }).fetch = async () =>
     new Response('{}', { status: 500 });
@@ -697,6 +713,32 @@ for (const value of ['resume', 'clear', 'dismiss']) {
     expect(posts.find(p => p.url === '/gate/focus')).toBeUndefined();
   });
 }
+
+test("a pane focus that fails still answers, and the dock shows the daemon's reason", async () => {
+  focusFails = true;
+  await render(pane('blocked'));
+  await click(submit());
+  expect(answerPosts().map(p => p.body)).toEqual([
+    { gateId: 'g-pane', answers: { action: 'focus-pane' } },
+  ]);
+  expect(text('.tui-sheet-dock .tui-gate-error')).toBe('pane w18:p1 is gone');
+});
+
+test('a pane notice answered elsewhere swaps the rail for the winning answer and continue', async () => {
+  answeredElsewhere = true;
+  await render(pane('blocked'), MR);
+  const clear = $$('.tui-sheet-text-actions button').find(
+    b => b.textContent === 'clear'
+  );
+  await click(clear ?? null);
+  expect(text('.tui-sheet-rail .tui-gate-error')).toBe('answered elsewhere');
+  expect($('.tui-sheet-dock')).toBeNull();
+  const cont = $$('.tui-sheet-rail button').find(
+    b => b.textContent?.trim() === 'continue'
+  );
+  await click(cont ?? null);
+  expect(continues).toBe(1);
+});
 
 test('a gone pane makes resume the big action and says the pane is gone', async () => {
   await render(pane('gone'));
