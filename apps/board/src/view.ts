@@ -118,9 +118,9 @@ export function freshnessBanner(input: {
       : null;
   const age = syncedAt === null ? null : now - syncedAt;
   const ageClause =
-    syncedAt === null || age === null
+    syncedAt === null
       ? null
-      : `${ageText(age)} old (as of ${clockLabel(syncedAt)})`;
+      : `${ageText(now - syncedAt)} old (as of ${clockLabel(syncedAt)})`;
 
   if (fetchError)
     return {
