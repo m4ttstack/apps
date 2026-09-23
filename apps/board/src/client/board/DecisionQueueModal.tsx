@@ -173,9 +173,8 @@ function DecisionQueueModal({
     </>
   );
 
-  // `actionable` also keeps a stuck/unassigned-delivery review-post gate on
-  // DeliveryStatusCard: the sheet has no face for retrying a stored answer,
-  // only for building a fresh one.
+  // An answered review-post gate, stuck or not, goes to the answered sheet:
+  // the review sheet only builds a fresh answer.
   if (isReviewSheet && actionable) {
     return (
       <ReviewGateSheet
