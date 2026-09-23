@@ -958,12 +958,13 @@ export function Board() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot link consumption; see above
   }, [gateDeepLink]);
 
+  const now = Date.now();
   const freshness = data
     ? freshnessBanner({
         fetchError: data.fetchError,
         dataSyncedAt: data.dataSyncedAt,
         syncError: data.syncError,
-        now: Date.now(),
+        now,
       })
     : null;
   useStaleTabTitle(freshness !== null);
@@ -995,7 +996,6 @@ export function Board() {
     groups,
   } = boardView!;
 
-  const now = Date.now();
   const dataAge = dataAgeLabel(data.dataSyncedAt, now);
   // Both known and the board asks for more history than rt actually syncs --
   // config drift the board can't self-correct, so it needs to be visible.
