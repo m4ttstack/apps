@@ -45,6 +45,17 @@ only to stop naming the retired `replies-*` union, not new teaching.
 
 Build: 5/5 PASS. Counts: 5/5 PASS. First pass, no iteration.
 
+## Review fix wave
+
+An opus review asked for a rule on a run where no thread is offered.
+`scenarios/wrap-none.md` is that run on the generic path, both threads
+skipped. RED (the wrapper before any wording): 5/5 already opened no
+Gate 2 and wrote `done ... --posted 0 --threads 2 --held 2`, so no
+wording was added for it (the receive-review engine, which did fail
+this case, carries the rule). The same wave reads a retired Gate 2's
+`replies-1`, `replies-2`, ... chunks as one union and drops an em dash
+from the act paragraph; neither changes a scenario outcome.
+
 ## Verdict
 
 The self-built Gate 2 now matches the receive-review engine's
