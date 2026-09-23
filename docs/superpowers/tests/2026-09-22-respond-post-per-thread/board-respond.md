@@ -97,14 +97,21 @@ answer reading unwrapped `{value, note}` and had no place for `text`.
 ### GREEN
 
 wrap-edited: 5/5 PASS on the first wording. Probes on that wording:
-wrap-text-no-post 5/5, wrap-resume-edited 5/5, wrap-pane-note 0/5. Every
-pane rep wrote the typed replacement as `text` and posted it. The
-wrapper before any edit scored 4/5 on the same probe (the note rides and
-the report reply posts; one rep appended the note to the reply), so the
-edit opened this. The Gate 2 form branch now says the pane's answer
-never carries `text`, which is receive-review's own rule.
+wrap-text-no-post 5/5, wrap-resume-edited 3/5, wrap-pane-note 0/5.
+
+- The pane probe failed in every rep: each wrote the typed replacement
+  as `text` and posted it. The wrapper before any edit scored 4/5 on the
+  same probe (the note rides and the report reply posts; one rep
+  appended the note to the reply), so the edit opened this. The Gate 2
+  form branch now says the pane's answer never carries `text`, which is
+  receive-review's own rule.
+- The two resume misses posted the right bodies but read the report
+  before re-emitting `drafting`. The wrapper before any edit put
+  `drafting` first in 5/5 (while posting the report reply for T1 in all
+  five), and the final wording, whose resume bullet is unchanged from
+  the first, put it first in 10/10, so no wording was added for it.
 
 Final wording: wrap-edited 5/5, wrap-pane-note 5/5, wrap-text-no-post
-5/5, wrap-resume-edited 5/5. Regressions: wrap-build 5/5 (scored by a
+5/5, wrap-resume-edited 10/10. Regressions: wrap-build 5/5 (scored by a
 script that parses the `--questions` json), wrap-counts 5/5, wrap-none
 5/5.
