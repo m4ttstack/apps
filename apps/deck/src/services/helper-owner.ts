@@ -6,8 +6,8 @@
  * and one state dir, so a helper-owned machine never keeps a hand agent.
  */
 
-import { existsSync, renameSync } from 'fs';
-import { join } from 'path';
+import { existsSync, mkdirSync, renameSync } from 'fs';
+import { join, resolve } from 'path';
 
 import { adoptHelperPath, composeServicePath } from './exec-env.ts';
 import { PLATFORM_LABEL } from './manager.ts';
@@ -33,6 +33,7 @@ const SMAPPSERVICE = 'com.apple.xpc.ServiceManagement';
 interface LoadedJob {
   path: string | null;
   managedBy: string | null;
+  pid: number | null;
 }
 
 function uid(): number {
@@ -53,7 +54,12 @@ async function printJob(
   // Top-level keys sit one tab in; nested dicts are deeper.
   const field = (key: string) =>
     new RegExp(`^\\t${key} = (.+)$`, 'm').exec(stdout)?.[1]?.trim() ?? null;
-  return { path: field('path'), managedBy: field('managed_by') };
+  const pid = field('pid');
+  return {
+    path: field('path'),
+    managedBy: field('managed_by'),
+    pid: pid ? Number(pid) : null,
+  };
 }
 
 /** True when this process is the bundle helper, or launchd reports an
@@ -77,23 +83,36 @@ export interface RetireDeps {
   agentsDir: string;
   archiveDir: string;
   uid: number;
+  selfPid: number;
+}
+
+function loadedFromAgentsDir(job: LoadedJob | null, agentsDir: string) {
+  return job?.path?.startsWith(`${resolve(agentsDir)}/`) ?? false;
+}
+
+function archivePath(archiveDir: string): string {
+  mkdirSync(archiveDir, { recursive: true });
+  const base = join(archiveDir, `${PLATFORM_LABEL}.plist.retired`);
+  return existsSync(base) ? `${base}.${Date.now()}` : base;
 }
 
 /**
  * Boot out and archive a hand-installed `com.mattstack.deck`, only when
  * launchd reports that label loaded from the LaunchAgents dir: the prod
  * helper shares the label, and an SMAppService job must never be touched.
+ * A hand plist that execs a bundle binary would otherwise boot itself out,
+ * and launchctl's exit code is no proof the job is gone, so both are
+ * checked against launchd's own report.
  */
 export async function retireHandAgent(deps: RetireDeps): Promise<boolean> {
   const job = await printJob(deps.probe, PLATFORM_LABEL, deps.uid);
-  if (!job?.path?.startsWith(`${deps.agentsDir}/`)) return false;
+  if (!loadedFromAgentsDir(job, deps.agentsDir)) return false;
+  if (job!.pid === deps.selfPid) return false;
   await deps.run(['launchctl', 'bootout', `gui/${deps.uid}/${PLATFORM_LABEL}`]);
-  if (existsSync(job.path)) {
-    renameSync(
-      job.path,
-      join(deps.archiveDir, `${PLATFORM_LABEL}.plist.retired`)
-    );
-  }
+  const after = await printJob(deps.probe, PLATFORM_LABEL, deps.uid);
+  if (loadedFromAgentsDir(after, deps.agentsDir)) return false;
+  if (existsSync(job!.path!))
+    renameSync(job!.path!, archivePath(deps.archiveDir));
   return true;
 }
 

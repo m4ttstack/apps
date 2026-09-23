@@ -54,6 +54,7 @@ export async function serve(): Promise<void> {
       agentsDir: agentsDir(),
       archiveDir: stateDir(),
       uid: process.getuid?.() ?? 0,
+      selfPid: process.pid,
     },
     log: console.log,
   });

@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, test } from 'bun:test';
@@ -18,11 +25,15 @@ const SMAPP_DEV = `gui/501/com.mattstack.deck.dev = {
 \tstate = running
 }`;
 
-const handAgent = (agents: string) => `gui/501/com.mattstack.deck = {
+const handAgent = (
+  agents: string,
+  pid = 4242
+) => `gui/501/com.mattstack.deck = {
 \tactive count = 1
 \tpath = ${agents}/com.mattstack.deck.plist
 \ttype = LaunchAgent
 \tstate = running
+\tpid = ${pid}
 }`;
 
 const NOT_LOADED = {
@@ -79,17 +90,36 @@ function agentsFixture() {
   return { agentsDir, archiveDir };
 }
 
+/** A launchd whose bootout really unloads the job, unless told it fails. */
+function launchdOf(
+  jobs: Record<string, string>,
+  opts: { bootoutSticks?: boolean } = {}
+) {
+  const ran: string[] = [];
+  const probe = probeOf(jobs);
+  const run = async (argv: string[]) => {
+    ran.push(argv.join(' '));
+    if (argv[1] === 'bootout' && opts.bootoutSticks !== false)
+      delete jobs[argv[2]!.split('/').pop()!];
+    return opts.bootoutSticks === false ? 5 : 0;
+  };
+  return { probe, run, ran };
+}
+
 describe('retireHandAgent', () => {
   test('boots out and archives a hand agent launchd loaded from LaunchAgents', async () => {
     const { agentsDir, archiveDir } = agentsFixture();
-    const ran: string[] = [];
+    const { probe, run, ran } = launchdOf({
+      'com.mattstack.deck': handAgent(agentsDir),
+    });
 
     const retired = await retireHandAgent({
-      probe: probeOf({ 'com.mattstack.deck': handAgent(agentsDir) }),
-      run: async argv => (ran.push(argv.join(' ')), 0),
+      probe,
+      run,
       agentsDir,
       archiveDir,
       uid: 501,
+      selfPid: 1,
     });
 
     expect(retired).toBe(true);
@@ -102,16 +132,17 @@ describe('retireHandAgent', () => {
 
   test('never touches an SMAppService job holding the bare label', async () => {
     const { agentsDir, archiveDir } = agentsFixture();
-    const ran: string[] = [];
+    const { probe, run, ran } = launchdOf({
+      'com.mattstack.deck': SMAPP_DEV.replace('deck.dev', 'deck'),
+    });
 
     const retired = await retireHandAgent({
-      probe: probeOf({
-        'com.mattstack.deck': SMAPP_DEV.replace('deck.dev', 'deck'),
-      }),
-      run: async argv => (ran.push(argv.join(' ')), 0),
+      probe,
+      run,
       agentsDir,
       archiveDir,
       uid: 501,
+      selfPid: 1,
     });
 
     expect(retired).toBe(false);
@@ -121,19 +152,115 @@ describe('retireHandAgent', () => {
 
   test('leaves things alone when launchd has no bare deck job', async () => {
     const { agentsDir, archiveDir } = agentsFixture();
-    const ran: string[] = [];
+    const { probe, run, ran } = launchdOf({});
 
     const retired = await retireHandAgent({
-      probe: probeOf({}),
-      run: async argv => (ran.push(argv.join(' ')), 0),
+      probe,
+      run,
       agentsDir,
       archiveDir,
       uid: 501,
+      selfPid: 1,
     });
 
     expect(retired).toBe(false);
     expect(ran).toEqual([]);
     expect(existsSync(join(agentsDir, 'com.mattstack.deck.plist'))).toBe(true);
+  });
+
+  test('never boots out the process it is running in', async () => {
+    const { agentsDir, archiveDir } = agentsFixture();
+    const { probe, run, ran } = launchdOf({
+      'com.mattstack.deck': handAgent(agentsDir, 777),
+    });
+
+    const retired = await retireHandAgent({
+      probe,
+      run,
+      agentsDir,
+      archiveDir,
+      uid: 501,
+      selfPid: 777,
+    });
+
+    expect(retired).toBe(false);
+    expect(ran).toEqual([]);
+  });
+
+  test('a bootout that leaves the agent loaded archives nothing', async () => {
+    const { agentsDir, archiveDir } = agentsFixture();
+    const { probe, run } = launchdOf(
+      { 'com.mattstack.deck': handAgent(agentsDir) },
+      { bootoutSticks: false }
+    );
+
+    const retired = await retireHandAgent({
+      probe,
+      run,
+      agentsDir,
+      archiveDir,
+      uid: 501,
+      selfPid: 1,
+    });
+
+    expect(retired).toBe(false);
+    expect(existsSync(join(agentsDir, 'com.mattstack.deck.plist'))).toBe(true);
+  });
+
+  test('a trailing slash on the agents dir still matches', async () => {
+    const { agentsDir, archiveDir } = agentsFixture();
+    const { probe, run } = launchdOf({
+      'com.mattstack.deck': handAgent(agentsDir),
+    });
+
+    const retired = await retireHandAgent({
+      probe,
+      run,
+      agentsDir: `${agentsDir}/`,
+      archiveDir,
+      uid: 501,
+      selfPid: 1,
+    });
+
+    expect(retired).toBe(true);
+  });
+
+  test('archives into a missing dir, never over an earlier retirement', async () => {
+    const { agentsDir, archiveDir } = agentsFixture();
+    const nested = join(archiveDir, 'not', 'yet');
+    const { probe, run } = launchdOf({
+      'com.mattstack.deck': handAgent(agentsDir),
+    });
+    mkdirSync(nested, { recursive: true });
+    writeFileSync(join(nested, 'com.mattstack.deck.plist.retired'), 'first');
+    const fresh = join(archiveDir, 'fresh');
+
+    await retireHandAgent({
+      probe,
+      run,
+      agentsDir,
+      archiveDir: nested,
+      uid: 501,
+      selfPid: 1,
+    });
+    writeFileSync(join(agentsDir, 'com.mattstack.deck.plist'), '<plist/>');
+    const again = launchdOf({ 'com.mattstack.deck': handAgent(agentsDir) });
+    await retireHandAgent({
+      probe: again.probe,
+      run: again.run,
+      agentsDir,
+      archiveDir: fresh,
+      uid: 501,
+      selfPid: 1,
+    });
+
+    expect(
+      readFileSync(join(nested, 'com.mattstack.deck.plist.retired'), 'utf8')
+    ).toBe('first');
+    expect(readdirSync(nested)).toHaveLength(2);
+    expect(existsSync(join(fresh, 'com.mattstack.deck.plist.retired'))).toBe(
+      true
+    );
   });
 });
 
@@ -151,6 +278,7 @@ describe('prepareHelperBoot', () => {
         agentsDir: '/a',
         archiveDir: '/b',
         uid: 501,
+        selfPid: 1,
       },
       log: () => {},
     });
@@ -161,7 +289,7 @@ describe('prepareHelperBoot', () => {
 
   test('as a helper it composes PATH and retires a stray hand agent', async () => {
     const { agentsDir, archiveDir } = agentsFixture();
-    const ran: string[] = [];
+    const launchd = launchdOf({ 'com.mattstack.deck': handAgent(agentsDir) });
     const env: Record<string, string | undefined> = { PATH: '/usr/bin' };
 
     await prepareHelperBoot({
@@ -169,17 +297,19 @@ describe('prepareHelperBoot', () => {
       env,
       compose: () => '/opt/homebrew/bin:/usr/bin',
       retire: {
-        probe: probeOf({ 'com.mattstack.deck': handAgent(agentsDir) }),
-        run: async argv => (ran.push(argv.join(' ')), 0),
+        ...launchd,
         agentsDir,
         archiveDir,
         uid: 501,
+        selfPid: 1,
       },
       log: () => {},
     });
 
     expect(env.PATH).toBe('/opt/homebrew/bin:/usr/bin');
-    expect(ran).toEqual(['launchctl bootout gui/501/com.mattstack.deck']);
+    expect(launchd.ran).toEqual([
+      'launchctl bootout gui/501/com.mattstack.deck',
+    ]);
   });
 
   test('a failed retirement is logged, never thrown', async () => {
@@ -197,6 +327,7 @@ describe('prepareHelperBoot', () => {
         agentsDir: '/a',
         archiveDir: '/b',
         uid: 501,
+        selfPid: 1,
       },
       log: (...args) => logged.push(args.join(' ')),
     });
