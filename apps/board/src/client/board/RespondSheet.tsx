@@ -261,7 +261,9 @@ function PostChoice({
 
 /** A post-step thread drawn with its plan-step card; `children` are the
     controls for what this gate does with its reply. `reply`, when given,
-    draws the reply in place of the card's read-only one. */
+    draws the reply in place of the card's read-only one. A reply-only
+    thread takes no controls: Gate 1 decided it, and it posts with this
+    step. */
 function PostStepCard({
   j,
   edited = false,
@@ -283,10 +285,14 @@ function PostStepCard({
       <div className="tui-gate-question-head">
         <span className="tui-gate-question-label">{j.label}</span>
         <SeverityPill severity={j.thread.severity} />
-        {(j.reply ?? j.decided) && (
-          <ThreadOutcome verb={j.reply?.verb ?? j.decided!} held={!j.reply} />
+        {j.replyOnly ? (
+          <ThreadOutcome verb="reply" withStep />
+        ) : (
+          (j.reply ?? j.decided) && (
+            <ThreadOutcome verb={j.reply?.verb ?? j.decided!} held={!j.reply} />
+          )
         )}
-        {edited && <EditedChip />}
+        {(edited || j.replyOnly?.edited) && <EditedChip />}
       </div>
       <ThreadCard
         ctx={{
@@ -294,16 +300,20 @@ function PostStepCard({
           reply:
             j.reply && !reply
               ? { kind: 'verbatim', text: j.reply.text }
-              : { kind: 'none' },
+              : j.replyOnly
+                ? { kind: 'verbatim', text: j.replyOnly.text }
+                : { kind: 'none' },
         }}
       >
         {reply}
       </ThreadCard>
-      {j.reply ? (
-        children
-      ) : (
-        <p className="tui-thread-nothing">Nothing to post for this thread.</p>
-      )}
+      {j.reply
+        ? children
+        : !j.replyOnly && (
+            <p className="tui-thread-nothing">
+              Nothing to post for this thread.
+            </p>
+          )}
     </section>
   );
 }
@@ -439,19 +449,24 @@ function reviseAnswers(
 
 type RowChip = { text: string; intent: 'ok' | 'muted' | 'accent' } | null;
 
-/** One line per thread (or reply) with what the submit will do with it,
-    filled in as picks are made; it sits in the dock above the submit. */
+type ResponseRow = { key: string; text: string; chips: RowChip[] };
 
+/** One line per thread (or reply) with what the submit will do with it,
+    filled in as picks are made; it sits in the dock above the submit. With
+    the plan joined, rows follow plan order and a reply-only thread gets its
+    own `post` row, since it posts with this step. */
 function ResponseRows({
   mainQs,
   picks,
   form,
+  plan,
 }: {
   mainQs: GateItemDisplay[];
   picks: PostPick[];
   form: GateFormState;
+  plan?: JoinedThread[] | null;
 }) {
-  const rows = mainQs.flatMap(q => {
+  const offered: ResponseRow[] = mainQs.flatMap(q => {
     const v = form.selections[q.name];
     const pick = picks.find(p => p.name === q.name);
     if (pick) {
@@ -493,6 +508,28 @@ function ResponseRows({
       },
     ];
   });
+  const checklist = mainQs.find(
+    q => q.multiple && !picks.some(p => p.name === q.name)
+  );
+  const rows = plan
+    ? plan.flatMap((j): ResponseRow[] => {
+        const pick = picks.find(p => p.threadId === j.threadId);
+        const key = pick
+          ? pick.name
+          : checklist && `${checklist.name}:${j.threadId}`;
+        const row = key ? offered.find(r => r.key === key) : undefined;
+        if (row) return [row];
+        if (!j.replyOnly) return [];
+        const post: RowChip = { text: 'post', intent: 'ok' };
+        return [
+          {
+            key: `with-step:${j.threadId}`,
+            text: j.label,
+            chips: picks.length > 0 ? [post, null] : [post],
+          },
+        ];
+      })
+    : offered;
   return (
     <div className="tui-sheet-card-list" data-card="responses">
       {rows.map(r => (
@@ -791,6 +828,7 @@ function RespondSheetBody({
   const pickNames = new Set(picks.map(p => p.name));
   const displayOf = (name: string) => form.display.find(q => q.name === name);
   const postThreads = joined ?? threadJoin;
+  const withStep = postThreads?.filter(j => j.replyOnly).length ?? 0;
   const dockPick = dockQs
     .map(q => {
       const v = form.selections[q.name];
@@ -799,7 +837,7 @@ function RespondSheetBody({
     .find(Boolean);
   const replyNoun = (n: number) => (n === 1 ? '1 reply' : `${n} replies`);
   const nextStep =
-    !plan || !allDecided || dockRevise
+    !plan || !allDecided || dockRevise || edits === null
       ? null
       : fixes > 0
         ? `Next, ${fixes} ${fixes === 1 ? 'fix gets' : 'fixes get'} implemented, then you approve ${replyNoun(fixes + overrides)} before anything posts.`
@@ -817,7 +855,7 @@ function RespondSheetBody({
         : perThread
           ? [
               [
-                posting > 0 ? `post ${posting}` : null,
+                posting + withStep > 0 ? `post ${posting + withStep}` : null,
                 resolving > 0 ? `resolve ${resolving}` : null,
               ]
                 .filter(Boolean)
@@ -826,7 +864,9 @@ function RespondSheetBody({
             ]
               .filter(Boolean)
               .join(' · ')
-          : [`post ${repliesPicked}`, dockPick].filter(Boolean).join(' · ');
+          : [`post ${repliesPicked + withStep}`, dockPick]
+              .filter(Boolean)
+              .join(' · ');
 
   return (
     <div className="tui-sheet-body">
@@ -865,9 +905,9 @@ function RespondSheetBody({
           </span>
           <span className="tui-sheet-list-tally">
             {perThread
-              ? `${posting} of ${picks.length} posting`
+              ? `${posting + withStep} of ${picks.length + withStep} posting`
               : joined
-                ? `${repliesPicked} of ${postable.length} posting`
+                ? `${repliesPicked + withStep} of ${postable.length + withStep} posting`
                 : repliesQ
                   ? `${repliesPicked} of ${repliesQ.choices.length} selected`
                   : `${threadsDecided} of ${mainQs.length} decided`}
@@ -1106,7 +1146,12 @@ function RespondSheetBody({
                 />
               ) : (
                 <>
-                  <ResponseRows mainQs={mainQs} picks={picks} form={form} />
+                  <ResponseRows
+                    mainQs={mainQs}
+                    picks={picks}
+                    form={form}
+                    plan={postThreads}
+                  />
                   {nextStep && (
                     <p className="tui-sheet-dock-next">{nextStep}</p>
                   )}

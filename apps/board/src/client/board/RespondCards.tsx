@@ -254,11 +254,24 @@ const OUTCOME_TEXT = {
 function ThreadOutcome({
   verb,
   held = false,
+  withStep = false,
 }: {
   verb: 'reply' | 'fix' | 'skip';
   /** The plan picked a reply or fix, but this gate has nothing to post. */
   held?: boolean;
+  /** A Gate 1 reply this gate does not offer, which posts once it proceeds. */
+  withStep?: boolean;
 }) {
+  if (withStep)
+    return (
+      <span
+        className="tui-respond-chip tui-thread-outcome"
+        data-hue={OUTCOME_HUE.reply}
+        data-outcome="reply-with-step"
+      >
+        reply · posts with this step
+      </span>
+    );
   const heldBack = held && verb !== 'skip';
   return (
     <span

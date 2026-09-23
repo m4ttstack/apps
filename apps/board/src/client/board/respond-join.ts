@@ -24,6 +24,10 @@ export interface JoinedThread {
   reply?: ReplyEntry;
   /** The plan-step pick, when the plan gate recorded one. */
   decided?: PlanVerb;
+  /** A thread Gate 1 decided `reply` that this gate does not offer: its
+      reply posts once this gate proceeds, as `text` reads. `edited` when
+      the text is the developer's Gate 1 edit rather than the draft. */
+  replyOnly?: { text: string; edited: boolean };
 }
 
 /** Plan option values are `<verb>:<threadId>`, one thread per question. */
@@ -85,15 +89,24 @@ export function joinPlan(
     const threadId = threadIdOf(q.options);
     if (!threadId) continue;
     const raw = plan.answers?.[q.id];
-    const picked = raw === undefined ? undefined : unwrapGateAnswer(raw).value;
-    const decided = typeof picked === 'string' ? verbOf(picked) : undefined;
+    const answer = raw === undefined ? undefined : unwrapGateAnswer(raw);
+    const decided =
+      typeof answer?.value === 'string' ? verbOf(answer.value) : undefined;
     const reply = replies.find(r => r.thread === threadId);
+    const text =
+      answer?.text ??
+      (thread.reply.kind === 'verbatim' ? thread.reply.text : undefined);
+    const replyOnly =
+      decided === 'reply' && !reply && text !== undefined
+        ? { text, edited: answer?.text !== undefined }
+        : undefined;
     joined.push({
       threadId,
       label: q.label,
       thread,
       ...(reply ? { reply } : {}),
       ...(decided ? { decided } : {}),
+      ...(replyOnly ? { replyOnly } : {}),
     });
   }
   if (replies.some(r => !joined.some(j => j.threadId === r.thread)))
