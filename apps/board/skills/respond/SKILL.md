@@ -112,7 +112,7 @@ old one. Instead:
 - `<status-bin> gate wait <state>` — the verb is registry-status-first, so on
   an already-answered gate it returns the recorded answer at once instead of
   blocking.
-- **Act on the answer, by `--resumed-gate-kind`.** Read `--report <path>` first — it
+- **Act on the answer, by `--resumed-gate-kind`.** Read `--report <path>` first: it
   holds the adjudication table and drafted/finalized replies a fresh pane has
   no other way to recover once the pane that produced them is gone. Never
   re-adjudicate and never re-implement from scratch:
@@ -120,17 +120,20 @@ old one. Instead:
     `{plan: <answers>, by: <by>}` select among the report's threads. Join
     each answer to its report row by the thread id inside the option VALUE
     (every `answers` key other than `code-changes` holds one
-    `<verb>:<threadId>`, or a `{value, note}` object around it: unwrap
+    `<verb>:<threadId>`, or a `{value, note, text}` object around it: unwrap
     `value` first, then split at the first `:`), never by the `thread-<n>`
     question id, which is only a container. Hand the report
-    and those answers to the domain skill exactly as step 5 would have. When
-    it's back to finalized replies, update the report with them, emit
-    `drafting`, then run Gate 2 **fresh** (open it, wait, hand `{post: ...}`
-    down) exactly as steps 5-6 describe below.
+    and those answers to the domain skill exactly as step 5 would have, then
+    carry on exactly as steps 5-6 describe below: Gate 2 opens **fresh**
+    over only the threads step 6 offers, and the reply-only threads post
+    as step 6 says.
   - `respond-post` → execute posting FROM THE REPORT's finalized replies plus
     the wait's `{post: <answers>, by: <by>}` (a thread answer's `text`
     replaces that thread's report reply), never re-adjudicating or
-    re-implementing.
+    re-implementing. The report's reply-only threads (rows whose Gate 1
+    verb is `reply`, reply overrides excepted; read from the rows, never
+    from the recommendation) post in the same pass, each with the reply
+    its row records, unresolved.
     Hand both to the domain skill exactly as step 6 would have.
 - `<status-bin> respond-status <state> done "<one-line summary>" --posted <n> --threads <n> [--held <n>]`
   (the counts follow step 7's definitions, `--held` included)
@@ -232,7 +235,7 @@ conversation.
    The thread id lives in the option VALUE, never in the question id:
    every consumer of the answer (step 5 here, a `--resumed-gate` pane, the
    board card, the console card) reads every `answers` key other than
-   `code-changes`, unwraps a `{value, note}` object to its `value`, splits
+   `code-changes`, unwraps a `{value, note, text}` object to its `value`, splits
    at the first `:`, and joins the thread id to the report row. The `thread-<n>` id is a container; nothing keys
    on it.
 
@@ -278,7 +281,9 @@ conversation.
      cards apply). Submit exactly one `<status-bin> gate answer
      <state> --answers <json> --by pane` after the LAST call, carrying
      every thread question's answer plus `code-changes`; never one per
-     chunk.
+     chunk. That answer never carries `text`: whatever the human types in
+     the form's free-text field, a full replacement reply included, rides
+     as `note`, and the drafted reply posts.
 
      Each thread's form question: header `Thread <n>`; question text its
      label, a newline, its prose context, then `Reply, fix, or skip?`;
@@ -299,9 +304,20 @@ conversation.
    names who actually decided instead of guessing. Each thread's
    disposition is the verb in its answer value (`reply:<id>`, `fix:<id>`,
    or `skip:<id>`, read off every key other than `code-changes`, taking
-   `value` first when the answer is a `{value, note}` object), and the
+   `value` first when the answer is a `{value, note, text}` object), and the
    `code-changes` answer decides whether anything gets implemented this
-   round:
+   round. A `reply:` answer's `text`, when present, is the edited reply:
+   it replaces the drafted one for that thread. First record the answer
+   in `--report <path>` (the domain skill does this on its path): each
+   row's Gate 1 verb, with an edited reply's `text` replacing the draft
+   in its row, so posting (a resume included) reads which threads are
+   reply-only from the rows, never from the recommendation.
+
+   A `reply:` answer with no `text`, on a thread whose Gate 1 card did not
+   show its reply word for word (the verdict table recommended `fix` or
+   `skip`, so the card showed a fix direction or nothing), is a **reply
+   override**: draft its reply after Gate 1 (the domain skill does this on
+   its path) and mark its row as an override. Step 6 offers it at Gate 2.
 
    - **`code-changes: approve`**: emit `implementing`
      (`<status-bin> respond-status <state> implementing`) before touching
@@ -320,13 +336,30 @@ conversation.
      that as a new round of step 3-4 (a new `respond-plan` gate, same
      shape, opened from its fresh open file when it hands one back, and the
      report update from step 3 applies again, recording the new round). On `skip`,
-     go straight to Gate 2: `reply:` threads still get their drafted
-     replies offered, there is just nothing to implement first. A thread
-     answered `fix:` under `skip` stays unimplemented and has no finalized
-     reply, so it is held out of Gate 2 rather than posted as a draft.
-6. **Gate 2 — post.** **Handed a fitted open file?** (the domain skill
-   hands one back with its finalized replies when it builds one.) Open it
-   exactly as Gate 1's file, with kind `respond-post`:
+     go to step 6 with no fixed thread: Gate 2 opens only for a reply
+     override, and otherwise the `reply:` threads post right away. A
+     thread answered `fix:` under `skip` stays unimplemented and has no
+     finalized reply, so nothing posts for it and step 7 counts it as
+     held.
+6. **Post; Gate 2 only for replies not yet seen.** Gate 1 already approved
+   each reply it showed word for word, so Gate 2 (`respond-post`) offers
+   exactly the replies the human has not yet seen: each thread a fix
+   finalized in step 5, and each reply override.
+   - **Reply-only threads** (every other `reply:` row) post the reply
+     their row records (Gate 1's `text` when present, the draft
+     otherwise), never resolved, so the reviewer can answer. On the
+     generic path you post them; with a domain skill it posts them, so
+     never post one twice.
+   - **Nothing to offer** (no fixed thread and no reply override): open
+     no Gate 2. The reply-only threads post right after Gate 1 (a domain
+     skill posts them on `{plan: ...}` and hands back no Gate 2 file);
+     then go to step 7.
+   - **Threads to offer:** open Gate 2 over them as below. The reply-only
+     threads wait for its answer, then post together with its picks.
+
+   **Handed a fitted open file?** (the domain skill hands one back with
+   its finalized replies when it builds one.) Open it exactly as Gate 1's
+   file, with kind `respond-post`:
 
    ```bash
    "${CLAUDE_SKILL_DIR}/scripts/open-gate.sh" <status-bin> <state> respond-post <open-file>
@@ -339,9 +372,8 @@ conversation.
    presentation branches below.
 
    **Otherwise, build the gate yourself** from the finalized replies: ONE
-   multi-select question per thread with a finalized reply, in
-   verdict-table order (a `skip:` thread and a `fix:` thread held out
-   under `code-changes: skip` get none). Its id is `thread-<n>` by 1-based
+   multi-select question per offered thread, in verdict-table order (a
+   reply-only or `skip:` thread gets none). Its id is `thread-<n>` by 1-based
    position among these threads, its label the thread's `<file>:<line>`,
    and its two options `post:<threadId>` and `resolve:<threadId>`, thread
    id VERBATIM:
@@ -359,9 +391,9 @@ conversation.
    ]
    ```
 
-   `post` is recommended on every thread; `resolve` only on a thread whose
-   reply finalizes a fix, so a pushback or a clarifying question stays open
-   for the reviewer unless the human ticks it. Post and resolve are
+   `post` is recommended on every offered thread; `resolve` only on a
+   thread whose reply finalizes a fix, so a reply override stays open for
+   the reviewer unless the human ticks it. Post and resolve are
    independent: both, either one, or neither.
 
    - **Open the gate:**
@@ -409,11 +441,13 @@ conversation.
      for the background-wait mechanics, unchanged; the gate to name in
      `holding at gate <gateId>` is this one.
    - **Act on the answer.** Hand `{post: <answers>, by: <by>}` to the domain
-     skill so it can execute the posting, or act per thread yourself on the
-     generic no-domain-skill path: `post:<threadId>` posts that thread's
+     skill so it can execute the posting, the reply-only threads included,
+     or act yourself on the generic no-domain-skill path: per Gate 2
+     thread, `post:<threadId>` posts that thread's
      reply (the answer's `text` when it carries one, the report's finalized
      reply otherwise), `resolve:<threadId>` resolves the thread (after the
-     reply when both are picked), and an empty array leaves it untouched.
+     reply when both are picked), and an empty array leaves it untouched;
+     then post each reply-only thread's recorded reply, unresolved.
      `by` is the wait's own decider field, so the domain skill's decision
      record names who actually decided instead of guessing.
 7. **Mark done, with the counts.** After the run wraps, report what actually
@@ -421,13 +455,14 @@ conversation.
    `<status-bin> respond-status <state> done "<one-line summary>" --posted <n> --threads <n> [--held <n>]`
    - `--threads` is the number of unresolved human threads the run set out to
      answer, i.e. the rows in the verdict table.
-   - `--posted` is how many of those actually received a posted reply: the
-     Gate 2 threads whose answer carries `post:`. Resolving counts toward
-     neither number.
+   - `--posted` is how many of those actually received a posted reply:
+     every thread that got a reply, i.e. each reply-only thread whose
+     reply went up plus each Gate 2 thread whose answer carries `post:`.
+     Resolving counts toward neither number.
    - `--held` is how many of those deliberately got NO posted reply because
-     a gate decided so: a Gate 2 thread answered without `post:`, a `skip:` thread with
-     nothing worth posting, or a `fix:` thread held out of Gate 2 under
-     `code-changes: skip`. Count a thread here only when a gate answer
+     a gate decided so: a `skip:` thread, a `fix:` thread held out under
+     `code-changes: skip`, or a Gate 2 thread answered without `post:`.
+     Count a thread here only when a gate answer
      settled it without a reply going up; a thread the run simply never got
      to is neither posted nor held.
 
@@ -456,11 +491,12 @@ offered thread, each an array of `post:<threadId>` and/or
 key other than `code-changes`, unwrapping a `{value, note, text}` object to
 its `value`, and splitting each value at the first `:` into the verb and
 the thread id: the thread id is in the value, and the `thread-<n>` key is
-never a join key. A Gate 2 answer's `text`, when present, is the reply to
-post for that thread; the note never is. A Gate 2 opened before this shape
-(a `replies` multi, or its `replies-1`, `replies-2`, ... chunks, of bare
-thread ids plus `disposition`) still reads as it did: post the union of the
-selected replies, and resolve them only on `resolve-addressed`.
+never a join key. A Gate 1 `reply:` answer's or a Gate 2 answer's `text`,
+when present, is the reply to post for that thread; the note never is. A
+Gate 2 opened before this shape (a `replies` multi, or its `replies-1`,
+`replies-2`, ... chunks, of bare thread ids plus `disposition`) still
+reads as it did: post the union of the selected replies, and resolve them
+only on `resolve-addressed`.
 
 A PreToolUse hook may deny native AskUserQuestion when no gate is open; that
 denial is the gate protocol speaking: open the gate as this section
@@ -509,10 +545,12 @@ describes. When the daemon is down the hook allows the native form
   finalized replies before Gate 2 opens. Never try to read or write `--state`
   yourself; it is a handle, not a file (see the flag table).
 - Both gates are non-negotiable. Never implement fixes or post replies
-  without the human's explicit answer at the relevant gate, even to hurry
-  the badge to `done`. `done` follows the human's Gate 2 pick, not your own
-  call: `--posted` counts what actually went up, never what you drafted, and
-  `--held` counts only what a gate answer kept down.
+  without the human's explicit answer at the relevant gate (Gate 1's
+  `reply:` for a reply-only thread, Gate 2 for a fixed thread or a reply
+  override), even to hurry the badge to `done`. `done` follows the human's
+  gate answers, not your own call: `--posted` counts what actually went up,
+  never what you drafted, and `--held` counts only what a gate answer kept
+  down.
 - After marking done, stay in the pane so the human can act on leftover drafts.
 - If there are zero unresolved human threads, mark
   `done "no unresolved threads" --posted 0 --threads 0`. That is not an
