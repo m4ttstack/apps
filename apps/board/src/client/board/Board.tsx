@@ -59,7 +59,7 @@ import { CommentsDrawer } from './CommentsDrawer.tsx';
 import { ConfigModal } from './ConfigModal.tsx';
 import { Controls, ThemeToggle } from './Controls.tsx';
 import type { QueueEntry } from './decision-queue.ts';
-import { useDecisionQueue } from './decision-queue.ts';
+import { decidedEntries, useDecisionQueue } from './decision-queue.ts';
 import {
   DecisionQueueComplete,
   DecisionQueueModal,
@@ -138,13 +138,47 @@ function emptyQueueCopy(
   draftsHidden: number
 ): string {
   if (slackFilter === 'posted') {
-    if (slackHidden === 0) return 'Nothing found in slack';
-    return `Nothing found in slack · ${slackHidden} item${slackHidden === 1 ? '' : 's'} hidden`;
+    const slack = slackHiddenCopy(slackFilter, slackHidden);
+    return slack
+      ? `Nothing found in slack · ${slack}`
+      : 'Nothing found in slack';
   }
-  if (draftFilter === 'hide' && draftsHidden > 0) {
-    return `nothing waiting on review ✓ · ${draftsHidden} draft${draftsHidden === 1 ? '' : 's'} hidden`;
-  }
-  return 'nothing waiting on review ✓';
+  const drafts = draftsHiddenCopy(draftFilter, draftsHidden);
+  return drafts
+    ? `nothing waiting on review ✓ · ${drafts}`
+    : 'nothing waiting on review ✓';
+}
+
+function slackHiddenCopy(
+  slackFilter: SlackFilter,
+  slackHidden: number
+): string | null {
+  if (slackFilter !== 'posted' || slackHidden === 0) return null;
+  return `${slackHidden} item${slackHidden === 1 ? '' : 's'} hidden`;
+}
+
+function draftsHiddenCopy(
+  draftFilter: DraftFilter,
+  draftsHidden: number
+): string | null {
+  if (draftFilter !== 'hide' || draftsHidden === 0) return null;
+  return `${draftsHidden} draft${draftsHidden === 1 ? '' : 's'} hidden`;
+}
+
+/** The sidebar counts every row for a member, including the ones the slack
+    and drafts chips filter out, so a trimmed list has to say what it hid or
+    the two numbers read as disagreeing. */
+function hiddenRowsNote(
+  slackFilter: SlackFilter,
+  slackHidden: number,
+  draftFilter: DraftFilter,
+  draftsHidden: number
+): string | null {
+  const parts = [
+    slackHiddenCopy(slackFilter, slackHidden),
+    draftsHiddenCopy(draftFilter, draftsHidden),
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 // Module scope, not inline in useLaunchAction's call below: an inline arrow
@@ -1004,6 +1038,12 @@ export function Board() {
     groups,
   } = boardView!;
 
+  const hiddenNote = hiddenRowsNote(
+    slackFilter,
+    slackHidden,
+    draftFilter,
+    draftsHidden
+  );
   const dataAge = dataAgeLabel(data.dataSyncedAt, now);
   // Both known and the board asks for more history than rt actually syncs --
   // config drift the board can't self-correct, so it needs to be visible.
@@ -1320,6 +1360,9 @@ export function Board() {
             </Panel>
           ))
         )}
+        {filtered.length > 0 && hiddenNote && (
+          <p className="tui-hidden-note">{hiddenNote}</p>
+        )}
 
         <footer
           className={
@@ -1467,7 +1510,7 @@ export function Board() {
       )}
       {queue.open && queue.complete && (
         <DecisionQueueComplete
-          answered={queue.answeredCount}
+          decided={decidedEntries(queue.answeredIds, data, queue.seenEntries)}
           onClose={queue.close}
         />
       )}
