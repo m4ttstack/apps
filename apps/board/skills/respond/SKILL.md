@@ -130,10 +130,10 @@ old one. Instead:
   - `respond-post` → execute posting FROM THE REPORT's finalized replies plus
     the wait's `{post: <answers>, by: <by>}` (a thread answer's `text`
     replaces that thread's report reply), never re-adjudicating or
-    re-implementing. The report's reply-only threads (rows whose Gate 1
-    verb is `reply`, reply overrides excepted; read from the rows, never
-    from the recommendation) post in the same pass, each with the reply
-    its row records, unresolved.
+    re-implementing. The report's reply-only threads (rows with
+    `gate-1: reply`, read from the rows, never from the recommendation)
+    post in the same pass, each with the reply its row records,
+    unresolved.
     Hand both to the domain skill exactly as step 6 would have.
 - `<status-bin> respond-status <state> done "<one-line summary>" --posted <n> --threads <n> [--held <n>]`
   (the counts follow step 7's definitions, `--held` included)
@@ -283,7 +283,7 @@ conversation.
      every thread question's answer plus `code-changes`; never one per
      chunk. That answer never carries `text`: whatever the human types in
      the form's free-text field, a full replacement reply included, rides
-     as `note`, and the drafted reply posts.
+     as `note`, which makes a `reply:` pick a reply override (step 5).
 
      Each thread's form question: header `Thread <n>`; question text its
      label, a newline, its prose context, then `Reply, fix, or skip?`;
@@ -309,15 +309,20 @@ conversation.
    round. A `reply:` answer's `text`, when present, is the edited reply:
    it replaces the drafted one for that thread. First record the answer
    in `--report <path>` (the domain skill does this on its path): each
-   row's Gate 1 verb, with an edited reply's `text` replacing the draft
-   in its row, so posting (a resume included) reads which threads are
-   reply-only from the rows, never from the recommendation.
+   row gains a `gate-1` field (`reply`, `fix`, `skip`, or `override`), and
+   an edited reply's `text` replaces the draft in its row, so posting (a
+   resume included) reads which threads are reply-only (`gate-1: reply`)
+   from the rows, never from the recommendation.
 
-   A `reply:` answer with no `text`, on a thread whose Gate 1 card did not
-   show its reply word for word (the verdict table recommended `fix` or
-   `skip`, so the card showed a fix direction or nothing), is a **reply
-   override**: draft its reply after Gate 1 (the domain skill does this on
-   its path) and mark its row as an override. Step 6 offers it at Gate 2.
+   A `reply:` answer that carries `text` posts that text, note or not: the
+   human wrote the exact words. A `reply:` answer with no `text` is a
+   **reply override** when its Gate 1 card did not show its reply word for
+   word (the verdict table recommended `fix` or `skip`, so the card showed
+   a fix direction or nothing), or when the answer carries a `note` (in
+   the pane form a note is the only place a typed replacement can go).
+   Draft an override's reply after Gate 1, with its note when it has one
+   (the domain skill does this on its path), and set its row to
+   `gate-1: override`. Step 6 offers it at Gate 2.
 
    - **`code-changes: approve`**: emit `implementing`
      (`<status-bin> respond-status <state> implementing`) before touching
@@ -345,7 +350,7 @@ conversation.
    each reply it showed word for word, so Gate 2 (`respond-post`) offers
    exactly the replies the human has not yet seen: each thread a fix
    finalized in step 5, and each reply override.
-   - **Reply-only threads** (every other `reply:` row) post the reply
+   - **Reply-only threads** (rows with `gate-1: reply`) post the reply
      their row records (Gate 1's `text` when present, the draft
      otherwise), never resolved, so the reviewer can answer. On the
      generic path you post them; with a domain skill it posts them, so
@@ -457,14 +462,14 @@ conversation.
      answer, i.e. the rows in the verdict table.
    - `--posted` is how many of those actually received a posted reply:
      every thread that got a reply, i.e. each reply-only thread whose
-     reply went up plus each Gate 2 thread whose answer carries `post:`.
-     Resolving counts toward neither number.
+     reply went up plus each Gate 2 thread (fixed or override) whose
+     answer carries `post:`. Resolving counts toward neither number.
    - `--held` is how many of those deliberately got NO posted reply because
      a gate decided so: a `skip:` thread, a `fix:` thread held out under
-     `code-changes: skip`, or a Gate 2 thread answered without `post:`.
-     Count a thread here only when a gate answer
-     settled it without a reply going up; a thread the run simply never got
-     to is neither posted nor held.
+     `code-changes: skip`, or a Gate 2 thread (fixed or override) answered
+     without `post:`. Count a thread here only when a gate answer settled
+     it without a reply going up; a thread the run simply never got to is
+     neither posted nor held.
 
    The board derives the badge from these counts, so a wrong count is a
    wrong badge: `3/3` reads "replies posted", `2/3` reads "2 of 3 posted"
