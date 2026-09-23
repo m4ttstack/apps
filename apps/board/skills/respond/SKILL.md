@@ -200,7 +200,8 @@ conversation.
    ```
 
    It prints the same one-line `{"gateId": ..., "presentation": ...}` as
-   `gate open` and exits with its status. A `fits: false` file is still
+   `gate open`, with `"contextOmitted": true` added when the daemon dropped
+   the question contexts, and exits with its status. A `fits: false` file is still
    over the shared context budget; the script drops whole question
    contexts, largest first, until it fits, so the file goes in untouched:
    never rebuilt, re-ordered, trimmed, or hand-edited. Then skip to the
