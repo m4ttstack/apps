@@ -96,6 +96,7 @@ function Index({
                           ? 'var(--tk-text-1)'
                           : text.muted,
                       opacity: empty ? 0.45 : undefined,
+                      marginBottom: 2,
                     },
                     label: { fontSize: 14, fontWeight: current ? 500 : 400 },
                   }}
@@ -187,7 +188,7 @@ export function SettingsPage() {
       sidebarWidth={232}
       drawerStateKey="console-settings-index"
     >
-      <PageShell.Sidebar>
+      <PageShell.Sidebar hideCollapseButton>
         <Index sections={sections} filtering={filtering} />
       </PageShell.Sidebar>
       <PageShell.Main>
@@ -297,6 +298,7 @@ export function SettingsPage() {
               </Chip>
               <SegmentedControl
                 size="xs"
+                withItemsBorders={false}
                 styles={{ label: { fontSize: 12, fontWeight: 500 } }}
                 value={scope}
                 onChange={v => setScope(v as ScopeFilter)}

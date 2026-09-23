@@ -134,7 +134,7 @@ export function SettingRow({
       <Group gap={24} wrap="nowrap" py={12}>
         <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
           <Group gap={8} wrap="nowrap">
-            <Text fz={14} ff="monospace" span>
+            <Text fz={14} lh="18px" ff="monospace" span>
               <Text span inherit c={text.muted}>
                 {ns}
               </Text>
@@ -156,6 +156,7 @@ export function SettingRow({
             text={firstSentence(def.description)}
             query={query}
             fz={12}
+            lh="15px"
             c={text.muted}
             lineClamp={1}
           />

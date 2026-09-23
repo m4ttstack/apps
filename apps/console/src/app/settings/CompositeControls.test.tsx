@@ -390,6 +390,21 @@ describe('composite rows', () => {
     expect(screen.getByLabelText('rt.homeSnapshot.enabled')).toBeDisabled();
   });
 
+  it('an empty short list says so instead of showing a blank box', () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('board.ticketPrefixes', {
+          scopes: ['team'],
+          effective: { scope: 'default', file: null, value: [] },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.getByPlaceholderText('none')).toBeInTheDocument();
+  });
+
   it('a stored value of the wrong shape locks behind Clear', async () => {
     const s = store();
     renderWithProviders(

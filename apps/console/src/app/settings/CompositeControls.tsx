@@ -41,6 +41,7 @@ import {
   enumWidth,
   INPUT_TYPE,
   numberWidth,
+  PLACEHOLDER,
   SWITCH_SIZE,
 } from './controlStyles';
 import { ExpandToggle } from './ExpandToggle';
@@ -533,7 +534,14 @@ export function compositeParts(
             aria-label={def.key}
             size="xs"
             w={200}
-            styles={{ inputField: { minWidth: 48 } }}
+            styles={{ inputField: { ...PLACEHOLDER, minWidth: 48 } }}
+            placeholder={
+              list.length > 0
+                ? undefined
+                : value === undefined
+                  ? 'unset'
+                  : 'none'
+            }
             value={list}
             onChange={next => void row.save(next)}
           />

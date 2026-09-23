@@ -113,6 +113,7 @@ function AgentsSection({
         right={
           <SegmentedControl
             size="xs"
+            withItemsBorders={false}
             styles={{ label: { fontSize: 12, fontWeight: 500 } }}
             value={provider}
             onChange={v => setChosen(v as Provider)}
