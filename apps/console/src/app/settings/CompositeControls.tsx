@@ -346,6 +346,7 @@ function LeavesBody({
   const { text } = useSchemeColors();
   const explained = useSettingKey(def.key);
   const [all, setAll] = useState(false);
+  const [resets, setResets] = useState(0);
   const paths = Object.keys(shape.fields);
   const shown = all ? paths : paths.slice(0, LEAVES_FIRST);
   const target = targetScope(def);
@@ -400,21 +401,30 @@ function LeavesBody({
             }
           >
             <LeafInput
-              key={JSON.stringify(value) ?? ''}
+              key={`${JSON.stringify(value) ?? ''}:${resets}`}
               label={`${def.key}.${path}`}
               type={shape.fields[path]!}
               value={value}
               placeholder={shape.fallbacks?.[path]}
               disabled={disabled}
-              onSave={v =>
-                void row
-                  .save(leafWrite(explained.rows, target, path, v))
-                  .then(ok => {
-                    if (!ok) return;
-                    setStaleRows(explained.rows);
-                    refresh();
-                  })
-              }
+              onSave={v => {
+                // Emptying a field the target layer does not set would write
+                // that layer anyway; the inherited value still applies.
+                if (v === undefined && source !== target) {
+                  setResets(n => n + 1);
+                  return;
+                }
+                const next = leafWrite(explained.rows, target, path, v);
+                const write =
+                  Object.keys(next).length === 0
+                    ? row.clear(target)
+                    : row.save(next);
+                void write.then(ok => {
+                  if (!ok) return;
+                  setStaleRows(explained.rows);
+                  refresh();
+                });
+              }}
             />
           </FieldRow>
         );
