@@ -28,13 +28,15 @@ import { forgeNoun } from './MrLinks.tsx';
 import { PersonLead, PersonTag } from './PersonLead.tsx';
 import { joinPlan, type JoinedThread } from './respond-join.ts';
 import {
+  isEdited,
   postPicks,
   postTally,
   postTexts,
   type PostPick,
 } from './respond-post.ts';
 import {
-  ReplyCard,
+  EditableReply,
+  EditedChip,
   ReplyChoiceBody,
   SeverityPill,
   ThreadCard,
@@ -255,12 +257,17 @@ function PostChoice({
 }
 
 /** A post-step thread drawn with its plan-step card; `children` are the
-    controls for what this gate does with its reply. */
+    controls for what this gate does with its reply. `reply`, when given,
+    draws the reply in place of the card's read-only one. */
 function PostStepCard({
   j,
+  edited = false,
+  reply,
   children,
 }: {
   j: JoinedThread;
+  edited?: boolean;
+  reply?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -276,15 +283,19 @@ function PostStepCard({
         {(j.reply ?? j.decided) && (
           <ThreadOutcome verb={j.reply?.verb ?? j.decided!} held={!j.reply} />
         )}
+        {edited && <EditedChip />}
       </div>
       <ThreadCard
         ctx={{
           ...j.thread,
-          reply: j.reply
-            ? { kind: 'verbatim', text: j.reply.text }
-            : { kind: 'none' },
+          reply:
+            j.reply && !reply
+              ? { kind: 'verbatim', text: j.reply.text }
+              : { kind: 'none' },
         }}
-      />
+      >
+        {reply}
+      </ThreadCard>
       {j.reply ? (
         children
       ) : (
@@ -726,6 +737,19 @@ function RespondSheetBody({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gate.gateId, picks.length]);
   const { posting, resolving } = postTally(picks, form.selections);
+  const editableReply = (p: PostPick) => {
+    const v = form.selections[p.name];
+    return (
+      <EditableReply
+        label={p.label}
+        draft={p.reply!.text}
+        value={form.texts[p.name]}
+        canEdit={Array.isArray(v) && v.includes(p.post)}
+        onChange={text => form.setText(p.name, text)}
+        onReset={() => form.clearText(p.name)}
+      />
+    );
+  };
   const pickNames = new Set(picks.map(p => p.name));
   const displayOf = (name: string) => form.display.find(q => q.name === name);
   const postThreads = joined ?? threadJoin;
@@ -810,7 +834,12 @@ function RespondSheetBody({
             ? threadJoin.map(j => {
                 const pick = picks.find(p => p.threadId === j.threadId);
                 return (
-                  <PostStepCard key={j.threadId} j={j}>
+                  <PostStepCard
+                    key={j.threadId}
+                    j={j}
+                    edited={pick ? isEdited(pick, form.texts) : false}
+                    reply={pick?.reply ? editableReply(pick) : undefined}
+                  >
                     {pick && <PostResolveChoice pick={pick} form={form} />}
                   </PostStepCard>
                 );
@@ -828,9 +857,10 @@ function RespondSheetBody({
                     <div className="tui-gate-question-head">
                       <span className="tui-gate-question-label">{p.label}</span>
                       {p.reply && <ThreadOutcome verb={p.reply.verb} />}
+                      {isEdited(p, form.texts) && <EditedChip />}
                     </div>
                     {p.reply ? (
-                      <ReplyCard entry={p.reply} />
+                      <div className="tui-thread-card">{editableReply(p)}</div>
                     ) : display?.context && questionCtx.get(p.name) == null ? (
                       <ProseContext q={display} structured={false} />
                     ) : (

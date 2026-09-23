@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { Markdown } from '@mattstack/tui-kit';
+import { useAutoGrowTextarea } from '@mattstack/tui-kit/hooks';
 import type {
   ReplyEntry,
   Severity,
@@ -51,8 +52,15 @@ function ReplyBlock({ text }: { text: string }) {
 /** A respond-plan thread question's body: the reviewer's claim, the
     adjudicated verdict, and the reply that goes out in the developer's
     name. The file:line and the severity ride the question head; the plan
-    rides the fix option's subtitle. */
-function ThreadCard({ ctx }: { ctx: ThreadCtx }) {
+    rides the fix option's subtitle. `children` close the card, where a
+    caller that draws the reply itself puts it. */
+function ThreadCard({
+  ctx,
+  children,
+}: {
+  ctx: ThreadCtx;
+  children?: ReactNode;
+}) {
   const { claim, verdict, reply } = ctx;
   return (
     <div className="tui-thread-card">
@@ -92,17 +100,117 @@ function ThreadCard({ ctx }: { ctx: ThreadCtx }) {
           </div>
         </div>
       )}
+      {children}
     </div>
   );
 }
 
-/** A post-step thread's body when its plan gate is gone: only the reply
-    this gate would post. */
-function ReplyCard({ entry }: { entry: ReplyEntry }) {
+/** A post-step reply the developer may rewrite before it posts: the draft
+    at rest, an auto-growing box while editing. `value` is the edit, absent
+    when there is none; `canEdit` is false while the thread is held, which
+    also closes an open box. */
+function EditableReply({
+  label,
+  draft,
+  value,
+  canEdit,
+  onChange,
+  onReset,
+}: {
+  label: string;
+  draft: string;
+  value: string | undefined;
+  canEdit: boolean;
+  onChange: (text: string) => void;
+  onReset: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  if (editing && !canEdit) setEditing(false);
+  const open = editing && canEdit;
+  const text = value ?? draft;
+  const edited = value !== undefined && value.trim() !== draft.trim();
+  const empty = canEdit && value !== undefined && value.trim() === '';
+  const ref = useAutoGrowTextarea([open, text]);
+  useEffect(() => {
+    if (!open) return;
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [open, ref]);
   return (
-    <div className="tui-thread-card">
-      <ReplyBlock text={entry.text} />
+    <div className="tui-thread-reply" data-kind="verbatim">
+      <span className="tui-thread-reply-k">will post as reply</span>
+      {open ? (
+        <textarea
+          ref={ref}
+          className="tui-thread-reply-input"
+          rows={1}
+          value={text}
+          aria-label={`${label}: reply`}
+          onChange={e => onChange(e.currentTarget.value)}
+          onKeyDown={e => {
+            if (e.key === 'Escape') {
+              e.stopPropagation();
+              setEditing(false);
+            }
+          }}
+        />
+      ) : (
+        <div className="tui-thread-reply-text">
+          <Markdown unstyled linkTargetBlank>
+            {text}
+          </Markdown>
+        </div>
+      )}
+      {empty && <span className="tui-gate-error">the reply is empty</span>}
+      {canEdit && (
+        <div className="tui-thread-reply-actions">
+          {open ? (
+            <>
+              <button
+                type="button"
+                className="tui-thread-reply-action"
+                onClick={() => setEditing(false)}
+              >
+                done
+              </button>
+              {edited && (
+                <button
+                  type="button"
+                  className="tui-thread-reply-action"
+                  onClick={onReset}
+                >
+                  reset to draft
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              type="button"
+              className="tui-thread-reply-action"
+              aria-label={`${label}: edit reply`}
+              onClick={() => setEditing(true)}
+            >
+              edit
+            </button>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+/** A post-step card head's mark that its reply no longer reads as drafted. */
+function EditedChip() {
+  return (
+    <span
+      className="tui-respond-chip tui-thread-edited"
+      data-hue="accent"
+      data-chip="edited"
+    >
+      edited
+    </span>
   );
 }
 
@@ -175,4 +283,11 @@ function ReplyChoiceBody({
   );
 }
 
-export { ReplyCard, ReplyChoiceBody, SeverityPill, ThreadCard, ThreadOutcome };
+export {
+  EditableReply,
+  EditedChip,
+  ReplyChoiceBody,
+  SeverityPill,
+  ThreadCard,
+  ThreadOutcome,
+};

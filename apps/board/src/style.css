@@ -2400,11 +2400,14 @@ body {
   text-transform: uppercase;
   color: var(--text-2);
 }
-/* The post step's outcome chip holds the card head's right edge. */
-.tui-respond-chip.tui-thread-outcome {
-  margin-left: auto;
+/* The post step's outcome chip holds the card head's right edge; the
+   edited mark rides beside it at the same size. */
+.tui-respond-chip:is(.tui-thread-outcome, .tui-thread-edited) {
   padding: 4px 12px;
   font-size: 13px;
+}
+.tui-respond-chip.tui-thread-outcome {
+  margin-left: auto;
 }
 .tui-thread-nothing {
   margin: 0;
@@ -2487,6 +2490,39 @@ body {
 }
 .tui-thread-reply[data-kind='direction'] .tui-thread-reply-k {
   color: var(--text-2);
+}
+.tui-thread-reply-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--text-1);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  resize: none;
+  overflow: hidden;
+}
+.tui-thread-reply-input:focus-visible {
+  outline: 2px solid var(--fill-accent);
+  outline-offset: 1px;
+}
+.tui-thread-reply-actions {
+  display: flex;
+  gap: 12px;
+}
+.tui-thread-reply-action {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text-4);
+  cursor: pointer;
+}
+.tui-thread-reply-action:hover {
+  color: var(--text-accent-small);
+  text-decoration: underline;
 }
 /* A respond-post reply option carries the full reply text, so the box
    tops its checkbox against the first line instead of centring it. */
