@@ -777,3 +777,55 @@ test('a held thread stays held after leaving the per-thread post step and coming
   expect(control(postCards()[1]!, 'hold')!.checked).toBe(true);
   expect(submit().textContent).toBe('post 1 · resolve 1');
 });
+
+const seedTexts = (
+  texts: Record<string, string>,
+  selections?: Record<string, string[]>
+) =>
+  localStorage.setItem(
+    `gate-kit:draft:g-post-threads`,
+    JSON.stringify({
+      selections: selections ?? {
+        'thread-1': ['post:r1', 'resolve:r1'],
+        'thread-2': ['post:r2'],
+      },
+      notes: {},
+      texts,
+      item: null,
+    })
+  );
+
+test('an edited posting thread answers with its text; the others stay bare', async () => {
+  seedTexts({ 'thread-1': '  Fixed, and the retry is now bounded.  ' });
+  await render(perThreadPostGate(), withFixPlan());
+  await clickSubmit();
+  expect(answer()).toEqual({
+    gateId: 'g-post-threads',
+    answers: {
+      'thread-1': {
+        value: ['post:r1', 'resolve:r1'],
+        text: 'Fixed, and the retry is now bounded.',
+      },
+      'thread-2': ['post:r2'],
+    },
+  });
+});
+
+test('a held thread keeps its edit out of the answer', async () => {
+  seedTexts(
+    { 'thread-2': 'edited but held' },
+    { 'thread-1': ['post:r1'], 'thread-2': [] }
+  );
+  await render(perThreadPostGate(), withFixPlan());
+  await clickSubmit();
+  expect(answer()).toEqual({
+    gateId: 'g-post-threads',
+    answers: { 'thread-1': ['post:r1'], 'thread-2': [] },
+  });
+});
+
+test('an emptied reply on a posting thread disables submit', async () => {
+  seedTexts({ 'thread-2': '   ' });
+  await render(perThreadPostGate(), withFixPlan());
+  expect(submit().disabled).toBe(true);
+});

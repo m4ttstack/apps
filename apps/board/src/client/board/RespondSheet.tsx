@@ -27,7 +27,12 @@ import { MrCard } from './MrCard.tsx';
 import { forgeNoun } from './MrLinks.tsx';
 import { PersonLead, PersonTag } from './PersonLead.tsx';
 import { joinPlan, type JoinedThread } from './respond-join.ts';
-import { postPicks, postTally, type PostPick } from './respond-post.ts';
+import {
+  postPicks,
+  postTally,
+  postTexts,
+  type PostPick,
+} from './respond-post.ts';
 import {
   ReplyCard,
   ReplyChoiceBody,
@@ -45,13 +50,15 @@ import {
 /** The wire answer from the sheet's own selections, built the way
     `answersFromForm` builds it from a form: only a displayed single-select
     counts (a hidden code-changes pick is stale and yields to the
-    sentinel), every multi submits an array, and a trimmed note wraps its
-    question's value. Null while any required question is unanswered. */
+    sentinel), every multi submits an array, a trimmed note wraps its
+    question's value, and an edited posting thread's trimmed text rides
+    alongside as `text`. Null while any required question is unanswered. */
 function sheetAnswers(
   gate: GateRow,
   shown: Set<string>,
   selections: GateSelections,
-  notes: Record<string, string>
+  notes: Record<string, string>,
+  texts: Record<string, string> = {}
 ): { answers: GateAnswers } | null {
   const sel: GateSelections = {};
   for (const q of gate.questions) {
@@ -67,7 +74,11 @@ function sheetAnswers(
   const answers: GateAnswers = {};
   for (const [id, value] of Object.entries(payload.answers)) {
     const note = id in sel ? (notes[id] ?? '').trim() : '';
-    answers[id] = note ? { value, note } : value;
+    const text = texts[id];
+    answers[id] =
+      note || text
+        ? { value, ...(note ? { note } : {}), ...(text ? { text } : {}) }
+        : value;
   }
   return { answers };
 }
@@ -644,11 +655,14 @@ function RespondSheetBody({
     else delete submitSelections[CODE_CHANGES_QUESTION_ID];
   }
   const shown = new Set(form.display.map(q => q.name));
+  const edits = postTexts(picks, form.selections, form.texts);
   const payload = revising
     ? reason.trim()
       ? reviseAnswers(gate, form.selections, form.notes, reason)
       : null
-    : sheetAnswers(gate, shown, submitSelections, form.notes);
+    : edits === null
+      ? null
+      : sheetAnswers(gate, shown, submitSelections, form.notes, edits);
 
   const threadsDecided = mainQs.filter(
     q => !q.multiple && typeof form.selections[q.name] === 'string'

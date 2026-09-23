@@ -40,6 +40,11 @@ function SummaryDetail({ detail }: { detail: GateSummaryDetailRow[] }) {
             {row.note && (
               <div className="tui-gate-summary-note">{row.note}</div>
             )}
+            {row.text && (
+              <div className="tui-gate-summary-note" data-edited-reply="">
+                edited reply: {row.text}
+              </div>
+            )}
           </dd>
         </div>
       ))}
@@ -94,6 +99,9 @@ function useGateForm(gate: GateRow, onAnswered?: () => void) {
   const [notes, setNotes] = useState<Record<string, string>>(
     () => draft?.notes ?? {}
   );
+  const [texts, setTexts] = useState<Record<string, string>>(
+    () => draft?.texts ?? {}
+  );
   const [step, setStep] = useState<string | null>(() => draft?.item ?? null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -111,8 +119,8 @@ function useGateForm(gate: GateRow, onAnswered?: () => void) {
   const activeStep = step ?? display[0]?.name;
 
   useEffect(() => {
-    saveDraft({ selections, notes, item: step });
-  }, [saveDraft, selections, notes, step]);
+    saveDraft({ selections, notes, texts, item: step });
+  }, [saveDraft, selections, notes, texts, step]);
 
   const setSingle = (name: string, value: string) =>
     setSelections(prev => ({ ...prev, [name]: value }));
@@ -126,9 +134,18 @@ function useGateForm(gate: GateRow, onAnswered?: () => void) {
     });
   const setNote = (name: string, value: string) =>
     setNotes(prev => ({ ...prev, [name]: value }));
+  const setText = (name: string, value: string) =>
+    setTexts(prev => ({ ...prev, [name]: value }));
+  const clearText = (name: string) =>
+    setTexts(prev => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
   const resetAll = () => {
     setSelections({});
     setNotes({});
+    setTexts({});
     setStep(null);
     clearDraft();
   };
@@ -198,6 +215,7 @@ function useGateForm(gate: GateRow, onAnswered?: () => void) {
   return {
     selections,
     notes,
+    texts,
     busy,
     failed,
     lost,
@@ -212,6 +230,8 @@ function useGateForm(gate: GateRow, onAnswered?: () => void) {
     setSingle,
     toggleMulti,
     setNote,
+    setText,
+    clearText,
     resetAll,
     focusGate,
     submit,
