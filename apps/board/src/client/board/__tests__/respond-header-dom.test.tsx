@@ -163,7 +163,6 @@ test('an open plan@1 gate opens the respond sheet: threads left; MR card, decisi
     )
   ).toHaveLength(1);
   expect($('.tui-sheet-main .tui-thread-card')).not.toBeNull();
-  expect($('.tui-triage-strip')).toBeNull();
   expect($('.tui-triage-sheet')).toBeNull();
   const text = document.body.textContent ?? '';
   expect(text).not.toContain('gate-ctx');
@@ -258,7 +257,7 @@ test('a prose gate carries its parked chip on the action strip', async () => {
     gate({ status: 'parked', context: 'Two threads from renee, both valid.' }),
     MR
   );
-  expect($('.tui-triage-strip')).toBeNull();
+  expect($('.tui-stage-sheet')).not.toBeNull();
   expect($('.tui-gate-sheet-actions [data-gate="parked"]')).not.toBeNull();
 });
 
@@ -273,13 +272,12 @@ test('a prose respond gate opens the stage sheet with its context in the rail', 
     gate({ context: 'Two threads from renee, both valid.' }),
     MR
   );
-  expect($('.tui-respond-head')).toBeNull();
+  expect($('.tui-respond-sheet')).toBeNull();
   expect($('.tui-stage-sheet')).not.toBeNull();
   expect($('.tui-sheet-rail .tui-mr-card')).not.toBeNull();
   expect($('.tui-sheet-context-card')!.textContent).toContain(
     'Two threads from renee, both valid.'
   );
-  expect($('.tui-triage-body')).toBeNull();
 });
 
 test('a malformed plan context opens the stage sheet beside the MR card', async () => {
@@ -287,7 +285,7 @@ test('a malformed plan context opens the stage sheet beside the MR card', async 
     gate({ context: JSON.stringify({ 'gate-ctx': 'plan@1' }) }),
     MR
   );
-  expect($('.tui-respond-head')).toBeNull();
+  expect($('.tui-respond-sheet')).toBeNull();
   expect($('.tui-stage-sheet')).not.toBeNull();
   expect($('.tui-sheet-rail .tui-mr-card')).not.toBeNull();
   expect($('.tui-sheet-context-card')).not.toBeNull();
@@ -311,7 +309,7 @@ test('a respond gate whose contexts were dropped still renders its questions and
     }),
     MR
   );
-  expect($('.tui-respond-head')).toBeNull();
+  expect($('.tui-respond-sheet')).toBeNull();
   expect($('.tui-stage-sheet')).not.toBeNull();
   const text = document.body.textContent ?? '';
   expect(text).toContain('queue/enqueue.ts:88');

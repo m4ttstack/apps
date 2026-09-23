@@ -239,10 +239,7 @@ test('a stage gate stacks every question in the main column beside the rail', as
     'Which preview environments?',
     'Draft or ready?',
   ]);
-  expect($('.tui-gate-actions')).toBeNull();
-  expect($('.tui-gate-progress')).toBeNull();
-  expect($('.tui-gate-key')).toBeNull();
-  expect($('.tui-triage-strip')).toBeNull();
+  expect($$('.tui-sheet-main button')).toEqual([]);
   expect(text('.tui-sheet-list-title')).toBe('Ship: 3 questions');
   expect(text('.tui-sheet-list-tally')).toBe('0 of 3 answered');
   expect(text('.tui-gate-sheet-tag')).toBe('ship');

@@ -123,7 +123,9 @@ test('every question renders at once, with no step nav anywhere', async () => {
   expect(
     document.body.querySelectorAll('.tui-sheet-main .tui-gate-question')
   ).toHaveLength(2);
-  expect($('.tui-gate-actions')).toBeNull();
+  expect(document.body.querySelectorAll('.tui-sheet-main button')).toHaveLength(
+    0
+  );
   expect($('.tui-sheet-dock .tui-sheet-submit')).not.toBeNull();
 });
 
@@ -260,9 +262,8 @@ test('the previous-gate control calls onBack, the next-gate control calls onNext
   expect(posts.length).toBe(posts0);
 });
 
-test('there is no peek row; the next-gate title rides the count tooltip', async () => {
+test('the next-gate title rides the count tooltip', async () => {
   await renderModal(stepped(), '!52 · add retry to the fetch queue');
-  expect($('.tui-triage-peek')).toBeNull();
   expect($('.tui-gate-queue-pos')?.getAttribute('title')).toBe(
     'next: !52 · add retry to the fetch queue'
   );
