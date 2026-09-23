@@ -4275,6 +4275,14 @@ body {
   .tui-sheet-lost {
     padding: 20px;
   }
+  /* Side by side, the winning answer squeezes to a word per line. */
+  .tui-sheet-lost .tui-gate-summary {
+    gap: 8px;
+  }
+  .tui-sheet-lost .tui-gate-summary-row {
+    flex-direction: column;
+    gap: 2px;
+  }
   .tui-sheet-list-head,
   .tui-gate-question-head {
     flex-wrap: wrap;
