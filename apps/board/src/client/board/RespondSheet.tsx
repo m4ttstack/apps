@@ -17,7 +17,7 @@ import { parseGateCtx, type PlanCtx, type PostCtx } from './gate-ctx.ts';
 import { AnsweredChip, type GateFormState } from './GateForm.tsx';
 import { MrCard } from './MrCard.tsx';
 import { forgeNoun } from './MrLinks.tsx';
-import { PersonLead } from './PersonLead.tsx';
+import { PersonLead, PersonTag } from './PersonLead.tsx';
 import { ReplyChoiceBody, SeverityPill, ThreadCard } from './RespondCards.tsx';
 import {
   headerChips,
@@ -434,9 +434,18 @@ function RespondSheetBody({
       <section className="tui-sheet-main">
         <div className="tui-sheet-list-head">
           <span className="tui-sheet-list-title">
-            {repliesQ
-              ? repliesQ.prompt
-              : `Respond to ${mainQs.length} ${mainQs.length === 1 ? 'thread' : 'threads'} from ${ctx.reviewer}`}
+            {repliesQ ? (
+              repliesQ.prompt
+            ) : (
+              <>
+                Respond to {mainQs.length}{' '}
+                {mainQs.length === 1 ? 'thread' : 'threads'} from{' '}
+                <PersonTag
+                  id={ctx.reviewer}
+                  name={reviewerName(ctx.reviewer, mr, people)}
+                />
+              </>
+            )}
           </span>
           <span className="tui-sheet-list-tally">
             {repliesQ

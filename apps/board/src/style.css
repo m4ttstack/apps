@@ -2561,10 +2561,19 @@ body {
   min-width: 0;
   margin-bottom: 2px;
 }
-.tui-id-card-avatar {
+/* The invader and name travel as one inline unit wherever a sheet names a
+   person, a card's lead line or a heading alike. */
+.tui-person {
+  white-space: nowrap;
+}
+/* Only the invader is centred on the line; the name stays inline text so
+   it shares the sentence's baseline. */
+.tui-person-avatar {
+  display: inline-block;
+  vertical-align: middle;
   width: 22px;
   height: 22px;
-  flex-shrink: 0;
+  margin: -3px 7px 0 0;
   border-radius: 5px;
   overflow: hidden;
 }
@@ -3622,9 +3631,6 @@ body {
 }
 .tui-gate-queue-pip[data-state='active'] {
   background: var(--fill-accent);
-}
-.tui-gate-queue-pip[data-state='skipped'] {
-  background: var(--fill-warn);
 }
 .tui-gate-queue-pip[data-state='todo'] {
   background: transparent;

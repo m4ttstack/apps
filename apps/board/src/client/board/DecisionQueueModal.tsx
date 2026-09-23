@@ -72,10 +72,8 @@ function DeliveryStatusCard({
   );
 }
 
-/** One pip per queued gate. `skipped` gates come from the queue's local
-    skip action, which advances without answering and leaves the gate (and
-    its draft) untouched. */
-export type TriageGateState = 'done' | 'active' | 'todo' | 'skipped';
+/** One pip per queued gate. */
+export type TriageGateState = 'done' | 'active' | 'todo';
 
 /** The gate's own state chips; they ride the MR strip, or the action strip
     when the header card has taken the strip's place. */
@@ -109,7 +107,7 @@ function DecisionQueueModal({
   states,
   nextPeek,
   onClose,
-  onSkip,
+  onNext,
   onBack,
   onFocusPane,
   onAnswered,
@@ -128,7 +126,7 @@ function DecisionQueueModal({
   /** "!ref · title" glance at the gate after this one; omit on the last. */
   nextPeek?: string;
   onClose: () => void;
-  onSkip: () => void;
+  onNext: () => void;
   /** Returns to the previous gate in queue order; a no-op at the first. */
   onBack: () => void;
   onFocusPane: (mr: BoardMRWithReview, domain: GateDomain) => void;
@@ -169,7 +167,7 @@ function DecisionQueueModal({
     total: states.length,
     states,
     onPrev: onBack,
-    onNext: onSkip,
+    onNext,
     nextPeek,
   };
 
@@ -403,11 +401,9 @@ function DecisionQueueModal({
 /** The queue's terminal face, shown once no gate is left active. */
 function DecisionQueueComplete({
   answered,
-  skipped,
   onClose,
 }: {
   answered: number;
-  skipped: number;
   onClose: () => void;
 }) {
   return (
@@ -421,9 +417,7 @@ function DecisionQueueComplete({
           <span className="tui-triage-done-line">
             no gates left in the queue
           </span>
-          <span className="tui-triage-done-counts">
-            {answered} answered{skipped > 0 && ` · ${skipped} skipped`}
-          </span>
+          <span className="tui-triage-done-counts">{answered} answered</span>
           <Button
             type="button"
             className="tui-triage-done-action"

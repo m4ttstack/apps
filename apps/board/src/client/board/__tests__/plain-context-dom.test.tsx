@@ -67,7 +67,7 @@ async function renderModal(row: GateRow) {
         position={1}
         states={['active']}
         onClose={() => {}}
-        onSkip={() => {}}
+        onNext={() => {}}
         onBack={() => {}}
         onFocusPane={() => {}}
         onAnswered={() => {}}

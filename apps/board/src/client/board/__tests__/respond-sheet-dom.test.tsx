@@ -157,7 +157,7 @@ async function render(row: GateRow) {
         position={1}
         states={['active']}
         onClose={() => {}}
-        onSkip={() => {}}
+        onNext={() => {}}
         onBack={() => {}}
         onFocusPane={() => {}}
         onAnswered={() => {}}

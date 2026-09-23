@@ -93,7 +93,7 @@ async function renderModal(
         states={opts?.states ?? ['active']}
         nextPeek={nextPeek}
         onClose={() => {}}
-        onSkip={() => {}}
+        onNext={() => {}}
         onBack={opts?.onBack ?? (() => {})}
         onFocusPane={() => {}}
         onAnswered={() => {}}
@@ -205,7 +205,7 @@ test('the previous-gate control is disabled on the first gate and enabled past i
 test('the next-gate control is disabled on the last gate, so navigating never lands on the done face', async () => {
   await renderModal(stepped(), undefined, {
     position: 3,
-    states: ['done', 'skipped', 'active'],
+    states: ['done', 'todo', 'active'],
   });
   expect(($('[aria-label="next gate"]') as HTMLButtonElement).disabled).toBe(
     true
@@ -220,7 +220,7 @@ test('the next-gate control is disabled on the last gate, so navigating never la
   );
 });
 
-test('the previous-gate control calls onBack, the next-gate control calls onSkip', async () => {
+test('the previous-gate control calls onBack, the next-gate control calls onNext', async () => {
   let backCalls = 0;
   await renderModal(stepped(), undefined, {
     position: 2,
@@ -234,7 +234,7 @@ test('the previous-gate control calls onBack, the next-gate control calls onSkip
 
   const posts0 = posts.length;
   await click($('[aria-label="next gate"]'));
-  // onSkip is a no-op fetch-free callback in this harness; the click just
+  // onNext is a no-op fetch-free callback in this harness; the click just
   // needs to not throw and not touch the network.
   expect(posts.length).toBe(posts0);
 });

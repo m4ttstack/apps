@@ -1,16 +1,33 @@
 import type { ReactNode } from 'react';
 import { Invadr } from 'invadrs/react';
 
-/** A card's lead line about a person: their invader and name, then what
-    they did ("opened !12 into main", "reviewed your merge request"), with
-    anything `trailing` (the MR's links) held to the right edge. */
+/** A person as the sheets name them everywhere: their invader and their
+    name in the author colour, one inline unit. */
+export function PersonTag({
+  id,
+  name,
+}: {
+  /** The username the invader is generated from. */
+  id: string;
+  name: string;
+}) {
+  return (
+    <span className="tui-person">
+      <Invadr id={id} palette="css-vars" className="tui-person-avatar" />
+      <strong className="tui-person-name">{name}</strong>
+    </span>
+  );
+}
+
+/** A card's lead line about a person: who, then what they did ("opened !12
+    into main", "reviewed your merge request"), with anything `trailing`
+    (the MR's links) held to the right edge. */
 export function PersonLead({
   id,
   name,
   children,
   trailing,
 }: {
-  /** The username the invader is generated from. */
   id: string;
   name: string;
   children: ReactNode;
@@ -18,9 +35,8 @@ export function PersonLead({
 }) {
   return (
     <div className="tui-id-card-top">
-      <Invadr id={id} palette="css-vars" className="tui-id-card-avatar" />
       <p className="tui-id-card-lead">
-        <strong className="tui-person-name">{name}</strong> {children}
+        <PersonTag id={id} name={name} /> {children}
       </p>
       {trailing}
     </div>

@@ -8,7 +8,6 @@ import {
   backTo,
   forwardTo,
   markAnswered,
-  markSkipped,
   queueView,
   reconcile,
   stepForward,
@@ -29,7 +28,6 @@ function entry(
 const session = (over: Partial<QueueSession> = {}): QueueSession => ({
   order: ['g1', 'g2', 'g3'],
   answered: [],
-  skipped: [],
   activeId: 'g1',
   ...over,
 });
@@ -42,9 +40,9 @@ test('view maps order to states and 1-based position', () => {
   expect(v.nextPeek).toBe('!3 · fix the thing');
 });
 
-test('advance skips answered and skipped, never wraps backwards', () => {
-  expect(advance(session({ skipped: ['g2'] }), entries, 'g1')).toBe('g3');
-  expect(advance(session({ skipped: ['g2'] }), entries, 'g3')).toBeNull();
+test('advance skips answered gates, never wraps backwards', () => {
+  expect(advance(session({ answered: ['g2'] }), entries, 'g1')).toBe('g3');
+  expect(advance(session({ answered: ['g2'] }), entries, 'g3')).toBeNull();
 });
 
 test('reconcile appends new gates without reshuffling', () => {
@@ -79,7 +77,7 @@ test('reconcile keeps the whole queue through an empty snapshot', () => {
 
 test('complete when nothing is left', () => {
   const v = queueView(
-    session({ answered: ['g1', 'g2'], skipped: ['g3'], activeId: null }),
+    session({ answered: ['g1', 'g2', 'g3'], activeId: null }),
     entries
   );
   expect(v.complete).toBe(true);
@@ -127,28 +125,32 @@ test('nextPeek names the successor in order, and nothing on the last gate', () =
   expect(queueView(last, entries).nextPeek).toBeUndefined();
 });
 
-test('forward is positional: it steps onto skipped and answered gates alike', () => {
-  const s = session({ skipped: ['g2'], answered: ['g3'], activeId: 'g1' });
+test('forward is positional: it steps onto answered and undecided gates alike', () => {
+  const s = session({ answered: ['g3'], activeId: 'g1' });
   expect(forwardTo(s, entries, 'g1')).toBe('g2');
   expect(forwardTo(s, entries, 'g2')).toBe('g3');
   expect(forwardTo(s, entries, 'g3')).toBeNull();
   expect(forwardTo(s, entries, null)).toBeNull();
 });
 
-test('back to the first gate, then forward, lands on the second, not the first undecided one', () => {
-  // The reported path: skip 1, 2, 3 (now on 4), back three times to 1,
-  // then forward. Forward must go to 2, not jump to 4.
+test('paging forward to the end and back to the start leaves every gate undecided', () => {
+  // The reported path: next 1 -> 4, back three times to 1, next again. It
+  // must land on 2, and paging must never change a gate's state.
   const four = ['g1', 'g2', 'g3', 'g4'];
   const fourEntries = four.map((id, i) => entry(id, i + 1));
-  let s: QueueSession = {
-    order: four,
-    answered: [],
-    skipped: ['g1', 'g2', 'g3'],
-    activeId: 'g4',
-  };
+  let s: QueueSession = { order: four, answered: [], activeId: 'g1' };
+  for (let i = 0; i < 3; i++) s = stepForward(s, fourEntries);
+  expect(s.activeId).toBe('g4');
   for (let i = 0; i < 3; i++) s = { ...s, activeId: backTo(s, s.activeId) };
   expect(s.activeId).toBe('g1');
-  expect(forwardTo(s, fourEntries, s.activeId)).toBe('g2');
+  s = stepForward(s, fourEntries);
+  expect(s.activeId).toBe('g2');
+  expect(queueView(s, fourEntries).states).toEqual([
+    'todo',
+    'active',
+    'todo',
+    'todo',
+  ]);
 });
 
 test('back from the second gate returns to the first', () => {
@@ -160,78 +162,21 @@ test('back is unavailable at the first', () => {
   expect(backTo(session(), null)).toBeNull();
 });
 
-test('back does not clear a skip', () => {
-  const s = session({ skipped: ['g1'], activeId: 'g2' });
-  expect(backTo(s, s.activeId)).toBe('g1');
-  // backTo is read-only over the session it's handed; the caller applies
-  // the new activeId, so `skipped` on the input never changes shape here.
-  expect(s.skipped).toEqual(['g1']);
-});
-
-test('next after back steps to the successor and keeps the skip mark', () => {
-  const afterSkip = session({ skipped: ['g1'], activeId: 'g2' });
-  const backed = { ...afterSkip, activeId: backTo(afterSkip, 'g2') };
-  expect(backed.activeId).toBe('g1');
-  const s = stepForward(backed, entries);
-  expect(s.activeId).toBe('g2');
-  // g1 was already skipped; stepping off it again must not add a copy.
-  expect(queueView(s, entries).skippedCount).toBe(1);
-  expect(queueView(s, entries).answeredCount).toBe(0);
-});
-
-test('stepping off an answered gate leaves it answered, not skipped', () => {
-  const s = stepForward(session({ answered: ['g1'], activeId: 'g1' }), entries);
-  expect(s.activeId).toBe('g2');
-  expect(s.skipped).toEqual([]);
-});
-
 test('next on the last gate changes nothing', () => {
   const last = session({ activeId: 'g3' });
   expect(stepForward(last, entries)).toBe(last);
 });
 
-test('skipping through a 5-gate queue with a back-and-reskip never double-counts', () => {
-  const five = ['g1', 'g2', 'g3', 'g4', 'g5'];
-  const fiveEntries = five.map((id, i) => entry(id, i + 1));
-  let s: QueueSession = {
-    order: five,
-    answered: [],
-    skipped: [],
-    activeId: 'g1',
-  };
-  s = stepForward(s, fiveEntries); // g1 -> g2
-  s = stepForward(s, fiveEntries); // g2 -> g3
-  s = { ...s, activeId: backTo(s, s.activeId) }; // back -> g2
-  s = stepForward(s, fiveEntries); // g2 -> g3, no second copy of g2
-  s = stepForward(s, fiveEntries); // g3 -> g4
-  s = stepForward(s, fiveEntries); // g4 -> g5
-  s = stepForward(s, fiveEntries); // last gate: stays on g5
-  expect(s.activeId).toBe('g5');
-  expect(s.skipped).toEqual(['g1', 'g2', 'g3', 'g4']);
-  expect(queueView(s, fiveEntries).complete).toBe(false);
+test('answering after paging past gates wraps back to the first undecided one', () => {
+  // Page to the last gate and answer it: the queue returns to gate 1, not
+  // the done face, because paging never decided anything.
+  const s = session({ answered: ['g3'], activeId: 'g3' });
+  expect(advanceOrWrap(s, entries, 'g3')).toBe('g1');
 });
 
-test('answering a gate reached by backing into a previous skip drops it from skipped', () => {
-  const s = session({ skipped: ['g1'], activeId: 'g1' });
-  const patch = markAnswered(s, 'g1');
-  expect(patch.answered).toEqual(['g1']);
-  expect(patch.skipped).toEqual([]);
-  const v = queueView({ ...s, ...patch }, entries);
-  expect(v.answeredCount).toBe(1);
-  expect(v.skippedCount).toBe(0);
-});
-
-test('position and pips track back to a gate already marked skipped: active outranks skipped', () => {
-  const afterSkip = session({ skipped: ['g1'], activeId: 'g2' });
-  expect(queueView(afterSkip, entries).position).toBe(2);
-
-  const backId = backTo(afterSkip, afterSkip.activeId)!;
-  const afterBack = { ...afterSkip, activeId: backId };
-  const v = queueView(afterBack, entries);
-  expect(v.position).toBe(1);
-  // g1 is the active gate now, even though it's still recorded as skipped
-  // (back never clears that record): stateFor ranks "is this the active
-  // gate" above "is this recorded as skipped", so the strip never loses
-  // its "you are here" pip.
-  expect(v.states).toEqual(['active', 'todo', 'todo']);
+test('the active pip reads "you are here" even on an answered gate', () => {
+  const v = queueView(session({ answered: ['g1'], activeId: 'g2' }), entries);
+  expect(v.states).toEqual(['done', 'active', 'todo']);
+  const back = { ...session({ answered: ['g1'] }), activeId: 'g1' };
+  expect(queueView(back, entries).states).toEqual(['active', 'todo', 'todo']);
 });

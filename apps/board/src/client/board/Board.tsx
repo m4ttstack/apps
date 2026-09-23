@@ -1443,7 +1443,7 @@ export function Board() {
           states={queue.states}
           nextPeek={queue.nextPeek}
           onClose={queue.close}
-          onSkip={queue.skip}
+          onNext={queue.next}
           onBack={queue.back}
           onFocusPane={handleFocusPane}
           onAnswered={() => queue.noteAnswered(activeGateId)}
@@ -1461,7 +1461,6 @@ export function Board() {
       {queue.open && queue.complete && (
         <DecisionQueueComplete
           answered={queue.answeredCount}
-          skipped={queue.skippedCount}
           onClose={queue.close}
         />
       )}

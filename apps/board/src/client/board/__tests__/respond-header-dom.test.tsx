@@ -122,7 +122,7 @@ async function renderModal(row: GateRow, mr?: BoardMRWithReview) {
         position={1}
         states={['active']}
         onClose={() => {}}
-        onSkip={() => {}}
+        onNext={() => {}}
         onBack={() => {}}
         onFocusPane={() => {}}
         onAnswered={() => {}}
