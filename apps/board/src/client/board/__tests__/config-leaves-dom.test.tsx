@@ -46,6 +46,7 @@ let userValue: Record<string, unknown> | undefined;
 let explainGate: Promise<void>;
 let writes: { url: string; body: { value?: unknown } }[];
 let explainCalls: number;
+let explainFails: boolean;
 
 const rows = (): Row[] => [
   { scope: 'default', file: '', present: true, value: DEFAULT },
@@ -84,6 +85,7 @@ beforeEach(() => {
   explainGate = Promise.resolve();
   writes = [];
   explainCalls = 0;
+  explainFails = false;
   localStorage.setItem('board.config.openRows', JSON.stringify([KEY]));
   globalThis.fetch = (async (input: string, init?: RequestInit) => {
     const url = String(input);
@@ -92,6 +94,13 @@ beforeEach(() => {
       explainCalls++;
       const snapshot = rows();
       await explainGate;
+      if (explainFails) {
+        return {
+          ok: false,
+          status: 500,
+          json: async () => ({ error: 'explain exploded' }),
+        } as Response;
+      }
       return json({ def: def(), rows: snapshot });
     }
     if (url.startsWith('/api/settings/explain/')) {
@@ -212,4 +221,50 @@ test('emptying the last field the layer sets clears the layer', async () => {
   await render();
   await typeAndCommit('cooldownMinutes', '');
   expect(writes.map(w => w.url)).toEqual(['/api/settings/unset']);
+});
+
+test('fields stay disabled until the rows after a write arrive', async () => {
+  await render();
+  let release!: () => void;
+  explainGate = new Promise(r => (release = r));
+  await typeAndCommit('cooldownMinutes', '45');
+  expect(field('cooldownMinutes').disabled).toBe(true);
+  await React.act(async () => release());
+  await flush();
+  expect(field('cooldownMinutes').disabled).toBe(false);
+});
+
+test('a write that leaves the merged value unchanged still refreshes the rows', async () => {
+  userValue = { notify: 'badge-only', cooldownMinutes: 30 };
+  await render();
+  await typeAndCommit('cooldownMinutes', '');
+  expect(field('cooldownMinutes').value).toBe('30');
+  await typeAndCommit('dailyAttemptBudget', '5');
+  expect(writes.map(w => w.body.value)).toEqual([
+    { notify: 'badge-only' },
+    { notify: 'badge-only', dailyAttemptBudget: 5 },
+  ]);
+});
+
+test('resetting one field leaves the other fields mounted', async () => {
+  await render();
+  const other = field('dailyAttemptBudget');
+  await typeAndCommit('cooldownMinutes', '');
+  expect(field('dailyAttemptBudget')).toBe(other);
+});
+
+test('an explain failure shows the error and retry reloads the rows', async () => {
+  explainFails = true;
+  await render();
+  const block = document.querySelector('.tui-config-leaves')!;
+  expect(block.textContent).toContain('explain exploded');
+  expect(field('cooldownMinutes').disabled).toBe(true);
+  explainFails = false;
+  const retry = [...block.querySelectorAll('button')].find(
+    b => b.textContent === 'retry'
+  )!;
+  await React.act(async () => retry.click());
+  await flush();
+  expect(block.textContent).not.toContain('explain exploded');
+  expect(field('cooldownMinutes').disabled).toBe(false);
 });

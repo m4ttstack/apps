@@ -226,7 +226,9 @@ function LeavesControl({
   row: ReturnType<typeof useRowSave>;
 }) {
   const explained = useSettingKey(def.key);
-  const [resets, setResets] = useState(0);
+  const [resets, setResets] = useState<Record<string, number>>({});
+  const reset = (path: string) =>
+    setResets(r => ({ ...r, [path]: (r[path] ?? 0) + 1 }));
 
   // The rows must postdate the def's current value and our last write, or an
   // edit rebuilds the layer without a field just written. The kit raises
@@ -262,7 +264,7 @@ function LeavesControl({
       leaf === undefined &&
       getLeaf(ownValue(rows, row.scope), path) === undefined
     ) {
-      setResets(n => n + 1);
+      reset(path);
       return;
     }
     const next = leafWrite(rows, row.scope, path, leaf);
@@ -271,6 +273,9 @@ function LeavesControl({
       if (!ok) return;
       setStaleRows(rows);
       refresh();
+      // A text field emptied back to an inherited value keeps its value prop,
+      // so it would stay blank without a remount.
+      if (leaf === undefined) reset(path);
     });
   };
   return (
@@ -311,7 +316,7 @@ function LeavesControl({
         } else {
           control = (
             <TextField
-              key={resets}
+              key={resets[path] ?? 0}
               value={leaf === undefined ? '' : String(leaf)}
               placeholder={fallbacks?.[path] ?? 'unset'}
               ariaLabel={label}
@@ -332,6 +337,14 @@ function LeavesControl({
           </div>
         );
       })}
+      {explained.error && (
+        <p className="tui-config-error tui-config-leaves-error">
+          {explained.error}{' '}
+          <button type="button" className="tui-config-link" onClick={refresh}>
+            retry
+          </button>
+        </p>
+      )}
     </div>
   );
 }
