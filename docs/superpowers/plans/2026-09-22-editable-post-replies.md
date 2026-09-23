@@ -941,6 +941,37 @@ git commit -m "board:respond posts an answer's edited text
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
+### Task 7: the finished queue recaps what was decided (apps)
+
+Added 2026-09-23 from a design pick in chat ("Recap", plus "some friendly touches"). Runs after Task 5 (both touch `apps/board/src/style.css`).
+
+**Files:**
+- Modify: `apps/board/src/client/board/decision-queue.ts` (`QueueView` exposes the answered gate ids in answer order)
+- Modify: `apps/board/src/client/board/Board.tsx:1469` (hand the complete face its decided entries)
+- Modify: `apps/board/src/client/board/DecisionQueueModal.tsx` (`DecisionQueueComplete`)
+- Modify: `packages/gate-kit/src/summary.ts` (expose the outcome fragments without the head and `by` suffix)
+- Modify: `apps/board/src/style.css` (`.tui-triage-done*`)
+- Modify: `apps/board/src/client/board/DecisionQueueModal.stories.tsx` (`QueueComplete` story with entries)
+- Test: `packages/gate-kit/test/summary.test.ts`, `apps/board/src/client/board/__tests__/empty-queue-dom.test.tsx` (or a new `queue-complete-dom.test.tsx`)
+
+**Interfaces:**
+- Produces: `QueueView.answeredIds: string[]`; `GateSummary.outcome: string` (the chip's fragments joined, e.g. `2 posted (1 edited), 1 resolved`, with no subject head and no `by` suffix); `DecisionQueueComplete({ decided, onClose })` where `decided: Array<{ gate: GateRow; mr?: BoardMRWithReview }>` in answer order.
+
+**Design (approved in chat):**
+- Keep the full-screen `GateSheet` (the gate modal scope law); center a column about 560px wide.
+- A check glyph in a round ok-tinted badge, then a heading `Queue cleared` (weight 500), then a count line: `1 decision this session` / `N decisions this session`.
+- Friendly touches: the count line continues with a warm sign-off keyed by the local hour (`Enjoy the rest of your morning.` before 12, `...afternoon.` before 17, `Enjoy your evening.` after); the badge and heading ease in once (a short fade and rise, under 300ms), and `prefers-reduced-motion` turns that off.
+- A recap card labelled `decided this session` (the same small-caps label style as the sheet's `decision context`): one row per decided gate, in answer order: `!iid` (mono), the gate's kind word (`domainForKind`), the MR title on one truncated line, and `summary.outcome` beneath or beside it. A gate whose row has no answer yet (poll lag) shows `answered` in the muted role; a gate with no MR shows its subject ref instead of `!iid` and title.
+- The `done` button stays, below the card, focused on mount so Enter closes.
+- No new colours: role tokens only, weights 400/500/700 only; read `docs/ui-authoring.md` first.
+
+- [ ] **Step 1: Failing tests.** gate-kit: `answeredGateSummary(row).outcome` equals `'2 posted (1 edited), 1 resolved, 1 held'` for the Task 3 edited-thread fixture, and carries no subject head and no `· by` suffix. Board DOM: rendering `DecisionQueueComplete` with two decided entries (one respond gate answered with a text-edited thread, one respond-plan gate) shows `Queue cleared`, `2 decisions this session`, two recap rows carrying their `!iid` and outcome text, and the `done` button has focus; with an empty `decided` list the recap card is absent.
+- [ ] **Step 2: Run them to see them fail.** `bun run gate-kit:test`; `bun run tui-kit:build` then the board test file.
+- [ ] **Step 3: Implement** per the design and interfaces above.
+- [ ] **Step 4: Gates.** `bun run gate-kit:test && bun run board:typecheck && bun run board:test && bun run console:typecheck && bun run format:check && sh scripts/repo-purity.sh`.
+- [ ] **Step 5: Look at it.** Fixture board (`PORT=7941`), answer one gate in the decision queue so the complete face shows, screenshot at 1440x900 in light and dark (`mrs-theme`), and once with 3+ decided gates (the story or a fixture tweak). Look at each screenshot and report what reads wrong.
+- [ ] **Step 6: Commit** `board: the finished decision queue recaps what was decided`, ending with the line `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`.
+
 ### Checkpoint C (controller)
 
 Final whole-branch review on the most capable model; screenshots looked at by the controller too. Push `editable-post-replies`, open the apps PR, CodeRabbit (or an Opus reviewer) plus CI, address findings, merge with Matt's confirmation. Deploy: pull the canonical apps checkout, `bun run tui-kit:build`, `bun run board:build`, `deck restart board`; confirm the live board on port 11006 serves the edit button.
