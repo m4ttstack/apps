@@ -494,8 +494,10 @@ conversation.
      answer carries `post:`. Resolving counts toward neither number.
    - `--held` is how many of those deliberately got NO posted reply because
      a gate decided so: a `skip:` thread, a `fix:` thread held out under
-     `code-changes: skip`, or a Gate 2 thread (fixed or override) answered
-     without `post:`. Count a thread here only when a gate answer settled
+     `code-changes: skip`, a Gate 2 thread (fixed or override) answered
+     without `post:`, or a `gate-1: reply` thread an older Gate 2's answer
+     kept down (a retired `replies` list that leaves it out, or an answer
+     that names it without `post:`). Count a thread here only when a gate answer settled
      it without a reply going up; a thread the run simply never got to is
      neither posted nor held.
 
