@@ -12,7 +12,7 @@ import type { GateFormState } from './GateForm.tsx';
 import { MrCard } from './MrCard.tsx';
 import { ReplyChoiceBody, SeverityPill, ThreadCard } from './RespondCards.tsx';
 import { subjectRef } from './RespondGateHeader.tsx';
-import { sheetAnswers } from './RespondSheet.tsx';
+import { sheetAnswers } from './sheet-payload.ts';
 import {
   Choices,
   Note,
