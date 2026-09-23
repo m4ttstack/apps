@@ -53,6 +53,47 @@ describe('SettingRow', () => {
     ).toHaveAttribute('href', '/config/agent.claude.effort');
   });
 
+  it('clamps the description to one line', () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('agent.claude.effort')}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.getByText('What it does.')).toHaveAttribute(
+      'data-line-clamp'
+    );
+  });
+
+  it('an unset scalar says so as a placeholder, never a blank box', () => {
+    renderWithProviders(
+      <>
+        <SettingRow
+          def={def('rt.daemonPath')}
+          store={store()}
+          subhead={null}
+          query=""
+        />
+        <SettingRow
+          def={def('board.gateGraceMinutes', { type: 'number' })}
+          store={store()}
+          subhead={null}
+          query=""
+        />
+      </>
+    );
+    expect(screen.getByLabelText('rt.daemonPath')).toHaveAttribute(
+      'placeholder',
+      'unset'
+    );
+    expect(screen.getByLabelText('board.gateGraceMinutes')).toHaveAttribute(
+      'placeholder',
+      'unset'
+    );
+  });
+
   it('saves a string on blur to the winning layer', async () => {
     const s = store();
     renderWithProviders(

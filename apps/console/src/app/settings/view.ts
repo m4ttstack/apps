@@ -3,6 +3,7 @@ import type {
   SettingDefWire,
 } from '@mattstack/settings-kit/react';
 import {
+  ENUMS,
   filterDefs,
   getLeaf,
   isSet,
@@ -65,6 +66,19 @@ export function applyFilter(
   );
 }
 
+const SCALAR_RANK: Record<string, number> = {
+  number: 1,
+  string: 2,
+  boolean: 3,
+};
+
+/** Rows lead with the quick scalar controls and end with the composites that
+    expand; the sort is stable, so registry order holds within a rank. */
+function rowRank(d: SettingDefWire): number {
+  if (ENUMS[d.key]) return 0;
+  return SCALAR_RANK[d.type] ?? 4;
+}
+
 /** Every group with at least one registered key, in GROUPS order, with
     unknown first segments after them. Empty-after-filter sections are kept
     so the index can show zeros. */
@@ -83,7 +97,9 @@ export function buildSections(all: SettingDefWire[], f: ViewFilter): Section[] {
     .filter(id => byGroup.has(id))
     .map(id => {
       const { group, defs } = byGroup.get(id)!;
-      const shown = defs.filter(d => shownKeys.has(d.key));
+      const shown = defs
+        .filter(d => shownKeys.has(d.key))
+        .sort((a, b) => rowRank(a) - rowRank(b));
       const subsections =
         defs.length > SUBHEAD_THRESHOLD
           ? SUB_ORDER.map(scope => ({

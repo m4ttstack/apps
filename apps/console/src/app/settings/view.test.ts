@@ -114,6 +114,28 @@ describe('buildSections', () => {
     ]);
   });
 
+  it('orders rows selects, numbers, text, switches, then composites', () => {
+    const [daemon] = buildSections(
+      [
+        def('rt.homeSnapshot', { type: 'object' }),
+        def('rt.runsPruneDays', { type: 'number' }),
+        def('rt.daemonPath'),
+        def('rt.logVerbose', { type: 'boolean' }),
+        def('rt.logLevel'),
+        def('rt.apiPort', { type: 'number' }),
+      ],
+      NO_FILTER
+    );
+    expect(daemon!.subsections[0]!.defs.map(d => d.key)).toEqual([
+      'rt.logLevel',
+      'rt.runsPruneDays',
+      'rt.apiPort',
+      'rt.daemonPath',
+      'rt.logVerbose',
+      'rt.homeSnapshot',
+    ]);
+  });
+
   it('keeps a small section as one unlabelled subsection', () => {
     const [agents] = buildSections([def('agent.provider')], NO_FILTER);
     expect(agents!.subsections).toEqual([

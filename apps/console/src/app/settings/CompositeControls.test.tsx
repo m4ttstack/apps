@@ -458,7 +458,7 @@ describe('composite rows', () => {
     expect(screen.getByText(/"triggers"/)).toBeInTheDocument();
   });
 
-  it('an unset read-only composite says unset once, with no toggle', () => {
+  it('an unset read-only composite summarises as unset, with no toggle', () => {
     renderWithProviders(
       <SettingRow
         def={def('rt.runaway', {
@@ -472,7 +472,7 @@ describe('composite rows', () => {
       />
     );
     expect(screen.queryByRole('button', { expanded: false })).toBeNull();
-    expect(screen.getAllByText('unset')).toHaveLength(1);
+    expect(screen.getAllByText('unset')).toHaveLength(2);
   });
 
   it('a shaped key that is not writable gets no editor and no Clear', async () => {

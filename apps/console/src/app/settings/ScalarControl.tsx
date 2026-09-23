@@ -12,6 +12,12 @@ import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import { ENUMS } from '@mattstack/settings-kit/shapes';
 
+import {
+  enumWidth,
+  INPUT_TYPE,
+  numberWidth,
+  SWITCH_SIZE,
+} from './controlStyles';
 import { unitOf } from './units';
 import { isStoreScope } from './view';
 
@@ -48,6 +54,8 @@ export function ScalarControl({
     return (
       <Switch
         aria-label={label}
+        size="sm"
+        style={SWITCH_SIZE}
         checked={value === true}
         onChange={e => onSave(e.currentTarget.checked)}
       />
@@ -58,7 +66,10 @@ export function ScalarControl({
     return (
       <Select
         aria-label={label}
-        w={200}
+        size="xs"
+        w={enumWidth(options)}
+        styles={INPUT_TYPE.label}
+        placeholder="unset"
         data={[...options]}
         value={typeof value === 'string' ? value : null}
         allowDeselect={false}
@@ -75,7 +86,10 @@ export function ScalarControl({
         <NumberInput
           key={seed}
           aria-label={label}
-          w={90}
+          size="xs"
+          w={numberWidth(value)}
+          styles={INPUT_TYPE.number}
+          placeholder="unset"
           hideControls
           defaultValue={typeof value === 'number' ? value : undefined}
           onKeyDown={blurOnEnter}
@@ -90,7 +104,7 @@ export function ScalarControl({
           }}
         />
         {unit && (
-          <Text size="xs" c={text.muted}>
+          <Text fz={12} c={text.muted}>
             {unit}
           </Text>
         )}
@@ -118,7 +132,10 @@ export function ScalarControl({
     <TextInput
       key={seed}
       aria-label={label}
+      size="xs"
       w={200}
+      styles={INPUT_TYPE.code}
+      placeholder="unset"
       defaultValue={current}
       onKeyDown={e => {
         if (e.key === 'Escape') e.currentTarget.value = current;
@@ -146,7 +163,10 @@ function SuggestInput({
     <Autocomplete
       ref={input}
       aria-label={label}
+      size="xs"
       w={200}
+      styles={INPUT_TYPE.label}
+      placeholder="unset"
       data={suggestions}
       defaultValue={initial}
       onKeyDown={e => {

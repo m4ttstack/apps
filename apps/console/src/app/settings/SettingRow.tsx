@@ -92,7 +92,7 @@ export function SettingRow({
     const shape = SHAPES[def.key];
     const owner = shape?.kind === 'external' ? shape.app : 'another app';
     control = (
-      <Text size="xs" c={text.muted}>
+      <Text fz={12} c={text.muted}>
         {def.effective.value === undefined
           ? `edited in ${owner}`
           : `${summarize(def)} · edited in ${owner}`}
@@ -114,7 +114,7 @@ export function SettingRow({
         : formatValue(def.effective.value);
     control =
       shown === null ? null : (
-        <Text size="xs" c={text.muted} ff="monospace">
+        <Text fz={12} c={text.muted} ff="monospace">
           {shown}
         </Text>
       );
@@ -134,7 +134,7 @@ export function SettingRow({
       <Group gap={24} wrap="nowrap" py={12}>
         <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
           <Group gap={8} wrap="nowrap">
-            <Text size="sm" ff="monospace" span>
+            <Text fz={14} ff="monospace" span>
               <Text span inherit c={text.muted}>
                 {ns}
               </Text>
@@ -147,7 +147,7 @@ export function SettingRow({
                 onMove={to => void row.move(badge, to)}
               />
             ) : plain ? (
-              <Text size="xs" c={text.muted}>
+              <Text fz={12} c={text.muted}>
                 {plain}
               </Text>
             ) : null}
@@ -155,20 +155,21 @@ export function SettingRow({
           <Marked
             text={firstSentence(def.description)}
             query={query}
-            size="xs"
+            fz={12}
             c={text.muted}
+            lineClamp={1}
           />
         </Stack>
         <Group w={260} gap={8} wrap="nowrap" style={{ flex: 'none' }}>
           {control}
           {row.status === 'saving' && (
-            <Text size="xs" c={text.muted}>
+            <Text fz={12} c={text.muted}>
               saving…
             </Text>
           )}
           {row.status === 'saved' && (
             <Group gap={4} wrap="nowrap">
-              <Text size="xs" c="var(--tk-text-ok-small)">
+              <Text fz={12} c="var(--tk-text-ok-small)">
                 saved
               </Text>
               <Icons.check size={12} color="var(--tk-text-ok-vivid)" />
@@ -180,6 +181,7 @@ export function SettingRow({
           href={`/config/${encodeURIComponent(def.key)}`}
           variant="subtle"
           color="gray"
+          c={text.muted}
           aria-label={`explain ${def.key}`}
         >
           <Icons.chevronRight size={16} />
@@ -188,12 +190,12 @@ export function SettingRow({
       {(row.error || def.effective.invalid) && (
         <Stack gap={4} pb={12}>
           {row.error && (
-            <Text size="xs" ff="monospace" c="var(--tk-text-bad-small)">
+            <Text fz={12} ff="monospace" c="var(--tk-text-bad-small)">
               {row.error}
             </Text>
           )}
           {def.effective.invalid && (
-            <Text size="xs" ff="monospace" c="var(--tk-text-bad-small)">
+            <Text fz={12} ff="monospace" c="var(--tk-text-bad-small)">
               stored value rejected: {def.effective.invalid}
             </Text>
           )}

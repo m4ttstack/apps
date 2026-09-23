@@ -14,8 +14,8 @@ export function ExpandToggle({
   const { text } = useSchemeColors();
   return (
     <UnstyledButton onClick={onToggle} aria-expanded={open}>
-      <Group gap={4} wrap="nowrap">
-        <Text size="xs" c={text.muted}>
+      <Group gap={8} wrap="nowrap" c={text.muted}>
+        <Text fz={12} c={text.muted}>
           {label}
         </Text>
         {open ? <Icons.chevronUp size={14} /> : <Icons.chevronDown size={14} />}

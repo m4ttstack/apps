@@ -37,6 +37,12 @@ import {
   type RowKind,
 } from '@mattstack/settings-kit/shapes';
 
+import {
+  enumWidth,
+  INPUT_TYPE,
+  numberWidth,
+  SWITCH_SIZE,
+} from './controlStyles';
 import { ExpandToggle } from './ExpandToggle';
 import { ScopeBadge } from './ScopeBadge';
 import { unitOf } from './units';
@@ -50,7 +56,7 @@ const LEAVES_FIRST = 5;
 
 const PREVIEW_STYLE = {
   background: 'var(--tk-inset)',
-  fontSize: 'var(--mantine-font-size-xs)',
+  fontSize: 12,
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-word',
 } as const;
@@ -110,7 +116,7 @@ function StringListBody({ def, row }: { def: SettingDefWire; row: Row }) {
         <FieldRow
           key={`${i}:${item}`}
           label={
-            <Text size="xs" ff="monospace">
+            <Text fz={12} ff="monospace">
               {item}
             </Text>
           }
@@ -161,7 +167,7 @@ function StringMapBody({
         <FieldRow
           key={key}
           label={
-            <Text size="xs" ff="monospace" truncate>
+            <Text fz={12} ff="monospace" truncate>
               {key}
             </Text>
           }
@@ -251,6 +257,8 @@ function LeafInput({
     return (
       <Switch
         aria-label={label}
+        size="sm"
+        style={SWITCH_SIZE}
         disabled={disabled}
         checked={value === true}
         onChange={e => onSave(e.currentTarget.checked)}
@@ -262,7 +270,8 @@ function LeafInput({
         aria-label={label}
         disabled={disabled}
         size="xs"
-        w={160}
+        w={enumWidth(type.enum)}
+        styles={INPUT_TYPE.label}
         data={[...type.enum]}
         value={typeof value === 'string' ? value : null}
         allowDeselect={false}
@@ -279,7 +288,9 @@ function LeafInput({
           aria-label={label}
           disabled={disabled}
           size="xs"
-          w={80}
+          w={numberWidth(value)}
+          styles={INPUT_TYPE.number}
+          placeholder={placeholder}
           hideControls
           defaultValue={typeof value === 'number' ? value : undefined}
           onKeyDown={blurOnEnter}
@@ -294,7 +305,7 @@ function LeafInput({
           }}
         />
         {unit && (
-          <Text size="xs" c={text.muted}>
+          <Text fz={12} c={text.muted}>
             {unit}
           </Text>
         )}
@@ -307,6 +318,7 @@ function LeafInput({
       disabled={disabled}
       size="xs"
       w={200}
+      styles={INPUT_TYPE.code}
       placeholder={placeholder}
       defaultValue={typeof value === 'string' ? value : ''}
       onKeyDown={blurOnEnter}
@@ -372,7 +384,7 @@ function LeavesBody({
           <FieldRow
             key={path}
             label={
-              <Text size="xs" ff="monospace">
+              <Text fz={12} ff="monospace">
                 {path}
               </Text>
             }
@@ -380,7 +392,7 @@ function LeavesBody({
               isStoreScope(source) ? (
                 <ScopeBadge scope={source} moveTo={[]} onMove={() => {}} />
               ) : source ? (
-                <Text size="xs" c={text.muted}>
+                <Text fz={12} c={text.muted}>
                   {source}
                 </Text>
               ) : null
@@ -408,13 +420,16 @@ function LeavesBody({
       })}
       {paths.length > LEAVES_FIRST && !all && (
         <UnstyledButton onClick={() => setAll(true)} py={8}>
-          <Text size="xs" fw={500} c="var(--tk-text-accent-small)">
-            {paths.length - LEAVES_FIRST} more fields
-          </Text>
+          <Group gap={4} wrap="nowrap" c="var(--tk-text-accent-small)">
+            <Text fz={12} fw={500} c="var(--tk-text-accent-small)">
+              {paths.length - LEAVES_FIRST} more fields
+            </Text>
+            <Icons.chevronDown size={12} />
+          </Group>
         </UnstyledButton>
       )}
       {explained.error && (
-        <Text size="xs" ff="monospace" c="var(--tk-text-bad-small)" py={6}>
+        <Text fz={12} ff="monospace" c="var(--tk-text-bad-small)" py={6}>
           {explained.error}
         </Text>
       )}
@@ -428,7 +443,7 @@ function ReadonlyBody({ def }: { def: SettingDefWire }) {
   return (
     <Body>
       {def.secret ? (
-        <Text size="xs" ff="monospace" c={text.muted}>
+        <Text fz={12} ff="monospace" c={text.muted}>
           •••
         </Text>
       ) : (
@@ -437,11 +452,20 @@ function ReadonlyBody({ def }: { def: SettingDefWire }) {
         </Code>
       )}
       {def.effective.file && (
-        <Text size="xs" ff="monospace" c={text.muted} pt={8}>
+        <Text fz={12} ff="monospace" c={text.muted} pt={8}>
           {def.effective.file}
         </Text>
       )}
     </Body>
+  );
+}
+
+function UnsetSummary() {
+  const { text } = useSchemeColors();
+  return (
+    <Text fz={12} c={text.muted}>
+      unset
+    </Text>
   );
 }
 
@@ -461,7 +485,7 @@ export function compositeParts(
   );
   const readonly =
     (value === undefined && !def.secret) || def.effective.scope === null
-      ? { control: null, body: null }
+      ? { control: <UnsetSummary />, body: null }
       : { control: toggle, body: open ? <ReadonlyBody def={def} /> : null };
 
   // Secret and unwritable keys can still carry a SHAPES entry; they must
@@ -479,7 +503,7 @@ export function compositeParts(
     return {
       control: (
         <Group gap={8} wrap="nowrap">
-          <Text size="xs" fw={500} c="var(--tk-text-bad-small)">
+          <Text fz={12} fw={500} c="var(--tk-text-bad-small)">
             unexpected shape
           </Text>
           {isStoreScope(at) && (
