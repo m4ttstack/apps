@@ -605,3 +605,31 @@ test("TabBar's title is the same row-scale title a compact header renders", () =
   expect(heading.style.getPropertyValue('--title-fz')).toContain('h5');
   expect(heading.style.fontWeight).toBe('700');
 });
+
+test('Content marks an explicit surface so a theme can leave it alone', () => {
+  const { unmount } = renderWithProviders(
+    <PageShell>
+      <PageShell.Main>
+        <PageShell.Content>
+          <div>kit surface</div>
+        </PageShell.Content>
+      </PageShell.Main>
+    </PageShell>
+  );
+  expect(document.getElementById('page-shell-content')).not.toHaveAttribute(
+    'data-own-surface'
+  );
+  unmount();
+  renderWithProviders(
+    <PageShell>
+      <PageShell.Main>
+        <PageShell.Content bg="var(--ui-bg-3)">
+          <div>own surface</div>
+        </PageShell.Content>
+      </PageShell.Main>
+    </PageShell>
+  );
+  expect(document.getElementById('page-shell-content')).toHaveAttribute(
+    'data-own-surface'
+  );
+});
