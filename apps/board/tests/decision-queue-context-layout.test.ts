@@ -80,14 +80,29 @@ afterAll(async () => {
   server?.kill();
 });
 
-async function openQueue(viewport: {
-  width: number;
-  height: number;
-}): Promise<Page> {
+async function openQueue(
+  viewport: {
+    width: number;
+    height: number;
+  },
+  extraGates: unknown[] = []
+): Promise<Page> {
   const ctx = await browser.newContext({ viewport });
   await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route =>
     route.abort()
   );
+  if (extraGates.length > 0)
+    await ctx.route(/\/data\.json/, async route => {
+      const res = await route.fetch();
+      const body = (await res.json()) as {
+        mrs: Array<{ gates?: Array<{ gateId: string }> }>;
+      };
+      const mr = body.mrs.find(m =>
+        (m.gates ?? []).some(g => g.gateId === 'gate-review-post-1235')
+      );
+      if (mr) mr.gates = [...(mr.gates ?? []), ...(extraGates as never[])];
+      await route.fulfill({ response: res, json: body });
+    });
   const page = await ctx.newPage();
   await page.goto(`${BASE}/?member=all`);
   await page.waitForSelector('.tui-row');
@@ -271,5 +286,80 @@ test('the recommended choice is highlighted only until something in its question
   for (let i = 0; i < 20 && (await tinted())[0]; i++)
     await page.waitForTimeout(50);
   expect(await tinted()).toEqual([false]);
+  await page.context().close();
+}, 30_000);
+
+test('a read-only answer tints only the recorded picks, never an unpicked recommendation, even where nothing was picked', async () => {
+  const stuck = {
+    gateId: 'gate-ship-stuck',
+    subject: 'run:20260923-0900-fixture',
+    kind: 'ship',
+    label: 'ship',
+    status: 'answered',
+    openedAt: 1755604300000,
+    questions: [
+      {
+        id: 'draft',
+        label: 'Draft or ready?',
+        multi: false,
+        options: [
+          { value: 'draft', label: 'Draft (Recommended)' },
+          { value: 'ready', label: 'Ready for review' },
+        ],
+      },
+      {
+        id: 'preview',
+        label: 'Which preview environments?',
+        multi: true,
+        options: [
+          { value: 'preview-a', label: 'preview-a (Recommended)' },
+          { value: 'preview-b', label: 'preview-b' },
+        ],
+      },
+      {
+        id: 'notify',
+        label: 'Who else hears about it?',
+        multi: true,
+        options: [
+          { value: 'qa', label: 'QA (Recommended)' },
+          { value: 'design', label: 'Design' },
+        ],
+      },
+    ],
+    answers: { draft: 'ready', preview: ['preview-b'], notify: [] },
+    answeredBy: 'jvasquez',
+    answeredAt: 1755604400000,
+    delivery: { outcome: 'stuck', at: 1755604500000 },
+  };
+  const page = await openQueue(LAPTOP, [stuck]);
+  await nextUntil(page, '.tui-answered-sheet');
+  const tints = await page.evaluate(() => {
+    const { document } = globalThis as unknown as {
+      document: {
+        querySelectorAll(s: string): ArrayLike<{
+          getAttribute(n: string): string | null;
+          querySelector(s: string): { getAttribute(n: string): string } | null;
+        }>;
+      };
+    };
+    const win = globalThis as unknown as {
+      getComputedStyle(el: unknown): { backgroundColor: string };
+    };
+    return Array.from(
+      document.querySelectorAll('.tui-sheet-main .tui-gate-choice')
+    ).map(c => [
+      c.querySelector('input')!.getAttribute('value'),
+      c.getAttribute('data-recommended') !== null,
+      win.getComputedStyle(c).backgroundColor !== 'rgba(0, 0, 0, 0)',
+    ]);
+  });
+  expect(tints).toEqual([
+    ['draft', true, false],
+    ['ready', false, true],
+    ['preview-a', true, false],
+    ['preview-b', false, true],
+    ['qa', true, false],
+    ['design', false, false],
+  ]);
   await page.context().close();
 }, 30_000);
