@@ -1282,6 +1282,7 @@ export function Board() {
 
         {filtered.length === 0 &&
         !data.fetchError &&
+        freshness?.intent !== 'bad' &&
         !activeSection?.unknown ? (
           <p className="tui-empty">
             {emptyQueueCopy(

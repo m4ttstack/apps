@@ -35,7 +35,10 @@ const BOARD_DATA = {
     multiHeader: '{count} ready',
     multiItem: '- {title}',
   },
-  dataSyncedAt: 1755600000000,
+  // Always "now": a fixed past timestamp drifts stale over time, which
+  // fires the freshness banner and, in turn, suppresses the empty-queue
+  // check mark these tests assert on.
+  dataSyncedAt: Date.now(),
   scopeUncovered: [],
   scopeUncoveredSections: [],
   scopeKnownSections: null,
@@ -149,6 +152,31 @@ test('an empty Needs me queue with the slack filter on names the filter', async 
     await renderBoard(container);
     await openNeedsMe(container);
     expect(emptyCopy(container)).toBe('Nothing found in slack');
+  } finally {
+    container.remove();
+  }
+});
+
+test('a red freshness banner suppresses the empty-queue check mark', async () => {
+  servedData = {
+    ...BOARD_DATA,
+    dataSyncedAt: 0,
+    mrs: [],
+    syncError: {
+      since: Date.now() - 100 * 60_000,
+      lastAt: Date.now() - 60_000,
+      kind: 'timeout',
+      message: 'GraphQL errors: Timeout on MergeRequest.id',
+      projects: 1,
+    },
+  };
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  try {
+    await renderBoard(container);
+    const el = container.querySelector<HTMLElement>('.tui-banner[role="status"]');
+    expect(el?.dataset.intent).toBe('bad');
+    expect(container.querySelector('.tui-empty')).toBeNull();
   } finally {
     container.remove();
   }
