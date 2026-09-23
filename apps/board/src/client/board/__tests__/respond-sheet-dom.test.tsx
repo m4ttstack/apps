@@ -1008,3 +1008,74 @@ test('without its plan gate, an edited reply still carries its chip', async () =
     reply.querySelector('.tui-gate-question-head [data-chip="edited"]')
   ).not.toBeNull();
 });
+
+const planCards = () => [
+  ...document.body.querySelectorAll<HTMLElement>(
+    'section[data-gate-ctx="thread"]'
+  ),
+];
+
+test('a reply pick on the plan sheet can be edited and answers with its text', async () => {
+  await render(planGate());
+  await pick('reply:t1');
+  await pick('reply:t2');
+  const card = planCards()[0]!;
+  await React.act(async () => editButton(card)!.click());
+  await typeInto(replyBox(card)!, 'fixed in the next push, with a test.');
+  expect(card.querySelector('[data-chip="edited"]')).not.toBeNull();
+  await clickSubmit();
+  expect(
+    (answer() as { answers: Record<string, unknown> }).answers['thread-1']
+  ).toEqual({
+    value: 'reply:t1',
+    text: 'fixed in the next push, with a test.',
+  });
+  expect(
+    (answer() as { answers: Record<string, unknown> }).answers['thread-2']
+  ).toBe('reply:t2');
+});
+
+test('a fix or skip pick offers no edit, and an edit made under reply is not sent after switching to fix', async () => {
+  await render(planGate());
+  await pick('reply:t1');
+  await pick('skip:t2');
+  const card = planCards()[0]!;
+  await React.act(async () => editButton(card)!.click());
+  await typeInto(replyBox(card)!, 'an edit');
+  await pick('fix:t1');
+  expect(editButton(card)).toBeNull();
+  expect(editButton(planCards()[1]!)).toBeNull();
+  await clickSubmit();
+  expect(
+    (answer() as { answers: Record<string, unknown> }).answers['thread-1']
+  ).toBe('fix:t1');
+});
+
+test('the dock says what happens next on the plan sheet', async () => {
+  await render(planGate());
+  await pick('reply:t1');
+  await pick('reply:t2');
+  expect($('.tui-sheet-dock-next')!.textContent).toBe('Next, 2 replies post.');
+  await pick('fix:t1');
+  expect($('.tui-sheet-dock-next')!.textContent).toBe(
+    'Next, 1 fix gets implemented, then you approve the fixed replies before anything posts.'
+  );
+  await pick('skip:t1');
+  await pick('skip:t2');
+  expect($('.tui-sheet-dock-next')!.textContent).toBe('Next, nothing posts.');
+});
+
+test('an emptied reply pick blocks submit with a reason; send-back mode ignores edits', async () => {
+  await render(planGate());
+  await pick('reply:t1');
+  await pick('reply:t2');
+  const card = planCards()[0]!;
+  await React.act(async () => editButton(card)!.click());
+  await typeInto(replyBox(card)!, '   ');
+  expect(submit().disabled).toBe(true);
+  expect(document.body.textContent).toContain(
+    'a reply is empty: write it or skip the thread'
+  );
+  await click($('.tui-sheet-revise'));
+  expect(document.body.textContent).not.toContain('a reply is empty');
+});

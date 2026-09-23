@@ -28,7 +28,10 @@ import { forgeNoun } from './MrLinks.tsx';
 import { PersonLead, PersonTag } from './PersonLead.tsx';
 import { joinPlan, type JoinedThread } from './respond-join.ts';
 import {
+  editedText,
   isEdited,
+  planReplies,
+  planTexts,
   postPicks,
   postTally,
   postTexts,
@@ -53,8 +56,8 @@ import {
     `answersFromForm` builds it from a form: only a displayed single-select
     counts (a hidden code-changes pick is stale and yields to the
     sentinel), every multi submits an array, a trimmed note wraps its
-    question's value, and an edited posting thread's trimmed text rides
-    alongside as `text`. Null while any required question is unanswered. */
+    question's value, and an edited reply's trimmed text rides alongside as
+    `text`. Null while any required question is unanswered. */
 function sheetAnswers(
   gate: GateRow,
   shown: Set<string>,
@@ -639,6 +642,10 @@ function RespondSheetBody({
     [ctx.shape, gate.questions]
   );
   const perThread = picks.length > 0;
+  const planReplyList = useMemo(
+    () => (plan ? planReplies(gate.questions) : []),
+    [plan, gate.questions]
+  );
   const codeChanges = gate.questions.find(
     q => q.id === CODE_CHANGES_QUESTION_ID
   );
@@ -666,7 +673,9 @@ function RespondSheetBody({
     else delete submitSelections[CODE_CHANGES_QUESTION_ID];
   }
   const shown = new Set(form.display.map(q => q.name));
-  const edits = postTexts(picks, form.selections, form.texts);
+  const edits = plan
+    ? planTexts(planReplyList, form.selections, form.texts)
+    : postTexts(picks, form.selections, form.texts);
   const payload = revising
     ? reason.trim()
       ? reviseAnswers(gate, form.selections, form.notes, reason)
@@ -675,6 +684,10 @@ function RespondSheetBody({
       ? null
       : sheetAnswers(gate, shown, submitSelections, form.notes, edits);
 
+  const replyCount = mainQs.filter(q => {
+    const v = form.selections[q.name];
+    return !q.multiple && typeof v === 'string' && v.startsWith('reply:');
+  }).length;
   const threadsDecided = mainQs.filter(
     q => !q.multiple && typeof form.selections[q.name] === 'string'
   ).length;
@@ -762,8 +775,10 @@ function RespondSheetBody({
   const nextStep = !plan
     ? null
     : fixes > 0
-      ? `Next, ${fixes} ${fixes === 1 ? 'fix gets' : 'fixes get'} implemented, then you approve the replies before anything posts.`
-      : 'Next, you approve the replies before anything posts.';
+      ? `Next, ${fixes} ${fixes === 1 ? 'fix gets' : 'fixes get'} implemented, then you approve the fixed replies before anything posts.`
+      : replyCount > 0
+        ? `Next, ${replyCount} ${replyCount === 1 ? 'reply posts' : 'replies post'}.`
+        : 'Next, nothing posts.';
   const submitLabel = form.busy
     ? 'submitting…'
     : revising
@@ -877,6 +892,7 @@ function RespondSheetBody({
             .filter(q => !pickNames.has(q.name))
             .map(q => {
               const qctx = questionCtx.get(q.name);
+              const pr = planReplyList.find(r => r.name === q.name);
               if (!q.multiple)
                 return (
                   <section
@@ -894,8 +910,22 @@ function RespondSheetBody({
                       {qctx?.shape === 'thread@1' && (
                         <SeverityPill severity={qctx.severity} />
                       )}
+                      {pr && editedText(q.name, pr.draft, form.texts) && (
+                        <EditedChip />
+                      )}
                     </div>
-                    {qctx?.shape === 'thread@1' ? (
+                    {qctx?.shape === 'thread@1' && pr ? (
+                      <ThreadCard ctx={{ ...qctx, reply: { kind: 'none' } }}>
+                        <EditableReply
+                          label={q.prompt}
+                          draft={pr.draft}
+                          value={form.texts[q.name]}
+                          canEdit={form.selections[q.name] === pr.value}
+                          onChange={t => form.setText(q.name, t)}
+                          onReset={() => form.clearText(q.name)}
+                        />
+                      </ThreadCard>
+                    ) : qctx?.shape === 'thread@1' ? (
                       <ThreadCard ctx={qctx} />
                     ) : (
                       <ProseContext q={q} structured={qctx != null} />
@@ -1076,9 +1106,11 @@ function RespondSheetBody({
                   send the plan back for revision
                 </button>
               )}
-              {edits === null && (
+              {!revising && edits === null && (
                 <span className="tui-gate-error">
-                  a reply is empty: write it or hold the thread
+                  {plan
+                    ? 'a reply is empty: write it or skip the thread'
+                    : 'a reply is empty: write it or hold the thread'}
                 </span>
               )}
               {form.failed && (

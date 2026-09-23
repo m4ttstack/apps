@@ -105,10 +105,10 @@ function ThreadCard({
   );
 }
 
-/** A post-step reply the developer may rewrite before it posts: the draft
-    at rest, an auto-growing box while editing. `value` is the edit, absent
-    when there is none; `canEdit` is false while the thread is held, which
-    also closes an open box. */
+/** A reply the developer may rewrite before it posts: the draft at rest,
+    an auto-growing box while editing. `value` is the edit, absent when
+    there is none; `canEdit` is false while the thread will not post this
+    reply (held, or picked fix or skip), which also closes an open box. */
 function EditableReply({
   label,
   draft,
@@ -226,7 +226,7 @@ function EditableReply({
   );
 }
 
-/** A post-step card head's mark that its reply no longer reads as drafted. */
+/** A thread card head's mark that its reply no longer reads as drafted. */
 function EditedChip() {
   return (
     <span
