@@ -90,8 +90,10 @@ Every other object or array key has no shape and stays read-only: nested
 maps (`rt.cron`, `rt.repoTracking`, `rt.workspacePrefs`,
 `rt.sdmEnrichment`, `deck.*`, `mattstack.integrations`, `mattstack.tracking`),
 arrays of objects (`rt.notify.eventBridges`, `mattstack.roster`,
-`claude.*`), and repo-scoped keys (`rt.roles`, `rt.worktrees`, `rt.sync`,
-`rt.hooks`, and the rest flagged `repoScoped`).
+`claude.*`), and repo-scoped keys with no shape (`rt.roles`, `rt.worktrees`,
+`rt.sync`, `rt.hooks`, and the rest flagged `repoScoped`). A repo-scoped key
+that does have a shape (`rt.gitStatus`) is editable at its global layers
+only; its per-repo rungs stay file-edited.
 
 **Fix: the effective layer is the strongest, not the weakest.**
 `explainSetting` returns rows weakest-first (default, team, user, machine),
