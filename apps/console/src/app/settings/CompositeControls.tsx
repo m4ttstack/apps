@@ -183,16 +183,22 @@ function InlineTags({
   const plus = useRef<HTMLButtonElement>(null);
   // Escape unmounts the field, and a blur that still fires must not save.
   const cancelled = useRef(false);
+  // Closing the field or removing a tag takes the focused control away.
   const refocus = useRef(false);
   useEffect(() => {
-    if (adding || !refocus.current) return;
+    if (adding || saving || !refocus.current) return;
     refocus.current = false;
     plus.current?.focus();
-  }, [adding]);
+  }, [adding, saving]);
 
   const commit = () => {
+    if (saving) return;
     const next = addToList(list, draft);
     if (next) void row.save(next).then(ok => ok && setDraft(''));
+  };
+  const remove = (at: number) => {
+    if (saving) return;
+    void row.save(list.filter((_, i) => i !== at));
   };
 
   return (
@@ -202,13 +208,16 @@ function InlineTags({
           {def.effective.value === undefined ? 'unset' : 'none'}
         </Text>
       )}
-      {list.map(item => (
+      {list.map((item, i) => (
         <Pill
-          key={item}
+          key={`${i}:${item}`}
           ff="monospace"
           styles={TAG_STYLES}
           withRemoveButton
-          onRemove={() => void row.save(list.filter(x => x !== item))}
+          onRemove={() => {
+            refocus.current = true;
+            remove(i);
+          }}
           removeButtonProps={{
             'aria-label': `remove ${item}`,
             'aria-hidden': false,
@@ -238,7 +247,7 @@ function InlineTags({
           onKeyDown={e => {
             if (e.key === 'Enter') commit();
             if (e.key === 'Backspace' && draft === '' && list.length > 0)
-              void row.save(list.slice(0, -1));
+              remove(list.length - 1);
             if (e.key === 'Escape') {
               e.stopPropagation();
               cancelled.current = true;
@@ -262,7 +271,10 @@ function InlineTags({
           c={text.muted}
           aria-label={`add to ${def.key}`}
           disabled={saving}
-          onClick={() => setAdding(true)}
+          onClick={() => {
+            cancelled.current = false;
+            setAdding(true);
+          }}
         >
           <Icons.plus size={14} />
         </ActionIcon>

@@ -206,6 +206,97 @@ describe('composite rows', () => {
     );
   });
 
+  it('after an Escape, the next add still saves on leaving the field', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow def={PREFIXES} store={s} subhead={null} query="" />
+    );
+    const plus = () =>
+      screen.getByRole('button', { name: 'add to board.ticketPrefixes' });
+    await userEvent.click(plus());
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(plus());
+    await userEvent.keyboard('JIRA');
+    await userEvent.tab();
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('board.ticketPrefixes', 'team', [
+        'RT',
+        'MAT',
+        'JIRA',
+      ])
+    );
+  });
+
+  it('keys in the add field write nothing more while a save is in flight', async () => {
+    const s = store();
+    s.set.mockImplementation(() => new Promise(() => {}));
+    renderWithProviders(
+      <SettingRow def={PREFIXES} store={s} subhead={null} query="" />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'add to board.ticketPrefixes' })
+    );
+    await userEvent.keyboard('{Backspace}');
+    await waitFor(() => expect(s.set).toHaveBeenCalledTimes(1));
+    await userEvent.keyboard('{Backspace}{Enter}');
+    expect(s.set).toHaveBeenCalledTimes(1);
+  });
+
+  it('removing a tag from the keyboard leaves focus on the add control', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow def={PREFIXES} store={s} subhead={null} query="" />
+    );
+    screen.getByRole('button', { name: 'remove RT' }).focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(s.set).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'add to board.ticketPrefixes' })
+      ).toHaveFocus()
+    );
+  });
+
+  it('tabbing out after a Backspace removal leaves focus where Tab put it', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow def={PREFIXES} store={s} subhead={null} query="" />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'add to board.ticketPrefixes' })
+    );
+    await userEvent.keyboard('{Backspace}');
+    await waitFor(() => expect(s.set).toHaveBeenCalledTimes(1));
+    await userEvent.tab();
+    expect(
+      screen.getByRole('button', { name: 'board.ticketPrefixes actions' })
+    ).toHaveFocus();
+  });
+
+  it('a repeated item removes one copy at a time', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('board.ticketPrefixes', {
+          scopes: ['team'],
+          effective: { scope: 'team', file: '/t', value: ['RT', 'RT', 'MAT'] },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(
+      screen.getAllByRole('button', { name: 'remove RT' })[1]!
+    );
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('board.ticketPrefixes', 'team', [
+        'RT',
+        'MAT',
+      ])
+    );
+  });
+
   it('inline tags hold still while a save is in flight', async () => {
     const s = store();
     s.set.mockImplementation(() => new Promise(() => {}));
