@@ -126,8 +126,15 @@ export function useBoardData(
   );
 
   useEffect(() => {
+    // Shared with onVisible below: a show-then-hide has to reset this the
+    // same way a visible tick does, or the next hidden stretch inherits
+    // whatever partial count was left over and fires early.
+    let hiddenTicks = 0;
     const onVisible = () => {
-      if (!document.hidden) load();
+      if (!document.hidden) {
+        hiddenTicks = 0;
+        load();
+      }
     };
     document.addEventListener('visibilitychange', onVisible);
     load();
@@ -137,7 +144,6 @@ export function useBoardData(
     // visible) is gated on !document.hidden. Every HIDDEN_POLL_TICKS'th
     // tick loads instead of every tick, so a background tab costs far less
     // than a foreground one.
-    let hiddenTicks = 0;
     const timer = setInterval(() => {
       if (!document.hidden) {
         hiddenTicks = 0;

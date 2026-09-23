@@ -258,3 +258,59 @@ test('hidden tick count resets once a visible tick loads', async () => {
     hiddenCtl.restore();
   }
 });
+
+test('a visibilitychange load also resets the hidden tick count', async () => {
+  const hiddenCtl = stubHidden();
+  const intervalCtl = stubSetInterval();
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await React.act(async () => {
+      root.render(React.createElement(Board));
+    });
+    await React.act(flush);
+    const initialFetches = dataFetchCount;
+    const tick = intervalCtl.captured;
+    if (!tick) throw new Error('60s interval callback was never captured');
+
+    hiddenCtl.set(true);
+    // Four hidden ticks build up a partial count...
+    for (let i = 0; i < 4; i++) {
+      await React.act(async () => {
+        tick();
+        await flush();
+      });
+    }
+    expect(dataFetchCount).toBe(initialFetches);
+
+    // ...a visibilitychange fetch resets the count, not just the interval's
+    // own tick path...
+    hiddenCtl.set(false);
+    await React.act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await flush();
+    });
+    expect(dataFetchCount).toBe(initialFetches + 1);
+
+    // ...so the next four hidden ticks stay quiet again, not just one.
+    hiddenCtl.set(true);
+    for (let i = 1; i <= 4; i++) {
+      await React.act(async () => {
+        tick();
+        await flush();
+      });
+      expect(dataFetchCount).toBe(initialFetches + 1);
+    }
+    await React.act(async () => {
+      tick();
+      await flush();
+    });
+    expect(dataFetchCount).toBe(initialFetches + 2);
+  } finally {
+    await React.act(async () => root.unmount());
+    container.remove();
+    intervalCtl.restore();
+    hiddenCtl.restore();
+  }
+});
