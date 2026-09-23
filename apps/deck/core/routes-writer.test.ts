@@ -107,12 +107,14 @@ test('repointRoutes moves every host under a name to one port, in place, and not
       { hostname: 'deck.mattstack', port: 11007, pid: 0 },
       { hostname: 'deck.mattstack.localhost', port: 7940, pid: 0 },
       { hostname: 'deckhand.localhost', port: 11007, pid: 0 },
+      { hostname: 'deck.docs.localhost', port: 11007, pid: 0 },
+      { hostname: 'deck.docs.mattstack', port: 11007, pid: 0 },
       { hostname: 'board.mattstack', port: 11007, pid: 0 },
     ])
   );
   const before = statSync(routesPath).ino;
 
-  expect(repointRoutes('deck', 7940)).toEqual([
+  expect(repointRoutes('deck', 7940, ['localhost', 'mattstack'])).toEqual([
     'deck.localhost',
     'deck.mattstack',
   ]);
@@ -127,6 +129,8 @@ test('repointRoutes moves every host under a name to one port, in place, and not
     'deck.mattstack': 7940,
     'deck.mattstack.localhost': 7940,
     'deckhand.localhost': 11007,
+    'deck.docs.localhost': 11007,
+    'deck.docs.mattstack': 11007,
     'board.mattstack': 11007,
   });
   expect(statSync(routesPath).ino).toBe(before);
@@ -139,6 +143,6 @@ test('repointRoutes writes nothing when every host already serves the port', () 
   );
   const raw = readFileSync(routesPath, 'utf8');
 
-  expect(repointRoutes('deck', 7940)).toEqual([]);
+  expect(repointRoutes('deck', 7940, ['localhost'])).toEqual([]);
   expect(readFileSync(routesPath, 'utf8')).toBe(raw);
 });

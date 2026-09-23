@@ -1,6 +1,7 @@
+import { MATTSTACK_TLD } from '../../core/discover.ts';
 import { repointRoutes } from '../../core/routes-writer.ts';
 import { PLATFORM_NAME } from '../services/manager.ts';
-import { getRecord, putRecord } from './records.ts';
+import { getRecord, putRecord, reloadRegistry } from './records.ts';
 
 /**
  * The bundle helper's plist carries no PORT, so the port it serves on can
@@ -12,8 +13,12 @@ export function reconcileSelfPort(port: number): {
   record: boolean;
   routes: string[];
 } {
+  reloadRegistry();
   const self = getRecord(PLATFORM_NAME);
   const record = self !== undefined && self.port !== port;
   if (record) putRecord({ ...self, port });
-  return { record, routes: repointRoutes(PLATFORM_NAME, port) };
+  return {
+    record,
+    routes: repointRoutes(PLATFORM_NAME, port, ['localhost', MATTSTACK_TLD]),
+  };
 }

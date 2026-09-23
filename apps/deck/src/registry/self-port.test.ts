@@ -3,13 +3,10 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { beforeEach, expect, test } from 'bun:test';
 
-const { reconcileSelfPort } = await import('./self-port.ts');
-const { putRecord, reloadRegistry } = await import('./records.ts');
+let registry = '';
+let routes = '';
 
-let registry: string;
-let routes: string;
-
-beforeEach(() => {
+function isolate(): void {
   const dir = mkdtempSync(join(tmpdir(), 'deck-self-port-'));
   registry = join(dir, 'registry.json');
   routes = join(dir, 'routes.json');
@@ -17,6 +14,14 @@ beforeEach(() => {
   process.env.LOCAL_REGISTRY_PATH = registry;
   process.env.LOCAL_APPS_ROUTES_PATH = routes;
   process.env.HOME = dir;
+}
+
+isolate();
+const { reconcileSelfPort } = await import('./self-port.ts');
+const { putRecord, reloadRegistry } = await import('./records.ts');
+
+beforeEach(() => {
+  isolate();
   reloadRegistry();
 });
 
@@ -96,4 +101,22 @@ test('with no self record the routes still follow the served port', () => {
     routes: ['deck.mattstack'],
   });
   expect(JSON.parse(readFileSync(routes, 'utf8'))[0].port).toBe(7940);
+});
+
+test('a self record another process changed since load keeps that change', () => {
+  putRecord(selfRecord(11007));
+  writeFileSync(
+    registry,
+    JSON.stringify({
+      version: 1,
+      apps: { deck: { ...selfRecord(11007), displayName: 'Deck' } },
+    })
+  );
+  writeFileSync(routes, '[]');
+
+  reconcileSelfPort(7940);
+
+  const deck = JSON.parse(readFileSync(registry, 'utf8')).apps.deck;
+  expect(deck.port).toBe(7940);
+  expect(deck.displayName).toBe('Deck');
 });

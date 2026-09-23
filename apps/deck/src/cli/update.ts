@@ -39,10 +39,16 @@ export function pickDeckAssetUrl(
 /** Self-update: resolve the latest deck release on the monorepo, download its
     tarball, swap the extracted binary over the running one, then kickstart
     the service. */
-export async function update(io: {
-  out(s: string): void;
-  err(s: string): void;
-}): Promise<number> {
+export async function update(
+  io: { out(s: string): void; err(s: string): void },
+  helperOwned: () => Promise<boolean> = liveHelperOwned
+): Promise<number> {
+  if (await helperOwned()) {
+    io.err(
+      "the mattstack app owns deck here; it updates deck's pinned release with the app"
+    );
+    return 1;
+  }
   if (basename(process.execPath).startsWith('bun')) {
     io.err('this is a checkout — update with git pull');
     return 1;
@@ -110,8 +116,23 @@ export async function update(io: {
   const { liveDeckOwner } = await import('../services/helper-owner.ts');
   const manager = new LaunchdManager();
   const owner = liveDeckOwner(bundleRootFromExec(), readApiInfo()?.pid ?? null);
-  await restartPlatform(label => manager.kickstart(label), owner.runningLabel);
+  if (
+    !(await restartPlatform(
+      label => manager.kickstart(label),
+      owner.runningLabel
+    ))
+  ) {
+    io.err('updated, but the platform service did not restart');
+    return 1;
+  }
   return 0;
+}
+
+async function liveHelperOwned(): Promise<boolean> {
+  const { bundleRootFromExec } = await import('../services/bundle-layout.ts');
+  const { bundleHelperOwnsDeck, liveProbe } =
+    await import('../services/helper-owner.ts');
+  return bundleHelperOwnsDeck(liveProbe, bundleRootFromExec());
 }
 
 export async function restartPlatform(

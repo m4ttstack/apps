@@ -5,6 +5,7 @@ import {
   pickDeckAssetUrl,
   RELEASES_API,
   restartPlatform,
+  update,
 } from './update.ts';
 
 test('pickAsset matches the monorepo tarball naming deps.lock installs from', () => {
@@ -101,4 +102,12 @@ test('restartPlatform falls back to the bare platform label when launchd reports
   await restartPlatform(kickstart, async () => null);
 
   expect(kicked).toEqual(['com.mattstack.deck']);
+});
+
+test('update refuses on a machine the mattstack app owns, before touching any binary', async () => {
+  const errs: string[] = [];
+  const io = { out: () => {}, err: (s: string) => errs.push(s) };
+
+  expect(await update(io, async () => true)).toBe(1);
+  expect(errs.join('\n')).toContain('mattstack app owns deck');
 });

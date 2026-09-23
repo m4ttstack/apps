@@ -34,6 +34,7 @@ const {
   editApp,
   restartManagedApps,
   kickstartLabelFor,
+  restartLabelFor,
   reresolveManagedApps,
   removeManagedApps,
   setServeShapeDeps,
@@ -971,6 +972,51 @@ test('kickstartLabelFor: an app, or deck with nothing reported running, keeps it
   expect(await kickstartLabelFor(app, helperRunning)).toBe(
     `${LABEL_PREFIX}board`
   );
+});
+
+test('restartManagedApps never kickstarts deck itself partway through the loop', async () => {
+  const h = bundleHelpers('board');
+  await registerApp(
+    {
+      ...input,
+      name: 'board',
+      managedBy: 'rt',
+      command: h.command('board', 'serve'),
+    },
+    drivers
+  );
+  putRecord({
+    name: PLATFORM_NAME,
+    managedBy: PLATFORM_NAME,
+    port: 7940,
+    kind: 'service',
+    label: PLATFORM_LABEL,
+    createdAt: 'x',
+  });
+
+  const res = await restartManagedApps(drivers);
+
+  expect(res.body).toMatchObject({
+    ok: true,
+    restarted: ['board'],
+    failed: [],
+  });
+  expect(drivers.manager.kickstarts).toEqual(['com.mattstack.deck.board']);
+});
+
+test('restartLabelFor: deck with no self record still restarts under its running label', async () => {
+  const withOwner = {
+    ...drivers,
+    deckOwner: {
+      helperOwned: async () => true,
+      runningLabel: async () => `${PLATFORM_LABEL}.dev`,
+    },
+  };
+
+  expect(await restartLabelFor(PLATFORM_NAME, withOwner)).toBe(
+    `${PLATFORM_LABEL}.dev`
+  );
+  expect(await restartLabelFor('ghost', withOwner)).toBeUndefined();
 });
 
 test('removeManagedApps: tears down every non-user record, leaves user apps alone', async () => {

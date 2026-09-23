@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'fs';
 
-import { routesPath } from './discover.ts';
+import { bareName, routesPath } from './discover.ts';
 
 // Rewrite one route's port in routes.json atomically, preserving all other
 // fields (pid, etc.). Accepts a bare name or a full <name>.localhost hostname.
@@ -50,10 +50,15 @@ export function ensureRoute(hostname: string, port: number): boolean {
   return true;
 }
 
-/** Point `name` and every host under it (`name.<tld>...`) at `port`, with the
-    same in-place write as setRoutePort. Returns the hostnames that moved;
-    nothing is written when none did. */
-export function repointRoutes(name: string, port: number): string[] {
+/** Point every host whose bare name is `name` (after stripping `tlds`) at
+    `port`, with the same in-place write as setRoutePort. App names may hold
+    dots, so `deck.docs.mattstack` is not deck's. Returns the hostnames that
+    moved; nothing is written when none did. */
+export function repointRoutes(
+  name: string,
+  port: number,
+  tlds: string[]
+): string[] {
   const path = routesPath();
   let routes: Array<Record<string, unknown>>;
   try {
@@ -64,7 +69,7 @@ export function repointRoutes(name: string, port: number): string[] {
   const moved: string[] = [];
   for (const r of routes) {
     const host = String(r.hostname);
-    if (host !== name && !host.startsWith(`${name}.`)) continue;
+    if (bareName(host, tlds) !== name) continue;
     if (r.port === port) continue;
     r.port = port;
     moved.push(host);

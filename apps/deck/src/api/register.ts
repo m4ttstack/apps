@@ -50,6 +50,7 @@ import {
 import {
   isPlatformManagedBy,
   LABEL_PREFIX,
+  PLATFORM_NAME,
   type ServiceManager,
   type ServiceSpec,
 } from '../services/manager.ts';
@@ -384,6 +385,17 @@ export async function kickstartLabelFor(
   return (await drivers.deckOwner?.runningLabel()) ?? record.label;
 }
 
+/** A helper-only machine may have no self record at all, and deck still restarts. */
+export async function restartLabelFor(
+  name: string,
+  drivers: Drivers
+): Promise<string | undefined> {
+  const record = getRecord(name);
+  if (record) return kickstartLabelFor(record, drivers);
+  if (name !== PLATFORM_NAME) return undefined;
+  return (await drivers.deckOwner?.runningLabel()) ?? undefined;
+}
+
 /**
  * Bulk lifecycle verb behind `deck restart --managed`: the app calls this on
  * its own version-change kickstart (installer spec §8), so it targets every
@@ -393,7 +405,9 @@ export async function kickstartLabelFor(
 export async function restartManagedApps(
   drivers: Drivers
 ): Promise<FlowResult> {
-  const managed = listRecords().filter(r => r.managedBy !== 'user');
+  const managed = listRecords().filter(
+    r => r.managedBy !== 'user' && !isPlatformManagedBy(r.managedBy)
+  );
   const restarted: string[] = [];
   const failed: Array<{ name: string; error: string }> = [];
   for (const record of managed) {
@@ -502,7 +516,9 @@ export async function reresolveManagedApps(
  * record deck supervises. Same implicit-authority model as restartManagedApps.
  */
 export async function removeManagedApps(drivers: Drivers): Promise<FlowResult> {
-  const managed = listRecords().filter(r => r.managedBy !== 'user');
+  const managed = listRecords().filter(
+    r => r.managedBy !== 'user' && !isPlatformManagedBy(r.managedBy)
+  );
   const removed: string[] = [];
   const failed: string[] = [];
   for (const record of managed) {
