@@ -159,7 +159,7 @@ import {
   RESPOND_IN_FLIGHT,
   REVIEW_IN_FLIGHT,
 } from './launch-dedup.ts';
-import { isLocalRequest, requireJsonBody } from './local.ts';
+import { hasLocalOrigin, isLocalRequest, requireJsonBody } from './local.ts';
 import { resolveBoardSkill, type BoardSkillKind } from './manifest-bindings.ts';
 import { memoizeAsync } from './memoize-async.ts';
 import { parseMrActionBody, runMrAction } from './mr-action.ts';
@@ -2962,7 +2962,8 @@ const httpServer = Bun.serve({
         // re-checked against a fresh channel index; found refs are left alone.
         if (req.method !== 'POST')
           return new Response('method not allowed', { status: 405 });
-        if (!isLocalRequest(req, server))
+        // Bodyless, so requireJsonBody cannot stand in for the Origin check.
+        if (!isLocalRequest(req, server) || !hasLocalOrigin(req))
           return new Response('forbidden', { status: 403 });
         if (!slackToken)
           return new Response('slack not configured', { status: 400 });

@@ -151,6 +151,7 @@ describe('hasLocalOrigin', () => {
     ['https://board.localhost', 'board.localhost:443'],
     ['http://127.0.0.1:11007', '127.0.0.1:11007'],
     ['http://[::1]:7930', '[::1]:7930'],
+    ['http://localhost:5173', 'localhost:5173'],
   ])('%s on host %s passes', (origin, host) => {
     expect(hasLocalOrigin(req({ origin, host }))).toBe(true);
   });
@@ -160,6 +161,9 @@ describe('hasLocalOrigin', () => {
     ['https://deck.mattstack.example.dev', 'deck.mattstack'],
     ['https://evil.localhost', 'deck.mattstack'],
     ['http://localhost:5173', 'deck.mattstack'],
+    ['http://deck.mattstack:5173', 'deck.mattstack'],
+    ['https://deck.mattstack', 'deck.mattstack:7930'],
+    ['http://127.0.0.1:5173', '127.0.0.1:11007'],
     ['https://deck.mattstack.', 'deck.mattstack'],
     ['https://evil.example.dev', 'evil.example.dev'],
     ['null', 'deck.mattstack'],

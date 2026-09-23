@@ -1,4 +1,7 @@
-export { isLocalRequest } from '@mattstack/app-server/local-request';
+export {
+  hasLocalOrigin,
+  isLocalRequest,
+} from '@mattstack/app-server/local-request';
 
 /** Exact json media-type check for the CSRF gate: isLocalRequest passes any
     request the local browser sends, including one a cross-origin form

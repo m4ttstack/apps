@@ -117,3 +117,21 @@ test('member check-in/out still accepts a local request', async () => {
   expect(res.status).not.toBe(403);
   expect(res.ok).toBe(true);
 }, 15_000);
+
+test('a forced slack sweep refuses a cross-origin page', async () => {
+  await ready();
+  const res = await fetch(`http://127.0.0.1:${PORT}/slack/refresh`, {
+    method: 'POST',
+    headers: { host: 'board.mattstack', origin: 'https://evil.example.dev' },
+  });
+  expect(res.status).toBe(403);
+}, 15_000);
+
+test('a forced slack sweep passes the gate from its own origin', async () => {
+  await ready();
+  const res = await fetch(`http://127.0.0.1:${PORT}/slack/refresh`, {
+    method: 'POST',
+    headers: { host: 'board.mattstack', origin: 'https://board.mattstack' },
+  });
+  expect(res.status).toBe(400);
+}, 15_000);
