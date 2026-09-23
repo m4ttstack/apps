@@ -120,6 +120,13 @@ describe('SettingsPage', () => {
     expect(document.getElementById('page-shell-content')).toHaveAttribute(
       'data-own-surface'
     );
+    const filter = screen.getByLabelText('filter settings');
+    expect(document.getElementById('page-shell-header')).toContainElement(
+      filter
+    );
+    expect(document.getElementById('page-shell-content')).not.toContainElement(
+      filter
+    );
   });
 
   it('filters by key and description, keeps the query in the URL, and Esc clears it', async () => {
