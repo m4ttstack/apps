@@ -122,7 +122,9 @@ old one. Instead:
     (every `answers` key other than `code-changes` holds one
     `<verb>:<threadId>`, or a `{value, note, text}` object around it: unwrap
     `value` first, then split at the first `:`), never by the `thread-<n>`
-    question id, which is only a container. Hand the report
+    question id, which is only a container. A report carrying the line
+    `gate-1-context: dropped` makes every `reply:` answer with no `text`
+    an override (step 5). Hand the report
     and those answers to the domain skill exactly as step 5 would have, then
     carry on exactly as steps 5-6 describe below: emit `drafting` and open
     Gate 2 **fresh** over only the threads step 6 offers (even with nothing
@@ -204,8 +206,8 @@ conversation.
    the question contexts, and exits with its status. A `fits: false` file is still
    over the shared context budget; the script drops whole question
    contexts, largest first, until it fits, so the file goes in untouched:
-   never rebuilt, re-ordered, trimmed, or hand-edited. Then skip to the
-   presentation branches below.
+   never rebuilt, re-ordered, trimmed, or hand-edited. Then skip to
+   "Record a dropped context" below.
 
    **Otherwise, build the gate yourself.** Build ONE single-select question per unresolved
    thread, in verdict-table order, plus one `code-changes` question, per
@@ -262,6 +264,12 @@ conversation.
      every question `context` share one 8192 UTF-8 byte budget, and when the
      total would exceed it, drop question `context` fields first, then
      `--context`, never trimming any of them mid-text.
+   - **Record a dropped context.** On either path, when the open was a
+     `fits: false` file, its output carried `"contextOmitted": true`, or
+     you dropped any question context for the byte budget, write one
+     line, `gate-1-context: dropped`, into `--report <path>` right after
+     the open and before waiting on any answer. A resumed pane has no
+     other way to know those cards never showed their drafts (step 5).
    - **presentation "form":** follow `mattstack:gate-protocol`'s "Acting
      on the response" (form branch) and "CAS and the doorbell" sections
      (stable source checkout, machine-local by design: `cat
@@ -327,7 +335,10 @@ conversation.
    showed a fix direction or nothing), or when its question context never
    reached the gate: you dropped it for the byte budget, or the open was a
    `fits: false` file or its `gate open` output flagged `contextOmitted`
-   (then count every question's context as dropped). Draft an override's
+   (then count every question's context as dropped). On a resume,
+   `--report` carrying the line `gate-1-context: dropped` (step 4) counts
+   every question's context as dropped too. This holds whoever answered,
+   the pane included. Draft an override's
    reply after Gate 1, with its note when it has one, write that reply
    into its row, and set the row to `gate-1: override` (the domain skill
    does this on its path). Step 6 offers it at Gate 2.
