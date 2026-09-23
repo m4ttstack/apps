@@ -134,7 +134,7 @@ export function SettingsPage() {
   const [asOf, setAsOf] = useState<Date | null>(null);
   useEffect(() => {
     if (!store.loading && store.error === null) setAsOf(new Date());
-  }, [store.loading, store.error, store.defs]);
+  }, [store.loading, store.error]);
   useHotkeys([['/', () => filterRef.current?.focus()]]);
 
   // A deep link (/settings#board) can only scroll once the sections exist.

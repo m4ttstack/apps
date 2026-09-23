@@ -1,7 +1,7 @@
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
 import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -127,6 +127,36 @@ describe('SettingsPage', () => {
     expect(document.getElementById('page-shell-content')).not.toContainElement(
       filter
     );
+  });
+
+  it('the as-of time marks the last load, not each write', async () => {
+    vi.stubGlobal('fetch', async (url: string) =>
+      url.endsWith('/api/settings/set')
+        ? {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              effective: { scope: 'machine', file: '/m', value: 9 },
+            }),
+          }
+        : defsResponse()
+    );
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 23, 10, 0));
+    renderPage();
+    const header = () => document.getElementById('page-shell-header')!;
+    const days = await screen.findByLabelText('rt.logRetentionDays');
+    expect(header()).toHaveTextContent(/as of 10:00/);
+    vi.setSystemTime(new Date(2026, 8, 23, 10, 5));
+    await userEvent.clear(days);
+    await userEvent.type(days, '9');
+    days.blur();
+    await waitFor(() =>
+      expect(screen.getByLabelText('rt.logRetentionDays')).toHaveValue('9')
+    );
+    await new Promise(r => setTimeout(r, 0));
+    expect(header()).toHaveTextContent(/as of 10:00/);
+    vi.useRealTimers();
   });
 
   it('filters by key and description, keeps the query in the URL, and Esc clears it', async () => {
