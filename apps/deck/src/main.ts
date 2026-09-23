@@ -12,7 +12,7 @@ import { isAuthorized, startRestartDetached } from '../core/proxy-restart.ts';
 import { reconcileOnce } from '../core/reconcile.ts';
 import { logPortHolder, redirectAgentOutput } from './agent-log.ts';
 import { startApi } from './api/server.ts';
-import { claimApiInfo } from './api/state.ts';
+import { claimApiInfo, stateDir } from './api/state.ts';
 import { reconcileMattstackTld } from './api/tld-reconcile.ts';
 import { resolveCfDns, type CfDns } from './edge/cf-dns.ts';
 import { PortlessCli } from './edge/portless.ts';
@@ -21,8 +21,12 @@ import { bindGatewayOrExit } from './gateway-boot.ts';
 import { migrateManagedDevShape } from './registry/migrate-dev-shape.ts';
 import { listRecords } from './registry/records.ts';
 import { bundleRootFromExec } from './services/bundle-layout.ts';
-import { adoptHelperPath } from './services/exec-env.ts';
-import { LaunchdManager } from './services/launchd.ts';
+import {
+  liveProbe,
+  liveRun,
+  prepareHelperBoot,
+} from './services/helper-owner.ts';
+import { agentsDir, LaunchdManager } from './services/launchd.ts';
 import { isPlatformManagedBy } from './services/manager.ts';
 
 // Before anything else module-level (listRecords below reads the registry at
@@ -40,8 +44,19 @@ const APP_NAME =
   'apps';
 const CANARY_INTERVAL_MS = 5 * 60_000;
 
-export function serve(): void {
-  adoptHelperPath(process.env, bundleRootFromExec());
+export async function serve(): Promise<void> {
+  await prepareHelperBoot({
+    bundleRoot: bundleRootFromExec(),
+    env: process.env,
+    retire: {
+      probe: liveProbe,
+      run: liveRun,
+      agentsDir: agentsDir(),
+      archiveDir: stateDir(),
+      uid: process.getuid?.() ?? 0,
+    },
+    log: console.log,
+  });
 
   // ---- canary / auto-heal state, lifted verbatim from core/server.ts ----
   let proxyFreshness: Freshness = 'unknown';
@@ -218,7 +233,7 @@ async function uninstallDns(): Promise<CfDns | undefined> {
 }
 
 const cmd = Bun.argv[2] ?? 'serve';
-if (cmd === 'serve') serve();
+if (cmd === 'serve') await serve();
 else if (cmd === 'setup') {
   const { setup } = await import('./cli/setup.ts');
   const drivers = { manager: new LaunchdManager(), edge: new PortlessCli() };
