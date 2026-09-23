@@ -195,6 +195,26 @@ function SheetRows({ card, rows }: { card: string; rows: SheetRow[] }) {
   );
 }
 
+/** Ref for a sheet's pinned panel (its dock, or the lost panel): keeps the
+    panel's height on its scroller as --sheet-dock-h, which the stacked
+    layout reserves as scroll padding, so a control scrolled into view clears
+    the panel however tall its rows make it. */
+function reserveDock(panel: HTMLElement | null) {
+  const body = panel?.closest<HTMLElement>('.tui-sheet-body');
+  if (!panel || !body || typeof ResizeObserver === 'undefined') return;
+  const observer = new ResizeObserver(() =>
+    body.style.setProperty(
+      '--sheet-dock-h',
+      `${Math.ceil(panel.getBoundingClientRect().height)}px`
+    )
+  );
+  observer.observe(panel);
+  return () => {
+    observer.disconnect();
+    body.style.removeProperty('--sheet-dock-h');
+  };
+}
+
 /** The rail once another surface answered the gate first: the answer that
     won, and a way on to the next gate. */
 function SheetLost({
@@ -207,7 +227,7 @@ function SheetLost({
   onContinue: () => void;
 }) {
   return (
-    <div className="tui-sheet-lost">
+    <div className="tui-sheet-lost" ref={reserveDock}>
       <span className="tui-gate-error">answered elsewhere</span>
       <AnsweredChip
         startOpen
@@ -232,5 +252,5 @@ function SheetLost({
   );
 }
 
-export { Choices, Note, ProseContext, SheetLost, SheetRows };
+export { Choices, Note, ProseContext, reserveDock, SheetLost, SheetRows };
 export type { ChoiceState, RowChip, SheetRow };
