@@ -398,12 +398,15 @@ function RespondSheetBody({
   ctx,
   form,
   people,
+  onContinue,
 }: {
   gate: GateRow;
   mr?: BoardMRWithReview;
   ctx: PlanCtx | PostCtx;
   form: GateFormState;
   people?: ReadonlyMap<string, string>;
+  /** Retires a gate answered elsewhere from the queue. */
+  onContinue: () => void;
 }) {
   const [revising, setRevising] = useState(false);
   const [reason, setReason] = useState('');
@@ -648,6 +651,15 @@ function RespondSheetBody({
                 answer: { answers: form.lost.answers, by: form.lost.by },
               }}
             />
+            <Button
+              type="button"
+              variant="filled"
+              intent="accent"
+              size="lg"
+              onClick={onContinue}
+            >
+              continue
+            </Button>
           </div>
         ) : (
           <>

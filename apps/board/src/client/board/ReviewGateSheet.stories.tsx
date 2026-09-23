@@ -306,6 +306,7 @@ function Host({ gate, mr }: { gate: GateRow; mr: BoardMRWithReview }) {
         onNext: noop,
       }}
       onClose={noop}
+      onContinue={noop}
       onFocusPane={noop}
     />
   );

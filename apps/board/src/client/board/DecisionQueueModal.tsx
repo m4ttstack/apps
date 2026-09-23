@@ -227,6 +227,7 @@ function DecisionQueueModal({
         form={form}
         queue={queue}
         onClose={onClose}
+        onContinue={onContinue}
         onFocusPane={onFocusPane}
       />
     );
@@ -248,6 +249,7 @@ function DecisionQueueModal({
           ctx={headerCtx}
           form={form}
           people={people}
+          onContinue={onContinue}
         />
       </GateSheet>
     );

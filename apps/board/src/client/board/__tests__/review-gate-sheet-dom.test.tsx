@@ -197,10 +197,12 @@ function Host({
   gate = GATE,
   queueIndex = QUEUE.index,
   onPrev = () => {},
+  onContinue = () => {},
 }: {
   gate?: GateRow;
   queueIndex?: number;
   onPrev?: () => void;
+  onContinue?: () => void;
 }) {
   const form = useGateForm(gate);
   return (
@@ -216,6 +218,7 @@ function Host({
         onPrev,
       }}
       onClose={() => {}}
+      onContinue={onContinue}
       onFocusPane={() => {}}
     />
   );
@@ -224,10 +227,12 @@ function Host({
 let root: Root;
 let container: HTMLElement;
 let posts: Array<{ url: string; body: unknown }>;
+let answeredElsewhere: boolean;
 
 beforeEach(() => {
   localStorage.clear();
   posts = [];
+  answeredElsewhere = false;
   (globalThis as { fetch: unknown }).fetch = async (
     input: RequestInfo | URL,
     init?: { body?: string }
@@ -236,6 +241,11 @@ beforeEach(() => {
     if (url.startsWith('/review/report.json'))
       return new Response('no structured review yet', { status: 404 });
     posts.push({ url, body: init?.body ? JSON.parse(init.body) : null });
+    if (answeredElsewhere && url === '/gate/answer')
+      return new Response(
+        JSON.stringify({ ok: false, conflict: true, row: { answer: { answers: {}, by: 'pane' } } }),
+        { status: 409 }
+      );
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   };
   container = document.createElement('div');
@@ -250,7 +260,11 @@ afterEach(async () => {
 
 async function render(
   gate?: GateRow,
-  hostProps?: { queueIndex?: number; onPrev?: () => void }
+  hostProps?: {
+    queueIndex?: number;
+    onPrev?: () => void;
+    onContinue?: () => void;
+  }
 ) {
   await React.act(async () => {
     root.render(<Host gate={gate} {...hostProps} />);
@@ -436,6 +450,22 @@ test('a note on the outcome question posts as {value, note}, not silently droppe
   expect(body.answers.findings).toBeUndefined();
   expect(body.answers['findings-1']).toEqual(['f1', 'f2', 'f3', 'f4']);
   expect(body.answers['findings-2']).toEqual(['f5', 'f6']);
+});
+
+test('a gate answered elsewhere offers continue, which retires it from the queue', async () => {
+  answeredElsewhere = true;
+  let continues = 0;
+  await render(undefined, {
+    onContinue: () => {
+      continues++;
+    },
+  });
+  await click(buttonByText('post 6 · approve'));
+  expect(container.querySelector('.tui-sheet-lost')!.textContent).toContain(
+    'answered elsewhere'
+  );
+  await click(buttonByText('continue'));
+  expect(continues).toBe(1);
 });
 
 test('an unchunked findings question posts its answer under its own id', async () => {

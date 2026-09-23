@@ -126,16 +126,25 @@ function postGate(): GateRow {
 let root: Root;
 let container: HTMLElement;
 let posts: Array<{ url: string; body: unknown }>;
+let answeredElsewhere: boolean;
+let continues: number;
 
 beforeEach(() => {
   localStorage.clear();
   posts = [];
+  answeredElsewhere = false;
+  continues = 0;
   (globalThis as { fetch: unknown }).fetch = async (
     input: RequestInfo | URL,
     init?: { body?: string }
   ) => {
     const url = typeof input === 'string' ? input : input.toString();
     posts.push({ url, body: init?.body ? JSON.parse(init.body) : null });
+    if (answeredElsewhere && url === '/gate/answer')
+      return new Response(
+        JSON.stringify({ ok: false, conflict: true, row: { answer: { answers: {}, by: 'pane' } } }),
+        { status: 409 }
+      );
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   };
   container = document.createElement('div');
@@ -161,7 +170,9 @@ async function render(row: GateRow, mr: BoardMRWithReview = MR) {
         onBack={() => {}}
         onFocusPane={() => {}}
         onAnswered={() => {}}
-        onContinue={() => {}}
+        onContinue={() => {
+          continues++;
+        }}
       />
     );
   });
@@ -232,6 +243,22 @@ test('with no fix picked, code-changes stays out of the rail and posts its senti
       'code-changes': 'skip',
     },
   });
+});
+
+test('a gate answered elsewhere offers continue, which retires it from the queue', async () => {
+  answeredElsewhere = true;
+  await render(planGate());
+  await pick('reply:t1');
+  await pick('reply:t2');
+  await clickSubmit();
+  expect($('.tui-sheet-lost')!.textContent).toContain('answered elsewhere');
+  const cont = [...document.body.querySelectorAll('.tui-sheet-lost button')].find(
+    b => b.textContent === 'continue'
+  );
+  await React.act(async () => {
+    (cont as HTMLButtonElement).click();
+  });
+  expect(continues).toBe(1);
 });
 
 test('a fix implies approve: no code-changes question, submit is live', async () => {

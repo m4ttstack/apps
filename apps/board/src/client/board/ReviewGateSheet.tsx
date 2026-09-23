@@ -198,6 +198,7 @@ function ReviewGateSheet({
   form,
   queue,
   onClose,
+  onContinue,
   onFocusPane,
 }: {
   gate: GateRow;
@@ -205,6 +206,8 @@ function ReviewGateSheet({
   form: GateFormState;
   queue: GateSheetQueue;
   onClose: () => void;
+  /** Retires a gate answered elsewhere from the queue. */
+  onContinue: () => void;
   onFocusPane: (mr: BoardMRWithReview, domain: GateDomain) => void;
 }) {
   const { questions, groups } = useMemo(
@@ -587,6 +590,15 @@ function ReviewGateSheet({
                   answer: { answers: form.lost.answers, by: form.lost.by },
                 }}
               />
+              <Button
+                type="button"
+                variant="filled"
+                intent="accent"
+                size="lg"
+                onClick={onContinue}
+              >
+                continue
+              </Button>
             </div>
           ) : (
             <>
