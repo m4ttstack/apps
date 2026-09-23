@@ -1,5 +1,7 @@
 /** A ResizeObserver the test fires by hand, since happy-dom does no layout. */
 
+import React from 'react';
+
 class FakeResizeObserver {
   static live: FakeResizeObserver[] = [];
   observed: Element[] = [];
@@ -52,4 +54,18 @@ function setHeight(el: Element, height: number) {
     }) as DOMRect;
 }
 
-export { installFakeResizeObserver, observerOf, setHeight };
+/** Resizes the pinned panel matching `selector` and reads back what its
+    scroller reserves; throws when nothing observes the panel. */
+async function reserveOf(selector: string, height: number): Promise<string> {
+  const panel = document.body.querySelector(selector);
+  if (!panel) throw new Error(`no ${selector}`);
+  const observer = observerOf(panel);
+  if (!observer) throw new Error(`nothing observes ${selector}`);
+  setHeight(panel, height);
+  await React.act(async () => observer.fire());
+  return (
+    panel.closest('.tui-sheet-body') as HTMLElement
+  ).style.getPropertyValue('--sheet-dock-h');
+}
+
+export { installFakeResizeObserver, observerOf, reserveOf, setHeight };

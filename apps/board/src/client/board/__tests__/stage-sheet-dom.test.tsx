@@ -18,8 +18,7 @@ import type { BoardMRWithReview } from '../../types.ts';
 import { DecisionQueueModal } from '../DecisionQueueModal.tsx';
 import {
   installFakeResizeObserver,
-  observerOf,
-  setHeight,
+  reserveOf,
 } from './fake-resize-observer.ts';
 
 GlobalRegistrator.register({ url: 'http://localhost/' });
@@ -826,14 +825,6 @@ test('the pane actions go quiet while an answer is in flight', async () => {
 test('the stage dock, the pane dock and the lost panel each reserve their height on the scroller', async () => {
   const restore = installFakeResizeObserver();
   try {
-    const reserveOf = async (panel: string, height: number) => {
-      const el = $(panel)!;
-      setHeight(el, height);
-      await React.act(async () => observerOf(el)!.fire());
-      return ($('.tui-sheet-body') as HTMLElement).style.getPropertyValue(
-        '--sheet-dock-h'
-      );
-    };
     await render(ship(), MR);
     expect(await reserveOf('.tui-sheet-dock', 402)).toBe('402px');
     await render(pane('blocked'), MR);
