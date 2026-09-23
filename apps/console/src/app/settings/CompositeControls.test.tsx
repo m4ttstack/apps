@@ -374,6 +374,23 @@ describe('composite rows', () => {
     expect(screen.getByText(/"triggers"/)).toBeInTheDocument();
   });
 
+  it('an unset read-only composite shows muted text with no toggle', () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.runaway', {
+          type: 'object',
+          writable: false,
+          effective: { scope: null, file: null },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.queryByRole('button', { expanded: false })).toBeNull();
+    expect(screen.getAllByText('unset')).toHaveLength(2);
+  });
+
   it('a shaped key that is not writable gets no editor and no Clear', async () => {
     renderWithProviders(
       <SettingRow

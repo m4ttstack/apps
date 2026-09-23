@@ -418,6 +418,15 @@ function LeavesBody({
   );
 }
 
+function UnsetText() {
+  const { text } = useSchemeColors();
+  return (
+    <Text size="xs" c={text.muted} ff="monospace">
+      unset
+    </Text>
+  );
+}
+
 function ReadonlyBody({ def }: { def: SettingDefWire }) {
   const { text } = useSchemeColors();
   const value = def.effective.value;
@@ -455,10 +464,10 @@ export function compositeParts(
   const toggle = (
     <ExpandToggle label={summarize(def)} open={open} onToggle={onToggle} />
   );
-  const readonly = {
-    control: toggle,
-    body: open ? <ReadonlyBody def={def} /> : null,
-  };
+  const readonly =
+    value === undefined && !def.secret
+      ? { control: <UnsetText />, body: null }
+      : { control: toggle, body: open ? <ReadonlyBody def={def} /> : null };
 
   // Secret and unwritable keys can still carry a SHAPES entry; they must
   // reach neither an editor nor the Clear escape hatch.
