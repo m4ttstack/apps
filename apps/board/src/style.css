@@ -4295,7 +4295,7 @@ body {
     min-width: 0;
     overflow-wrap: anywhere;
   }
-  .tui-respond-chip {
+  .tui-sheet-body .tui-respond-chip {
     white-space: nowrap;
   }
   .tui-gate-choice-label-row > .tui-gate-recommended {
