@@ -146,6 +146,16 @@ interface SheetRow {
   chips: RowChip[];
 }
 
+/** A break opportunity after every slash, so a path that wraps in a narrow
+    dock splits between segments, never inside one. */
+function slashBreaks(text: string): ReactNode {
+  const parts = text.split('/');
+  if (parts.length === 1) return text;
+  return parts.flatMap((part, i) =>
+    i === parts.length - 1 ? [part] : [`${part}/`, <wbr key={i} />]
+  );
+}
+
 /** The dock's one line per decision: its chips, then what it decides. A
     null chip keeps its slot empty so every row's text starts at one edge. */
 function SheetRows({ card, rows }: { card: string; rows: SheetRow[] }) {
@@ -173,8 +183,11 @@ function SheetRows({ card, rows }: { card: string; rows: SheetRow[] }) {
               />
             )
           )}
-          <span className="tui-sheet-card-text" title={r.title}>
-            {r.text}
+          <span
+            className="tui-sheet-card-text"
+            title={r.title ?? (typeof r.text === 'string' ? r.text : undefined)}
+          >
+            {typeof r.text === 'string' ? slashBreaks(r.text) : r.text}
           </span>
         </div>
       ))}
