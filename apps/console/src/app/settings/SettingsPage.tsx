@@ -1,0 +1,304 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CloseButton,
+  Group,
+  Kbd,
+  NavLink,
+  PageShell,
+  SegmentedControl,
+  Skeleton,
+  Stack,
+  Text,
+  TextInput,
+} from '@mattstack/app-kit/core';
+import { useHotkeys, useSchemeColors } from '@mattstack/app-kit/hooks';
+import { Icons } from '@mattstack/app-kit/icons';
+import { useSettingsScope } from '@mattstack/settings-kit/react';
+import { isSet } from '@mattstack/settings-kit/shapes';
+import { useSearchParams } from 'wouter';
+
+import { PAGE_ROW_HEIGHT } from '../chrome';
+import { TIER_LABEL, type Tier } from './groups';
+import { ScopeDot } from './ScopeBadge';
+import { SettingsSection } from './SettingsSection';
+import {
+  buildSections,
+  isEditable,
+  type ScopeFilter,
+  type Section,
+} from './view';
+
+const TIERS: Tier[] = ['rt', 'apps', 'suite'];
+const SCOPES = ['user', 'team', 'machine'] as const;
+
+function Index({
+  sections,
+  filtering,
+}: {
+  sections: Section[];
+  filtering: boolean;
+}) {
+  const { text } = useSchemeColors();
+  const [active, setActive] = useState(() =>
+    window.location.hash.replace('#', '')
+  );
+  return (
+    <Box
+      component="nav"
+      aria-label="settings groups"
+      w={232}
+      p="20px 12px 20px 16px"
+      style={{
+        flex: 'none',
+        borderRight: '1px solid var(--tk-line-2)',
+        alignSelf: 'stretch',
+      }}
+    >
+      {TIERS.map(tier => (
+        <Box key={tier}>
+          <Text
+            size="xs"
+            fw={500}
+            tt="uppercase"
+            c={text.muted}
+            px={8}
+            pt={14}
+            pb={6}
+          >
+            {TIER_LABEL[tier]}
+          </Text>
+          {sections
+            .filter(s => s.group.tier === tier)
+            .map(s => (
+              <NavLink
+                key={s.group.id}
+                href={`#${s.group.id}`}
+                label={s.group.label}
+                active={active === s.group.id}
+                rightSection={
+                  <Text size="xs" ff="monospace" c={text.muted}>
+                    {filtering ? s.shown : s.total}
+                  </Text>
+                }
+                style={{
+                  opacity: filtering && s.shown === 0 ? 0.45 : 1,
+                  borderRadius: 4,
+                }}
+                onClick={e => {
+                  e.preventDefault();
+                  setActive(s.group.id);
+                  window.history.replaceState(
+                    null,
+                    '',
+                    `${window.location.pathname}${window.location.search}#${s.group.id}`
+                  );
+                  document
+                    .getElementById(`settings-${s.group.id}`)
+                    ?.scrollIntoView({ block: 'start' });
+                }}
+              />
+            ))}
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+function SettingsPageContent() {
+  const { text } = useSchemeColors();
+  const store = useSettingsScope('');
+  const [params, setParams] = useSearchParams();
+  const query = params.get('q') ?? '';
+  const [changedOnly, setChangedOnly] = useState(false);
+  const [editableOnly, setEditableOnly] = useState(false);
+  const [scope, setScope] = useState<ScopeFilter>('any');
+  const filterRef = useRef<HTMLInputElement>(null);
+  useHotkeys([['/', () => filterRef.current?.focus()]]);
+
+  // A deep link (/settings#board) can only scroll once the sections exist.
+  useEffect(() => {
+    if (store.loading) return;
+    const id = window.location.hash.slice(1);
+    if (id)
+      document
+        .getElementById(`settings-${id}`)
+        ?.scrollIntoView({ block: 'start' });
+  }, [store.loading]);
+
+  const setQuery = (q: string) =>
+    setParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (q) next.set('q', q);
+        else next.delete('q');
+        return next;
+      },
+      { replace: true }
+    );
+
+  const sections = useMemo(
+    () =>
+      buildSections(store.defs, { query, changedOnly, editableOnly, scope }),
+    [store.defs, query, changedOnly, editableOnly, scope]
+  );
+  const total = store.defs.length;
+  const shown = sections.reduce((n, s) => n + s.shown, 0);
+  const filtering =
+    query !== '' || changedOnly || editableOnly || scope !== 'any';
+  const visible = sections.filter(s => s.shown > 0);
+  const hiddenGroups = sections.length - visible.length;
+  const clearAll = () => {
+    setQuery('');
+    setChangedOnly(false);
+    setEditableOnly(false);
+    setScope('any');
+  };
+
+  return (
+    <Group align="stretch" gap={0} wrap="nowrap" mih="100%">
+      <Index sections={sections} filtering={filtering} />
+      <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
+        <Group
+          gap={12}
+          px={32}
+          py={16}
+          wrap="nowrap"
+          style={{ borderBottom: '1px solid var(--tk-line-2)' }}
+        >
+          <TextInput
+            ref={filterRef}
+            aria-label="filter settings"
+            style={{ flex: 1 }}
+            leftSection={<Icons.search size={16} />}
+            placeholder={`Filter ${total} settings by key or description`}
+            value={query}
+            onTextChange={setQuery}
+            onKeyDown={e => {
+              if (e.key === 'Escape' && query !== '') {
+                e.stopPropagation();
+                setQuery('');
+              }
+            }}
+            rightSectionWidth={query ? 110 : 36}
+            rightSection={
+              query ? (
+                <Group gap={6} wrap="nowrap">
+                  <Text size="xs" c={text.muted}>{`${shown} of ${total}`}</Text>
+                  <CloseButton
+                    size="sm"
+                    aria-label="clear filter"
+                    onClick={() => setQuery('')}
+                  />
+                </Group>
+              ) : (
+                <Kbd size="xs">/</Kbd>
+              )
+            }
+          />
+          <Chip
+            checked={changedOnly}
+            onChange={setChangedOnly}
+            variant="outline"
+            size="sm"
+          >
+            {`Changed ${store.defs.filter(isSet).length}`}
+          </Chip>
+          <Chip
+            checked={editableOnly}
+            onChange={setEditableOnly}
+            variant="outline"
+            size="sm"
+          >
+            {`Editable ${store.defs.filter(isEditable).length}`}
+          </Chip>
+          <SegmentedControl
+            size="xs"
+            value={scope}
+            onChange={v => setScope(v as ScopeFilter)}
+            data={[
+              { value: 'any', label: 'any' },
+              ...SCOPES.map(s => ({
+                value: s,
+                label: (
+                  <Group gap={6} wrap="nowrap">
+                    <ScopeDot scope={s} />
+                    <span>{s}</span>
+                  </Group>
+                ),
+              })),
+            ]}
+          />
+        </Group>
+        <Box px={32} pb={32}>
+          {store.error && (
+            <Alert
+              color="bad"
+              variant="light"
+              mt="md"
+              icon={<Icons.error size={14} />}
+            >
+              <Text size="xs">{store.error}</Text>
+            </Alert>
+          )}
+          {store.loading ? (
+            <Stack gap="md" pt={28}>
+              {[220, 280, 180, 240].map(w => (
+                <Group key={w} justify="space-between">
+                  <Stack gap={8}>
+                    <Skeleton h={12} w={w} />
+                    <Skeleton h={10} w={w + 160} />
+                  </Stack>
+                  <Skeleton h={30} w={200} />
+                </Group>
+              ))}
+            </Stack>
+          ) : visible.length === 0 && total > 0 ? (
+            <Stack align="center" gap={10} py={48}>
+              <Text size="sm" fw={500}>
+                {query
+                  ? `No settings match “${query}”`
+                  : 'No settings match these filters'}
+              </Text>
+              <Text size="xs" c={text.muted}>
+                The filter reads key names and descriptions, not values.
+              </Text>
+              <Button size="xs" variant="default" onClick={clearAll}>
+                Clear filter
+              </Button>
+            </Stack>
+          ) : (
+            visible.map(s => (
+              <SettingsSection
+                key={s.group.id}
+                section={s}
+                store={store}
+                query={query}
+              />
+            ))
+          )}
+          {filtering && visible.length > 0 && hiddenGroups > 0 && (
+            <Group gap={6} pt={20}>
+              <Icons.eyeOff size={14} />
+              <Text
+                size="xs"
+                c={text.muted}
+              >{`${hiddenGroups} groups have no match. Esc clears the filter.`}</Text>
+            </Group>
+          )}
+        </Box>
+      </Stack>
+    </Group>
+  );
+}
+
+export function SettingsPage() {
+  return (
+    <PageShell title="Settings" headerHeight={PAGE_ROW_HEIGHT} compactHeader>
+      <SettingsPageContent />
+    </PageShell>
+  );
+}

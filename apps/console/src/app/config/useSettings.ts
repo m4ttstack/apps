@@ -22,30 +22,6 @@ async function readJson<T>(res: Response, what: string): Promise<T> {
   return body;
 }
 
-export function useSettingsDefs() {
-  return useQuery({
-    queryKey: ['settings', 'defs'],
-    queryFn: async () =>
-      readJson<{ defs: SettingDefWire[] }>(
-        await fetch('/api/settings/defs'),
-        'settings defs'
-      ),
-    staleTime: Infinity,
-  });
-}
-
-export function useSettingsPrefix(prefix: string) {
-  return useQuery({
-    queryKey: ['settings', 'defs', prefix],
-    queryFn: async () =>
-      readJson<{ defs: SettingDefWire[] }>(
-        await fetch(`/api/settings/defs?prefix=${encodeURIComponent(prefix)}`),
-        'settings defs'
-      ),
-    staleTime: Infinity,
-  });
-}
-
 export function useAgentModels(provider: 'claude' | 'codex') {
   return useQuery({
     queryKey: ['agent', 'models', provider],
