@@ -57,14 +57,14 @@ function Header({
           <Title order={2} size={16} fw={700}>
             {section.group.label}
           </Title>
-          <Text size="xs" ff="monospace" c={text.muted}>
+          <Text fz={12} ff="monospace" c={text.muted}>
             {count}
           </Text>
         </Group>
         {right}
       </Group>
       {section.group.blurb && (
-        <Text size="xs" c={text.muted}>
+        <Text fz={12} c={text.muted}>
           {section.group.blurb}
         </Text>
       )}
@@ -113,6 +113,7 @@ function AgentsSection({
         right={
           <SegmentedControl
             size="xs"
+            styles={{ label: { fontSize: 12, fontWeight: 500 } }}
             value={provider}
             onChange={v => setChosen(v as Provider)}
             data={[

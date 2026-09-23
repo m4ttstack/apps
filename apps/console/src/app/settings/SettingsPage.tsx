@@ -55,9 +55,10 @@ function Index({
       {TIERS.map(tier => (
         <Box key={tier}>
           <Text
-            size="xs"
+            fz={12}
             fw={500}
             tt="uppercase"
+            lts={0.6}
             c={text.muted}
             px={8}
             pt={14}
@@ -69,21 +70,35 @@ function Index({
             .filter(s => s.group.tier === tier)
             .map(s => {
               const empty = filtering && s.shown === 0;
+              const current = active === s.group.id;
               return (
                 <NavLink
                   key={s.group.id}
                   href={`#${s.group.id}`}
                   label={s.group.label}
-                  active={active === s.group.id}
+                  active={current}
                   disabled={empty}
                   aria-disabled={empty || undefined}
                   tabIndex={empty ? -1 : undefined}
                   rightSection={
-                    <Text size="xs" ff="monospace" c={text.muted}>
+                    <Text fz={12} ff="monospace" c={text.muted}>
                       {filtering ? s.shown : s.total}
                     </Text>
                   }
-                  style={{ borderRadius: 4 }}
+                  styles={{
+                    root: {
+                      height: 30,
+                      padding: '0 8px',
+                      borderRadius: 4,
+                      background: current ? 'var(--tk-raised)' : undefined,
+                      color:
+                        current || (filtering && !empty)
+                          ? 'var(--tk-text-1)'
+                          : text.muted,
+                      opacity: empty ? 0.45 : undefined,
+                    },
+                    label: { fontSize: 14, fontWeight: current ? 500 : 400 },
+                  }}
                   onClick={e => {
                     e.preventDefault();
                     if (empty) return;
@@ -115,6 +130,10 @@ export function SettingsPage() {
   const [editableOnly, setEditableOnly] = useState(false);
   const [scope, setScope] = useState<ScopeFilter>('any');
   const filterRef = useRef<HTMLInputElement>(null);
+  const [asOf, setAsOf] = useState<Date | null>(null);
+  useEffect(() => {
+    if (!store.loading && store.error === null) setAsOf(new Date());
+  }, [store.loading, store.error, store.defs]);
   useHotkeys([['/', () => filterRef.current?.focus()]]);
 
   // A deep link (/settings#board) can only scroll once the sections exist.
@@ -172,7 +191,21 @@ export function SettingsPage() {
         <Index sections={sections} filtering={filtering} />
       </PageShell.Sidebar>
       <PageShell.Main>
-        <PageShell.Header title="Settings" />
+        <PageShell.Header
+          title="Settings"
+          actions={
+            asOf && (
+              <Group gap={6} wrap="nowrap">
+                <Text fz={12} ff="monospace" c={text.muted}>
+                  {'>_ rt settings list'}
+                </Text>
+                <Text fz={12} c={text.muted}>
+                  {`${total} keys · as of ${asOf.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
+                </Text>
+              </Group>
+            )
+          }
+        />
         <PageShell.Content contentContainer={false}>
           {/* Tokyo grids every content frame; this page's rows sit on the
               plain page surface, so the body paints over it. */}
@@ -196,6 +229,7 @@ export function SettingsPage() {
                 style={{ flex: 1 }}
                 leftSection={<Icons.search size={16} />}
                 placeholder={`Filter ${total} settings by key or description`}
+                styles={{ input: { fontSize: 14 } }}
                 value={query}
                 onTextChange={setQuery}
                 onKeyDown={e => {
@@ -209,7 +243,7 @@ export function SettingsPage() {
                   query ? (
                     <Group gap={6} wrap="nowrap">
                       <Text
-                        size="xs"
+                        fz={12}
                         c={text.muted}
                       >{`${shown} of ${total}`}</Text>
                       <CloseButton
@@ -228,19 +262,42 @@ export function SettingsPage() {
                 onChange={setChangedOnly}
                 variant="outline"
                 size="sm"
+                styles={{
+                  label: {
+                    height: 30,
+                    paddingInline: 12,
+                    fontSize: 12,
+                    fontWeight: 500,
+                  },
+                }}
               >
-                {`Changed ${store.defs.filter(isSet).length}`}
+                Changed{' '}
+                <Text span inherit ff="monospace">
+                  {store.defs.filter(isSet).length}
+                </Text>
               </Chip>
               <Chip
                 checked={editableOnly}
                 onChange={setEditableOnly}
                 variant="outline"
                 size="sm"
+                styles={{
+                  label: {
+                    height: 30,
+                    paddingInline: 12,
+                    fontSize: 12,
+                    fontWeight: 500,
+                  },
+                }}
               >
-                {`Editable ${store.defs.filter(isEditable).length}`}
+                Editable{' '}
+                <Text span inherit ff="monospace">
+                  {store.defs.filter(isEditable).length}
+                </Text>
               </Chip>
               <SegmentedControl
                 size="xs"
+                styles={{ label: { fontSize: 12, fontWeight: 500 } }}
                 value={scope}
                 onChange={v => setScope(v as ScopeFilter)}
                 data={[
@@ -265,7 +322,7 @@ export function SettingsPage() {
                   mt="md"
                   icon={<Icons.error size={14} />}
                 >
-                  <Text size="xs">{store.error}</Text>
+                  <Text fz={12}>{store.error}</Text>
                 </Alert>
               )}
               {store.loading ? (
@@ -282,15 +339,22 @@ export function SettingsPage() {
                 </Stack>
               ) : visible.length === 0 && total > 0 ? (
                 <Stack align="center" gap={10} py={48}>
-                  <Text size="sm" fw={500}>
+                  <Icons.search size={24} color={text.muted} />
+                  <Text fz={14} fw={500}>
                     {query
                       ? `No settings match “${query}”`
                       : 'No settings match these filters'}
                   </Text>
-                  <Text size="xs" c={text.muted}>
+                  <Text fz={12} c={text.muted}>
                     The filter reads key names and descriptions, not values.
                   </Text>
-                  <Button size="xs" variant="default" onClick={clearAll}>
+                  <Button
+                    size="xs"
+                    h={28}
+                    fz={12}
+                    variant="default"
+                    onClick={clearAll}
+                  >
                     Clear filter
                   </Button>
                 </Stack>
@@ -309,7 +373,7 @@ export function SettingsPage() {
               {filtering && visible.length > 0 && hiddenGroups > 0 && (
                 <Group gap={8} pt={20}>
                   <Icons.eyeOff size={14} color={text.muted} />
-                  <Text size="xs" c={text.muted}>
+                  <Text fz={12} c={text.muted}>
                     {hiddenGroups === 1
                       ? '1 group has no match.'
                       : `${hiddenGroups} groups have no match.`}

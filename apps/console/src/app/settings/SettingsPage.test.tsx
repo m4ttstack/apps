@@ -111,6 +111,9 @@ describe('SettingsPage', () => {
     expect(document.getElementById('page-shell-header')).toHaveTextContent(
       'Settings'
     );
+    expect(document.getElementById('page-shell-header')).toHaveTextContent(
+      /rt settings list\s*18 keys · as of \d/
+    );
     expect(document.getElementById('page-shell-content')).toContainElement(
       screen.getByRole('heading', { name: 'Board' })
     );
