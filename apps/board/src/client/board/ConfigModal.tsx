@@ -339,7 +339,7 @@ function LeavesControl({
       })}
       {explained.error && (
         <p className="tui-config-error tui-config-leaves-error">
-          {explained.error}{' '}
+          {explained.error} ·{' '}
           <button type="button" className="tui-config-link" onClick={refresh}>
             retry
           </button>
