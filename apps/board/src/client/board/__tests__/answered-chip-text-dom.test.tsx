@@ -67,3 +67,28 @@ test('an edited reply counts on the chip and shows once in the detail', async ()
   expect(text).toContain('2 posted (1 edited)');
   expect(text.split('edited reply: Edited reply.').length - 1).toBe(1);
 });
+
+test('an edited reply keeps its paragraphs on its own line, not the faint note', async () => {
+  const reply = 'Fixed the guard.\n\nThe retry is bounded too.';
+  await React.act(async () => {
+    root.render(
+      <AnsweredChip
+        startOpen
+        row={{
+          subject: 'mr:https://gitlab.example.com/demo/app/-/merge_requests/87',
+          kind: 'respond-post',
+          status: 'answered',
+          questions: [thread(1, 'T1')],
+          answer: {
+            answers: { 'thread-1': { value: ['post:T1'], text: reply } },
+            by: 'board',
+          },
+        }}
+      />
+    );
+  });
+  const line = container.querySelector('[data-edited-reply]')!;
+  expect(line.classList.contains('tui-gate-summary-reply')).toBe(true);
+  expect(line.classList.contains('tui-gate-summary-note')).toBe(false);
+  expect(line.textContent).toContain(reply);
+});

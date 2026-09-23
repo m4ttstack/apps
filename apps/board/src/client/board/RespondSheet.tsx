@@ -1017,7 +1017,9 @@ function RespondSheetBody({
                       setRevising(false);
                       setReason('');
                     } else {
-                      form.resetAll();
+                      // Each card resets its own reply to the draft; this
+                      // resets the picks, and never discards typed words.
+                      form.resetAll({ keepTexts: true });
                       seedPostable();
                       seedPicks(true);
                     }

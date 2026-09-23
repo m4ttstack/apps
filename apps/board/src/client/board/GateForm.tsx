@@ -41,7 +41,7 @@ function SummaryDetail({ detail }: { detail: GateSummaryDetailRow[] }) {
               <div className="tui-gate-summary-note">{row.note}</div>
             )}
             {row.text && (
-              <div className="tui-gate-summary-note" data-edited-reply="">
+              <div className="tui-gate-summary-reply" data-edited-reply="">
                 edited reply: {row.text}
               </div>
             )}
@@ -142,11 +142,14 @@ function useGateForm(gate: GateRow, onAnswered?: () => void) {
       delete next[name];
       return next;
     });
-  const resetAll = () => {
+  // Keeping the texts keeps the draft too: the save effect rewrites it from
+  // the reset state, and clearing it here would drop the kept texts on reload.
+  const resetAll = ({ keepTexts = false }: { keepTexts?: boolean } = {}) => {
     setSelections({});
     setNotes({});
-    setTexts({});
     setStep(null);
+    if (keepTexts) return;
+    setTexts({});
     clearDraft();
   };
 
@@ -513,7 +516,7 @@ function GateForm({
             intent="muted"
             size="lg"
             disabled={busy}
-            onClick={resetAll}
+            onClick={() => resetAll()}
           >
             reset
           </Button>

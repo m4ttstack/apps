@@ -914,6 +914,23 @@ test('an emptied reply says so on its card', async () => {
   );
 });
 
+test('the dock reset restores the picks but keeps an edited reply', async () => {
+  await render(perThreadPostGate(), withFixPlan());
+  const reply = postCards()[1]!;
+  await React.act(async () => editButton(reply)!.click());
+  await typeInto(replyBox(reply)!, 'Kept on purpose.');
+  await React.act(async () => control(reply, 'hold')!.click());
+  await click($('.tui-sheet-reset'));
+  const again = postCards()[1]!;
+  expect(control(again, 'post')!.checked).toBe(true);
+  expect(again.querySelector('[data-chip="edited"]')).not.toBeNull();
+  expect(again.textContent).toContain('Kept on purpose.');
+  await clickSubmit();
+  expect(
+    (answer() as { answers: Record<string, unknown> }).answers['thread-2']
+  ).toEqual({ value: ['post:r2'], text: 'Kept on purpose.' });
+});
+
 const DOCK_EMPTY = 'a reply is empty: write it or hold the thread';
 
 test('the dock says why submit is off while a posting reply is empty', async () => {
