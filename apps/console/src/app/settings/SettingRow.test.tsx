@@ -412,6 +412,138 @@ describe('SettingRow', () => {
     );
   });
 
+  it('a stored secret or an unwritable stored row has no row menu', () => {
+    renderWithProviders(
+      <>
+        <SettingRow
+          def={def('chat.apiToken', {
+            secret: true,
+            writable: false,
+            effective: { scope: 'user', file: '/u' },
+          })}
+          store={store()}
+          subhead={null}
+          query=""
+        />
+        <SettingRow
+          def={def('rt.roles', {
+            writable: false,
+            effective: { scope: 'user', file: '/u', value: 'x' },
+          })}
+          store={store()}
+          subhead={null}
+          query=""
+        />
+      </>
+    );
+    expect(screen.queryByRole('button', { name: /actions$/ })).toBeNull();
+  });
+
+  it('offers moves only to the other scopes the key allows', async () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('board.agent.model', {
+          scopes: ['user', 'machine'],
+          effective: { scope: 'machine', file: '/m', value: 'x' },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'board.agent.model actions' })
+    );
+    await screen.findByRole('menuitem', { name: 'Remove from machine' });
+    expect(
+      screen
+        .getAllByRole('menuitem')
+        .map(i => i.textContent)
+        .filter(t => t?.startsWith('Move'))
+    ).toEqual(['Move to user']);
+  });
+
+  it("shows rt's refusal of a move under the row", async () => {
+    const s = store();
+    s.move.mockResolvedValueOnce('rt: the user store is read-only');
+    renderWithProviders(
+      <SettingRow
+        def={def('board.agent.model', {
+          effective: { scope: 'machine', file: '/m', value: 'x' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'board.agent.model actions' })
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'Move to user' })
+    );
+    expect(
+      await screen.findByText('rt: the user store is read-only')
+    ).toBeInTheDocument();
+  });
+
+  it("shows rt's refusal of a remove under the row", async () => {
+    const s = store();
+    s.unset.mockResolvedValueOnce('rt: the machine store is locked');
+    renderWithProviders(
+      <SettingRow
+        def={def('board.agent.model', {
+          effective: { scope: 'machine', file: '/m', value: 'x' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'board.agent.model actions' })
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'Remove from machine' })
+    );
+    expect(
+      await screen.findByText('rt: the machine store is locked')
+    ).toBeInTheDocument();
+  });
+
+  it('a value stored in a scope the key no longer allows has no row menu', () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('board.agent.model', {
+          scopes: ['user', 'machine'],
+          effective: { scope: 'team', file: '/t', value: 'x' },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.queryByRole('button', { name: /actions$/ })).toBeNull();
+  });
+
+  it('a rejected stored value can be removed but not moved', async () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('board.agent.model', {
+          effective: { scope: 'machine', file: '/m', invalid: 'not a model' },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'board.agent.model actions' })
+    );
+    await screen.findByRole('menuitem', { name: 'Remove from machine' });
+    expect(screen.queryByRole('menuitem', { name: /^Move/ })).toBeNull();
+  });
+
   it('a default or unset row has no row menu', () => {
     renderWithProviders(
       <>
