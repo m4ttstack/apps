@@ -43,8 +43,11 @@ commit), text the developer has not seen yet.
   fixed thread. A `reply:` answer that carries a note is an override too:
   the note may change the reply (in the pane form it is the only place a
   typed replacement can go), so the reply is redrafted with it and offered
-  at gate 2. Gate 2 offers exactly the replies the developer has not yet
-  seen word for word.
+  at gate 2. So is a `reply:` answer (no `text`) on a thread whose gate 1
+  question context never reached the gate (dropped for the size budget,
+  or the open reported `contextOmitted`), since its draft was never shown.
+  Gate 2 offers exactly the replies the developer has not yet seen word for
+  word.
 - **`code-changes: revise`:** unchanged.
 - **`skip:`** still means no reply and no fix; it is how a reply is held
   at gate 1.
