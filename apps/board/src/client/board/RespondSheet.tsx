@@ -1097,7 +1097,12 @@ function RespondSheetBody({
                   </p>
                 )}
                 <div className="tui-respond-chips">
-                  {headerChips(ctx).map(chip => (
+                  {headerChips(
+                    ctx,
+                    perThread && frame === undefined
+                      ? posting + withStep
+                      : undefined
+                  ).map(chip => (
                     <span
                       key={chip.key}
                       className="tui-respond-chip"

@@ -1378,3 +1378,22 @@ test('the plan dock says nothing about what comes next while a reply is empty', 
   await typeInto(replyBox(card)!, 'fixed in the next push, with a test.');
   expect(dockNext()).toBe('Next, 2 replies post.');
 });
+
+const repliesChip = () => $('[data-chip="replies"]')!.textContent;
+
+test('on a per-thread post sheet the rail counts the replies this submit posts', async () => {
+  await render(perThreadPostGate(), withFixPlan());
+  expect(repliesChip()).toBe('3 replies');
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('3 of 3 posting');
+  await React.act(async () => control(postCards()[1]!, 'hold')!.click());
+  expect(repliesChip()).toBe('2 replies');
+  expect($('.tui-sheet-list-tally')!.textContent).toBe('2 of 3 posting');
+  expect(submit().textContent).toBe('post 2 · resolve 1');
+});
+
+test('a post sheet flattened to prose keeps the offered reply count in the rail', async () => {
+  await render(prosePostGate());
+  expect(repliesChip()).toBe('2 replies');
+  await React.act(async () => control(postCards()[1]!, 'hold')!.click());
+  expect(repliesChip()).toBe('2 replies');
+});
