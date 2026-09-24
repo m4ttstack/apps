@@ -8,7 +8,8 @@ to the wrapper:
 - **Push first, only when needed.** Only when Gate 2's picks post or
   resolve a fixed thread (a `gate-1: fix` row): check that `git branch
   --show-current` is the MR's source branch and `git rev-parse
-  --abbrev-ref @{push}` is that branch on its remote, then run a plain
+  --abbrev-ref @{push}` is that branch on its remote, then push that one
+  branch explicitly with `git push origin <source branch>`, never a bare
   `git push`. Gate 2's answer is the authorization.
 - **A failed push** (a target mismatch or a push error) holds those
   threads (no post, no resolve), reports the output verbatim in the pane,
@@ -50,8 +51,9 @@ tally of the `done` counts and the report line on the final round.
 
 ## Pass criteria
 
-- **wrap-push-before-fixed:** both target checks, then a plain `git
-  push`, before T1's reply; T1 posts and resolves; T2 posts unresolved;
+- **wrap-push-before-fixed:** both target checks, then `git push origin
+  renee/queue-retry` (the explicit refspec, never a bare `git push`),
+  before T1's reply; T1 posts and resolves; T2 posts unresolved;
   `done --posted 2 --threads 2`.
 - **wrap-push-fails-override:** the checks, the push, no T1 post or
   resolve, T2 and T3 post unresolved, the error verbatim,
@@ -72,6 +74,9 @@ tally of the `done` counts and the report line on the final round.
 | wrap-push-wrong-branch | 2/5 | A guard for the mismatch path; the scenario names the check commands. No rep pushes, but reps 1, 3 and 5 emit `error` instead of `done`, and rep 3 also holds the plain reply T2. |
 
 ## GREEN round 1
+
+Rounds 1 and 2 ran against the plain `git push` wording; the explicit
+refspec (round 3, below) replaced it after review.
 
 | Scenario | Result | Notes |
 |---|---|---|
@@ -115,3 +120,14 @@ the call it would make for any missing value. 3 reps per arm.
 | with the clause | 3/3 | Every rep reads `.source_branch` and ties it to step 2's fetch. Rep 1: "It is the record step 2 read when it fetched the threads." |
 
 The clause states the provenance rather than fixing an observed failure.
+
+## GREEN round 3: the explicit refspec
+
+A bare `git push` follows any configured push refspec or mirror remote,
+so it can publish other local refs that the `@{push}` check never looks
+at. Step 2 now pushes the verified branch alone: `git push origin <source
+branch>`, never a bare `git push`.
+
+| Scenario | Result | Notes |
+|---|---|---|
+| wrap-push-before-fixed | 5/5 | Every rep runs both checks, then `git push origin renee/queue-retry`, before T1's reply; T1 posts and resolves, T2 posts unresolved, `done --posted 2 --threads 2`. Rep 3: "It names the branch explicitly and is never a bare `git push`." |

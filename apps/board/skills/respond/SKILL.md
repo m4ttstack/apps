@@ -507,8 +507,10 @@ conversation.
       (`origin/<source branch>`). Any other
       output, an error included, is a failed push; never switch branches
       to make it match.
-   2. Push with a plain `git push`. Gate 2's answer is the authorization:
-      ask nothing more.
+   2. Push that one branch explicitly, `git push origin <source branch>`
+      (the branch step 1 verified), never a bare `git push`, which can
+      publish other refs under a configured push refspec or a mirror
+      remote. Gate 2's answer is the authorization: ask nothing more.
 
    A failed push (a target mismatch or a push error) holds those fixed
    threads: post and resolve none of them, report the mismatch or the
