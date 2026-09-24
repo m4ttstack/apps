@@ -33,6 +33,17 @@ test('prod outside any bundle (a bare source run)', () => {
   expect(isDevBundle(null)).toBe(false);
 });
 
+test('the dev shim run (bun src/main.ts serve with DECK_BUNDLE_ROOT) reads as the dev bundle', () => {
+  const prev = process.env.DECK_BUNDLE_ROOT;
+  process.env.DECK_BUNDLE_ROOT = bundle('<true/>');
+  try {
+    expect(isDevBundle()).toBe(true);
+  } finally {
+    if (prev === undefined) delete process.env.DECK_BUNDLE_ROOT;
+    else process.env.DECK_BUNDLE_ROOT = prev;
+  }
+});
+
 test('prod when Info.plist cannot be read', () => {
   expect(isDevBundle(join(tmpdir(), 'no-such', 'mattstack.app'))).toBe(false);
 });
