@@ -440,10 +440,12 @@ This still buys the same two things mantine-kit's split buys:
 
 **Write scalar-or-object theme options in their object form.**
 `primaryShade` is `{ light, dark }` in `base-theme.ts` even though both
-shades are 7 and Mantine accepts the scalar, because Mantine's `deepMerge`
-recurses into an object source without checking that the target is one
-too, so a scalar target silently corrupts instead of erroring when merged
-with an object override. `design-system/theme.test.tsx` pins it.
+shades are 7 and Mantine accepts the scalar. Mantine's `deepMerge` recurses
+into an object source without checking that the target is one too, so a
+scalar target merged with an object override collapses to `{}` and blanks
+the page with a `TypeError` from `isValidPrimaryShade` that names neither
+`primaryShade` nor the theme that supplied it. `design-system/theme.test.tsx`
+pins it.
 
 **Kit-wide defaults** live in `packages/ui/src/design-system/base-theme.ts`,
 via `createTheme`'s `components` map in Mantine's string-keyed form --
