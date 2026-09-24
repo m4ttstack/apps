@@ -1,7 +1,7 @@
 /** A pipeline run's gate, served on the MR its run recorded, reads as that
     MR's decision on the real Board: the row says what is owed, the row's
-    answer verb opens the stage sheet on the MR, and the answer posts the
-    run gate's own id. */
+    answer verb opens the stage sheet on the MR, the answer posts the run
+    gate's own id, and an answer that lost to another surface says so. */
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'bun:test';
@@ -99,6 +99,7 @@ let React: typeof import('react');
 let createRoot: typeof import('react-dom/client').createRoot;
 let Board: typeof import('../Board.tsx').Board;
 let posts: Array<{ url: string; body: unknown }>;
+let answeredElsewhere: boolean;
 
 beforeAll(async () => {
   React = await import('react');
@@ -109,6 +110,7 @@ beforeAll(async () => {
 beforeEach(() => {
   localStorage.clear();
   posts = [];
+  answeredElsewhere = false;
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (url.startsWith('/data.json'))
@@ -117,6 +119,24 @@ beforeEach(() => {
       url,
       body: typeof init?.body === 'string' ? JSON.parse(init.body) : null,
     });
+    if (answeredElsewhere && url === '/gate/answer')
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          conflict: true,
+          row: {
+            ...RUN_GATE,
+            id: RUN_GATE.gateId,
+            status: 'answered',
+            answer: {
+              answers: { verify: 'local' },
+              by: 'console',
+              answeredAt: Date.now(),
+            },
+          },
+        }),
+        { status: 409 }
+      );
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   }) as typeof fetch;
 });
@@ -186,6 +206,33 @@ test('answering from the row opens the stage sheet on the MR and posts the run g
         body: { gateId: 'g-run-clarify', answers: { verify: 'push-ci' } },
       },
     ]);
+  } finally {
+    await cleanup();
+  }
+});
+
+test('an answer that lost to another surface shows the winning answer and continue, not a failed submit', async () => {
+  answeredElsewhere = true;
+  const { container, cleanup } = await renderBoard();
+  try {
+    await click(
+      container.querySelector('[data-mr-iid="301"] [data-verb="answer"]')
+    );
+    const sheet = document.body.querySelector('.tui-gate-sheet')!;
+    await click(sheet.querySelector('input[value="push-ci"]'));
+    await click(sheet.querySelector('.tui-sheet-submit'));
+
+    const lost = sheet.querySelector('.tui-sheet-lost');
+    expect(lost?.querySelector('.tui-gate-error')?.textContent).toBe(
+      'answered elsewhere'
+    );
+    expect(lost?.textContent).toContain('Run it locally first');
+    expect(
+      [...(lost?.querySelectorAll('button') ?? [])].some(
+        b => b.textContent?.trim() === 'continue'
+      )
+    ).toBe(true);
+    expect(sheet.textContent).not.toContain('submit failed');
   } finally {
     await cleanup();
   }

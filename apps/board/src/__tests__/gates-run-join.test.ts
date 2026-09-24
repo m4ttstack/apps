@@ -10,7 +10,13 @@ import type {
   RtResponse,
   RunDetail,
 } from '@mattstack/rt-client';
-import { attachGates, GateCache, isRowAnswerable } from '../gates/cache.ts';
+import { answerGate } from '../gates/answer.ts';
+import {
+  answeredWinner,
+  attachGates,
+  GateCache,
+  isRowAnswerable,
+} from '../gates/cache.ts';
 import {
   buildQueueExtras,
   ingestRelayFrame,
@@ -258,6 +264,33 @@ describe('relay frames', () => {
     h.relay(openedFrame('g-clarify', RUN_ON_BOARD));
     const [onBoard] = await h.board([{ webUrl: `${MR_ON_BOARD}/` }]);
     expect(onBoard!.gates.map(g => g.gateId)).toEqual(['g-clarify']);
+  });
+});
+
+describe('answering late', () => {
+  test('a board answer to a run gate answered elsewhere loses to the recorded answer', async () => {
+    const h = harness();
+    h.relay(openedFrame('g-clarify', RUN_ON_BOARD));
+    h.relay(thinFrame('answered', 'g-clarify', RUN_ON_BOARD));
+    const row = () => h.cache.rows().find(r => r.id === 'g-clarify');
+
+    const result = await answerGate(
+      'g-clarify',
+      { verify: 'local' },
+      {
+        isAnswerable: () => isRowAnswerable(row()),
+        answeredRow: () => answeredWinner(row()),
+        gateAnswer: () => {
+          throw new Error('the daemon is never asked');
+        },
+      }
+    );
+
+    expect(result.kind).toBe('conflict');
+    expect(result.kind === 'conflict' && result.row.answer).toMatchObject({
+      answers: { verify: 'push-ci' },
+      by: 'console',
+    });
   });
 });
 

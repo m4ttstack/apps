@@ -271,6 +271,14 @@ export function isRowAnswerable(row: FacilityGateRow | undefined): boolean {
   return row.status === 'answered' && cachedExecution(row) === 'unassigned';
 }
 
+/** A cached row some surface already answered, with the answer it
+    recorded: what a late answer from the board loses to. */
+export function answeredWinner(
+  row: FacilityGateRow | undefined
+): FacilityGateRow | undefined {
+  return row?.status === 'answered' && row.answer ? row : undefined;
+}
+
 /** Same story as `cachedExecution`: the facility's typed `delivery.outcome`
     (`"delivered" | "dead-pane"`) lags the board's own richer set
     (`"delivered" | "confirmed" | "stuck"`) the daemon already emits --

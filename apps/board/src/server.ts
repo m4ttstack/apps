@@ -115,7 +115,12 @@ import { upsertEnvKeys } from './env-file.ts';
 import faviconSvg from './favicon.svg' with { type: 'text' };
 import { focusPane } from './focus-pane.ts';
 import { answerGate } from './gates/answer.ts';
-import { attachGates, GateCache, isRowAnswerable } from './gates/cache.ts';
+import {
+  answeredWinner,
+  attachGates,
+  GateCache,
+  isRowAnswerable,
+} from './gates/cache.ts';
 import {
   executeSweepAction,
   type ExecuteSweepActionIo,
@@ -2242,6 +2247,8 @@ const httpServer = Bun.serve({
         const result = await answerGate(gateId, answers as GateAnswers, {
           isAnswerable: id =>
             isRowAnswerable(gateCache.rows().find(r => r.id === id)),
+          answeredRow: id =>
+            answeredWinner(gateCache.rows().find(r => r.id === id)),
           gateAnswer: gateAnswerFacility,
         });
         switch (result.kind) {

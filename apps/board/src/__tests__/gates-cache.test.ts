@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { GateRow as FacilityGateRow } from '@mattstack/rt-client';
-import { attachGates, GateCache, isRowAnswerable } from '../gates/cache.ts';
+import {
+  answeredWinner,
+  attachGates,
+  GateCache,
+  isRowAnswerable,
+} from '../gates/cache.ts';
 
 const SUBJECT_A = 'mr:https://gitlab.com/acme/webapp/-/merge_requests/4821';
 const SUBJECT_B = 'mr:https://gitlab.com/acme/webapp/-/merge_requests/1';
@@ -880,6 +885,23 @@ describe('attachGates', () => {
     );
     expect(mr!.gates[0]?.delivery).toBeUndefined();
     expect(mr!.gates[0]?.execution).toBeUndefined();
+  });
+});
+
+describe('answeredWinner', () => {
+  test('an answered row carrying its answer is the winner', () => {
+    const answered = row({
+      status: 'answered',
+      answer: { answers: { q1: 'yes' }, by: 'console', answeredAt: 1 },
+    });
+    expect(answeredWinner(answered)).toBe(answered);
+  });
+
+  test('open, closed, unknown, and answer-less rows have no winner', () => {
+    expect(answeredWinner(row({ status: 'open' }))).toBeUndefined();
+    expect(answeredWinner(row({ status: 'closed' }))).toBeUndefined();
+    expect(answeredWinner(undefined)).toBeUndefined();
+    expect(answeredWinner(row({ status: 'answered' }))).toBeUndefined();
   });
 });
 

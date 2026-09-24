@@ -12,6 +12,9 @@ export interface AnswerGateIo {
       row can be one of several live on the same MR), so this is a guard
       against a stale id, not a lookup. */
   isAnswerable(gateId: string): boolean;
+  /** The cached row when another surface already answered it: a late
+      answer loses to that row rather than reading as a missing gate. */
+  answeredRow?(gateId: string): GateRow | undefined;
   gateAnswer(
     payload: Commands['gate:answer']['payload']
   ): Promise<RtResponse<Commands['gate:answer']['data']>>;
@@ -61,7 +64,10 @@ export async function answerGate(
   answers: GateAnswers,
   io: AnswerGateIo
 ): Promise<AnswerGateResult> {
-  if (!io.isAnswerable(gateId)) return { kind: 'not-found' };
+  if (!io.isAnswerable(gateId)) {
+    const winner = io.answeredRow?.(gateId);
+    return winner ? { kind: 'conflict', row: winner } : { kind: 'not-found' };
+  }
 
   let res: Awaited<ReturnType<AnswerGateIo['gateAnswer']>>;
   try {
