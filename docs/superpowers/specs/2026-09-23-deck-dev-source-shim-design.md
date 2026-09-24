@@ -202,12 +202,12 @@ No board work is in scope.
 | Deploy restart comes back pinned | Exit 1 with the shim's reason |
 | Deploy restart not healthy in 20s | Log tails printed, exit 1 |
 | First pinned fallback after a rebuild | `deck-pinned` is signed `com.mattstack.helper.deck-pinned`, a new code identity, so macOS may ask once to let it read Documents |
+| Prod app | Unchanged |
 
 The `runMode: pinned` rows above assume a `deck-pinned` binary built with this
 change. Today's pinned fallback is deck 1.0.6 (`deps.lock`), which predates
 `runMode`: it writes no `runMode` field at all, so a pinned fallback reads as
 `standalone` in `api.json` until the pin is bumped past this change.
-| Prod app | Unchanged |
 
 ## Testing
 
