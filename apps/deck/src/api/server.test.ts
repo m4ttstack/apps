@@ -188,6 +188,10 @@ test('healthz answers ok (health contract)', async () => {
 });
 
 test('healthz names the answering process, so a deploy restart verifies against it rather than a stale api.json read', async () => {
+  // Asserting 'standalone' needs a clean slate: an inherited shim env would
+  // otherwise report 'source' or 'pinned' and fail this on a dev machine.
+  delete process.env.DECK_RUN_MODE;
+  delete process.env.DECK_RUN_REASON;
   const res = await api('/healthz');
   expect(res.headers.get('x-deck-pid')).toBe(String(process.pid));
   expect(res.headers.get('x-deck-run-mode')).toBe('standalone');
