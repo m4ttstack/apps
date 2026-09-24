@@ -46,8 +46,8 @@ The board tracks five in-flight statuses; emit each as you cross the milestone:
 | `triaging` | Immediately, before fetching threads. |
 | `implementing` | Only after Gate 1's `code-changes` question comes back `approve`, before touching code. Skip when no threads need code changes. |
 | `drafting` | When presenting the verdict table + drafted replies (before Gate 1), and again right before Gate 2 opens, on every path: after implementing, and after drafting a reply override with nothing implemented. |
-| `done` | After the run finishes. REQUIRED: `--posted <n> --threads <n>`, plus `--held <n>` whenever a gate decision kept any reply from posting (see step 7). |
-| `error` | Anything unrecoverable (bad MR, no threads to process, delegated skill failed). |
+| `done` | After the run finishes, zero threads included. REQUIRED: `--posted <n> --threads <n>`, plus `--held <n>` whenever a gate decision kept any reply from posting (see step 7). |
+| `error` | Anything unrecoverable (bad MR, delegated skill failed). |
 
 ## Operator note
 
