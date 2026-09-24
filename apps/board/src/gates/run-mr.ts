@@ -7,7 +7,8 @@ import type {
 const RUN_SUBJECT_PREFIX = 'run:';
 
 /** A run that has not recorded its MR yet usually records it later (the
-    ship stage writes `mr`), so a miss is retried after this long. */
+    ship stage writes `mr`), so a miss is retried after this long. A daemon
+    error waits the same interval before the next lookup. */
 export const RUN_MR_MISS_TTL_MS = 30_000;
 
 export const RUN_MR_HIT_TTL_MS = 5 * 60_000;
@@ -74,8 +75,9 @@ interface Entry {
     daemon's `runs:get`, without ever making a caller wait on the daemon:
     `links` answers from what is cached and looks up the rest in the
     background, firing `onChange` when a mapping lands or moves. A found MR
-    is rechecked after `hitTtlMs` (a run can re-record or clear `mr`), a
-    miss after `missTtlMs`; a daemon error keeps the last known MR. */
+    is rechecked after `ttl.hitMs` (a run can re-record or clear `mr`), a
+    miss after `ttl.missMs`; a daemon error keeps the last known MR and
+    retries after `ttl.missMs`. */
 export class RunMrResolver {
   private readonly entries = new Map<string, Entry>();
   private readonly inflight = new Map<string, Promise<void>>();

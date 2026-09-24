@@ -147,6 +147,57 @@ describe('answerGate', () => {
     expect(result).toEqual({ kind: 'not-found' });
   });
 
+  test('a CAS loss the daemon reports hands the winning row to recordWinner', async () => {
+    const winner = baseRow({
+      status: 'answered',
+      answer: { answers: { outcome: 'comment' }, by: 'pane', answeredAt: 8 },
+    });
+    const { io } = fakeIo(true, () => ({
+      ok: true,
+      data: { row: winner, conflict: true },
+    }));
+    const recorded: GateRow[] = [];
+    io.recordWinner = row => recorded.push(row);
+
+    const result = await answerGate(GATE_ID, { outcome: 'approve' }, io);
+
+    expect(result).toEqual({ kind: 'conflict', row: winner });
+    expect(recorded).toEqual([winner]);
+  });
+
+  test('a win, or a loss the cache already knew, records nothing', async () => {
+    const answered = baseRow({
+      status: 'answered',
+      answer: { answers: { outcome: 'approve' }, by: 'board', answeredAt: 8 },
+    });
+    const recorded: GateRow[] = [];
+
+    const won = fakeIo(true, () => ({ ok: true, data: { row: answered } }));
+    won.io.recordWinner = row => recorded.push(row);
+    expect(await answerGate(GATE_ID, { outcome: 'approve' }, won.io)).toEqual({
+      kind: 'ok',
+    });
+
+    const known = fakeIo(false, () => {
+      throw new Error('gateAnswer should not be called');
+    });
+    known.io.answeredRow = () => answered;
+    known.io.recordWinner = row => recorded.push(row);
+    expect(
+      (await answerGate(GATE_ID, { outcome: 'comment' }, known.io)).kind
+    ).toBe('conflict');
+
+    expect(recorded).toEqual([]);
+  });
+
+  test("daemon 'gate-closed' rejection maps to not-found, not invalid", async () => {
+    const { io } = fakeIo(true, () => ({ ok: false, error: 'gate-closed' }));
+
+    const result = await answerGate(GATE_ID, { outcome: 'approve' }, io);
+
+    expect(result).toEqual({ kind: 'not-found' });
+  });
+
   test("daemon 'not-found' rejection maps to not-found", async () => {
     const { io } = fakeIo(true, () => ({ ok: false, error: 'not-found' }));
 

@@ -2249,6 +2249,10 @@ const httpServer = Bun.serve({
             isRowAnswerable(gateCache.rows().find(r => r.id === id)),
           answeredRow: id =>
             answeredWinner(gateCache.rows().find(r => r.id === id)),
+          recordWinner: row => {
+            gateCache.applyRow(row);
+            sseNudge();
+          },
           gateAnswer: gateAnswerFacility,
         });
         switch (result.kind) {

@@ -294,6 +294,39 @@ describe('answering late', () => {
   });
 });
 
+describe('a CAS loss the board missed the frame for', () => {
+  test('the winning row lands in the cache, so the gate leaves its MR', async () => {
+    const h = harness();
+    h.relay(openedFrame('g-clarify', RUN_ON_BOARD));
+    expect((await h.board())[0]!.gates).toHaveLength(1);
+    const row = () => h.cache.rows().find(r => r.id === 'g-clarify');
+    const winner = {
+      ...row()!,
+      status: 'answered' as const,
+      answer: { answers: { verify: 'local' }, by: 'pane', answeredAt: 9 },
+    };
+
+    const result = await answerGate(
+      'g-clarify',
+      { verify: 'push-ci' },
+      {
+        isAnswerable: () => isRowAnswerable(row()),
+        answeredRow: () => answeredWinner(row()),
+        recordWinner: won => h.cache.applyRow(won),
+        gateAnswer: async () => ({
+          ok: true,
+          data: { row: winner, conflict: true },
+        }),
+      }
+    );
+
+    expect(result.kind).toBe('conflict');
+    expect(row()?.status).toBe('answered');
+    expect(isRowAnswerable(row())).toBe(false);
+    expect((await h.board())[0]!.gates).toEqual([]);
+  });
+});
+
 describe('boot warm', () => {
   test('a run gate opened while the board was down joins its MR; its settled rows do not', async () => {
     const h = harness();
