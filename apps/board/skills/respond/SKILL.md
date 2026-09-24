@@ -501,8 +501,10 @@ conversation.
    those threads:
 
    1. Check the target: `git branch --show-current` must print the MR's
-      source branch, and `git rev-parse --abbrev-ref @{push}` must print
-      that branch on its remote (`origin/<source branch>`). Any other
+      source branch (from the forge's MR record for this MR, read when
+      step 2 fetched the threads), and `git rev-parse --abbrev-ref
+      @{push}` must print that branch on its remote
+      (`origin/<source branch>`). Any other
       output, an error included, is a failed push; never switch branches
       to make it match.
    2. Push with a plain `git push`. Gate 2's answer is the authorization:

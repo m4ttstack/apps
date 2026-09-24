@@ -88,7 +88,7 @@ Loophole: the failure branch's "leave the run open" read as "skip done".
   neither posted nor held: that partial badge is what leaves the run
   open, since the board then offers a resume."
 
-## GREEN round 2 (the committed wording)
+## GREEN round 2 (the first commit, 2448953e)
 
 | Scenario | Result | Notes |
 |---|---|---|
@@ -96,3 +96,22 @@ Loophole: the failure branch's "leave the run open" read as "skip done".
 | wrap-push-fails-override | 5/5 | `respond-post-held: T1` and `done --posted 2 --threads 3` in every rep. |
 | wrap-push-no-fix-picked | 5/5 | No git command, no report line, `--held 1`. |
 | wrap-push-wrong-branch | 5/5 | No push, T2 posted, `respond-post-held: T1`, `done --posted 1 --threads 2`. |
+
+## Review round: where the source branch comes from
+
+The push check compares against "the MR's source branch", but the launch
+prompt carries only the MR url and flags, and every scenario above hands
+the branch in, so no rep ever had to find it. Step 1 of the push rule now
+names it: "from the forge's MR record for this MR, read when step 2
+fetched the threads".
+
+Scenario: `scenarios/wrap-push-branch-unknown.md` is wrap-push-before-fixed
+with the source branch removed, plus a line inviting the agent to name
+the call it would make for any missing value. 3 reps per arm.
+
+| Wording | Result | Notes |
+|---|---|---|
+| 2448953e (before the clause) | 3/3 | Not a RED. Every rep reads `.source_branch` from the forge's MR record (`glab api projects/acme%2Fqueue/merge_requests/87`) before the check. The scenario's invitation to name a call likely cues it. |
+| with the clause | 3/3 | Every rep reads `.source_branch` and ties it to step 2's fetch. Rep 1: "It is the record step 2 read when it fetched the threads." |
+
+The clause states the provenance rather than fixing an observed failure.
