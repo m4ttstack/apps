@@ -128,7 +128,9 @@ export function ingestManifest(name: string): void {
       displayName: manifest.displayName,
       description: manifest.description,
       icon: { ext: 'svg' },
-      ...('badge' in manifest && manifest.badge ? { badge: manifest.badge } : {}),
+      ...('badge' in manifest && manifest.badge
+        ? { badge: manifest.badge }
+        : {}),
     });
   } catch {
     return;

@@ -542,7 +542,13 @@ describe('buildQueueExtras owner', () => {
     const cache = new GateCache();
     cache.applyEvent({
       topic: 'gate/opened/g-att',
-      payload: { id: 'g-att', subject: 'agent:a1', kind: 'pane-attention', questions: [], owner: 'human' },
+      payload: {
+        id: 'g-att',
+        subject: 'agent:a1',
+        kind: 'pane-attention',
+        questions: [],
+        owner: 'human',
+      },
     });
     const extras = buildQueueExtras(cache.rows());
     expect(extras.map(g => [g.gateId, g.owner])).toEqual([['g-att', 'human']]);
@@ -604,9 +610,18 @@ describe('GateResync', () => {
     const url = 'https://x/-/merge_requests/4';
     cache.applyEvent({
       topic: 'gate/opened/g4',
-      payload: { id: 'g4', subject: `mr:${url}`, kind: 'review-post', questions: [], owner: 'human' },
+      payload: {
+        id: 'g4',
+        subject: `mr:${url}`,
+        kind: 'review-post',
+        questions: [],
+        owner: 'human',
+      },
     });
-    const answered = { ...cache.get(`mr:${url}`, 'review-post')!, status: 'answered' as const };
+    const answered = {
+      ...cache.get(`mr:${url}`, 'review-post')!,
+      status: 'answered' as const,
+    };
     const { list } = listOf([answered]);
     await new GateResync(list, cache, () => {}).run();
     expect(cache.get(`mr:${url}`, 'review-post')?.status).toBe('answered');
@@ -617,10 +632,19 @@ describe('GateResync', () => {
     const subject = 'mr:https://x/-/merge_requests/7';
     cache.applyEvent({
       topic: 'gate/opened/g7',
-      payload: { id: 'g7', subject, kind: 'review-post', questions: [], owner: 'human' },
+      payload: {
+        id: 'g7',
+        subject,
+        kind: 'review-post',
+        questions: [],
+        owner: 'human',
+      },
     });
     const staleOpen = { ...cache.get(subject, 'review-post')! };
-    cache.applyEvent({ topic: 'gate/answered/g7', payload: { id: 'g7', answers: { q: 'a' }, by: 'pane' } });
+    cache.applyEvent({
+      topic: 'gate/answered/g7',
+      payload: { id: 'g7', answers: { q: 'a' }, by: 'pane' },
+    });
     const { list } = listOf([staleOpen]);
     await new GateResync(list, cache, () => {}).run();
     expect(cache.get(subject, 'review-post')?.status).toBe('answered');
@@ -628,9 +652,17 @@ describe('GateResync', () => {
 
   test('run() reports whether the cache changed', async () => {
     const cache = new GateCache();
-    const fresh = row({ id: 'g8', subject: 'mr:https://x/-/merge_requests/8', kind: 'review-post' });
-    expect(await new GateResync(listOf([fresh]).list, cache, () => {}).run()).toBe(true);
-    expect(await new GateResync(listOf([fresh]).list, cache, () => {}).run()).toBe(false);
+    const fresh = row({
+      id: 'g8',
+      subject: 'mr:https://x/-/merge_requests/8',
+      kind: 'review-post',
+    });
+    expect(
+      await new GateResync(listOf([fresh]).list, cache, () => {}).run()
+    ).toBe(true);
+    expect(
+      await new GateResync(listOf([fresh]).list, cache, () => {}).run()
+    ).toBe(false);
   });
 
   test('a run() while one is in flight does not start a second pass', async () => {

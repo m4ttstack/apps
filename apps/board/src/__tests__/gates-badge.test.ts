@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { GateRow as FacilityGateRow } from '@mattstack/rt-client';
-
-import { ATTENTION_MIN_AGE_MS, boardBadge, countsForBadge } from '../gates/badge.ts';
+import {
+  ATTENTION_MIN_AGE_MS,
+  boardBadge,
+  countsForBadge,
+} from '../gates/badge.ts';
 import { GateCache } from '../gates/cache.ts';
 import { buildQueueExtras } from '../gates/ingest.ts';
 import type { GateRow } from '../gates/store.ts';
@@ -31,9 +34,14 @@ describe('countsForBadge', () => {
 
   test('answered gates never count, even unassigned or stuck', () => {
     expect(countsForBadge(gate({ status: 'answered' }), NOW)).toBe(false);
-    expect(countsForBadge(gate({ status: 'answered', execution: 'unassigned' }), NOW)).toBe(false);
     expect(
-      countsForBadge(gate({ status: 'answered', delivery: { outcome: 'stuck', at: 1 } }), NOW)
+      countsForBadge(gate({ status: 'answered', execution: 'unassigned' }), NOW)
+    ).toBe(false);
+    expect(
+      countsForBadge(
+        gate({ status: 'answered', delivery: { outcome: 'stuck', at: 1 } }),
+        NOW
+      )
     ).toBe(false);
   });
 
@@ -41,7 +49,13 @@ describe('countsForBadge', () => {
     expect(countsForBadge(gate({ owner: 'herd:h1' }), NOW)).toBe(false);
     expect(
       countsForBadge(
-        gate({ owner: 'herd:h1', kind: 'pane-attention', subject: 'herd:h1/j', escalatedAt: 1, openedAt: 0 }),
+        gate({
+          owner: 'herd:h1',
+          kind: 'pane-attention',
+          subject: 'herd:h1/j',
+          escalatedAt: 1,
+          openedAt: 0,
+        }),
         NOW
       )
     ).toBe(false);
@@ -49,12 +63,24 @@ describe('countsForBadge', () => {
 
   test('pane-attention counts only once it is at least two minutes old', () => {
     const att = { kind: 'pane-attention', subject: 'agent:a1', owner: 'human' };
-    expect(countsForBadge(gate({ ...att, openedAt: NOW - ATTENTION_MIN_AGE_MS + 1 }), NOW)).toBe(false);
-    expect(countsForBadge(gate({ ...att, openedAt: NOW - ATTENTION_MIN_AGE_MS }), NOW)).toBe(true);
+    expect(
+      countsForBadge(
+        gate({ ...att, openedAt: NOW - ATTENTION_MIN_AGE_MS + 1 }),
+        NOW
+      )
+    ).toBe(false);
+    expect(
+      countsForBadge(
+        gate({ ...att, openedAt: NOW - ATTENTION_MIN_AGE_MS }),
+        NOW
+      )
+    ).toBe(true);
   });
 
   test('an open, human-owned run: gate is not counted (the console tab owns it)', () => {
-    expect(countsForBadge(gate({ subject: 'run:r1', owner: 'human' }), NOW)).toBe(false);
+    expect(
+      countsForBadge(gate({ subject: 'run:r1', owner: 'human' }), NOW)
+    ).toBe(false);
   });
 });
 
@@ -62,10 +88,28 @@ describe('boardBadge', () => {
   test('an escalated herd-owned attention gate admitted to queueExtras is not counted', () => {
     const cache = new GateCache();
     cache.applyRow({
-      id: 'g-herd', subject: 'herd:h1/job1', kind: 'pane-attention', questions: [], meta: null,
-      status: 'open', answer: null, openedAt: 0, parkedAt: null, closedAt: null, closedReason: null,
-      agent: null, pane: null, nudge: null, delivery: null, released: false, supersededBy: null,
-      owner: 'herd:h1', escalatedAt: 5, consumedAt: null, context: null, origin: null,
+      id: 'g-herd',
+      subject: 'herd:h1/job1',
+      kind: 'pane-attention',
+      questions: [],
+      meta: null,
+      status: 'open',
+      answer: null,
+      openedAt: 0,
+      parkedAt: null,
+      closedAt: null,
+      closedReason: null,
+      agent: null,
+      pane: null,
+      nudge: null,
+      delivery: null,
+      released: false,
+      supersededBy: null,
+      owner: 'herd:h1',
+      escalatedAt: 5,
+      consumedAt: null,
+      context: null,
+      origin: null,
     } as FacilityGateRow);
     const extras = buildQueueExtras(cache.rows());
     expect(extras).toHaveLength(1);
@@ -73,12 +117,17 @@ describe('boardBadge', () => {
   });
 
   test('zero counted gates yields count 0 and no path', () => {
-    expect(boardBadge([gate({ status: 'answered' })], NOW)).toEqual({ count: 0 });
+    expect(boardBadge([gate({ status: 'answered' })], NOW)).toEqual({
+      count: 0,
+    });
   });
 
   test('path points at the oldest counted gate', () => {
     const badge = boardBadge(
-      [gate({ gateId: 'newer', openedAt: NOW - 10 }), gate({ gateId: 'older id', openedAt: NOW - 500 })],
+      [
+        gate({ gateId: 'newer', openedAt: NOW - 10 }),
+        gate({ gateId: 'older id', openedAt: NOW - 500 }),
+      ],
       NOW
     );
     expect(badge).toEqual({ count: 2, path: '/?gate=older%20id' });

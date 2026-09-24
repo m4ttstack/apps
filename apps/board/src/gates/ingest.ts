@@ -159,7 +159,9 @@ export class GateResync {
   private inFlight: Promise<boolean> | null = null;
 
   constructor(
-    private readonly list: (payload: GateListPayload) => Promise<GateListResult>,
+    private readonly list: (
+      payload: GateListPayload
+    ) => Promise<GateListResult>,
     private readonly cache: GateReconcileTarget & { readonly revision: number },
     private readonly onError: (message: string) => void
   ) {}
@@ -172,7 +174,9 @@ export class GateResync {
         await reconcileGatesOnBoot(this.list, this.cache);
         await reconcileAttentionGatesOnBoot(this.list, this.cache);
       } catch (err) {
-        this.onError(`gate resync failed: ${err instanceof Error ? err.message : err}`);
+        this.onError(
+          `gate resync failed: ${err instanceof Error ? err.message : err}`
+        );
       } finally {
         this.inFlight = null;
       }

@@ -87,16 +87,26 @@ export const gates = new Hono()
       listRuns(undefined, rtClientOptions()),
     ]);
     if (!gatesRes.ok) return c.json({ error: gatesRes.error }, 502);
-    if (!runsRes.ok) return c.json({ error: runsRes.error ?? 'run:list failed' }, 502);
-    const repoByRun = new Map((runsRes.data?.runs ?? []).map(r => [r.id, r.repo]));
+    if (!runsRes.ok)
+      return c.json({ error: runsRes.error ?? 'run:list failed' }, 502);
+    const repoByRun = new Map(
+      (runsRes.data?.runs ?? []).map(r => [r.id, r.repo])
+    );
     const now = Date.now();
     const counted = gatesRes.gates
-      .filter(g => countsForConsoleBadge(g, now) && repoByRun.has(g.subject.slice('run:'.length)))
+      .filter(
+        g =>
+          countsForConsoleBadge(g, now) &&
+          repoByRun.has(g.subject.slice('run:'.length))
+      )
       .sort((a, b) => a.openedAt - b.openedAt);
     const oldest = counted[0];
     if (!oldest) return c.json({ count: 0 }, 200);
     const runId = oldest.subject.slice('run:'.length);
-    return c.json({ count: counted.length, path: `/runs/${repoByRun.get(runId)}/${runId}` }, 200);
+    return c.json(
+      { count: counted.length, path: `/runs/${repoByRun.get(runId)}/${runId}` },
+      200
+    );
   })
   .post(
     '/api/gates/:id/answer',

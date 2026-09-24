@@ -17,7 +17,9 @@ export function runGateMarker(
   runId: string
 ): RunGateMarker | null {
   const subject = `run:${runId}`;
-  const waiting = (gates ?? []).filter(g => g.subject === subject && isWaiting(g));
+  const waiting = (gates ?? []).filter(
+    g => g.subject === subject && isWaiting(g)
+  );
   if (waiting.some(isMine)) return 'blocked';
   return waiting.length > 0 ? 'shepherd' : null;
 }
@@ -29,7 +31,9 @@ export function runGateMarker(
 export const ATTENTION_MIN_AGE_MS = 120_000;
 
 export function countsForConsoleBadge(g: GateRow, now: number): boolean {
-  if (!g.subject.startsWith('run:') || !isWaiting(g) || !isMine(g)) return false;
-  if (g.kind === 'pane-attention') return now - g.openedAt >= ATTENTION_MIN_AGE_MS;
+  if (!g.subject.startsWith('run:') || !isWaiting(g) || !isMine(g))
+    return false;
+  if (g.kind === 'pane-attention')
+    return now - g.openedAt >= ATTENTION_MIN_AGE_MS;
   return true;
 }

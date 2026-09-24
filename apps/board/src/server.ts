@@ -961,11 +961,15 @@ const httpServer = Bun.serve({
       case '/api/badge': {
         const visible = config.members.filter(m => !m.hidden);
         const mrs = cache.peek()?.mrs ?? [];
-        const mrGates = attachGates(visibleMrsFor(mrs, visible), gateCache).flatMap(
-          mr => mr.gates
-        );
+        const mrGates = attachGates(
+          visibleMrsFor(mrs, visible),
+          gateCache
+        ).flatMap(mr => mr.gates);
         return Response.json(
-          boardBadge([...mrGates, ...buildQueueExtras(gateCache.rows())], Date.now())
+          boardBadge(
+            [...mrGates, ...buildQueueExtras(gateCache.rows())],
+            Date.now()
+          )
         );
       }
       case '/events': {

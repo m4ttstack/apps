@@ -11,7 +11,10 @@ export function countsForBadge(gate: GateRow, now: number): boolean {
   if (runIdOf(gate.subject) !== null) return false;
   if (gate.status !== 'open' && gate.status !== 'parked') return false;
   if (gate.owner !== undefined && gate.owner !== 'human') return false;
-  if (gate.kind === 'pane-attention' && now - gate.openedAt < ATTENTION_MIN_AGE_MS)
+  if (
+    gate.kind === 'pane-attention' &&
+    now - gate.openedAt < ATTENTION_MIN_AGE_MS
+  )
     return false;
   return true;
 }
@@ -27,5 +30,8 @@ export function boardBadge(gates: GateRow[], now: number): BoardBadge {
     .sort((a, b) => a.openedAt - b.openedAt);
   const oldest = counted[0];
   if (!oldest) return { count: 0 };
-  return { count: counted.length, path: `/?gate=${encodeURIComponent(oldest.gateId)}` };
+  return {
+    count: counted.length,
+    path: `/?gate=${encodeURIComponent(oldest.gateId)}`,
+  };
 }

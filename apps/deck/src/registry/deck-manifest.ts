@@ -73,7 +73,11 @@ export function readDeckManifest(dir: string): ParseResult {
   if (typeof m.displayName === 'string') out.displayName = m.displayName;
   if (typeof m.description === 'string') out.description = m.description;
   if (typeof m.icon === 'string') out.icon = m.icon;
-  if (typeof m.badge === 'string' && m.badge.startsWith('/') && !m.badge.startsWith('//'))
+  if (
+    typeof m.badge === 'string' &&
+    m.badge.startsWith('/') &&
+    !m.badge.startsWith('//')
+  )
     out.badge = m.badge;
   if (m.port !== undefined) {
     if (

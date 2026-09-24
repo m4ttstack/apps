@@ -2,15 +2,36 @@
 import type { GateRow } from '@mattstack/rt-client';
 import { describe, expect, it } from 'vitest';
 
-import { ATTENTION_MIN_AGE_MS, countsForConsoleBadge, runGateMarker } from './gate-waiting';
+import {
+  ATTENTION_MIN_AGE_MS,
+  countsForConsoleBadge,
+  runGateMarker,
+} from './gate-waiting';
 
 function row(overrides: Partial<GateRow> = {}): GateRow {
   return {
-    id: 'g1', subject: 'run:r1', kind: 'self-review', questions: [], meta: null,
-    status: 'open', answer: null, openedAt: 0, parkedAt: null, closedAt: null,
-    closedReason: null, agent: null, pane: null, nudge: null, delivery: null,
-    released: false, supersededBy: null, owner: null, escalatedAt: null,
-    consumedAt: null, context: null, origin: null,
+    id: 'g1',
+    subject: 'run:r1',
+    kind: 'self-review',
+    questions: [],
+    meta: null,
+    status: 'open',
+    answer: null,
+    openedAt: 0,
+    parkedAt: null,
+    closedAt: null,
+    closedReason: null,
+    agent: null,
+    pane: null,
+    nudge: null,
+    delivery: null,
+    released: false,
+    supersededBy: null,
+    owner: null,
+    escalatedAt: null,
+    consumedAt: null,
+    context: null,
+    origin: null,
     ...overrides,
   } as GateRow;
 }
@@ -18,14 +39,19 @@ function row(overrides: Partial<GateRow> = {}): GateRow {
 describe('runGateMarker', () => {
   it('is blocked for an open or parked gate Matt owns', () => {
     expect(runGateMarker([row()], 'r1')).toBe('blocked');
-    expect(runGateMarker([row({ status: 'parked', owner: 'human' })], 'r1')).toBe('blocked');
+    expect(
+      runGateMarker([row({ status: 'parked', owner: 'human' })], 'r1')
+    ).toBe('blocked');
   });
   it('is shepherd for a herd-owned waiting gate', () => {
     expect(runGateMarker([row({ owner: 'herd:h1' })], 'r1')).toBe('shepherd');
   });
   it('prefers blocked when both kinds wait on one run', () => {
     expect(
-      runGateMarker([row({ id: 'a', owner: 'herd:h1' }), row({ id: 'b', kind: 'plan' })], 'r1')
+      runGateMarker(
+        [row({ id: 'a', owner: 'herd:h1' }), row({ id: 'b', kind: 'plan' })],
+        'r1'
+      )
     ).toBe('blocked');
   });
   it('is null for answered gates and other runs', () => {
@@ -45,7 +71,9 @@ describe('countsForConsoleBadge', () => {
   it('never counts herd-owned, answered, or non-run gates', () => {
     expect(countsForConsoleBadge(row({ owner: 'herd:h1' }), now)).toBe(false);
     expect(countsForConsoleBadge(row({ status: 'answered' }), now)).toBe(false);
-    expect(countsForConsoleBadge(row({ subject: 'mr:https://x' }), now)).toBe(false);
+    expect(countsForConsoleBadge(row({ subject: 'mr:https://x' }), now)).toBe(
+      false
+    );
   });
   it('excludes a young pane-attention gate', () => {
     const openedAt = now - (ATTENTION_MIN_AGE_MS - 1);

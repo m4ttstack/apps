@@ -644,12 +644,16 @@ describe('RunRow blocked badge', () => {
 
     renderRow(baseRun);
 
-    expect(await screen.findByTestId('gate-blocked-badge')).toHaveTextContent('blocked');
+    expect(await screen.findByTestId('gate-blocked-badge')).toHaveTextContent(
+      'blocked'
+    );
   });
 
   it('labels a herd-owned gate as waiting on shepherd', async () => {
     gatesGet.mockResolvedValue(
-      gatesResponse([gateRow({ subject: 'run:run-1', status: 'open', owner: 'herd:h1' })])
+      gatesResponse([
+        gateRow({ subject: 'run:run-1', status: 'open', owner: 'herd:h1' }),
+      ])
     );
 
     renderRow(baseRun);
