@@ -1,9 +1,11 @@
 import { existsSync } from 'fs';
+import { homedir } from 'os';
 import { dirname, join } from 'path';
 import { $ } from 'bun';
 
-import { logsDir } from '../src/api/state.ts';
+import { logsDir, readApiInfo, readApiRunMode } from '../src/api/state.ts';
 import { resolveApiInfo } from '../src/cli/api-info.ts';
+import { deployMode } from '../src/cli/deploy-mode.ts';
 import { deployTarget } from '../src/cli/deploy-target.ts';
 import { bundleRootFromExec } from '../src/services/bundle-layout.ts';
 import {
@@ -11,28 +13,46 @@ import {
   liveProbe,
 } from '../src/services/helper-owner.ts';
 
-// The plist's ProgramArguments[0], read from deck's own registry record rather
-// than hardcoded: kickstart re-execs that exact path, so the new binary must
-// land there or the restart below keeps running the stale build.
-const target = deployTarget(
-  await bundleHelperOwnsDeck(liveProbe, bundleRootFromExec())
-);
-await $`bun run build`;
-await $`bun run build:board`;
-await $`mkdir -p ${dirname(target)}`;
-// Keep the outgoing binary so a failed health check can restore it: a fresh
-// bun-compiled binary is a new TCC identity, and macOS blocks its first read
-// of a protected folder (Documents) behind a user prompt. Unattended, that
-// leaves the new build hung with zero output and the old binary already gone.
-const backup = `${target}.prev`;
-if (existsSync(target)) {
-  await $`install -m 0755 ${target} ${backup}`;
+const helperOwned = await bundleHelperOwnsDeck(liveProbe, bundleRootFromExec());
+const mode = deployMode(helperOwned, process.env, readApiRunMode());
+if (mode.kind === 'refuse') {
+  console.error(mode.message);
+  process.exit(1);
 }
-// install truncates-in-place, which can ETXTBSY on macOS against the currently-running
-// binary; installing to a temp path in the same dir and renaming over it is atomic and
-// leaves the running process holding its old inode.
-await $`install -m 0755 dist/deck ${target}.new`;
-await $`mv -f ${target}.new ${target}`;
+
+const pidBefore = readApiInfo()?.pid ?? null;
+
+let target: string | null = null;
+let backup: string | null = null;
+if (mode.kind === 'install') {
+  // The plist's ProgramArguments[0], read from deck's own registry record rather
+  // than hardcoded: kickstart re-execs that exact path, so the new binary must
+  // land there or the restart below keeps running the stale build.
+  target = deployTarget(false);
+  await $`bun run build`;
+  await $`bun run build:board`;
+  await $`mkdir -p ${dirname(target)}`;
+  // Keep the outgoing binary so a failed health check can restore it: a fresh
+  // bun-compiled binary is a new TCC identity, and macOS blocks its first read
+  // of a protected folder (Documents) behind a user prompt. Unattended, that
+  // leaves the new build hung with zero output and the old binary already gone.
+  backup = `${target}.prev`;
+  if (existsSync(target)) {
+    await $`install -m 0755 ${target} ${backup}`;
+  }
+  // install truncates-in-place, which can ETXTBSY on macOS against the currently-running
+  // binary; installing to a temp path in the same dir and renaming over it is atomic and
+  // leaves the running process holding its old inode.
+  await $`install -m 0755 dist/deck ${target}.new`;
+  await $`mv -f ${target}.new ${target}`;
+} else {
+  // The served process imports the checkout's node_modules directly, so a
+  // dependency bump must land before the restart or deck crash-loops.
+  const workspaceRoot = join(import.meta.dir, '..', '..', '..');
+  await $`${join(homedir(), '.bun', 'bin', 'bun')} install --frozen-lockfile`.cwd(
+    workspaceRoot
+  );
+}
 // The self-restart drops the API mid-response, so the CLI's own restart call
 // sees a closed socket even when it worked; tolerate that and prove the new
 // build is up by health rather than by that call's exit code.
@@ -55,6 +75,52 @@ async function healthy(deadlineMs: number): Promise<boolean> {
   }
 }
 
+if (mode.kind === 'restart') {
+  // `deck restart deck` can fail silently (e.g. the shim rejects the
+  // restart), which leaves the OLD process still answering /healthz; a new
+  // pid is the only proof the restart actually replaced the process.
+  const deadline = Date.now() + 20_000;
+  let newPid = false;
+  while (Date.now() <= deadline) {
+    const pid = readApiInfo()?.pid;
+    if (pid !== undefined && pid !== pidBefore) {
+      newPid = true;
+      break;
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+  if (!newPid) {
+    console.error(
+      'deck restart did not bring up a new process; the new source is NOT live'
+    );
+    process.exit(1);
+  }
+
+  if (!(await healthy(Math.max(0, deadline - Date.now())))) {
+    for (const f of ['deck.err.log', 'deck.out.log']) {
+      const p = join(logsDir(), f);
+      const tail = await $`tail -5 ${p}`.nothrow().text();
+      if (tail.trim()) console.error(`--- ${f} tail:\n${tail.trimEnd()}`);
+    }
+    console.error(
+      'deck did not come back healthy after the restart; see the logs above'
+    );
+    process.exit(1);
+  }
+
+  const recorded = readApiRunMode();
+  const runMode = recorded?.runMode ?? 'standalone';
+  if (runMode !== 'source') {
+    console.error(
+      `deck came back healthy but running ${runMode}${recorded?.runReason ? `: ${recorded.runReason}` : ''}; the new source is NOT live (the last deck-dev-shim: line in ~/.mattstack/deck/logs/deck.err.log says why)`
+    );
+    process.exit(1);
+  }
+
+  console.log(`deployed: deck healthy on port ${info.port}, running source`);
+  process.exit(0);
+}
+
 if (await healthy(20_000)) {
   console.log(`deployed: deck healthy on port ${info.port}`);
   process.exit(0);
@@ -72,7 +138,7 @@ for (const f of ['deck.err.log', 'deck.out.log']) {
   if (tail.trim()) console.error(`--- ${f} tail:\n${tail.trimEnd()}`);
 }
 
-if (existsSync(backup)) {
+if (mode.kind === 'install' && backup !== null && existsSync(backup)) {
   console.error(`restoring the previous binary and restarting...`);
   await $`install -m 0755 ${backup} ${target}.new`;
   await $`mv -f ${target}.new ${target}`;

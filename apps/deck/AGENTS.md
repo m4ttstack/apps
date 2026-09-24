@@ -21,14 +21,24 @@ expected).
 
 On a machine with the mattstack app installed, the app's SMAppService helper
 (`com.mattstack.deck.dev`, or `com.mattstack.deck` in prod) owns deck and runs
-the bundle's pinned release, not `~/.local/bin/deck`. There `deck setup` and
-`bun run deploy` refuse, `deck restart deck` kickstarts the helper's label,
-and the helper's boot retires a hand-installed agent
-(`src/services/helper-owner.ts`) and moves deck's self record and `deck.*`
-routes to the port it serves on (`src/registry/self-port.ts`). The helper
-starts on launchd's bare PATH, so it composes its own; Bun spawns with the PATH
-it started on, so any new spawn of a non-OS binary must pass
-`env: process.env`.
+the bundle's pinned release, not `~/.local/bin/deck`. There `deck setup`
+refuses, and `bun run deploy` refuses unless the dev shim is running source,
+`deck restart deck` kickstarts the helper's label, and the helper's boot
+retires a hand-installed agent (`src/services/helper-owner.ts`) and moves
+deck's self record and `deck.*` routes to the port it serves on
+(`src/registry/self-port.ts`). The helper starts on launchd's bare PATH, so it
+composes its own; Bun spawns with the PATH it started on, so any new spawn of
+a non-OS binary must pass `env: process.env`.
+
+In the dev app the helper is a shim (`Contents/Helpers/deck`, built from
+repo-tools `rt-tray/Sources-deck-shim`) that runs this checkout's
+`src/main.ts` under bun, with the pinned release kept as
+`Contents/Helpers/deck-pinned` for when source cannot run. There the flow is
+merge to `main`, pull the linked checkout, then deploy (the deck row's
+button, `deck cmd deck deploy`, or `bun run deploy` from the checkout):
+deploy installs dependencies and restarts deck, and succeeds only if deck
+comes back running source. `api.json`'s `runMode` (`source`, `pinned`, `standalone`) and
+`runReason` say which deck is serving and, for pinned, why.
 
 ## Manifest-first
 
