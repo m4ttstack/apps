@@ -223,6 +223,7 @@ export function buildQueueExtras(rows: FacilityGateRow[]): GateRow[] {
       domain: domainForKind(row.kind),
       meta: row.meta ?? undefined,
       escalatedAt: row.escalatedAt ?? undefined,
+      owner: row.owner ?? undefined,
       delivery: cachedDelivery(row),
       execution: cachedExecution(row),
     });

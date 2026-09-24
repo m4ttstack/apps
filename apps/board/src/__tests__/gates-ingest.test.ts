@@ -5,8 +5,10 @@ import {
   type EventBridgeRule,
 } from '@mattstack/app-server/event-bridge';
 import type { GateRow as FacilityGateRow } from '@mattstack/rt-client';
+import { GateCache } from '../gates/cache.ts';
 import {
   boardBridgeRule,
+  buildQueueExtras,
   GATE_LIST_PAGE_LIMIT,
   ingestRelayFrame,
   installBoardBridgeRule,
@@ -503,5 +505,47 @@ describe('installBoardBridgeRule', () => {
       stillWriter: () => false,
     });
     expect(io.writes).toHaveLength(0);
+  });
+});
+
+describe('buildQueueExtras owner', () => {
+  test('a relay-opened human pane-attention gate lands in queueExtras with its owner', () => {
+    const cache = new GateCache();
+    cache.applyEvent({
+      topic: 'gate/opened/g-att',
+      payload: { id: 'g-att', subject: 'agent:a1', kind: 'pane-attention', questions: [], owner: 'human' },
+    });
+    const extras = buildQueueExtras(cache.rows());
+    expect(extras.map(g => [g.gateId, g.owner])).toEqual([['g-att', 'human']]);
+  });
+
+  test('an escalated herd-owned attention row is admitted and keeps its herd owner', () => {
+    const cache = new GateCache();
+    cache.applyRow({
+      id: 'g-herd',
+      subject: 'herd:h1/job1',
+      kind: 'pane-attention',
+      questions: [],
+      meta: null,
+      status: 'open',
+      answer: null,
+      openedAt: 0,
+      parkedAt: null,
+      closedAt: null,
+      closedReason: null,
+      agent: null,
+      pane: null,
+      nudge: null,
+      delivery: null,
+      released: false,
+      supersededBy: null,
+      owner: 'herd:h1',
+      escalatedAt: 5,
+      consumedAt: null,
+      context: null,
+      origin: null,
+    } as FacilityGateRow);
+    const extras = buildQueueExtras(cache.rows());
+    expect(extras.map(g => g.owner)).toEqual(['herd:h1']);
   });
 });
