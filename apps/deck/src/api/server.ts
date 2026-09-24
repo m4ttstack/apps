@@ -333,11 +333,8 @@ export function startApi(deps: ApiDeps) {
       };
 
       // ---- static / identity (carried from core/server.ts) ----
-      // The pid and run mode identify THIS process rather than whatever
-      // api.json happens to hold: a restart racing another live `deck serve`
-      // can rewrite api.json mid-poll, so a caller verifying a restart must
-      // read these off the response that actually answered, not a separate
-      // file read.
+      // Headers name THIS process, so a caller can verify a restart against
+      // whatever actually answered rather than a racing api.json read.
       if (pathname === '/healthz')
         return new Response('ok', {
           headers: {
