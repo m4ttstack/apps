@@ -120,7 +120,7 @@ identity only: it has never been published and, per the fold-in decision,
 never will be. `packages/tokens` stays private and unpublished. Every app
 under `apps/` consumes the four platform packages workspace-only
 (`workspace:*`); external npm deps such as `@mattstack/rt-client` (pinned
-exact, `0.16.0`), `@mattstack/glance`, `@mattstack/settings-kit`, and
+exact in the root catalog), `@mattstack/glance`, `@mattstack/settings-kit`, and
 `invadrs` come from the registry via `catalog:`. The packed-tarball
 mechanism in README.md's "Bundle-transition tarballs" section stays
 documented as the sanctioned path for a future app that has not yet
