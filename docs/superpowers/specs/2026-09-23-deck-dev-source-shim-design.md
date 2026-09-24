@@ -68,7 +68,7 @@ copying `rt-daemon-shim`'s SQLite reader.
   that in the dev flavor `Contents/Helpers/deck` is the shim and
   `deck-pinned` exists, and in prod that `deck-pinned` does not exist. The
   deck row's `--version` probe (`check-bundle.sh:341-352`) runs under
-  `env -i HOME=<tmp>` in the dev flavor (as the daemon-shim cases do at
+  `env -i HOME=<tmp> PATH=/usr/bin:/bin` in the dev flavor (as the daemon-shim cases do at
   `check-bundle.sh:573`); with no registry there, the shim falls back to
   pinned and prints the pinned version.
 - Prod is untouched: `Contents/Helpers/deck` stays the pinned binary and
@@ -94,15 +94,18 @@ and every CLI call alike, since deck composes its PATH with
   Then exec `$HOME/.bun/bin/bun <workingDirectory>/src/main.ts <args...>`.
 - **Pinned** otherwise: exec `Contents/Helpers/deck-pinned <args...>`.
 - Both paths add `DECK_BUNDLE_ROOT=<absolute .app path>` and
-  `DECK_RUN_MODE=source|pinned` to the environment and keep the working
-  directory unchanged.
+  `DECK_RUN_MODE=source|pinned` to the environment, the pinned path also
+  adds `DECK_RUN_REASON=<one-line reason>`, and the working directory is
+  unchanged. These three variables are the whole cross-repo contract
+  between the shim and deck; nothing parses a log.
 - The choice function returns the mode plus, for pinned, the reason (which
   condition failed), so the reason is testable and loggable.
 
 **Logging.** For `serve`, the shim first redirects stderr to
 `~/.mattstack/deck/logs/deck.err.log` (append), because the deck plist sets
 no `StandardErrorPath`, then writes one line naming the mode and, for
-pinned, the reason. CLI calls keep the caller's stderr and print nothing on
+pinned, the reason, formatted `deck-dev-shim: source` or
+`deck-dev-shim: pinned: <reason>` (for humans; deck never reads it). CLI calls keep the caller's stderr and print nothing on
 the source path, so CLI output is unchanged; on the pinned path a CLI call
 also stays quiet (the serve log already records why).
 
@@ -130,7 +133,8 @@ refusals and are not reached under the shim.
 **Run mode is observable.** The serving deck records its mode:
 `api.json` (`src/api/state.ts`) gains `runMode: 'source' | 'pinned' |
 'standalone'`, from `DECK_RUN_MODE` (absent means `standalone`, a deck not
-run by the shim). Readers treat a missing field as `standalone`.
+run by the shim), and, when pinned, `runReason` from `DECK_RUN_REASON`.
+Readers treat a missing `runMode` as `standalone`.
 
 **Deploy.** `scripts/deploy.ts`'s mode choice becomes a pure, tested
 function over (helper-owned, `DECK_RUN_MODE`):
@@ -139,20 +143,22 @@ function over (helper-owned, `DECK_RUN_MODE`):
 |---|---|---|
 | no | (any) | today's build, install over the self record's program, restart, health check, restore on failure |
 | yes | `source` | restart-only (below) |
-| yes | `pinned` | refuse: "deck is running the pinned release because <reason from the serve log>; fix the checkout or bun, then restart deck" (point at `deck.err.log`) |
+| yes | `pinned` | refuse: "deck is running the pinned release because <DECK_RUN_REASON>; fix the checkout or bun, then restart deck" |
 | yes | absent | refuse as today (a helper without the shim: prod, or a dev app built before this change; rebuilding the dev app resolves it) |
 
 Restart-only:
 
-- `bun install --frozen-lockfile` at the checkout's workspace root (fast
-  when current; prevents a crash loop after a dependency bump).
+- `$HOME/.bun/bin/bun install --frozen-lockfile` at the checkout's
+  workspace root, with the same bun that serves (fast when current;
+  prevents a crash loop after a dependency bump).
 - `deck restart deck` (kickstart of the running helper label via
   `runningLabel`, `src/api/register.ts:380-399`; the socket drop is
   tolerated as today). The deploy child survives the self-restart (the live
   log shows a button deploy printing its health result after the restart).
 - The existing 20s `/healthz` wait, then read `api.json` and require
-  `runMode === 'source'`. If healthy but pinned, exit 1 with the serve
-  log's last shim line (the source failed to start and the shim fell back).
+  `runMode === 'source'`. If healthy but pinned, exit 1 quoting
+  `api.json`'s `runReason` (the source could not start and the shim fell
+  back).
 - On timeout, print the existing log tails and exit 1. No binary restore.
 - No `bun run build` and no `build:board`: the board UI is static text
   imports of committed `core/generated/board.{js,css}`
@@ -172,7 +178,7 @@ No board work is in scope.
 
 - `apps/deck/AGENTS.md` "Run only from main": in the dev app, deck runs the
   linked checkout through the shim, so the flow is merge, pull, deploy;
-  `deck status` (or `api.json`'s `runMode`) says which mode is serving.
+  `api.json`'s `runMode` (and `runReason`) says which mode is serving.
 - repo-tools `AGENTS.md`: the held "Getting a change into the running dev
   app" note (branch `agents-dev-app-deploy`) is rewritten to this flow and
   lands with the shim.
@@ -185,7 +191,7 @@ No board work is in scope.
 
 | Situation | Result |
 |---|---|
-| Checkout moved or deleted, or `src/main.ts` missing | Pinned deck serves; `runMode: pinned`; the serve log names why |
+| Checkout moved or deleted, or `src/main.ts` missing | Pinned deck serves; `runMode: pinned` with `runReason`; the serve log names why |
 | bun missing | Same as above |
 | `registry.json` missing, unreadable, untrusted, or no deck `dev.workingDirectory` | Same as above |
 | Source deck throws at boot | launchd restarts the shim, which runs source again; crash loop visible on the deck row and in `deck.err.log` |
@@ -199,7 +205,8 @@ No board work is in scope.
 - **Deck:** `bundleRootFromExec` honors a valid `DECK_BUNDLE_ROOT`, rejects
   an invalid one, and ignores it when an explicit `execPath` is passed;
   deploy's mode choice (the table above) as a pure function; `api.json`
-  round-trips `runMode` and reads a missing field as `standalone`. The
+  round-trips `runMode` and `runReason` and reads a missing `runMode` as
+  `standalone`. The
   existing suite stays green (`bun test core src`).
 - **Shim:** `DeckShimLogic` cases in `MattstackCoreChecks`: source when all
   conditions hold; pinned with the right reason for each failed condition
