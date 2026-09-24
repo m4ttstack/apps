@@ -13,8 +13,14 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 const scratch = mkdtempSync(join(tmpdir(), 'local-state-'));
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
-const { stateDir, adoptLegacyStateDir, claimApiInfo, writeApiInfo, readApiRunMode, runModeFromEnv } =
-  await import('./state.ts');
+const {
+  stateDir,
+  adoptLegacyStateDir,
+  claimApiInfo,
+  writeApiInfo,
+  readApiRunMode,
+  runModeFromEnv,
+} = await import('./state.ts');
 
 beforeEach(() => {
   delete process.env.LOCAL_STATE_DIR;
@@ -122,7 +128,11 @@ test('claimApiInfo writes api.json when none exists', async () => {
     answers: async () => true,
   });
   expect(wrote).toBe(true);
-  expect(apiJsonIn(dir)).toEqual({ port: 7940, pid: process.pid, runMode: 'standalone' });
+  expect(apiJsonIn(dir)).toEqual({
+    port: 7940,
+    pid: process.pid,
+    runMode: 'standalone',
+  });
 });
 
 test('claimApiInfo overwrites an api.json whose pid is dead', async () => {
@@ -132,7 +142,11 @@ test('claimApiInfo overwrites an api.json whose pid is dead', async () => {
     answers: async () => true,
   });
   expect(wrote).toBe(true);
-  expect(apiJsonIn(dir)).toEqual({ port: 7940, pid: process.pid, runMode: 'standalone' });
+  expect(apiJsonIn(dir)).toEqual({
+    port: 7940,
+    pid: process.pid,
+    runMode: 'standalone',
+  });
 });
 
 test('claimApiInfo overwrites an api.json whose live pid does not answer on its port', async () => {
@@ -142,7 +156,11 @@ test('claimApiInfo overwrites an api.json whose live pid does not answer on its 
     answers: async () => false,
   });
   expect(wrote).toBe(true);
-  expect(apiJsonIn(dir)).toEqual({ port: 7940, pid: process.pid, runMode: 'standalone' });
+  expect(apiJsonIn(dir)).toEqual({
+    port: 7940,
+    pid: process.pid,
+    runMode: 'standalone',
+  });
 });
 
 test('claimApiInfo leaves an api.json alone while its writer is alive and answering', async () => {
@@ -167,7 +185,11 @@ test('claimApiInfo overwrites an api.json naming its own port, whose live pid mu
     answers: async () => true,
   });
   expect(wrote).toBe(true);
-  expect(apiJsonIn(dir)).toEqual({ port: 7940, pid: process.pid, runMode: 'standalone' });
+  expect(apiJsonIn(dir)).toEqual({
+    port: 7940,
+    pid: process.pid,
+    runMode: 'standalone',
+  });
 });
 
 test('runModeFromEnv maps the shim variables', () => {
