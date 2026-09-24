@@ -46,14 +46,24 @@ function question(
 
 const FORGE = 'https://gitlab.example.com/acme/webapp/-/merge_requests';
 
+interface MrStatus {
+  pipeline: 'passed' | 'running' | 'failed' | 'none';
+  approvals: [given: number, required: number];
+  behind?: number;
+  conflicts?: boolean;
+  draft?: boolean;
+}
+
 function boardMr(
   iid: number,
   title: string,
   author: string,
   sourceBranch: string,
   diff: [number, number, number],
+  status: MrStatus,
   targetBranch = 'main'
 ): BoardMRWithReview {
+  const [given, required] = status.approvals;
   return {
     iid,
     title,
@@ -66,8 +76,31 @@ function boardMr(
     },
     sourceBranch,
     targetBranch,
+    isDraft: status.draft ?? false,
     createdAt: new Date(minutesAgo(60 * 26)).toISOString(),
     diff: { additions: diff[0], deletions: diff[1], filesChanged: diff[2] },
+    pipelineState: status.pipeline,
+    behindTarget: status.behind ?? null,
+    reviews: {
+      required,
+      given,
+      remaining: Math.max(required - given, 0),
+      isApproved: given >= required,
+      approvedBy: [],
+      reviewers: [],
+      totalAssigned: 0,
+      haveActed: given,
+      havePending: 0,
+      haveNotStarted: 0,
+    },
+    blockers: {
+      isDraft: status.draft ?? false,
+      hasConflicts: status.conflicts ?? false,
+      needsRebase: false,
+      pipelineFailing: status.pipeline === 'failed',
+      pipelineRunning: status.pipeline === 'running',
+      awaitingApprovals: given < required,
+    },
   } as unknown as BoardMRWithReview;
 }
 
@@ -83,49 +116,56 @@ export const MRS = {
     'ACME-3391: skip late radar models once the map is torn down',
     'jvasquez',
     'acme-3391-late-radar-models',
-    [96, 14, 3]
+    [96, 14, 3],
+    { pipeline: 'passed', approvals: [0, 1] }
   ),
   flagTargeting: boardMr(
     774,
     'ACME-3342: send flag targeting attributes at both levels',
     'pat',
     'acme-3342-flag-targeting-both-levels',
-    [58, 11, 5]
+    [58, 11, 5],
+    { pipeline: 'running', approvals: [0, 1], behind: 12 }
   ),
   sensorCount: boardMr(
     739,
     'ACME-2690: sensors summary chip shows a count',
     'pat',
     'acme-2690-sensors-chip-count',
-    [141, 37, 6]
+    [141, 37, 6],
+    { pipeline: 'passed', approvals: [1, 2] }
   ),
   stationFold: boardMr(
     777,
     'ACME-3288: fold duplicate stations that share an owner',
     'pat',
     'acme-3288-fold-shared-owner-stations',
-    [212, 48, 7]
+    [212, 48, 7],
+    { pipeline: 'passed', approvals: [1, 1] }
   ),
   primaryContacts: boardMr(
     702,
     'ACME-3203: keep primary station contacts on merge',
     'pat',
     'acme-3203-primary-station-contacts',
-    [330, 92, 9]
+    [330, 92, 9],
+    { pipeline: 'failed', approvals: [0, 1], behind: 40 }
   ),
   scriptFrames: boardMr(
     751,
     'ACME-3355: drop tracker events from vendor script frames',
     'dana',
     'acme-3355-vendor-frames',
-    [74, 9, 3]
+    [74, 9, 3],
+    { pipeline: 'passed', approvals: [0, 1] }
   ),
   expiredLinks: boardMr(
     760,
     'ACME-3309: route expired magic-link tokens to the expired page',
     'dana',
     'acme-3309-expired-magic-links',
-    [118, 26, 4]
+    [118, 26, 4],
+    { pipeline: 'passed', approvals: [0, 1] }
   ),
   pictograms: boardMr(
     688,
@@ -133,6 +173,7 @@ export const MRS = {
     'pat',
     'acme-3150-forecast-pictograms',
     [402, 388, 41],
+    { pipeline: 'failed', approvals: [0, 1] },
     'panel-model-split'
   ),
   highlights: boardMr(
@@ -140,14 +181,16 @@ export const MRS = {
     'ACME-2530: highlights data correctness batch',
     'pat',
     'acme-2530-highlights-data-correctness',
-    [527, 163, 22]
+    [527, 163, 22],
+    { pipeline: 'running', approvals: [0, 1], behind: 284, conflicts: true }
   ),
   advisoryPlans: boardMr(
     713,
     'ACME-2538: source explicit-false advisory plans to their boolean',
     'pat',
     'acme-2538-advisory-plan-provenance',
-    [89, 17, 4]
+    [89, 17, 4],
+    { pipeline: 'passed', approvals: [0, 1] }
   ),
 } as const;
 
