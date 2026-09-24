@@ -12,16 +12,61 @@ import {
 beforeEach(() => resetRuns());
 
 function fakeSpawn(exit: Promise<number>) {
-  const calls: Array<{ argv: string[]; cwd: string }> = [];
+  const calls: Array<{ argv: string[]; cwd: string; detached?: boolean }> = [];
   const spawn = (
     argv: string[],
-    opts: { cwd: string; stdout: number; stderr: number }
+    opts: { cwd: string; stdout: number; stderr: number; detached: boolean }
   ) => {
-    calls.push({ argv, cwd: opts.cwd });
+    calls.push({ argv, cwd: opts.cwd, detached: opts.detached });
     return { exited: exit };
   };
   return { spawn, calls };
 }
+
+test('a detached run is spawned in its own process group; others are not', () => {
+  const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
+  const { spawn, calls } = fakeSpawn(new Promise(() => {}));
+  startCommandRun(
+    {
+      name: 'deck',
+      cmd: 'deploy',
+      shell: 'bun run deploy',
+      workingDirectory: '/tmp/deck',
+      detached: true,
+    },
+    { spawn, logDir }
+  );
+  startCommandRun(
+    { name: 'chat', cmd: 'deploy', shell: 's', workingDirectory: '/tmp' },
+    { spawn, logDir }
+  );
+  expect(calls.map(c => c.detached)).toEqual([true, false]);
+});
+
+test('the default spawn really gives a detached run its own process group', async () => {
+  const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
+  const r = startCommandRun(
+    {
+      name: 'probe',
+      cmd: 'pgid',
+      shell: 'ps -o pgid= -p $$',
+      workingDirectory: logDir,
+      detached: true,
+    },
+    { logDir }
+  );
+  if (!r.started) throw new Error('unreachable');
+  for (let i = 0; i < 100; i++) {
+    if (commandRunStatus('probe', r.runId)?.status === 'exited') break;
+    await new Promise(res => setTimeout(res, 20));
+  }
+  const own = Bun.spawnSync(['ps', '-o', 'pgid=', '-p', String(process.pid)])
+    .stdout.toString()
+    .trim();
+  const child = (await Bun.file(join(logDir, 'probe.out.log')).text()).trim();
+  expect(child).not.toBe('');
+  expect(child).not.toBe(own);
+});
 
 test('spawns sh -c in the working directory and returns a runId', () => {
   const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));

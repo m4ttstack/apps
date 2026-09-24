@@ -6,7 +6,7 @@ import { logsDir } from '../api/state.ts';
 
 export type SpawnFn = (
   argv: string[],
-  opts: { cwd: string; stdout: number; stderr: number }
+  opts: { cwd: string; stdout: number; stderr: number; detached: boolean }
 ) => { exited: Promise<number> };
 
 interface Run {
@@ -30,7 +30,13 @@ const defaultSpawn: SpawnFn = (argv, opts) =>
   };
 
 export function startCommandRun(
-  input: { name: string; cmd: string; shell: string; workingDirectory: string },
+  input: {
+    name: string;
+    cmd: string;
+    shell: string;
+    workingDirectory: string;
+    detached?: boolean;
+  },
   deps: { spawn?: SpawnFn; logDir?: string } = {}
 ): { started: true; runId: string } | { started: false; reason: 'busy' } {
   const active = runs.get(input.name);
@@ -53,6 +59,7 @@ export function startCommandRun(
       cwd: input.workingDirectory,
       stdout: out,
       stderr: errFd,
+      detached: input.detached ?? false,
     });
   } catch (err) {
     // A synchronous spawn failure must not leave the app permanently busy or
