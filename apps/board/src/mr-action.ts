@@ -60,7 +60,7 @@ const MERGE_REFUSALS: Record<string, string> = {
     appends to a 405 after reading the MR back; null when there is none. */
 export function mergeRefusalReason(message: string): string | null {
   const status = /detailedMergeStatus="([a-z_]+)"/.exec(message)?.[1];
-  if (!status) return null;
+  if (!status || status === 'mergeable') return null;
   return MERGE_REFUSALS[status] ?? status.replaceAll('_', ' ');
 }
 

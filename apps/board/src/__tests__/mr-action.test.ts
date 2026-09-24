@@ -103,6 +103,10 @@ describe('mergeRefusalReason', () => {
     );
   });
 
+  test('mergeable is not a refusal reason', () => {
+    expect(mergeRefusalReason(refusal('mergeable'))).toBeNull();
+  });
+
   test('a failure with no read-back status has no reason', () => {
     expect(
       mergeRefusalReason('mergePullRequest failed: 500 Internal Server Error')
