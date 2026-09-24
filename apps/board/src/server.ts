@@ -400,7 +400,10 @@ async function gitlab(): Promise<GitLabProvider> {
 // the relay handler below (ingestRelayFrame) and the boot gateList reconcile
 // (reconcileGatesOnBoot).
 const gateCache = new GateCache();
-const runMrs = new RunMrResolver({ getRun: runId => getRun(runId) });
+const runMrs = new RunMrResolver({
+  getRun: runId => getRun(runId),
+  onChange: () => sseNudge(),
+});
 
 interface ReconcilerView {
   sweptAt: number;
@@ -1045,7 +1048,7 @@ const httpServer = Bun.serve({
         void refreshMemberNames();
         try {
           const mrs = await fetchMemberMRs(u);
-          const runLinks = await runMrs.links(gateCache.rows());
+          const runLinks = runMrs.links(gateCache.rows());
           // Peer state too: a scoped refresh replaces that member's rows
           // wholesale on the client, so anything left off here would blink out
           // of the UI every 15s.
@@ -1148,7 +1151,7 @@ const httpServer = Bun.serve({
         const doctors = readDoctorStates();
         const slackRefs = readSlackRefs();
         const reconciler = await fetchReconcilerView();
-        const runLinks = await runMrs.links(gateCache.rows());
+        const runLinks = runMrs.links(gateCache.rows());
         const mrsWithGates = attachStandDown(
           attachPeerState(
             attachNotes(

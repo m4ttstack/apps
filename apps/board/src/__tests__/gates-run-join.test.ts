@@ -142,8 +142,11 @@ const BOARD = [{ webUrl: MR_ON_BOARD }, { webUrl: MR_QUIET }];
 
 function harness() {
   const cache = new GateCache();
-  const resolver = new RunMrResolver({ getRun: fakeGetRun });
   let notified = 0;
+  const resolver = new RunMrResolver({
+    getRun: fakeGetRun,
+    onChange: () => notified++,
+  });
   return {
     cache,
     relay(frame: { topic: string; payload: unknown }) {
@@ -152,9 +155,11 @@ function harness() {
     get notified() {
       return notified;
     },
+    /** One board read, then another once the lookups it started land. */
     async board(mrs: Array<{ webUrl: string }> = BOARD) {
-      const links = await resolver.links(cache.rows());
-      return attachGates(mrs, cache, links);
+      attachGates(mrs, cache, resolver.links(cache.rows()));
+      await resolver.settled();
+      return attachGates(mrs, cache, resolver.links(cache.rows()));
     },
   };
 }
@@ -165,7 +170,7 @@ describe('relay frames', () => {
     h.relay(openedFrame('g-clarify', RUN_ON_BOARD));
     const [onBoard, quiet] = await h.board();
 
-    expect(h.notified).toBe(1);
+    expect(h.notified).toBe(2);
     expect(quiet!.gates).toEqual([]);
     expect(onBoard!.gates).toHaveLength(1);
     expect(onBoard!.gates[0]).toMatchObject({

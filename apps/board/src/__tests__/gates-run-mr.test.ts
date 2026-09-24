@@ -138,12 +138,60 @@ describe('isHumanOwned / isLiveRunGate', () => {
   });
 });
 
+const TTL = { hitMs: 5000, missMs: 1000 };
+
+/** A resolver over `runs` with a hand-set clock and a change counter. */
+function resolverFor(runs: ReturnType<typeof fakeRuns>) {
+  const state = { clock: 0, changes: 0 };
+  const resolver = new RunMrResolver(
+    {
+      getRun: runs.getRun,
+      now: () => state.clock,
+      onChange: () => state.changes++,
+    },
+    TTL
+  );
+  return { resolver, state };
+}
+
+/** Kicks off lookups, lets them land, and reads the links they produced. */
+async function settle(resolver: RunMrResolver, rows: FacilityGateRow[]) {
+  resolver.links(rows);
+  await resolver.settled();
+  return resolver.links(rows);
+}
+
 describe('RunMrResolver.links', () => {
   test('a live run gate links its run to the MR the run recorded', async () => {
     const runs = fakeRuns({ 'run-a': [field('mr', MR_1, 5)] });
-    const resolver = new RunMrResolver(runs);
-    const links = await resolver.links([gate({ subject: 'run:run-a' })]);
+    const { resolver } = resolverFor(runs);
+    const links = await settle(resolver, [gate({ subject: 'run:run-a' })]);
     expect([...links]).toEqual([[MR_1, ['run-a']]]);
+  });
+
+  test('never waits on the daemon: a hung lookup returns cached links at once', async () => {
+    const pending: Array<() => void> = [];
+    let changes = 0;
+    const resolver = new RunMrResolver({
+      getRun: () =>
+        new Promise(resolve => {
+          pending.push(() => resolve(ok(detail([field('mr', MR_1, 5)]))));
+        }),
+      onChange: () => changes++,
+    });
+    const rows = [gate({ subject: 'run:run-a' })];
+
+    const first = resolver.links(rows);
+    expect(first).toBeInstanceOf(Map);
+    expect(first.size).toBe(0);
+    expect(resolver.links(rows).size).toBe(0);
+    expect(pending).toHaveLength(1);
+    expect(changes).toBe(0);
+
+    pending[0]!();
+    await resolver.settled();
+    expect(changes).toBe(1);
+    expect(resolver.links(rows).get(MR_1)).toEqual(['run-a']);
   });
 
   test('two runs on one MR both link to it; two gates on one run ask once', async () => {
@@ -151,36 +199,40 @@ describe('RunMrResolver.links', () => {
       'run-a': [field('mr', MR_1, 5)],
       'run-b': [field('mr', MR_1, 6)],
     });
-    const resolver = new RunMrResolver(runs);
-    const links = await resolver.links([
+    const { resolver, state } = resolverFor(runs);
+    const links = await settle(resolver, [
       gate({ id: 'g1', subject: 'run:run-a', kind: 'clarify' }),
       gate({ id: 'g2', subject: 'run:run-a', kind: 'ship' }),
       gate({ id: 'g3', subject: 'run:run-b' }),
     ]);
     expect(links.get(MR_1)).toEqual(['run-a', 'run-b']);
     expect(runs.calls.sort()).toEqual(['run-a', 'run-b']);
+    expect(state.changes).toBe(2);
   });
 
-  test('a run with no MR, an unknown run, and a throwing daemon link nothing', async () => {
+  test('a run with no MR, an unknown run, and a throwing daemon link nothing and nudge nobody', async () => {
     const runs = fakeRuns({ 'run-nomr': [field('branch', 'fix-it', 5)] });
+    let changes = 0;
     const resolver = new RunMrResolver({
       getRun: async runId => {
         if (runId === 'run-boom') throw new Error('socket closed');
         return runs.getRun(runId);
       },
+      onChange: () => changes++,
     });
-    const links = await resolver.links([
+    const links = await settle(resolver, [
       gate({ id: 'g1', subject: 'run:run-nomr' }),
       gate({ id: 'g2', subject: 'run:run-gone' }),
       gate({ id: 'g3', subject: 'run:run-boom' }),
     ]);
     expect(links.size).toBe(0);
+    expect(changes).toBe(0);
   });
 
   test('gates that are not live never trigger a lookup', async () => {
     const runs = fakeRuns({ 'run-a': [field('mr', MR_1, 5)] });
-    const resolver = new RunMrResolver(runs);
-    const links = await resolver.links([
+    const { resolver } = resolverFor(runs);
+    const links = await settle(resolver, [
       gate({ id: 'g1', subject: 'run:run-a', status: 'answered' }),
       gate({ id: 'g2', subject: 'run:run-a', status: 'closed' }),
       gate({ id: 'g3', subject: 'run:run-a', owner: 'herd:acme-batch' }),
@@ -190,32 +242,90 @@ describe('RunMrResolver.links', () => {
     expect(runs.calls).toEqual([]);
   });
 
-  test('a found MR is cached: later passes never ask the daemon again', async () => {
+  test('a found MR is served from cache until its TTL, then rechecked', async () => {
     const runs = fakeRuns({ 'run-a': [field('mr', MR_1, 5)] });
-    let clock = 0;
-    const resolver = new RunMrResolver({ ...runs, now: () => clock }, 1000);
+    const { resolver, state } = resolverFor(runs);
     const rows = [gate({ subject: 'run:run-a' })];
-    await resolver.links(rows);
-    clock += 10_000_000;
-    const links = await resolver.links(rows);
-    expect(links.get(MR_1)).toEqual(['run-a']);
+    await settle(resolver, rows);
+
+    state.clock += TTL.hitMs - 1;
+    expect(resolver.links(rows).get(MR_1)).toEqual(['run-a']);
     expect(runs.calls).toEqual(['run-a']);
+
+    state.clock += 1;
+    expect(resolver.links(rows).get(MR_1)).toEqual(['run-a']);
+    await resolver.settled();
+    expect(runs.calls).toEqual(['run-a', 'run-a']);
+    expect(state.changes).toBe(1);
+  });
+
+  test('a recheck follows a run that moved to another MR, or cleared its MR', async () => {
+    const runs = fakeRuns({ 'run-a': [field('mr', MR_1, 5)] });
+    const { resolver, state } = resolverFor(runs);
+    const rows = [gate({ subject: 'run:run-a' })];
+    await settle(resolver, rows);
+
+    runs.table['run-a'] = [field('mr', MR_1, 5), field('mr', MR_2, 9)];
+    state.clock += TTL.hitMs;
+    const moved = await settle(resolver, rows);
+    expect([...moved]).toEqual([[MR_2, ['run-a']]]);
+    expect(state.changes).toBe(2);
+
+    runs.table['run-a'] = [field('mr', '-', 12)];
+    state.clock += TTL.hitMs;
+    expect((await settle(resolver, rows)).size).toBe(0);
+    expect(state.changes).toBe(3);
+  });
+
+  test('a daemon error on a recheck keeps the last known MR', async () => {
+    const runs = fakeRuns({ 'run-a': [field('mr', MR_1, 5)] });
+    let down = false;
+    let clock = 0;
+    const resolver = new RunMrResolver(
+      {
+        getRun: async runId => {
+          if (down)
+            return {
+              ok: false,
+              error: 'rt daemon unreachable at /tmp/rt.sock',
+            } as RtResponse<RunDetail>;
+          return runs.getRun(runId);
+        },
+        now: () => clock,
+      },
+      TTL
+    );
+    const rows = [gate({ subject: 'run:run-a' })];
+    await settle(resolver, rows);
+
+    down = true;
+    clock += TTL.hitMs;
+    expect((await settle(resolver, rows)).get(MR_1)).toEqual(['run-a']);
   });
 
   test('a miss is retried once its TTL passes, picking up an MR the run recorded since', async () => {
     const runs = fakeRuns({ 'run-a': [field('branch', 'fix-it', 5)] });
-    let clock = 0;
-    const resolver = new RunMrResolver({ ...runs, now: () => clock }, 1000);
+    const { resolver, state } = resolverFor(runs);
     const rows = [gate({ subject: 'run:run-a' })];
 
-    expect((await resolver.links(rows)).size).toBe(0);
+    expect((await settle(resolver, rows)).size).toBe(0);
     runs.table['run-a'] = [field('mr', MR_1, 9)];
-    clock += 500;
-    expect((await resolver.links(rows)).size).toBe(0);
+    state.clock += TTL.missMs - 1;
+    expect((await settle(resolver, rows)).size).toBe(0);
     expect(runs.calls).toEqual(['run-a']);
 
-    clock += 600;
-    expect((await resolver.links(rows)).get(MR_1)).toEqual(['run-a']);
+    state.clock += 1;
+    expect((await settle(resolver, rows)).get(MR_1)).toEqual(['run-a']);
+    expect(runs.calls).toEqual(['run-a', 'run-a']);
+    expect(state.changes).toBe(1);
+  });
+
+  test('a run whose gates settle is forgotten, so it is looked up afresh if one reopens', async () => {
+    const runs = fakeRuns({ 'run-a': [field('mr', MR_1, 5)] });
+    const { resolver } = resolverFor(runs);
+    await settle(resolver, [gate({ subject: 'run:run-a' })]);
+    resolver.links([gate({ subject: 'run:run-a', status: 'answered' })]);
+    await settle(resolver, [gate({ subject: 'run:run-a' })]);
     expect(runs.calls).toEqual(['run-a', 'run-a']);
   });
 });
