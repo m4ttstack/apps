@@ -1,8 +1,10 @@
+// Wait-style gates (login, next) are opened with their prose and their pane
+// in `meta` rather than in the row's own `context` and `origin`, so every
+// reader of either goes through these helpers, which fall back to `meta`
+// when the row's field is empty.
+
 import type { GateOrigin } from '@mattstack/gate-kit';
 
-/** Wait-style gates (login, next) are opened with their prose and their pane
-    in `meta` rather than in the row's own `context` and `origin`, so every
-    reader falls back to `meta` when the row's field is empty. */
 interface GateFields {
   context?: string | null;
   origin?: GateOrigin | null;
