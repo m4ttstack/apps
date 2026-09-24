@@ -43,6 +43,45 @@ test('a detached run is spawned in its own process group; others are not', () =>
   expect(calls.map(c => c.detached)).toEqual([true, false]);
 });
 
+test('a detached run still in flight keeps the app busy after deck restarts', () => {
+  const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
+  const spawn = () => ({
+    exited: new Promise<number>(() => {}),
+    pid: process.pid,
+  });
+  const input = {
+    name: 'deck',
+    cmd: 'deploy',
+    shell: 's',
+    workingDirectory: '/tmp',
+    detached: true,
+  };
+  expect(startCommandRun(input, { spawn, logDir }).started).toBe(true);
+  resetRuns();
+  expect(startCommandRun(input, { spawn, logDir })).toEqual({
+    started: false,
+    reason: 'busy',
+  });
+});
+
+test('a detached run whose process is gone does not keep the app busy', () => {
+  const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
+  const dead = () => ({
+    exited: new Promise<number>(() => {}),
+    pid: 2 ** 22 + 7,
+  });
+  const input = {
+    name: 'deck',
+    cmd: 'deploy',
+    shell: 's',
+    workingDirectory: '/tmp',
+    detached: true,
+  };
+  expect(startCommandRun(input, { spawn: dead, logDir }).started).toBe(true);
+  resetRuns();
+  expect(startCommandRun(input, { spawn: dead, logDir }).started).toBe(true);
+});
+
 test('the default spawn really gives a detached run its own process group', async () => {
   const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
   const r = startCommandRun(

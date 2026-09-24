@@ -1,13 +1,30 @@
 import { randomBytes } from 'crypto';
-import { closeSync, mkdirSync, openSync } from 'fs';
+import {
+  closeSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  writeFileSync,
+} from 'fs';
 import { join } from 'path';
 
-import { logsDir } from '../api/state.ts';
+import { isAlive, logsDir } from '../api/state.ts';
 
 export type SpawnFn = (
   argv: string[],
   opts: { cwd: string; stdout: number; stderr: number; detached: boolean }
-) => { exited: Promise<number> };
+) => { exited: Promise<number>; pid?: number };
+
+// A detached run outlives the deck that started it, and with it the in-memory
+// `runs` entry, so its pid is also kept on disk for the next deck to see.
+function detachedRunAlive(dir: string, name: string): boolean {
+  try {
+    const pid = Number(readFileSync(join(dir, `${name}.run.pid`), 'utf8'));
+    return Number.isInteger(pid) && pid > 0 && isAlive(pid);
+  } catch {
+    return false;
+  }
+}
 
 interface Run {
   runId: string;
@@ -27,6 +44,7 @@ export function resetRuns(): void {
 const defaultSpawn: SpawnFn = (argv, opts) =>
   Bun.spawn(argv, { ...opts, env: process.env }) as unknown as {
     exited: Promise<number>;
+    pid: number;
   };
 
 export function startCommandRun(
@@ -44,6 +62,8 @@ export function startCommandRun(
     return { started: false, reason: 'busy' };
 
   const dir = deps.logDir ?? logsDir();
+  if (detachedRunAlive(dir, input.name))
+    return { started: false, reason: 'busy' };
   mkdirSync(dir, { recursive: true });
   // Append into the app's existing deck log, so `deck logs` shows command output.
   const out = openSync(join(dir, `${input.name}.out.log`), 'a');
@@ -77,6 +97,8 @@ export function startCommandRun(
     }
     throw err;
   }
+  if (input.detached && proc.pid)
+    writeFileSync(join(dir, `${input.name}.run.pid`), String(proc.pid));
   proc.exited.then(code => {
     run.status = 'exited';
     run.exitCode = code;
