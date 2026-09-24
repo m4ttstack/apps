@@ -46,6 +46,16 @@ test('a missing row origin is built from meta.paneId and meta.worktree', () => {
   });
 });
 
+test('a row origin with no pane or worktree takes them from meta', () => {
+  expect(
+    gateOrigin({ origin: { presentation: 'wait' }, meta: waitMeta })
+  ).toEqual({
+    presentation: 'wait',
+    paneId: 'w4:pC',
+    worktree: '/work/aspen',
+  });
+});
+
 test('meta with no pane or worktree yields no origin', () => {
   expect(gateOrigin({ meta: { runId: 'r1' } })).toBeUndefined();
   expect(gateOrigin({})).toBeUndefined();

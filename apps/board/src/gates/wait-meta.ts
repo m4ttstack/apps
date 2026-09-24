@@ -19,9 +19,13 @@ export function gateContext(gate: GateFields): string | undefined {
 }
 
 export function gateOrigin(gate: GateFields): GateOrigin | undefined {
-  if (gate.origin) return gate.origin;
+  if (gate.origin?.paneId || gate.origin?.worktree) return gate.origin;
   const paneId = metaString(gate, 'paneId');
   const worktree = metaString(gate, 'worktree');
-  if (!paneId && !worktree) return undefined;
-  return { ...(paneId && { paneId }), ...(worktree && { worktree }) };
+  if (!paneId && !worktree) return gate.origin ?? undefined;
+  return {
+    ...gate.origin,
+    ...(paneId && { paneId }),
+    ...(worktree && { worktree }),
+  };
 }
