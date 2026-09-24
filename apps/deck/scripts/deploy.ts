@@ -117,16 +117,48 @@ if (mode.kind === 'restart') {
     process.exit(1);
   }
 
-  if (!(await healthy(Math.max(0, deadline - Date.now())))) {
-    await printLogTails();
-    console.error(
-      'deck did not come back healthy after the restart; see the logs above'
-    );
+  // api.json can be rewritten by a second live `deck serve` racing this
+  // restart, so the pid and port polled below are fixed from ONE read here
+  // rather than re-read per probe; the healthz response's own x-deck-pid
+  // header (not a later api.json read) proves that fixed process is the one
+  // that actually answered, and its x-deck-run-mode is read from the same
+  // response rather than a separate file read that could describe a
+  // different process by the time it runs.
+  const restarted = readApiInfo();
+  let everAnswered = false;
+  let verifiedRunMode: string | null = null;
+  if (restarted && restarted.pid !== pidBefore) {
+    for (;;) {
+      try {
+        const res = await fetch(`http://127.0.0.1:${restarted.port}/healthz`);
+        everAnswered = true;
+        if (res.ok && res.headers.get('x-deck-pid') === String(restarted.pid)) {
+          verifiedRunMode = res.headers.get('x-deck-run-mode');
+          break;
+        }
+      } catch {
+        // not listening yet
+      }
+      if (Date.now() > deadline) break;
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+
+  if (verifiedRunMode === null) {
+    if (!everAnswered) {
+      await printLogTails();
+      console.error(
+        'deck did not come back healthy after the restart; see the logs above'
+      );
+    } else {
+      console.error(
+        'deck restart did not bring up a new process; the new source is NOT live'
+      );
+    }
     process.exit(1);
   }
 
-  const recorded = readApiRunMode();
-  const runMode = recorded?.runMode ?? 'standalone';
+  const runMode = verifiedRunMode;
   if (runMode === 'standalone') {
     // A pinned fallback older than runMode records no runMode at all, so it
     // reads here as standalone; this wording covers both readings.
@@ -136,13 +168,16 @@ if (mode.kind === 'restart') {
     process.exit(1);
   }
   if (runMode !== 'source') {
+    const runReason = readApiRunMode()?.runReason;
     console.error(
-      `deck came back healthy but running ${runMode}${recorded?.runReason ? `: ${recorded.runReason}` : ''}; the new source is NOT live (the last deck-dev-shim: line in ~/.mattstack/deck/logs/deck.err.log says why)`
+      `deck came back healthy but running ${runMode}${runReason ? `: ${runReason}` : ''}; the new source is NOT live (the last deck-dev-shim: line in ~/.mattstack/deck/logs/deck.err.log says why)`
     );
     process.exit(1);
   }
 
-  console.log(`deployed: deck healthy on port ${info.port}, running source`);
+  console.log(
+    `deployed: deck healthy on port ${restarted!.port}, running source`
+  );
   process.exit(0);
 }
 

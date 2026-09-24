@@ -87,7 +87,7 @@ import {
   unregisterApp,
   type Drivers,
 } from './register.ts';
-import { logsDir } from './state.ts';
+import { logsDir, runModeFromEnv } from './state.ts';
 import { buildStatus, type StatusRow } from './status.ts';
 
 export interface ApiDeps extends Drivers {
@@ -333,7 +333,18 @@ export function startApi(deps: ApiDeps) {
       };
 
       // ---- static / identity (carried from core/server.ts) ----
-      if (pathname === '/healthz') return new Response('ok');
+      // The pid and run mode identify THIS process rather than whatever
+      // api.json happens to hold: a restart racing another live `deck serve`
+      // can rewrite api.json mid-poll, so a caller verifying a restart must
+      // read these off the response that actually answered, not a separate
+      // file read.
+      if (pathname === '/healthz')
+        return new Response('ok', {
+          headers: {
+            'x-deck-pid': String(process.pid),
+            'x-deck-run-mode': runModeFromEnv(process.env).runMode,
+          },
+        });
       if (pathname === '/board.js') return boardJs();
       if (pathname === '/board.css') return boardCss();
       if (pathname === CANARY_PATH) {
