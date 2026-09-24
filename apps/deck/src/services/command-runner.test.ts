@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { beforeEach, expect, test } from 'bun:test';
@@ -45,23 +45,66 @@ test('a detached run is spawned in its own process group; others are not', () =>
 
 test('a detached run still in flight keeps the app busy after deck restarts', () => {
   const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
-  const spawn = () => ({
-    exited: new Promise<number>(() => {}),
-    pid: process.pid,
-  });
   const input = {
     name: 'deck',
     cmd: 'deploy',
-    shell: 's',
-    workingDirectory: '/tmp',
+    shell: 'sleep 30',
+    workingDirectory: logDir,
     detached: true,
   };
-  expect(startCommandRun(input, { spawn, logDir }).started).toBe(true);
-  resetRuns();
-  expect(startCommandRun(input, { spawn, logDir })).toEqual({
-    started: false,
-    reason: 'busy',
-  });
+  expect(startCommandRun(input, { logDir }).started).toBe(true);
+  const { pid } = JSON.parse(
+    readFileSync(join(logDir, 'deck.run.pid'), 'utf8')
+  ) as { pid: number };
+  try {
+    resetRuns();
+    expect(startCommandRun(input, { logDir })).toEqual({
+      started: false,
+      reason: 'busy',
+    });
+  } finally {
+    process.kill(pid);
+  }
+});
+
+test('a pid file naming a live but unrelated process is stale: the run starts and the file is replaced', () => {
+  const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
+  writeFileSync(
+    join(logDir, 'deck.run.pid'),
+    JSON.stringify({ pid: process.pid, shell: 'bun run deploy' })
+  );
+  const spawn = () => ({ exited: new Promise<number>(() => {}), pid: 4242 });
+  const r = startCommandRun(
+    {
+      name: 'deck',
+      cmd: 'deploy',
+      shell: 'bun run deploy',
+      workingDirectory: '/tmp',
+      detached: true,
+    },
+    { spawn, logDir }
+  );
+  expect(r.started).toBe(true);
+  expect(
+    JSON.parse(readFileSync(join(logDir, 'deck.run.pid'), 'utf8')).pid
+  ).toBe(4242);
+});
+
+test('a detached run that exits in the same deck removes its pid file', async () => {
+  const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
+  const spawn = () => ({ exited: Promise.resolve(0), pid: 4242 });
+  startCommandRun(
+    {
+      name: 'deck',
+      cmd: 'deploy',
+      shell: 's',
+      workingDirectory: '/tmp',
+      detached: true,
+    },
+    { spawn, logDir }
+  );
+  await new Promise(res => setTimeout(res, 10));
+  expect(existsSync(join(logDir, 'deck.run.pid'))).toBe(false);
 });
 
 test('a detached run whose process is gone does not keep the app busy', () => {
