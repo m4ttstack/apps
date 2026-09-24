@@ -126,6 +126,14 @@ export const MERGE_HOLD_MS = 3 * 60_000;
 /** A fired merge, by MR url, with when it was fired. */
 export type Merging = ReadonlyMap<string, number>;
 
+/** Milliseconds until the earliest held merge passes MERGE_HOLD_MS, so a
+    hold lapses on time even when no fresh load arrives; null when none. */
+export function nextMergeLapse(merging: Merging, now: number): number | null {
+  if (merging.size === 0) return null;
+  const earliest = Math.min(...merging.values());
+  return Math.max(0, earliest + MERGE_HOLD_MS - now + 1);
+}
+
 /** A merge the board fired reads as GitLab's own merging state on that row,
     through the seconds GitLab and rt's sync still report the MR open and
     mergeable. */

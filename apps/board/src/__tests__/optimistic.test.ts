@@ -5,6 +5,7 @@ import {
   clearServerTruth,
   EMPTY_OPTIMISTIC,
   MERGE_HOLD_MS,
+  nextMergeLapse,
   overlay,
   overlayMerging,
   rollback,
@@ -118,4 +119,19 @@ test('settleMerging lets go of a merge still open after the hold limit', () => {
     MERGE_HOLD_MS + 1
   );
   expect([...settled.keys()]).toEqual(['new']);
+});
+
+test('nextMergeLapse waits for the earliest held merge to pass the hold limit', () => {
+  const held = new Map([
+    ['a', 1000],
+    ['b', 500],
+  ]);
+  const wait = nextMergeLapse(held, 600);
+  expect(wait).toBe(500 + MERGE_HOLD_MS - 600 + 1);
+  const later = 600 + wait!;
+  expect([
+    ...settleMerging(held, [open('a'), open('b')], later).keys(),
+  ]).toEqual(['a']);
+  expect(nextMergeLapse(held, 10 * MERGE_HOLD_MS)).toBe(0);
+  expect(nextMergeLapse(new Map(), 0)).toBeNull();
 });
