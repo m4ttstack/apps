@@ -149,8 +149,9 @@ within ~1.03 of each other (`--chrome` #f3f4f7, `--bg` #f7f8fa, `--panel`
 light mode; the panel's border does the work there. Deck paints no
 chrome-role surface, so `--chrome` is unused here. Never hand-pick a hex for
 a surface role: reach for the kit's existing tokens (`--bg` -> `--panel` ->
-`--card`) and confirm any literal against `tui-kit/src/generated/theme.css`
-rather than eyeballing a shift against light AND dark; it must go through
+`--card`) and confirm any literal against
+`packages/tui-kit/src/generated/theme.css` rather than eyeballing a shift
+against light AND dark; it must go through
 `light-dark(<light>, <dark>)` so the toggle in `core/board/main.tsx` (the
 `.dark` class on `<html>`) still finds a value in both modes. `--card`
 itself is `packages/tokens/src/values.ts`'s `dark.surface.card` -- a shared
