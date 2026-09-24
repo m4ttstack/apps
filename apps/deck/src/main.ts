@@ -11,6 +11,7 @@ import {
 import { isAuthorized, startRestartDetached } from '../core/proxy-restart.ts';
 import { reconcileOnce } from '../core/reconcile.ts';
 import { logPortHolder, redirectAgentOutput } from './agent-log.ts';
+import { isDevMode } from './api/dev-mode.ts';
 import { reresolveManagedApps } from './api/register.ts';
 import { startApi } from './api/server.ts';
 import { claimApiInfo, stateDir } from './api/state.ts';
@@ -50,6 +51,9 @@ const CANARY_INTERVAL_MS = 5 * 60_000;
 
 export async function serve(): Promise<void> {
   const bundleRoot = bundleRootFromExec();
+  console.log(
+    `[flavor] ${isDevMode() ? 'dev' : 'prod'} (${bundleRoot ?? 'no bundle'})`
+  );
   await prepareHelperBoot({
     bundleRoot,
     env: process.env,
