@@ -112,6 +112,16 @@ old one. Instead:
 - `<status-bin> gate wait <state>` — the verb is registry-status-first, so on
   an already-answered gate it returns the recorded answer at once instead of
   blocking.
+- **Posted already.** Before any reply posts on this resume, or a fresh
+  Gate 2 offers a thread, read each thread on the forge (its full note
+  chain). A thread that already carries this run's reply, a note whose
+  text is the reply due to post or any note by the account this pane
+  posts as dated after the resumed gate's answer (`answeredAt` from the
+  wait), is posted: it counts toward `--posted` in step 7, it is never
+  offered at a fresh Gate 2, and it is never posted again, whatever
+  `--report` says of it. With a domain skill, hand it the resume as such
+  and let its own Posted already rule do this; on the generic path, do
+  it yourself, before step 6's push rule.
 - **Act on the answer, by `--resumed-gate-kind`.** Read `--report <path>` first: it
   holds the adjudication table and drafted/finalized replies a fresh pane has
   no other way to recover once the pane that produced them is gone. On the
@@ -483,7 +493,8 @@ conversation.
      `holding at gate <gateId>` is this one.
    - **Act on the answer.** Hand `{post: <answers>, by: <by>}` to the domain
      skill so it can execute the posting, the reply-only threads included,
-     or act yourself on the generic no-domain-skill path, push rule
+     or act yourself on the generic no-domain-skill path, skipping
+     every thread the Posted already read found posted, push rule
      below first: per Gate 2 thread, `post:<threadId>` posts that thread's
      reply (the answer's `text` when it carries one, the report's finalized
      reply otherwise), `resolve:<threadId>` resolves the thread (after the
