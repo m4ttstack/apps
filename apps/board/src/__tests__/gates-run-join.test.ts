@@ -286,6 +286,7 @@ describe('boot warm', () => {
     expect(onBoard!.gates.map(g => [g.gateId, g.status])).toEqual([
       ['g-ship', 'open'],
     ]);
+    expect(h.cache.rows().map(r => r.id)).toEqual(['g-ship']);
   });
 
   test('a warmed gate answered elsewhere later leaves the MR', async () => {

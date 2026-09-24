@@ -153,8 +153,10 @@ export async function reconcileAttentionGatesOnBoot(
 
 /**
  * Boot-time cache warm for pipeline gates: pages
- * `gateList({subjectPrefix: "run:"})` to exhaustion into the same cache, so
- * a run gate opened while the board was down still joins its MR's row.
+ * `gateList({subjectPrefix: "run:"})` to exhaustion, so a run gate opened
+ * while the board was down still joins its MR's row. Only live rows reach
+ * the cache, since a settled run gate never renders; `gate:list`'s `open`
+ * filter would drop parked rows, so the filter runs here.
  */
 export async function reconcileRunGatesOnBoot(
   list: (payload: GateListPayload) => Promise<GateListResult>,
@@ -165,7 +167,22 @@ export async function reconcileRunGatesOnBoot(
     { subjectPrefix: 'run:' },
     'gate boot reconcile (runs)'
   );
-  cache.reconcile(rows);
+  cache.reconcile(newestLiveRows(rows));
+}
+
+/** Each subject+kind's newest row, kept only while it is open or parked. A
+    newer settled row must still shadow an older parked one: opening a gate
+    supersedes only an `open` row of its kind, never a `parked` one. */
+function newestLiveRows(rows: FacilityGateRow[]): FacilityGateRow[] {
+  const newest = new Map<string, FacilityGateRow>();
+  for (const row of rows) {
+    const key = `${row.subject}::${row.kind}`;
+    const seen = newest.get(key);
+    if (!seen || row.openedAt >= seen.openedAt) newest.set(key, row);
+  }
+  return [...newest.values()].filter(
+    row => row.status === 'open' || row.status === 'parked'
+  );
 }
 
 /**

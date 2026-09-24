@@ -301,6 +301,39 @@ describe('reconcileRunGatesOnBoot', () => {
     expect(reconciled[0]).toHaveLength(GATE_LIST_PAGE_LIMIT + 1);
   });
 
+  test('only live rows reach the cache: settled ones stay out, and a newer settled row shadows an older parked one', async () => {
+    const run = (
+      id: string,
+      kind: string,
+      status: FacilityGateRow['status'],
+      openedAt: number
+    ): FacilityGateRow => ({
+      ...fakeRow(id),
+      subject: 'run:20260923-100000-demo',
+      kind,
+      status,
+      openedAt,
+    });
+    const rows = [
+      run('ship-open', 'ship', 'open', 3000),
+      run('plan-answered', 'plan', 'answered', 2000),
+      run('review-closed', 'self-review', 'closed', 2500),
+      run('clarify-parked-old', 'clarify', 'parked', 1000),
+      run('clarify-answered-new', 'clarify', 'answered', 4000),
+      run('close-parked', 'close', 'parked', 5000),
+    ];
+    const reconciled: FacilityGateRow[][] = [];
+
+    await reconcileRunGatesOnBoot(
+      async () => ({ ok: true, data: { gates: rows, cursor: 6 } }),
+      { reconcile: batch => reconciled.push(batch) }
+    );
+
+    expect(reconciled.map(batch => batch.map(r => r.id).sort())).toEqual([
+      ['close-parked', 'ship-open'],
+    ]);
+  });
+
   test('a failed page reconciles nothing extra and never throws', async () => {
     const list = async (): Promise<FakeGateListResult> => ({
       ok: false,
