@@ -39,9 +39,9 @@ button, `deck cmd deck deploy`, or `bun run deploy` from the checkout):
 deploy installs dependencies and restarts deck, and succeeds only if deck
 comes back running source. `api.json`'s `runMode` (`source`, `pinned`,
 `standalone`) and `runReason` say which deck is serving and, for pinned,
-why. `runMode`/`runReason` are recorded only by a deck built with this
-change, so the bundle's current pin (older than this change) writes
-neither field and a pinned fallback reads as `standalone`.
+why. Only decks that record `runMode` write either field; the bundle's
+pin (deck 1.0.6) predates it, so a pinned fallback there writes neither
+field and reads as `standalone`.
 
 ## Manifest-first
 
