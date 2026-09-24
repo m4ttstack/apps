@@ -172,7 +172,7 @@ Repo: mattstack-apps.
 
 **Files:**
 - Modify: `apps/deck/src/api/state.ts` (`writeApiInfo`, new `runModeFromEnv`, new `readApiRunMode`)
-- Test: `apps/deck/src/api/state.test.ts` (exists; add to it)
+- Test: `apps/deck/src/api/state.test.ts` (exists; edit as Step 1 says)
 
 **Interfaces:**
 - Produces:
@@ -184,29 +184,18 @@ Repo: mattstack-apps.
 
 - [ ] **Step 1: Write the failing tests**
 
-In `apps/deck/src/api/state.test.ts`:
+`apps/deck/src/api/state.test.ts` already exists. Make these exact edits:
+
+1. Change the destructured import line to
+   `const { stateDir, adoptLegacyStateDir, claimApiInfo, writeApiInfo, readApiRunMode, runModeFromEnv } = await import('./state.ts');`
+   and add `afterEach` to the `bun:test` import.
+2. In the existing `beforeEach`, add `delete process.env.DECK_RUN_MODE;` and `delete process.env.DECK_RUN_REASON;`, and add
+   `afterEach(() => { delete process.env.DECK_RUN_MODE; delete process.env.DECK_RUN_REASON; });` right after it.
+3. The four existing `claimApiInfo` assertions of the form `expect(apiJsonIn(dir)).toEqual({ port: 7940, pid: process.pid });` (writes-when-none, dead-pid, not-answering, own-port) become `expect(apiJsonIn(dir)).toEqual({ port: 7940, pid: process.pid, runMode: 'standalone' });`. The "leaves an api.json alone" assertion (`{ port: 7000, pid: 4242 }`) is unchanged.
+4. Append these tests at the end of the file (they use the file's own `seededStateDir` and `apiJsonIn`; do not change HOME):
 
 ```ts
-import { mkdtempSync, readFileSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { beforeEach, expect, test } from 'bun:test';
-
-function isolate(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'state-runmode-'));
-  process.env.LOCAL_STATE_DIR = dir;
-  process.env.HOME = dir;
-  return dir;
-}
-
-beforeEach(() => {
-  isolate();
-  delete process.env.DECK_RUN_MODE;
-  delete process.env.DECK_RUN_REASON;
-});
-
-test('runModeFromEnv maps the shim variables', async () => {
-  const { runModeFromEnv } = await import('./state.ts');
+test('runModeFromEnv maps the shim variables', () => {
   expect(runModeFromEnv({})).toEqual({ runMode: 'standalone' });
   expect(runModeFromEnv({ DECK_RUN_MODE: 'source' })).toEqual({
     runMode: 'source',
@@ -219,10 +208,8 @@ test('runModeFromEnv maps the shim variables', async () => {
   });
 });
 
-test('writeApiInfo records the run mode and readApiRunMode reads it back', async () => {
-  const { writeApiInfo, readApiRunMode, readApiInfo, stateDir } = await import(
-    './state.ts'
-  );
+test('writeApiInfo records the run mode and readApiRunMode reads it back', () => {
+  const dir = seededStateDir();
   process.env.DECK_RUN_MODE = 'pinned';
   process.env.DECK_RUN_REASON = 'no deck dev.workingDirectory';
   writeApiInfo(7940);
@@ -230,27 +217,26 @@ test('writeApiInfo records the run mode and readApiRunMode reads it back', async
     runMode: 'pinned',
     runReason: 'no deck dev.workingDirectory',
   });
-  expect(readApiInfo()).toEqual({ port: 7940, pid: process.pid });
-  const raw = JSON.parse(readFileSync(join(stateDir(), 'api.json'), 'utf8'));
-  expect(raw.runMode).toBe('pinned');
+  expect(apiJsonIn(dir)).toEqual({
+    port: 7940,
+    pid: process.pid,
+    runMode: 'pinned',
+    runReason: 'no deck dev.workingDirectory',
+  });
 });
 
-test('an api.json without runMode reads as standalone', async () => {
-  const { readApiRunMode, stateDir } = await import('./state.ts');
-  writeFileSync(
-    join(stateDir(), 'api.json'),
-    JSON.stringify({ port: 7940, pid: 1 })
-  );
+test('an api.json without runMode reads as standalone', () => {
+  seededStateDir({ port: 7940, pid: 1 });
   expect(readApiRunMode()).toEqual({ runMode: 'standalone' });
 });
 
-test('readApiRunMode is null with no api.json', async () => {
-  const { readApiRunMode } = await import('./state.ts');
+test('readApiRunMode is null with no api.json', () => {
+  seededStateDir();
   expect(readApiRunMode()).toBeNull();
 });
 ```
 
-`state.test.ts` already exists: add these tests to it, merging the imports and reusing its existing isolation helper and `beforeEach` rather than declaring duplicates (keep the `DECK_RUN_MODE`/`DECK_RUN_REASON` deletes in whichever `beforeEach` runs). If `stateDir` is not exported from `state.ts` under that name, use the exported directory helper `state.ts` actually has and say so in the report. If `mkdirSync` of the state dir is needed before the third test's write, add it.
+Step 2 expectation: the four updated `claimApiInfo` assertions and the new tests fail (functions not exported, no `runMode` written).
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
@@ -343,7 +329,7 @@ Repo: mattstack-apps.
 
 **Interfaces:**
 - Consumes: `runModeFromEnv`, `readApiRunMode` (Task 2); `bundleRootFromExec` honoring `DECK_BUNDLE_ROOT` (Task 1); existing `deployTarget(helperOwned)` (`src/cli/deploy-target.ts`), `bundleHelperOwnsDeck`, `liveProbe`.
-- Produces: `export type DeployMode = { kind: 'install' } | { kind: 'restart' } | { kind: 'refuse'; message: string }` and `export function deployMode(helperOwned: boolean, env: Record<string, string | undefined>): DeployMode`.
+- Produces: `export type DeployMode = { kind: 'install' } | { kind: 'restart' } | { kind: 'refuse'; message: string }` and `export function deployMode(helperOwned: boolean, env: Record<string, string | undefined>, recorded: { runMode: RunMode; runReason?: string } | null): DeployMode`. The run mode comes from `DECK_RUN_MODE` when set (a deploy spawned by the serving deck), else from `recorded` (the serving deck's `api.json`, so a terminal `bun run deploy` works too).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -355,23 +341,44 @@ import { expect, test } from 'bun:test';
 import { deployMode } from './deploy-mode.ts';
 
 test('a standalone deck installs a new build', () => {
-  expect(deployMode(false, {})).toEqual({ kind: 'install' });
-  expect(deployMode(false, { DECK_RUN_MODE: 'source' })).toEqual({
+  expect(deployMode(false, {}, null)).toEqual({ kind: 'install' });
+  expect(deployMode(false, { DECK_RUN_MODE: 'source' }, null)).toEqual({
     kind: 'install',
   });
 });
 
 test('a helper-owned deck running from source restarts', () => {
-  expect(deployMode(true, { DECK_RUN_MODE: 'source' })).toEqual({
+  expect(deployMode(true, { DECK_RUN_MODE: 'source' }, null)).toEqual({
     kind: 'restart',
   });
 });
 
-test('a helper-owned deck on the pinned fallback refuses and names why', () => {
-  const mode = deployMode(true, {
-    DECK_RUN_MODE: 'pinned',
-    DECK_RUN_REASON: 'bun not found at /Users/x/.bun/bin/bun',
+test('from a terminal, the serving deck recorded in api.json decides', () => {
+  expect(deployMode(true, {}, { runMode: 'source' })).toEqual({
+    kind: 'restart',
   });
+  const pinned = deployMode(true, {}, {
+    runMode: 'pinned',
+    runReason: 'bun missing',
+  });
+  expect(pinned.kind === 'refuse' && pinned.message).toContain('bun missing');
+});
+
+test('the spawning environment wins over api.json', () => {
+  expect(
+    deployMode(true, { DECK_RUN_MODE: 'source' }, { runMode: 'pinned' })
+  ).toEqual({ kind: 'restart' });
+});
+
+test('a helper-owned deck on the pinned fallback refuses and names why', () => {
+  const mode = deployMode(
+    true,
+    {
+      DECK_RUN_MODE: 'pinned',
+      DECK_RUN_REASON: 'bun not found at /Users/x/.bun/bin/bun',
+    },
+    null
+  );
   expect(mode.kind).toBe('refuse');
   expect(mode.kind === 'refuse' && mode.message).toContain(
     'bun not found at /Users/x/.bun/bin/bun'
@@ -379,12 +386,13 @@ test('a helper-owned deck on the pinned fallback refuses and names why', () => {
   expect(mode.kind === 'refuse' && mode.message).toContain('pinned release');
 });
 
-test('a helper-owned deck with no shim refuses as before', () => {
-  const mode = deployMode(true, {});
+test('a helper-owned deck with no shim refuses and points at the shim log', () => {
+  const mode = deployMode(true, {}, null);
   expect(mode.kind).toBe('refuse');
   expect(mode.kind === 'refuse' && mode.message).toContain(
     'mattstack app owns deck'
   );
+  expect(mode.kind === 'refuse' && mode.message).toContain('deck.err.log');
 });
 ```
 
@@ -398,7 +406,7 @@ Expected: FAIL, module `./deploy-mode.ts` not found.
 Create `apps/deck/src/cli/deploy-mode.ts`:
 
 ```ts
-import { runModeFromEnv } from '../api/state.ts';
+import { runModeFromEnv, type RunMode } from '../api/state.ts';
 
 export type DeployMode =
   | { kind: 'install' }
@@ -407,13 +415,17 @@ export type DeployMode =
 
 /** A helper-owned deck lives inside a signed bundle, so deploy can never
     write a binary there; only a source-run deck (the dev bundle's shim) has
-    something to make live, by restarting. */
+    something to make live, by restarting. A deploy the serving deck spawned
+    inherits its DECK_RUN_MODE; one run from a terminal reads api.json. */
 export function deployMode(
   helperOwned: boolean,
-  env: Record<string, string | undefined>
+  env: Record<string, string | undefined>,
+  recorded: { runMode: RunMode; runReason?: string } | null
 ): DeployMode {
   if (!helperOwned) return { kind: 'install' };
-  const { runMode, runReason } = runModeFromEnv(env);
+  const { runMode, runReason } = env.DECK_RUN_MODE
+    ? runModeFromEnv(env)
+    : (recorded ?? { runMode: 'standalone' as const });
   if (runMode === 'source') return { kind: 'restart' };
   if (runMode === 'pinned') {
     return {
@@ -424,7 +436,7 @@ export function deployMode(
   return {
     kind: 'refuse',
     message:
-      "the mattstack app owns deck here and its helper runs the bundle's pinned release, so `bun run deploy` has nothing to replace",
+      "the mattstack app owns deck here and its helper runs the bundle's pinned release, so `bun run deploy` has nothing to replace (in the dev app, the last `deck-dev-shim:` line in ~/.mattstack/deck/logs/deck.err.log says why source is not running)",
   };
 }
 ```
@@ -443,7 +455,7 @@ In `apps/deck/scripts/deploy.ts`:
 
 ```ts
 const helperOwned = await bundleHelperOwnsDeck(liveProbe, bundleRootFromExec());
-const mode = deployMode(helperOwned, process.env);
+const mode = deployMode(helperOwned, process.env, readApiRunMode());
 if (mode.kind === 'refuse') {
   console.error(mode.message);
   process.exit(1);
@@ -470,9 +482,9 @@ if (mode.kind === 'install') {
 await $`deck restart deck`.nothrow();
 ```
 
-   Keep the existing comments that explain the backup and the atomic rename, attached to their lines inside the `install` branch.
+   Keep the existing comments that explain the ProgramArguments target, the backup and the atomic rename, attached to their lines inside the `install` branch.
 
-3. After the existing `if (await healthy(20_000)) { ... }` success block, make the success path mode-aware: for `restart`, read `readApiRunMode()` and require `runMode === 'source'`; if it is anything else, print `deck came back healthy but running ${runMode}${runReason ? `: ${runReason}` : ''}; the new source is NOT live` and `process.exit(1)`. For `install`, keep today's success message.
+3. After the existing `if (await healthy(20_000)) { ... }` success block, make the success path mode-aware: for `restart`, read `readApiRunMode()` and require `runMode === 'source'`; if it is anything else, print `deck came back healthy but running ${runMode}${runReason ? `: ${runReason}` : ''}; the new source is NOT live (the last deck-dev-shim: line in ~/.mattstack/deck/logs/deck.err.log says why)` and `process.exit(1)`. The pinned fallback is an older release that may not record `runReason`, so the log pointer is always printed. For `install`, keep today's success message.
 4. In the failure path, the log tails print for both modes; the restore block runs only when `mode.kind === 'install'` and `backup` exists. For `restart`, after the tails print `deck did not come back healthy after the restart; see the logs above` and exit 1.
 
    `deployTarget(false)` keeps the self-record lookup; `deployTarget(true)`'s refusal is now produced by `deployMode`, so no call passes `true` any more. Leave `deploy-target.ts` and its tests unchanged.
@@ -493,9 +505,10 @@ In the dev app the helper is a shim (`Contents/Helpers/deck`, built from
 repo-tools `rt-tray/Sources-deck-shim`) that runs this checkout's
 `src/main.ts` under bun, with the pinned release kept as
 `Contents/Helpers/deck-pinned` for when source cannot run. There the flow is
-merge to `main`, pull the linked checkout, then deploy: `bun run deploy`
-installs dependencies and restarts deck, and succeeds only if deck comes back
-running source. `api.json`'s `runMode` (`source`, `pinned`, `standalone`) and
+merge to `main`, pull the linked checkout, then deploy (the deck row's
+button, `deck cmd deck deploy`, or `bun run deploy` from the checkout):
+deploy installs dependencies and restarts deck, and succeeds only if deck
+comes back running source. `api.json`'s `runMode` (`source`, `pinned`, `standalone`) and
 `runReason` say which deck is serving and, for pinned, why.
 ```
 
@@ -519,6 +532,9 @@ Repo: repo-tools (worktree given in the dispatch).
 - Create: `rt-tray/Tests/MattstackCoreChecks/DeckShimChecks.swift`
 - Modify: `rt-tray/Package.swift` (new library target; `MattstackCoreChecks` depends on it)
 - Modify: `rt-tray/Tests/MattstackCoreChecks/AllChecks.swift` (append `+ deckShimChecks`)
+- Modify: `rt-tray/project.yml` (xcodegen: a `DeckShimLogic` static library target; `MattstackCoreChecks` depends on it)
+
+`rt-tray/deps/` is gitignored and holds the Sparkle binary target SwiftPM needs; the controller has already copied it into this worktree. If `swift build` reports "local binary target 'Sparkle' ... does not contain a binary artifact", run `mkdir -p rt-tray/deps/tools && cp -R /Users/matt/Documents/GitHub/repo-tools/rt-tray/deps/tools/sparkle-xcframework rt-tray/deps/tools/` and never commit it.
 
 **Interfaces:**
 - Produces (module `DeckShimLogic`):
@@ -623,6 +639,17 @@ let deckShimChecks: [Check] = [
 ```
 
 Append `+ deckShimChecks` to the end of the `allChecks` expression in `AllChecks.swift`.
+
+`rt-tray/project.yml` (the xcodegen spec `build.sh` uses by default): add a target
+
+```yaml
+  DeckShimLogic:
+    type: library.static
+    platform: macOS
+    sources: [Sources-deck-shim-logic]
+```
+
+matching the file's existing indentation and target style, and add `- target: DeckShimLogic` to the `MattstackCoreChecks` target's `dependencies`. If `xcodegen` is on PATH, run `cd rt-tray && xcodegen generate` and confirm it succeeds; commit a regenerated `.xcodeproj` only if the repo already tracks one (`git ls-files rt-tray | grep xcodeproj`).
 
 - [ ] **Step 2: Run the checks to verify they fail**
 
@@ -875,8 +902,8 @@ fi
 In `rt-tray/check-bundle.sh`:
 
 1. In the `allowed` list (around line 371) add `deck-pinned`: `local allowed=" rt-ui skills mattstack-proxy-install gate-fork.sh deck-pinned " ...`.
-2. Where the per-flavor bundle check knows the flavor (the function receiving `devbuild`, around line 112, or wherever `$exe` is `mattstack-dev`), add: for the dev flavor, `pass`/`fail` that `Contents/Helpers/deck-pinned` exists and is executable, and that `Contents/Helpers/deck` is not the same file as `deck-pinned` (`cmp -s` differs); for prod, `fail` if `Contents/Helpers/deck-pinned` exists.
-3. In the deps.lock `--version` loop (around line 344), when the flavor is dev and `$name` is `deck`, run the probe as `env -i HOME="$(mktemp -d)" PATH=/usr/bin:/bin "$p" --version`, so the shim finds no registry, falls back to `deck-pinned`, and never reads the builder's real `~/.mattstack`.
+2. In the existing `if [ -n "$DEV" ]` block right after the two `check_identity` calls (around line 171), add dev assertions: `Contents/Helpers/deck-pinned` exists and is executable, `cmp -s` shows `Contents/Helpers/deck` differs from it, and `codesign --verify --strict "$DEV/Contents/Helpers/deck-pinned"` passes. Beside `check_identity "$PROD"`, `fail` if `$PROD/Contents/Helpers/deck-pinned` exists.
+3. In the deps.lock `--version` loop (around line 344, inside `check_helpers`, which knows the flavor only through `$exe`), when `[ "$exe" = mattstack-dev ]` and `$name` is `deck`, run the probe as `env -i HOME="$(mktemp -d)" PATH=/usr/bin:/bin "$p" --version`, so the shim finds no registry, falls back to `deck-pinned`, and never reads the builder's real `~/.mattstack`.
 
    Do not run `check-bundle.sh` (it builds both flavors via `build.sh`). Verify syntax only: `bash -n rt-tray/check-bundle.sh && bash -n rt-tray/build.sh`.
 

@@ -137,14 +137,17 @@ run by the shim), and, when pinned, `runReason` from `DECK_RUN_REASON`.
 Readers treat a missing `runMode` as `standalone`.
 
 **Deploy.** `scripts/deploy.ts`'s mode choice becomes a pure, tested
-function over (helper-owned, `DECK_RUN_MODE`):
+function over (helper-owned, run mode). The run mode is `DECK_RUN_MODE`
+when set (a deploy the serving deck spawned: the row's button or
+`deck cmd deck deploy`), else the serving deck's `api.json` `runMode` (a
+terminal `bun run deploy` from the checkout):
 
-| Helper owns deck | `DECK_RUN_MODE` | Deploy does |
+| Helper owns deck | Run mode | Deploy does |
 |---|---|---|
 | no | (any) | today's build, install over the self record's program, restart, health check, restore on failure |
 | yes | `source` | restart-only (below) |
-| yes | `pinned` | refuse: "deck is running the pinned release because <DECK_RUN_REASON>; fix the checkout or bun, then restart deck" |
-| yes | absent | refuse as today (a helper without the shim: prod, or a dev app built before this change; rebuilding the dev app resolves it) |
+| yes | `pinned` | refuse: "deck is running the pinned release because <reason>; fix the checkout or bun, then restart deck" |
+| yes | `standalone` or unknown | refuse as today, adding that in the dev app the last `deck-dev-shim:` line in `deck.err.log` says why source is not running (a helper without the shim: prod, or a dev app built before this change; rebuilding the dev app resolves it) |
 
 Restart-only:
 
@@ -198,6 +201,7 @@ No board work is in scope.
 | Deploy while `runMode: pinned` (dev) | Refuses, naming the reason |
 | Deploy restart comes back pinned | Exit 1 with the shim's reason |
 | Deploy restart not healthy in 20s | Log tails printed, exit 1 |
+| First pinned fallback after a rebuild | `deck-pinned` is signed `com.mattstack.helper.deck-pinned`, a new code identity, so macOS may ask once to let it read Documents |
 | Prod app | Unchanged |
 
 ## Testing
