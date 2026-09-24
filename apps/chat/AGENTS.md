@@ -8,7 +8,7 @@ Contract for anyone (human or agent) working in this repo.
    the `/api` and `/ws` surface, the `/r/<room>#m-<id>` link contract with
    rt, what a message body renders, how to run it with real or fixture data
    (`CHAT_FIXTURES=1`), and the deploy loop (`bun install && bun run build &&
-   deck restart chat`, port 11002).
+deck restart chat`, port 11002).
 2. `AGENTS.md`: what's app-specific about chat's use of `@mattstack/app-kit` +
    `@mattstack/app-server` (icon registration). The kit contract itself
    (import walls, theme, facades, the mattstack shell, the server package)

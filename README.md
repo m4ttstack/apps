@@ -16,13 +16,13 @@ repo under `apps/`.
 
 ## What's inside
 
-| Package            | Name                       | What it is                                                                                                                                       |
-| ------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `packages/ui`      | `@mattstack/app-kit`       | The Mantine-based component kit plus the mattstack layer: app shell, boot, router helpers, icon registry, config presets. Tokyo theme pre-wired. |
-| `packages/server`  | `@mattstack/app-server`    | The Hono/Bun server frame: health route, JSON error floors, static/embedded asset serving, the rt-client relay, `Bun.serve`.                     |
-| `packages/tokyo`   | `@mattstack/mantine-tokyo` | The Tokyo Day/Night brand tokens (colour ramps, theme values, colour names, CSS, font) `@mattstack/app-kit` themes itself with.                  |
-| `packages/tui-kit` | `@mattstack/tui-kit`       | The terminal-UI kit for herdr-style panes: components, hooks, and theme, built rather than source-shipped like the other three.                  |
-| `packages/gate-kit` | `@mattstack/gate-kit`     | Gate sheet primitives shared by console and board.                                                                                               |
+| Package             | Name                       | What it is                                                                                                                                       |
+| ------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/ui`       | `@mattstack/app-kit`       | The Mantine-based component kit plus the mattstack layer: app shell, boot, router helpers, icon registry, config presets. Tokyo theme pre-wired. |
+| `packages/server`   | `@mattstack/app-server`    | The Hono/Bun server frame: health route, JSON error floors, static/embedded asset serving, the rt-client relay, `Bun.serve`.                     |
+| `packages/tokyo`    | `@mattstack/mantine-tokyo` | The Tokyo Day/Night brand tokens (colour ramps, theme values, colour names, CSS, font) `@mattstack/app-kit` themes itself with.                  |
+| `packages/tui-kit`  | `@mattstack/tui-kit`       | The terminal-UI kit for herdr-style panes: components, hooks, and theme, built rather than source-shipped like the other three.                  |
+| `packages/gate-kit` | `@mattstack/gate-kit`      | Gate sheet primitives shared by console and board.                                                                                               |
 
 `packages/tui-kit` lives in this repo alongside the Mantine-based packages
 so all four version in lockstep; it does not depend on
