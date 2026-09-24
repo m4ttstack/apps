@@ -484,7 +484,7 @@ await $`deck restart deck`.nothrow();
 
    Keep the existing comments that explain the ProgramArguments target, the backup and the atomic rename, attached to their lines inside the `install` branch.
 
-3. After the existing `if (await healthy(20_000)) { ... }` success block, make the success path mode-aware: for `restart`, read `readApiRunMode()` and require `runMode === 'source'`; if it is anything else, print `deck came back healthy but running ${runMode}${runReason ? `: ${runReason}` : ''}; the new source is NOT live (the last deck-dev-shim: line in ~/.mattstack/deck/logs/deck.err.log says why)` and `process.exit(1)`. The pinned fallback is an older release that may not record `runReason`, so the log pointer is always printed. For `install`, keep today's success message.
+3. Before the restart, record `const pidBefore = readApiInfo()?.pid ?? null;` (import `readApiInfo` from `../src/api/state.ts`). In the `restart` branch, success also requires a new process: within the same 20s deadline, poll until `readApiInfo()?.pid` is set and differs from `pidBefore`; if it never changes, print `deck restart did not bring up a new process; the new source is NOT live` and exit 1 (a failed restart call leaves the old deck answering `/healthz`). After the existing `if (await healthy(20_000)) { ... }` success block, make the success path mode-aware: for `restart`, read `readApiRunMode()` and require `runMode === 'source'`; if it is anything else, print `deck came back healthy but running ${runMode}${runReason ? `: ${runReason}` : ''}; the new source is NOT live (the last deck-dev-shim: line in ~/.mattstack/deck/logs/deck.err.log says why)` and `process.exit(1)`. The pinned fallback is an older release that may not record `runReason`, so the log pointer is always printed. For `install`, keep today's success message.
 4. In the failure path, the log tails print for both modes; the restore block runs only when `mode.kind === 'install'` and `backup` exists. For `restart`, after the tails print `deck did not come back healthy after the restart; see the logs above` and exit 1.
 
    `deployTarget(false)` keeps the self-record lookup; `deployTarget(true)`'s refusal is now produced by `deployMode`, so no call passes `true` any more. Leave `deploy-target.ts` and its tests unchanged.
@@ -649,7 +649,7 @@ Append `+ deckShimChecks` to the end of the `allChecks` expression in `AllChecks
     sources: [Sources-deck-shim-logic]
 ```
 
-matching the file's existing indentation and target style, and add `- target: DeckShimLogic` to the `MattstackCoreChecks` target's `dependencies`. If `xcodegen` is on PATH, run `cd rt-tray && xcodegen generate` and confirm it succeeds; commit a regenerated `.xcodeproj` only if the repo already tracks one (`git ls-files rt-tray | grep xcodeproj`).
+matching the file's existing indentation and target style, and add `- target: DeckShimLogic` to the `MattstackCoreChecks` target's `dependencies`. If `xcodegen` is on PATH, run `cd rt-tray && xcodegen generate` and confirm it succeeds. The generated `.xcodeproj` is gitignored; only `project.yml` is committed.
 
 - [ ] **Step 2: Run the checks to verify they fail**
 
@@ -758,7 +758,7 @@ Expected: build succeeds, checks exit 0 including the new deck shim checks.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add rt-tray/Package.swift rt-tray/Sources-deck-shim-logic/DeckShimLogic.swift rt-tray/Tests/MattstackCoreChecks/DeckShimChecks.swift rt-tray/Tests/MattstackCoreChecks/AllChecks.swift
+git add rt-tray/Package.swift rt-tray/project.yml rt-tray/Sources-deck-shim-logic/DeckShimLogic.swift rt-tray/Tests/MattstackCoreChecks/DeckShimChecks.swift rt-tray/Tests/MattstackCoreChecks/AllChecks.swift
 git commit -m "tray: deck shim choice logic, source when the linked checkout and bun are present"
 ```
 
