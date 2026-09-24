@@ -1,17 +1,26 @@
-import { existsSync } from 'fs';
+import { existsSync, realpathSync } from 'fs';
 import { homedir } from 'os';
 import { dirname, join } from 'path';
 import { $ } from 'bun';
 
 import { logsDir, readApiInfo, readApiRunMode } from '../src/api/state.ts';
 import { resolveApiInfo } from '../src/cli/api-info.ts';
-import { deployMode } from '../src/cli/deploy-mode.ts';
+import { deployMode, linkedCheckoutMismatch } from '../src/cli/deploy-mode.ts';
 import { deployTarget } from '../src/cli/deploy-target.ts';
+import { getRecord } from '../src/registry/records.ts';
 import { bundleRootFromExec } from '../src/services/bundle-layout.ts';
 import {
   bundleHelperOwnsDeck,
   liveProbe,
 } from '../src/services/helper-owner.ts';
+
+async function printLogTails(): Promise<void> {
+  for (const f of ['deck.err.log', 'deck.out.log', 'agent.log']) {
+    const p = join(logsDir(), f);
+    const tail = await $`tail -5 ${p}`.nothrow().text();
+    if (tail.trim()) console.error(`--- ${f} tail:\n${tail.trimEnd()}`);
+  }
+}
 
 const helperOwned = await bundleHelperOwnsDeck(liveProbe, bundleRootFromExec());
 const mode = deployMode(helperOwned, process.env, readApiRunMode());
@@ -46,6 +55,18 @@ if (mode.kind === 'install') {
   await $`install -m 0755 dist/deck ${target}.new`;
   await $`mv -f ${target}.new ${target}`;
 } else {
+  // A deploy from any checkout other than the one deck's registry links
+  // installs into that OTHER tree, then restarts the linked deck unchanged;
+  // the health check below still passes, reporting a false success.
+  const thisDeckDir = realpathSync(join(import.meta.dir, '..'));
+  const mismatch = linkedCheckoutMismatch(
+    thisDeckDir,
+    getRecord('deck')?.dev?.workingDirectory
+  );
+  if (mismatch) {
+    console.error(mismatch);
+    process.exit(1);
+  }
   // The served process imports the checkout's node_modules directly, so a
   // dependency bump must land before the restart or deck crash-loops.
   const workspaceRoot = join(import.meta.dir, '..', '..', '..');
@@ -97,11 +118,7 @@ if (mode.kind === 'restart') {
   }
 
   if (!(await healthy(Math.max(0, deadline - Date.now())))) {
-    for (const f of ['deck.err.log', 'deck.out.log']) {
-      const p = join(logsDir(), f);
-      const tail = await $`tail -5 ${p}`.nothrow().text();
-      if (tail.trim()) console.error(`--- ${f} tail:\n${tail.trimEnd()}`);
-    }
+    await printLogTails();
     console.error(
       'deck did not come back healthy after the restart; see the logs above'
     );
@@ -110,6 +127,14 @@ if (mode.kind === 'restart') {
 
   const recorded = readApiRunMode();
   const runMode = recorded?.runMode ?? 'standalone';
+  if (runMode === 'standalone') {
+    // A pinned fallback older than runMode records no runMode at all, so it
+    // reads here as standalone; this wording covers both readings.
+    console.error(
+      'deck came back healthy but running the pinned release (a release older than runMode, so no reason recorded); the new source is NOT live (the last deck-dev-shim: line in ~/.mattstack/deck/logs/deck.err.log says why)'
+    );
+    process.exit(1);
+  }
   if (runMode !== 'source') {
     console.error(
       `deck came back healthy but running ${runMode}${recorded?.runReason ? `: ${recorded.runReason}` : ''}; the new source is NOT live (the last deck-dev-shim: line in ~/.mattstack/deck/logs/deck.err.log says why)`
@@ -132,11 +157,7 @@ console.error(
 console.error(
   `If a macOS prompt is asking to allow deck to access Documents, click Allow and re-run the deploy.`
 );
-for (const f of ['deck.err.log', 'deck.out.log']) {
-  const p = join(logsDir(), f);
-  const tail = await $`tail -5 ${p}`.nothrow().text();
-  if (tail.trim()) console.error(`--- ${f} tail:\n${tail.trimEnd()}`);
-}
+await printLogTails();
 
 if (mode.kind === 'install' && backup !== null && existsSync(backup)) {
   console.error(`restoring the previous binary and restarting...`);

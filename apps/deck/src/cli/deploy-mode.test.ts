@@ -1,6 +1,9 @@
+import { mkdtempSync, realpathSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { expect, test } from 'bun:test';
 
-import { deployMode } from './deploy-mode.ts';
+import { deployMode, linkedCheckoutMismatch } from './deploy-mode.ts';
 
 test('a standalone deck installs a new build', () => {
   expect(deployMode(false, {}, null)).toEqual({ kind: 'install' });
@@ -59,4 +62,38 @@ test('a helper-owned deck with no shim refuses and points at the shim log', () =
     'mattstack app owns deck'
   );
   expect(mode.kind === 'refuse' && mode.message).toContain('deck.err.log');
+});
+
+test('a helper-owned deck recorded standalone refuses and points at the shim log', () => {
+  const mode = deployMode(true, {}, { runMode: 'standalone' });
+  expect(mode.kind).toBe('refuse');
+  expect(mode.kind === 'refuse' && mode.message).toContain('deck.err.log');
+});
+
+test('linkedCheckoutMismatch: null when the linked checkout is this one', () => {
+  const thisDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-this-')));
+  expect(linkedCheckoutMismatch(thisDir, thisDir)).toBeNull();
+});
+
+test('linkedCheckoutMismatch: names the linked dir on mismatch', () => {
+  const thisDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-this-')));
+  const linkedDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-linked-')));
+  const message = linkedCheckoutMismatch(thisDir, linkedDir);
+  expect(message).toContain(linkedDir);
+  expect(message).toContain(thisDir);
+  expect(message).toContain('deck register --dir');
+});
+
+test('linkedCheckoutMismatch: names "no linked checkout" when missing', () => {
+  const thisDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-this-')));
+  expect(linkedCheckoutMismatch(thisDir, undefined)).toContain(
+    'no linked checkout'
+  );
+  expect(linkedCheckoutMismatch(thisDir, null)).toContain('no linked checkout');
+});
+
+test('linkedCheckoutMismatch: refuses a relative dev.workingDirectory', () => {
+  const thisDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-this-')));
+  const message = linkedCheckoutMismatch(thisDir, './relative/checkout');
+  expect(message).toContain('./relative/checkout');
 });

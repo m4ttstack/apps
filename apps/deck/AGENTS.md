@@ -37,8 +37,11 @@ repo-tools `rt-tray/Sources-deck-shim`) that runs this checkout's
 merge to `main`, pull the linked checkout, then deploy (the deck row's
 button, `deck cmd deck deploy`, or `bun run deploy` from the checkout):
 deploy installs dependencies and restarts deck, and succeeds only if deck
-comes back running source. `api.json`'s `runMode` (`source`, `pinned`, `standalone`) and
-`runReason` say which deck is serving and, for pinned, why.
+comes back running source. `api.json`'s `runMode` (`source`, `pinned`,
+`standalone`) and `runReason` say which deck is serving and, for pinned,
+why. `runMode`/`runReason` are recorded only by a deck built with this
+change, so the bundle's current pin (older than this change) writes
+neither field and a pinned fallback reads as `standalone`.
 
 ## Manifest-first
 

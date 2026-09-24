@@ -197,11 +197,16 @@ No board work is in scope.
 | Checkout moved or deleted, or `src/main.ts` missing | Pinned deck serves; `runMode: pinned` with `runReason`; the serve log names why |
 | bun missing | Same as above |
 | `registry.json` missing, unreadable, untrusted, or no deck `dev.workingDirectory` | Same as above |
-| Source deck throws at boot | launchd restarts the shim, which runs source again; crash loop visible on the deck row and in `deck.err.log` |
+| Source deck throws at boot | launchd restarts the shim, which runs source again; an import-time crash loop is visible in `deck.err.log` (before deck redirects output), a crash after boot in `agent.log` (`src/agent-log.ts`) |
 | Deploy while `runMode: pinned` (dev) | Refuses, naming the reason |
 | Deploy restart comes back pinned | Exit 1 with the shim's reason |
 | Deploy restart not healthy in 20s | Log tails printed, exit 1 |
 | First pinned fallback after a rebuild | `deck-pinned` is signed `com.mattstack.helper.deck-pinned`, a new code identity, so macOS may ask once to let it read Documents |
+
+The `runMode: pinned` rows above assume a `deck-pinned` binary built with this
+change. Today's pinned fallback is deck 1.0.6 (`deps.lock`), which predates
+`runMode`: it writes no `runMode` field at all, so a pinned fallback reads as
+`standalone` in `api.json` until the pin is bumped past this change.
 | Prod app | Unchanged |
 
 ## Testing

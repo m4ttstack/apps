@@ -1,3 +1,6 @@
+import { realpathSync } from 'fs';
+import { isAbsolute } from 'path';
+
 import { runModeFromEnv, type RunMode } from '../api/state.ts';
 
 export type DeployMode =
@@ -28,6 +31,31 @@ export function deployMode(
   return {
     kind: 'refuse',
     message:
-      "the mattstack app owns deck here and its helper runs the bundle's pinned release, so `bun run deploy` has nothing to replace (in the dev app, the last `deck-dev-shim:` line in ~/.mattstack/deck/logs/deck.err.log says why source is not running)",
+      "the mattstack app owns deck here and its helper runs the bundle's pinned release, so `bun run deploy` has nothing to replace (in the dev app, the last `deck-dev-shim:` line in ~/.mattstack/deck/logs/deck.err.log says why source is not running; an older pinned release records no runMode, so this can also mean the shim fell back to the pin)",
   };
+}
+
+/** `thisDeckDir` is already realpath'd by the caller (it names the checkout
+    the running process lives in, which always exists); `linkedDeckDir` is
+    the raw dev.workingDirectory from the registry, resolved here so a stale
+    or relative value refuses rather than throws. A restart against a source
+    checkout deck does not serve installs into the wrong tree and reports
+    success anyway. */
+export function linkedCheckoutMismatch(
+  thisDeckDir: string,
+  linkedDeckDir: string | null | undefined
+): string | null {
+  const refuse = (linked: string) =>
+    `deck serves ${linked}, not this checkout (${thisDeckDir}); deploy from there, or run \`deck register --dir ${thisDeckDir}\` first`;
+
+  if (!linkedDeckDir) return refuse('no linked checkout');
+  if (!isAbsolute(linkedDeckDir)) return refuse(linkedDeckDir);
+
+  let resolvedLinked: string;
+  try {
+    resolvedLinked = realpathSync(linkedDeckDir);
+  } catch {
+    return refuse(linkedDeckDir);
+  }
+  return resolvedLinked === thisDeckDir ? null : refuse(linkedDeckDir);
 }
