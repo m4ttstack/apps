@@ -501,3 +501,45 @@ describe('GET /api/gates/:id/locate', () => {
     expect(res.status).toBe(502);
   });
 });
+
+describe('GET /api/badge', () => {
+  function badge() {
+    return gates.fetch(new Request('http://localhost/api/badge'));
+  }
+
+  it('counts Matt-owned waiting gates on runs that exist, with a path to the oldest', async () => {
+    vi.mocked(rt.gateList).mockResolvedValueOnce({
+      ok: true,
+      data: {
+        gates: [
+          row({ id: 'mine-new', subject: 'run:r1', openedAt: 20 }),
+          row({ id: 'mine-old', subject: 'run:r2', status: 'parked', openedAt: 10 }),
+          row({ id: 'herd', subject: 'run:r1', owner: 'herd:h1' }),
+          row({ id: 'orphan', subject: 'run:gone' }),
+          row({ id: 'att', subject: 'run:r1', kind: 'pane-attention' }),
+        ],
+        cursor: 5,
+      },
+    });
+    vi.mocked(rt.listRuns).mockResolvedValueOnce({
+      ok: true,
+      data: {
+        runs: [
+          { id: 'r1', repo: 'acme' },
+          { id: 'r2', repo: 'acme' },
+        ] as unknown as RunSummary[],
+      },
+    });
+
+    const res = await badge();
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ count: 2, path: '/runs/acme/r2' });
+  });
+
+  it('answers 502 when gate:list fails', async () => {
+    vi.mocked(rt.gateList).mockResolvedValueOnce({ ok: false, error: 'rt daemon unreachable' });
+    vi.mocked(rt.listRuns).mockResolvedValueOnce({ ok: true, data: { runs: [] } });
+    expect((await badge()).status).toBe(502);
+  });
+});
