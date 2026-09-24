@@ -134,8 +134,8 @@ hand in `core/board/board.css`'s own `body` rule rather than importing
 `canvas.css` (that file also resets `* { box-sizing: border-box }`, which
 `.drawer-toggle-row` is deliberately written without). Each `.apps-grid`
 table sits on a raised `--card` panel (border + radius), the same
-bg-then-panel relationship board gives its `Panel`-wrapped row groups
-(`var(--panel)` there vs a flat `--card` fill here, since
+bg-then-panel relationship `apps/board` gives its `Panel`-wrapped row groups
+(`var(--surface-wash-panel-88)` there vs a flat `--card` fill here, since
 deck has no wash formula of its own). Page-level ink (headings, the
 subline) stays the canvas-tuned `--muted`/`--border`, already AA against
 `--bg`; ink inside a panel (suffixes, pids, hairlines) is remapped to the
