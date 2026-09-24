@@ -5,7 +5,11 @@ import { $ } from 'bun';
 
 import { logsDir, readApiInfo, readApiRunMode } from '../src/api/state.ts';
 import { resolveApiInfo } from '../src/cli/api-info.ts';
-import { deployMode, linkedCheckoutMismatch } from '../src/cli/deploy-mode.ts';
+import {
+  deployMode,
+  linkedCheckoutMismatch,
+  restartHealthzVerdict,
+} from '../src/cli/deploy-mode.ts';
 import { deployTarget } from '../src/cli/deploy-target.ts';
 import { getRecord } from '../src/registry/records.ts';
 import { bundleRootFromExec } from '../src/services/bundle-layout.ts';
@@ -119,29 +123,42 @@ if (mode.kind === 'restart') {
 
   // api.json can be rewritten by a second live `deck serve` racing this
   // restart, so the pid and port polled below are fixed from ONE read here
-  // rather than re-read per probe; the healthz response's own x-deck-pid
-  // header (not a later api.json read) proves that fixed process is the one
-  // that actually answered, and its x-deck-run-mode is read from the same
-  // response rather than a separate file read that could describe a
-  // different process by the time it runs.
+  // rather than re-read per probe; the healthz response itself (its
+  // x-deck-pid and x-deck-run-mode) proves what actually answered, not a
+  // later api.json read that could describe a different process by then.
   const restarted = readApiInfo();
+  if (!restarted || restarted.pid === pidBefore) {
+    console.error(
+      'deck restart did not bring up a new process; the new source is NOT live'
+    );
+    process.exit(1);
+  }
+
   let everAnswered = false;
   let verifiedRunMode: string | null = null;
-  if (restarted && restarted.pid !== pidBefore) {
-    for (;;) {
-      try {
-        const res = await fetch(`http://127.0.0.1:${restarted.port}/healthz`);
+  for (;;) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${restarted.port}/healthz`);
+      if (res.ok) {
         everAnswered = true;
-        if (res.ok && res.headers.get('x-deck-pid') === String(restarted.pid)) {
-          verifiedRunMode = res.headers.get('x-deck-run-mode');
+        const verdict = restartHealthzVerdict(res.headers, restarted.pid);
+        if (verdict.kind === 'match') {
+          verifiedRunMode = verdict.runMode ?? 'standalone';
           break;
         }
-      } catch {
-        // not listening yet
+        if (verdict.kind === 'no-pid-header') {
+          // The only pin today (deck 1.0.6) predates the headers; an ok
+          // response with none IS this restarted process, just running it.
+          verifiedRunMode = 'standalone';
+          break;
+        }
+        // pid-mismatch: something else answered this port; keep polling.
       }
-      if (Date.now() > deadline) break;
-      await new Promise(r => setTimeout(r, 500));
+    } catch {
+      // not listening yet
     }
+    if (Date.now() > deadline) break;
+    await new Promise(r => setTimeout(r, 500));
   }
 
   if (verifiedRunMode === null) {
@@ -176,7 +193,7 @@ if (mode.kind === 'restart') {
   }
 
   console.log(
-    `deployed: deck healthy on port ${restarted!.port}, running source`
+    `deployed: deck healthy on port ${restarted.port}, running source`
   );
   process.exit(0);
 }

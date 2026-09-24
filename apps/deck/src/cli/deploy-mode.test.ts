@@ -3,7 +3,11 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, expect, test } from 'bun:test';
 
-import { deployMode, linkedCheckoutMismatch } from './deploy-mode.ts';
+import {
+  deployMode,
+  linkedCheckoutMismatch,
+  restartHealthzVerdict,
+} from './deploy-mode.ts';
 
 let createdDirs: string[] = [];
 function tmpCheckoutDir(prefix: string): string {
@@ -107,4 +111,40 @@ test('linkedCheckoutMismatch: refuses a relative dev.workingDirectory', () => {
   const thisDir = tmpCheckoutDir('deck-this-');
   const message = linkedCheckoutMismatch(thisDir, './relative/checkout');
   expect(message).toContain('./relative/checkout');
+});
+
+test('restartHealthzVerdict: a matching pid running source', () => {
+  const headers = new Headers({
+    'x-deck-pid': '4242',
+    'x-deck-run-mode': 'source',
+  });
+  expect(restartHealthzVerdict(headers, 4242)).toEqual({
+    kind: 'match',
+    runMode: 'source',
+  });
+});
+
+test('restartHealthzVerdict: a matching pid running the pinned fallback', () => {
+  const headers = new Headers({
+    'x-deck-pid': '4242',
+    'x-deck-run-mode': 'standalone',
+  });
+  expect(restartHealthzVerdict(headers, 4242)).toEqual({
+    kind: 'match',
+    runMode: 'standalone',
+  });
+});
+
+test('restartHealthzVerdict: no x-deck-pid header at all (deck 1.0.6 predates it)', () => {
+  const headers = new Headers({});
+  expect(restartHealthzVerdict(headers, 4242)).toEqual({
+    kind: 'no-pid-header',
+  });
+});
+
+test('restartHealthzVerdict: a pid header naming a different process', () => {
+  const headers = new Headers({ 'x-deck-pid': '9999' });
+  expect(restartHealthzVerdict(headers, 4242)).toEqual({
+    kind: 'pid-mismatch',
+  });
 });

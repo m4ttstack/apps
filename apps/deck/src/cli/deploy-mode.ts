@@ -59,3 +59,23 @@ export function linkedCheckoutMismatch(
   }
   return resolvedLinked === thisDeckDir ? null : refuse(linkedDeckDir);
 }
+
+export type RestartHealthzVerdict =
+  | { kind: 'match'; runMode: string | null }
+  | { kind: 'no-pid-header' }
+  | { kind: 'pid-mismatch' };
+
+/** Only decks built with the runMode headers ever send `x-deck-pid`; the
+    only pin today (deck 1.0.6) predates them, so an ok response with no
+    header at all is that pin actually serving, not a process to keep
+    waiting on. A present header that names a different pid is the real
+    "something else answered" case, worth retrying against the deadline. */
+export function restartHealthzVerdict(
+  headers: { get(name: string): string | null },
+  expectedPid: number
+): RestartHealthzVerdict {
+  const pidHeader = headers.get('x-deck-pid');
+  if (pidHeader === null) return { kind: 'no-pid-header' };
+  if (pidHeader !== String(expectedPid)) return { kind: 'pid-mismatch' };
+  return { kind: 'match', runMode: headers.get('x-deck-run-mode') };
+}
