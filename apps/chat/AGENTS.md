@@ -9,10 +9,9 @@ Contract for anyone (human or agent) working in this repo.
    rt, what a message body renders, how to run it with real or fixture data
    (`CHAT_FIXTURES=1`), and the deploy loop (`bun install && bun run build &&
 deck restart chat`, port 11002).
-2. `AGENTS.md`: what's app-specific about chat's use of `@mattstack/app-kit` +
-   `@mattstack/app-server` (icon registration). The kit contract itself
-   (import walls, theme, facades, the mattstack shell, the server package)
-   lives in the repo root `AGENTS.md`.
+2. The rest of this file: what's app-specific about chat's use of
+   `@mattstack/app-kit` + `@mattstack/app-server` (icon registration). The
+   kit contract itself lives in the repo root `AGENTS.md` (see below).
 
 The other half lives in `~/Documents/GitHub/repo-tools`: `skills/rt-chat/SKILL.md`
 (the agent-facing rules), `docs/superpowers/specs/2026-08-2{3,4}-rt-chat-*.md`
@@ -93,8 +92,7 @@ components and links a page each, never a prop signature offline.
 
 `design/CONFORMANCE.md` and `design/ANATOMY.md` are the UI contract; the
 artboards under `design/artboards` are the authority on layout and values,
-and no UI task is done until `design/audit.mjs` passes against them. See
-`CLAUDE.md` for the read order.
+and no UI task is done until `design/audit.mjs` passes against them.
 
 ## Right-click menus
 
