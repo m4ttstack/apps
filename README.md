@@ -26,11 +26,12 @@ repo under `apps/`.
 
 `packages/tui-kit` lives in this repo alongside the Mantine-based packages
 so all four version in lockstep; it does not depend on
-`packages/ui` or `packages/server`, or vice versa. `packages/tokens` is
-also part of this workspace but is private and unpublished: it generates
-the canonical colour and font values both `mantine-tokyo` and `tui-kit`
-ship, and exists to keep those two themes in sync, not to be consumed
-directly.
+`packages/ui` or `packages/server`, or vice versa. `packages/tokens` and
+`packages/gate-kit` are also part of this workspace but are private,
+unversioned, and unpublished: `tokens` generates the canonical colour and
+font values both `mantine-tokyo` and `tui-kit` ship, and exists to keep
+those two themes in sync, not to be consumed directly; `gate-kit` is a
+private workspace member consumed only by `apps/console` and `apps/board`.
 
 `@mattstack/app-kit` has nineteen subpath exports: the Mantine-based
 components and shadows (`./core`), hooks, forms, modals, notifications, the
@@ -56,8 +57,10 @@ See `AGENTS.md` for the contract anyone editing `packages/ui/src` or
 ## Repository layout
 
 - `packages/` -- the four platform packages (`ui`, `server`, `tokyo`,
-  `tui-kit`) described above, plus `packages/tokens`, the private
-  generator that keeps `tokyo` and `tui-kit`'s colour/font values in sync.
+  `tui-kit`) described above, plus `packages/tokens` (the private
+  generator that keeps `tokyo` and `tui-kit`'s colour/font values in sync)
+  and `packages/gate-kit` (the private gate sheet primitives `console` and
+  `board` share).
 - `apps/` -- the five mattstack apps that consume these packages as
   workspace members: `chat`, `console`, `boxscore` (Mantine-based, on
   `@mattstack/app-kit`), and `board`, `deck` (terminal-flavoured, on

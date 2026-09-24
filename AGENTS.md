@@ -43,7 +43,9 @@ are new to this repo. Colour and type decisions are NOT made here:
 `apps/{chat,console,boxscore,board,deck}` are the two workspace roots; see
 README.md's "Repository layout" section for what each package/app is.
 `packages/gate-kit` (`@mattstack/gate-kit`, the gate sheet primitives
-console and board share) is one of them. The five old standalone app repos
+console and board share) is a private workspace member like
+`packages/tokens`, not one of the four versioned platform packages. The
+five old standalone app repos
 (chat, console, board, deck, boxscore, plus tui-kit) are deleted from
 GitHub -- their branch history lives here as `archive/<app>/*` refs, and
 their pre-fold-in releases are re-tagged byte-identical under
@@ -131,7 +133,8 @@ Nothing in this repo publishes to npm. `@mattstack/app-kit`,
 `@mattstack/tui-kit` each carry a version (bumped together via
 `scripts/set-platform-version.ts`), but that version is a tree-internal
 identity only: it has never been published and, per the fold-in decision,
-never will be. `packages/tokens` stays private and unpublished. Every app
+never will be. `packages/tokens` and `packages/gate-kit` stay private and
+unpublished. Every app
 under `apps/` consumes the four platform packages workspace-only
 (`workspace:*`); external npm deps such as `@mattstack/rt-client` (pinned
 exact in the root catalog), `@mattstack/glance`, `@mattstack/settings-kit`, and
