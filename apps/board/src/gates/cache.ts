@@ -174,9 +174,8 @@ export class GateCache {
     // replaying it would reset status, answer, and openedAt.
     if (this.findById(id)) return;
 
-    // An opened frame is the newest gate the bus has seen for its pair, and
-    // its receipt-time openedAt is on the board's clock, not the daemon's,
-    // so it replaces without applyRow's age comparison.
+    // Receipt-time openedAt is always now, so applyRow's older-sibling
+    // check can never drop this write for a genuinely different id.
     const kind =
       typeof payload.kind === 'string' ? payload.kind : 'review-post';
     this.applyRow({
