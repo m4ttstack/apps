@@ -11,6 +11,7 @@ import {
   ingestRelayFrame,
   installBoardBridgeRule,
   reconcileGatesOnBoot,
+  reconcileRunGatesOnBoot,
   type GateCacheTarget,
   type GateReconcileTarget,
 } from '../gates/ingest.ts';
@@ -43,12 +44,36 @@ describe('ingestRelayFrame', () => {
     expect(notified).toBe(1);
   });
 
-  test('a gate/** frame with a non-mr: subject is ignored', () => {
+  test('a gate/** frame with a run: subject applies to the cache and notifies', () => {
+    const { target, applied } = fakeCache();
+    let notified = 0;
+    for (const verb of ['opened', 'answered', 'closed', 'escalated'])
+      ingestRelayFrame(
+        target,
+        {
+          topic: `gate/${verb}/g1`,
+          payload: { subject: 'run:20260923-100000-aaaa-1111' },
+        },
+        () => notified++
+      );
+    expect(applied).toHaveLength(4);
+    expect(notified).toBe(4);
+  });
+
+  test('a gate/** frame with any other subject is ignored', () => {
     const { target, applied } = fakeCache();
     let notified = 0;
     ingestRelayFrame(
       target,
-      { topic: 'gate/opened/g1', payload: { subject: 'run:abc123' } },
+      {
+        topic: 'gate/opened/g1',
+        payload: { subject: 'agent:pane-7', kind: 'clarify' },
+      },
+      () => notified++
+    );
+    ingestRelayFrame(
+      target,
+      { topic: 'gate/opened/g2', payload: { subject: 'run:' } },
       () => notified++
     );
     expect(applied).toHaveLength(0);
@@ -230,6 +255,64 @@ describe('reconcileGatesOnBoot', () => {
     await expect(reconcileGatesOnBoot(list, cache)).resolves.toBeUndefined();
     expect(reconciled).toHaveLength(1);
     expect(reconciled[0]).toHaveLength(GATE_LIST_PAGE_LIMIT);
+  });
+});
+
+describe('reconcileRunGatesOnBoot', () => {
+  test('pages gateList by the run: prefix to exhaustion and reconciles every row gathered', async () => {
+    const calls: FakeGateListPayload[] = [];
+    const runRow = (i: number): FacilityGateRow => ({
+      ...fakeRow(String(i)),
+      subject: `run:20260923-1000${String(i).padStart(2, '0')}-demo`,
+      kind: 'clarify',
+    });
+    const page1 = Array.from({ length: GATE_LIST_PAGE_LIMIT }, (_, i) =>
+      runRow(i)
+    );
+    const list = async (
+      payload: FakeGateListPayload
+    ): Promise<FakeGateListResult> => {
+      calls.push(payload);
+      if (!payload.cursor)
+        return {
+          ok: true,
+          data: { gates: page1, cursor: GATE_LIST_PAGE_LIMIT },
+        };
+      return {
+        ok: true,
+        data: { gates: [runRow(999)], cursor: GATE_LIST_PAGE_LIMIT + 1 },
+      };
+    };
+    const reconciled: FacilityGateRow[][] = [];
+
+    await reconcileRunGatesOnBoot(list, {
+      reconcile: rows => reconciled.push(rows),
+    });
+
+    expect(calls).toEqual([
+      { subjectPrefix: 'run:', cursor: undefined, limit: GATE_LIST_PAGE_LIMIT },
+      {
+        subjectPrefix: 'run:',
+        cursor: GATE_LIST_PAGE_LIMIT,
+        limit: GATE_LIST_PAGE_LIMIT,
+      },
+    ]);
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0]).toHaveLength(GATE_LIST_PAGE_LIMIT + 1);
+  });
+
+  test('a failed page reconciles nothing extra and never throws', async () => {
+    const list = async (): Promise<FakeGateListResult> => ({
+      ok: false,
+      error: 'boom',
+    });
+    const reconciled: FacilityGateRow[][] = [];
+    await expect(
+      reconcileRunGatesOnBoot(list, {
+        reconcile: rows => reconciled.push(rows),
+      })
+    ).resolves.toBeUndefined();
+    expect(reconciled).toEqual([[]]);
   });
 });
 

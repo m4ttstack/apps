@@ -416,7 +416,7 @@ describe('GateCache.applyEvent', () => {
     expect(cached.closedReason).toBe('abandoned');
   });
 
-  test.each(['answered', 'parked', 'closed', 'released'] as const)(
+  test.each(['answered', 'parked', 'closed', 'released', 'escalated'] as const)(
     '%s frame for an unknown id is dropped silently, no throw, no phantom entry',
     kind => {
       const cache = new GateCache();
@@ -451,6 +451,41 @@ describe('GateCache.applyEvent', () => {
       cache.applyEvent({ topic: 'gate/opened/gate-1', payload: null })
     ).not.toThrow();
     expect(cache.rows()).toEqual([]);
+  });
+
+  test("opened frame carries the daemon's owner onto the cached row", () => {
+    const cache = new GateCache();
+    cache.applyEvent({
+      topic: 'gate/opened/g-herd',
+      payload: {
+        id: 'g-herd',
+        subject: SUBJECT_A,
+        kind: 'review-post',
+        questions: [],
+        owner: 'herd:acme-batch',
+      },
+    });
+    expect(cache.get(SUBJECT_A, 'review-post')?.owner).toBe('herd:acme-batch');
+  });
+
+  test('escalated frame stamps escalatedAt and keeps the owner it names', () => {
+    const cache = new GateCache();
+    cache.applyRow(row({ owner: 'herd:acme-batch' }));
+    const before = Date.now();
+    cache.applyEvent({
+      topic: 'gate/escalated/gate-1',
+      payload: {
+        id: 'gate-1',
+        subject: SUBJECT_A,
+        kind: 'review-post',
+        owner: 'herd:acme-batch',
+        reason: 'ttl',
+      },
+    });
+    const cached = cache.get(SUBJECT_A, 'review-post')!;
+    expect(cached.escalatedAt).toBeGreaterThanOrEqual(before);
+    expect(cached.owner).toBe('herd:acme-batch');
+    expect(cached.status).toBe('open');
   });
 
   test('applyEvent(opened) carries context and origin onto the cached row', () => {
