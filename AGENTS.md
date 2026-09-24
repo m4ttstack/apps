@@ -440,15 +440,10 @@ This still buys the same two things mantine-kit's split buys:
 
 **Write scalar-or-object theme options in their object form.**
 `primaryShade` is `{ light, dark }` in `base-theme.ts` even though both
-shades are 7 and Mantine accepts the scalar. Mantine's `deepMerge`
-recurses whenever the SOURCE value is an object without checking that the
-target is one too, so `deepMerge(7, { light: 7, dark: 4 })` spreads
-`{...7}` to `{}` and returns `{}`, which `validateMantineTheme` then reads
-as the object form and dereferences, blanking the page with `Cannot read
-properties of undefined (reading 'toString')` from
-`isValidPrimaryShade`, naming neither `primaryShade` nor the theme that
-supplied it. Matching the wider shape makes the kit theme safe to nest
-under or over any override. `design-system/theme.test.tsx` pins it.
+shades are 7 and Mantine accepts the scalar, because Mantine's `deepMerge`
+recurses into an object source without checking that the target is one
+too, so a scalar target silently corrupts instead of erroring when merged
+with an object override. `design-system/theme.test.tsx` pins it.
 
 **Kit-wide defaults** live in `packages/ui/src/design-system/base-theme.ts`,
 via `createTheme`'s `components` map in Mantine's string-keyed form --
@@ -767,6 +762,7 @@ export is the one module in the package that touches `hono/bun` and
 | `./event-bridge`   | `ensureEventBridgeRule(read, write, rule, opts?)`: identity-aware (`pattern` + `subjectPrefix`) merge-not-clobber upsert into an `rt.notify.eventBridges`-shaped list; `deckAppUrl(name, opts?)`: an app's local url from deck's `/api/v1/status`, or `null` on any failure; `reconcileEventBridgeRule(opts)`: the boot step both apps use, which never writes a localhost url (deck unreachable keeps an existing rule, seeds a missing one with `https://<app>.mattstack`)                                                                                                                                                                                                                                                                         | yes                     |
 | `./canonical-host` | `canonicalHostRedirect(req, canonical?)`: a 302 to `https://<canonical>` (default `MATTSTACK_CANONICAL_HOST`, which deck sets to `<name>.mattstack` on every mattstack app it supervises) for a request whose `x-forwarded-host` (read first; portless keeps `Host` and sets both) or `Host` ends in `.localhost`; null otherwise, and always null for a websocket upgrade or when no canonical host is configured. `createApp` runs it before every route                                                                                                                                                                                                                                                                                           | yes                     |
 | `./local-request`  | `isLocalRequest(req, server?)`: true only when the socket peer is loopback (checked when a Bun `server` is passed), `Host` and every `x-forwarded-host` hop are local (`localhost`, `127.0.0.1`, `::1`, `*.localhost`, `*.mattstack`), every `x-forwarded-for` hop is loopback, and no edge marker (`cf-connecting-ip`, `tailscale-funnel-request`, deck gateway's `x-mattstack-edge`) is present. The shared gate for local-only writes; pass the server, since every proxy on the machine connects from 127.0.0.1 and Host alone is forgeable. `hasLocalOrigin(req)`: true with no `Origin` header, otherwise only when the Origin is local and names the request's own `Host`; pair it with `isLocalRequest` on writes a browser page could forge | yes                     |
+| `./shell-handoff`  | `SHELL_UA_MARKER`, `traySockPath`, and the handoff that asks the mattstack window (over the tray's unix socket at `~/.mattstack/rt/tray.sock`, or `RT_APP_SOCKET`) to open a URL in the app shell instead of the browser (`packages/server/src/shell-handoff.ts`) | yes                     |
 | `.`                | `serveMattstackApp(opts)`: `createApp` + `mountStatic` with `hono/bun`'s `serveStatic` + `/ws` upgrade subscribing each socket to every relay topic + `Bun.serve({ hostname: '127.0.0.1' })` + `server.publish` fan-out + SIGINT/SIGTERM → stop relays, stop server                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | no (`hono/bun`)         |
 
 `/ws` is registered with no middleware in front of it: a
@@ -783,10 +779,10 @@ the app, so an RPC client's typing is untouched by the frame.
 
 ## 10. Consumer requirements
 
-Real findings from building `apps/chat`, `apps/console`, and
-`apps/boxscore`, the three Mantine-based apps that consume
-`@mattstack/app-kit` -- a consumer that misses any of these breaks in a
-way that does not announce itself as "the kit is wrong":
+These are rules a new app consuming `@mattstack/app-kit` must follow,
+drawn from building `apps/chat`, `apps/console`, and `apps/boxscore` --
+missing any of them breaks in a way that does not announce itself as
+"the kit is wrong":
 
 1. **The Mantine colour-name augmentation needs no `/// <reference>`
    line.** It lives in `packages/ui/src/design-system/colors.ts` (a
