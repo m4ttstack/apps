@@ -18,145 +18,208 @@ helper ownership, because deploy writes a new binary to the path launchd
 execs and that path is now `Contents/Helpers/deck` inside a signed bundle.
 Overwriting a file there breaks the bundle's signature and gives deck a new
 TCC identity. Since then the dev app runs the pinned release, and the deploy
-button can only fail (three failures in `deck.err.log` on 2026-09-23).
+button can only fail (four "owns deck" refusals in `deck.err.log` on
+2026-09-23).
 
 Board, console and the other served apps already run from the checkout in
 dev. The rt daemon does too, through `rt-tray/Sources-daemon-shim` (the dev
 bundle's `Contents/MacOS/rt`, a signed exec-proxy that runs
-`bun lib/daemon.ts` from the repo-tools checkout). Deck gets the same shape.
+`bun lib/daemon.ts` from the repo-tools checkout, today as
+`~/.bun/bin/bun` under launchd, which already has the TCC grant to read
+`~/Documents`). Deck gets the same shape.
 
 ## Design
 
 ### 1. Deck dev shim (repo-tools `rt-tray`, dev flavor only)
 
-A new SwiftPM executable target, `deck-dev-shim` (`Sources-deck-shim/`),
-modeled on `rt-daemon-shim`.
+**Targets.** Two new SwiftPM targets in `rt-tray/Package.swift`:
 
-`rt-tray/build.sh dev` bundles it:
+- `DeckShimLogic` (library): the pure choice function below. No I/O of its
+  own; the file system and environment arrive as injected closures.
+  `MattstackCoreChecks` gains a dependency on it so the choice is tested
+  there.
+- `deck-dev-shim` (executable, `Sources-deck-shim/main.swift`): the thin
+  I/O wrapper that gathers inputs, calls `DeckShimLogic`, logs, and execs.
+  It depends only on `DeckShimLogic` and Foundation (static, no framework
+  rpath from `Contents/Helpers`).
 
+The deck shim does NOT read rt's dev-mode config: bun is
+`$HOME/.bun/bin/bun` (the same bun the rt daemon runs today). This avoids
+copying `rt-daemon-shim`'s SQLite reader.
+
+**Bundling** (`rt-tray/build.sh`, dev flavor only):
+
+- Build the new product on both build paths: the swift path already builds
+  every product; the xcode path (`build.sh:94-97`, the default when
+  `project.yml` exists) must add `swift build -c release --product
+  deck-dev-shim` next to the existing `rt-daemon-shim` line.
 - `bundle_helpers` stages the pinned deck from `deps.lock` at
-  `Contents/Helpers/deck` as today.
-- In the dev flavor only, the pinned binary moves to
-  `Contents/Helpers/deck-pinned`, and the shim is installed as
+  `Contents/Helpers/deck` as today. Then, dev flavor only, move it to
+  `Contents/Helpers/deck-pinned` and copy the shim to
   `Contents/Helpers/deck`.
-- Both are signed by the existing helper signing pass, which already signs
-  every Mach-O under `Contents/Helpers` with `com.mattstack.helper.<basename>`.
-  The shim keeps the identifier `com.mattstack.helper.deck` the deck plist's
-  `BundleProgram` has always had.
-- The prod flavor is untouched: `Contents/Helpers/deck` stays the pinned
-  binary, and there is no `deck-pinned`.
+- Signing: the existing `HELPER_ENTITLEMENTS` entry for `Contents/Helpers/deck`
+  now signs the shim (jit, identifier `com.mattstack.helper.deck`, the
+  identifier the deck plist's `BundleProgram` has always run). Add
+  `HELPER_ENTITLEMENTS+=("$CONTENTS/Helpers/deck-pinned	jit")` in the dev
+  branch, or `deck-pinned` stays unsigned and the outer seal
+  (`build.sh:516`) fails with "code object is not signed at all".
+- `rt-tray/check-bundle.sh`: add `deck-pinned` to the `allowed` list of
+  top-level `Contents/Helpers` entries (`check-bundle.sh:371-385`), assert
+  that in the dev flavor `Contents/Helpers/deck` is the shim and
+  `deck-pinned` exists, and in prod that `deck-pinned` does not exist. The
+  deck row's `--version` probe (`check-bundle.sh:341-352`) runs under
+  `env -i HOME=<tmp>` in the dev flavor (as the daemon-shim cases do at
+  `check-bundle.sh:573`); with no registry there, the shim falls back to
+  pinned and prints the pinned version.
+- Prod is untouched: `Contents/Helpers/deck` stays the pinned binary and
+  there is no `deck-pinned`.
 
-On every launch (the launchd `serve` and every CLI call alike, since
-`Contents/Helpers` is first on the PATH deck composes), the shim chooses:
+**The choice** (`DeckShimLogic`), run on every launch: the launchd `serve`
+and every CLI call alike, since deck composes its PATH with
+`Contents/Helpers` first (`apps/deck/src/services/exec-env.ts:47-48`):
 
-1. **Source**, when all of these hold:
-   - `~/.mattstack/deck/registry.json` is trusted (owned by this uid, not
-     group- or other-writable; the same rule `rt-daemon-shim` applies to
-     its config), parses, and has a record named `deck` with an absolute
-     `dev.workingDirectory`;
-   - `<dev.workingDirectory>/src/main.ts` exists;
-   - bun resolves: the `bunPath` from rt's dev-mode config (read exactly as
-     `rt-daemon-shim` reads it), else `~/.bun/bin/bun`, and it is executable.
+- The bundle root is derived from the shim's own executable path
+  (`_NSGetExecutablePath`, then `realpath`, then three `dirname`s:
+  `.app/Contents/Helpers/deck`). `argv[0]` is relative under launchd, so it
+  is not used.
+- **Source** when all of these hold:
+  - `~/.mattstack/deck/registry.json` is trusted (owned by this uid, not
+    group- or other-writable, the same rule `rt-daemon-shim`'s
+    `isTrustedConfigFile` applies), parses as JSON of shape
+    `{ "version": 1, "apps": { "deck": { "dev": { "workingDirectory": "<abs>" } } } }`,
+    and that `workingDirectory` is absolute;
+  - `<workingDirectory>/src/main.ts` exists;
+  - `$HOME/.bun/bin/bun` exists and is executable.
 
-   Then it execs `bun <dev.workingDirectory>/src/main.ts <args...>` with
-   `DECK_BUNDLE_ROOT=<the .app path>` added to the environment and the
-   working directory unchanged.
-2. **Pinned** otherwise: it execs `Contents/Helpers/deck-pinned <args...>`,
-   with the same environment plus `DECK_BUNDLE_ROOT`.
+  Then exec `$HOME/.bun/bin/bun <workingDirectory>/src/main.ts <args...>`.
+- **Pinned** otherwise: exec `Contents/Helpers/deck-pinned <args...>`.
+- Both paths add `DECK_BUNDLE_ROOT=<absolute .app path>` and
+  `DECK_RUN_MODE=source|pinned` to the environment and keep the working
+  directory unchanged.
+- The choice function returns the mode plus, for pinned, the reason (which
+  condition failed), so the reason is testable and loggable.
 
-The shim writes one line to stderr naming the choice and, for pinned, why
-(which condition failed). For `serve` it first redirects stderr to
+**Logging.** For `serve`, the shim first redirects stderr to
 `~/.mattstack/deck/logs/deck.err.log` (append), because the deck plist sets
-no `StandardErrorPath`, so the line would otherwise vanish. CLI calls keep
-the caller's stderr but print nothing on the source path, so CLI output is
-unchanged.
+no `StandardErrorPath`, then writes one line naming the mode and, for
+pinned, the reason. CLI calls keep the caller's stderr and print nothing on
+the source path, so CLI output is unchanged; on the pinned path a CLI call
+also stays quiet (the serve log already records why).
 
-If `execv` itself fails after the choice, the shim exits 1 so launchd
+**Exit.** If `execv` fails after the choice, the shim exits 1 so launchd
 restarts it. A deck that crashes after booting from source is not caught by
 the shim: launchd restarts the shim, which runs source again. A crash loop is
 louder than silently serving stale code, and the deck row shows it.
 
 ### 2. Deck honors the shim (mattstack-apps `apps/deck`)
 
-**Bundle root.** `bundleRootFromExec` (`src/services/bundle-layout.ts`)
-returns `process.env.DECK_BUNDLE_ROOT` when it is set, is absolute, ends in
-`.app`, and has `Contents/Info.plist`; otherwise it keeps today's
-`process.execPath` logic. Under bun, `process.execPath` is bun, so without
-this every caller loses the bundle: `prepareHelperBoot` would skip PATH
-composition (no `cloudflared`, no portless), `bundleHelpersDir` would return
-null for serve-shape resolution, and helper ownership would fall back to the
-`launchctl print` probe. All callers go through `bundleRootFromExec` or
-`bundleHelpersDir`, so this one change covers them: `main.ts`,
-`cli/client.ts`, `cli/setup.ts`, `cli/update.ts`, `registry/serve-shape.ts`,
-`services/exec-env.ts`, `scripts/deploy.ts`.
+**Bundle root.** `bundleRootFromExec` (`src/services/bundle-layout.ts`),
+when called with no explicit `execPath` argument, first returns
+`process.env.DECK_BUNDLE_ROOT` if it is set, absolute, ends in `.app`, and
+has `Contents/Info.plist`; otherwise today's `process.execPath` logic. A
+call that passes an explicit `execPath` (the existing tests) ignores the
+environment, so those tests stay environment-independent. Under bun,
+`process.execPath` is bun, so without this every caller loses the bundle.
+All bundle-root consumers go through `bundleRootFromExec` or
+`bundleHelpersDir`: `main.ts`, `cli/client.ts`, `cli/setup.ts`,
+`cli/update.ts`, `registry/serve-shape.ts`, `services/exec-env.ts`,
+`scripts/deploy.ts`. The two direct `process.execPath` reads
+(`cli/setup.ts:107`, `cli/update.ts:52,104`) sit behind helper-owned
+refusals and are not reached under the shim.
 
-**Deploy.** `scripts/deploy.ts` gains a third case. Today it refuses when the
-helper owns deck, and otherwise builds, installs over the self record's
-program, restarts and health-checks. New: when the helper owns deck and deck
-runs from source, deploy restarts and health-checks only:
+**Run mode is observable.** The serving deck records its mode:
+`api.json` (`src/api/state.ts`) gains `runMode: 'source' | 'pinned' |
+'standalone'`, from `DECK_RUN_MODE` (absent means `standalone`, a deck not
+run by the shim). Readers treat a missing field as `standalone`.
 
-- "Runs from source" means `DECK_BUNDLE_ROOT` is set and
-  `<bundle>/Contents/Helpers/deck-pinned` exists (the dev shim layout). The
-  deploy button's command runs with deck's environment, so it inherits
-  `DECK_BUNDLE_ROOT`.
-- It runs `deck restart deck` (kickstart of the helper label, tolerating
-  the socket drop as today), then the existing 20s `/healthz` wait.
-- On timeout it prints the existing log tails and exits 1. There is no
-  binary to restore, so the restore step is skipped.
-- No `bun run build` and no `build:board`: `core/generated/board.{js,css}`
-  is committed and byte-checked by `core/generated-fresh.test.ts`, so a
-  checkout on `main` already carries the built UI.
+**Deploy.** `scripts/deploy.ts`'s mode choice becomes a pure, tested
+function over (helper-owned, `DECK_RUN_MODE`):
 
-`deployTarget` keeps refusing for the pinned helper (prod, or a dev bundle
-without the shim).
+| Helper owns deck | `DECK_RUN_MODE` | Deploy does |
+|---|---|---|
+| no | (any) | today's build, install over the self record's program, restart, health check, restore on failure |
+| yes | `source` | restart-only (below) |
+| yes | `pinned` | refuse: "deck is running the pinned release because <reason from the serve log>; fix the checkout or bun, then restart deck" (point at `deck.err.log`) |
+| yes | absent | refuse as today (a helper without the shim: prod, or a dev app built before this change; rebuilding the dev app resolves it) |
+
+Restart-only:
+
+- `bun install --frozen-lockfile` at the checkout's workspace root (fast
+  when current; prevents a crash loop after a dependency bump).
+- `deck restart deck` (kickstart of the running helper label via
+  `runningLabel`, `src/api/register.ts:380-399`; the socket drop is
+  tolerated as today). The deploy child survives the self-restart (the live
+  log shows a button deploy printing its health result after the restart).
+- The existing 20s `/healthz` wait, then read `api.json` and require
+  `runMode === 'source'`. If healthy but pinned, exit 1 with the serve
+  log's last shim line (the source failed to start and the shim fell back).
+- On timeout, print the existing log tails and exit 1. No binary restore.
+- No `bun run build` and no `build:board`: the board UI is static text
+  imports of committed `core/generated/board.{js,css}`
+  (`core/board-assets.ts:5-6`), byte-checked by
+  `core/generated-fresh.test.ts`, so a checkout on `main` already carries it.
+
+`deployTarget` keeps refusing for the pinned or shim-less helper.
+
+**The deploy button.** Dev buttons already show only when rt dev mode is on
+and the manifest is linked (`src/registry/serve-shape.ts:56-69`, gate
+`src/api/dev-mode.ts`), so prod never shows it. With the shim the button
+works. The one place it can still only fail is a dev app built before this
+change (no shim); that is transitional and a dev-app rebuild resolves it.
+No board work is in scope.
 
 ### 3. Docs
 
 - `apps/deck/AGENTS.md` "Run only from main": in the dev app, deck runs the
-  linked checkout through the shim, so the flow is merge, pull, deploy.
+  linked checkout through the shim, so the flow is merge, pull, deploy;
+  `deck status` (or `api.json`'s `runMode`) says which mode is serving.
 - repo-tools `AGENTS.md`: the held "Getting a change into the running dev
   app" note (branch `agents-dev-app-deploy`) is rewritten to this flow and
   lands with the shim.
 - The build-dev-app script and thin skill Matt asked for are written after
-  this lands: a script that builds the dev app in a scratch tree and
-  replaces `/Applications/mattstack-dev.app`, and a skill that calls it.
-  They are only for shim or tray changes now.
+  this lands (a script that builds the dev app in a scratch tree and
+  replaces `/Applications/mattstack-dev.app`, and a skill that calls it).
+  They are needed only for shim or tray changes now.
 
 ## Failure behavior
 
 | Situation | Result |
 |---|---|
-| Checkout moved or deleted, or `src/main.ts` missing | Pinned deck serves; one stderr line says why |
-| bun missing | Pinned deck serves; one stderr line says why |
-| `registry.json` missing, unreadable, untrusted, or has no `dev.workingDirectory` for deck | Pinned deck serves |
-| Source deck throws at boot | launchd restarts it; crash loop visible on the deck row and in `deck.err.log` |
-| Deploy clicked while deck runs pinned (dev) | Refuses as today, naming the reason |
-| Deploy restart not healthy in 20s | Log tails printed, exit 1, the deploy row shows the failure |
+| Checkout moved or deleted, or `src/main.ts` missing | Pinned deck serves; `runMode: pinned`; the serve log names why |
+| bun missing | Same as above |
+| `registry.json` missing, unreadable, untrusted, or no deck `dev.workingDirectory` | Same as above |
+| Source deck throws at boot | launchd restarts the shim, which runs source again; crash loop visible on the deck row and in `deck.err.log` |
+| Deploy while `runMode: pinned` (dev) | Refuses, naming the reason |
+| Deploy restart comes back pinned | Exit 1 with the shim's reason |
+| Deploy restart not healthy in 20s | Log tails printed, exit 1 |
 | Prod app | Unchanged |
 
 ## Testing
 
-- **Deck:** unit tests for `bundleRootFromExec` honoring and validating
-  `DECK_BUNDLE_ROOT`; deploy's mode choice (refuse pinned-helper, restart
-  source-helper, build-and-install standalone) extracted as a pure function
-  and tested; the existing suite stays green (`bun test core src`).
-- **Shim:** the choice logic (source vs pinned, with the reason) is a pure
-  function tested in `MattstackCoreChecks` or a shim-local check, fed a fake
-  file system and environment.
-- **Bundle:** `rt-tray/check-bundle.sh` asserts, for the dev flavor, that
-  `Contents/Helpers/deck` is the shim and `deck-pinned` exists, and for prod
-  that `deck-pinned` does not.
-- **Real check:** a scratch dev build installed at
-  `/Applications/mattstack-dev.app`; the deck process runs
-  `bun …/apps/deck/src/main.ts serve`; `deck restart deck` and a deploy
-  click both come back healthy; `/api/apps` then carries `badge` for board
-  and console after re-registering them (the badge rollout this unblocks).
+- **Deck:** `bundleRootFromExec` honors a valid `DECK_BUNDLE_ROOT`, rejects
+  an invalid one, and ignores it when an explicit `execPath` is passed;
+  deploy's mode choice (the table above) as a pure function; `api.json`
+  round-trips `runMode` and reads a missing field as `standalone`. The
+  existing suite stays green (`bun test core src`).
+- **Shim:** `DeckShimLogic` cases in `MattstackCoreChecks`: source when all
+  conditions hold; pinned with the right reason for each failed condition
+  (untrusted registry, bad JSON, no deck record, relative directory,
+  missing `src/main.ts`, missing bun); bundle root derivation from an
+  executable path.
+- **Bundle:** `check-bundle.sh` dev and prod assertions above.
+- **Real check (controller-run, not a subagent):** Matt authorized the
+  controller to rebuild and install the dev app on 2026-09-23. Build in a
+  scratch tree, replace `/Applications/mattstack-dev.app` by moving the old
+  one aside, confirm the deck process is `bun …/apps/deck/src/main.ts serve`
+  and `api.json` says `source`, run `deck cmd deck deploy` and see it come
+  back healthy and `source`, then re-register board and console and see
+  `badge` in `/api/apps` (the badge rollout this unblocks).
 
 ## Out of scope
 
-- `~/.local/bin/deck` is a stale compiled CLI (1.0.5) left from before
-  helper ownership. It is not changed here.
+- `~/.local/bin/deck` is a stale compiled CLI left from before helper
+  ownership. It is not changed here.
 - The rt:release machine-update verify reads `deck --version` from
-  `Contents/Helpers/deck`; in the dev flavor that is now the source
-  version, not the pin. The verify step should read `deck-pinned` in the
-  dev flavor; noted for the release skill, not changed here.
+  `Contents/Helpers/deck`; in the dev flavor that is now the source version.
+  The verify step should read `deck-pinned` in the dev flavor; noted for
+  the release skill, not changed here.
