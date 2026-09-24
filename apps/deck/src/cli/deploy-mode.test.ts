@@ -1,9 +1,20 @@
-import { mkdtempSync, realpathSync } from 'fs';
+import { mkdtempSync, realpathSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { expect, test } from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
 
 import { deployMode, linkedCheckoutMismatch } from './deploy-mode.ts';
+
+let createdDirs: string[] = [];
+function tmpCheckoutDir(prefix: string): string {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
+  createdDirs.push(dir);
+  return dir;
+}
+afterEach(() => {
+  for (const dir of createdDirs) rmSync(dir, { recursive: true, force: true });
+  createdDirs = [];
+});
 
 test('a standalone deck installs a new build', () => {
   expect(deployMode(false, {}, null)).toEqual({ kind: 'install' });
@@ -71,13 +82,13 @@ test('a helper-owned deck recorded standalone refuses and points at the shim log
 });
 
 test('linkedCheckoutMismatch: null when the linked checkout is this one', () => {
-  const thisDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-this-')));
+  const thisDir = tmpCheckoutDir('deck-this-');
   expect(linkedCheckoutMismatch(thisDir, thisDir)).toBeNull();
 });
 
 test('linkedCheckoutMismatch: names the linked dir on mismatch', () => {
-  const thisDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-this-')));
-  const linkedDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-linked-')));
+  const thisDir = tmpCheckoutDir('deck-this-');
+  const linkedDir = tmpCheckoutDir('deck-linked-');
   const message = linkedCheckoutMismatch(thisDir, linkedDir);
   expect(message).toContain(linkedDir);
   expect(message).toContain(thisDir);
@@ -85,7 +96,7 @@ test('linkedCheckoutMismatch: names the linked dir on mismatch', () => {
 });
 
 test('linkedCheckoutMismatch: names "no linked checkout" when missing', () => {
-  const thisDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-this-')));
+  const thisDir = tmpCheckoutDir('deck-this-');
   expect(linkedCheckoutMismatch(thisDir, undefined)).toContain(
     'no linked checkout'
   );
@@ -93,7 +104,7 @@ test('linkedCheckoutMismatch: names "no linked checkout" when missing', () => {
 });
 
 test('linkedCheckoutMismatch: refuses a relative dev.workingDirectory', () => {
-  const thisDir = realpathSync(mkdtempSync(join(tmpdir(), 'deck-this-')));
+  const thisDir = tmpCheckoutDir('deck-this-');
   const message = linkedCheckoutMismatch(thisDir, './relative/checkout');
   expect(message).toContain('./relative/checkout');
 });
