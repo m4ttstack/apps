@@ -18,7 +18,7 @@ export function useGates() {
   });
 }
 
-export { runGateMarker, type RunGateMarker } from '../../server/gate-waiting';
+export { runGateMarker, type RunGateMarker } from '../../shared/gate-waiting';
 
 /**
  * Every gate RunDetail's page should render for this run, most recently

@@ -11,7 +11,7 @@ import {
 import { Hono } from 'hono';
 import { validator } from 'hono/validator';
 
-import { countsForConsoleBadge } from './gate-waiting';
+import { countsForConsoleBadge } from '../shared/gate-waiting';
 
 /** Read fresh per call, not cached at module scope -- this is the shared
     test seam across every rt-client call site in this file (panes.ts uses
