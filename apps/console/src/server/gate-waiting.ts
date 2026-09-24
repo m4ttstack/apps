@@ -22,13 +22,14 @@ export function runGateMarker(
   return waiting.length > 0 ? 'shepherd' : null;
 }
 
-/** The board owns pane-attention gates; counting them here too would
-    double-count a wedged run on the dock. */
-export function countsForConsoleBadge(g: GateRow): boolean {
-  return (
-    g.subject.startsWith('run:') &&
-    g.kind !== 'pane-attention' &&
-    isWaiting(g) &&
-    isMine(g)
-  );
+/** The board never counts a `run:` subject, so a run's own pane-attention
+    gate is the console's to count. The age gate keeps a self-clearing
+    wedge (most clear within 1 to 4 minutes on their own) from blinking
+    the badge. */
+export const ATTENTION_MIN_AGE_MS = 120_000;
+
+export function countsForConsoleBadge(g: GateRow, now: number): boolean {
+  if (!g.subject.startsWith('run:') || !isWaiting(g) || !isMine(g)) return false;
+  if (g.kind === 'pane-attention') return now - g.openedAt >= ATTENTION_MIN_AGE_MS;
+  return true;
 }

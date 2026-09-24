@@ -89,8 +89,9 @@ export const gates = new Hono()
     if (!gatesRes.ok) return c.json({ error: gatesRes.error }, 502);
     if (!runsRes.ok) return c.json({ error: runsRes.error ?? 'run:list failed' }, 502);
     const repoByRun = new Map((runsRes.data?.runs ?? []).map(r => [r.id, r.repo]));
+    const now = Date.now();
     const counted = gatesRes.gates
-      .filter(g => countsForConsoleBadge(g) && repoByRun.has(g.subject.slice('run:'.length)))
+      .filter(g => countsForConsoleBadge(g, now) && repoByRun.has(g.subject.slice('run:'.length)))
       .sort((a, b) => a.openedAt - b.openedAt);
     const oldest = counted[0];
     if (!oldest) return c.json({ count: 0 }, 200);

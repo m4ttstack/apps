@@ -296,10 +296,8 @@ describe('GateCache.applyEvent', () => {
     expect(cached?.answer).toBeNull();
   });
 
-  // An opened frame now upserts through applyRow (see the monotonic-status
-  // guard below), so its receipt-time openedAt only wins over a different
-  // id's cached row when that row isn't stamped later than now -- true for
-  // every real daemon timestamp, never for a fabricated future one.
+  // Receipt-time openedAt loses only to a cached row stamped later than
+  // now, which no real daemon timestamp is.
   test('an opened frame for a different id replaces a cached row stamped in the past', () => {
     const cache = new GateCache();
     cache.applyRow(row({ openedAt: Date.now() - 60_000 }));

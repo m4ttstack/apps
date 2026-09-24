@@ -2,7 +2,7 @@
 import type { GateRow } from '@mattstack/rt-client';
 import { describe, expect, it } from 'vitest';
 
-import { countsForConsoleBadge, runGateMarker } from './gate-waiting';
+import { ATTENTION_MIN_AGE_MS, countsForConsoleBadge, runGateMarker } from './gate-waiting';
 
 function row(overrides: Partial<GateRow> = {}): GateRow {
   return {
@@ -36,14 +36,27 @@ describe('runGateMarker', () => {
 });
 
 describe('countsForConsoleBadge', () => {
+  const now = 10_000_000;
+
   it('counts open and parked run gates Matt owns', () => {
-    expect(countsForConsoleBadge(row())).toBe(true);
-    expect(countsForConsoleBadge(row({ status: 'parked' }))).toBe(true);
+    expect(countsForConsoleBadge(row(), now)).toBe(true);
+    expect(countsForConsoleBadge(row({ status: 'parked' }), now)).toBe(true);
   });
-  it('never counts herd-owned, pane-attention, answered, or non-run gates', () => {
-    expect(countsForConsoleBadge(row({ owner: 'herd:h1' }))).toBe(false);
-    expect(countsForConsoleBadge(row({ kind: 'pane-attention' }))).toBe(false);
-    expect(countsForConsoleBadge(row({ status: 'answered' }))).toBe(false);
-    expect(countsForConsoleBadge(row({ subject: 'mr:https://x' }))).toBe(false);
+  it('never counts herd-owned, answered, or non-run gates', () => {
+    expect(countsForConsoleBadge(row({ owner: 'herd:h1' }), now)).toBe(false);
+    expect(countsForConsoleBadge(row({ status: 'answered' }), now)).toBe(false);
+    expect(countsForConsoleBadge(row({ subject: 'mr:https://x' }), now)).toBe(false);
+  });
+  it('excludes a young pane-attention gate', () => {
+    const openedAt = now - (ATTENTION_MIN_AGE_MS - 1);
+    expect(
+      countsForConsoleBadge(row({ kind: 'pane-attention', openedAt }), now)
+    ).toBe(false);
+  });
+  it('counts a pane-attention gate at exactly 2 minutes old', () => {
+    const openedAt = now - ATTENTION_MIN_AGE_MS;
+    expect(
+      countsForConsoleBadge(row({ kind: 'pane-attention', openedAt }), now)
+    ).toBe(true);
   });
 });

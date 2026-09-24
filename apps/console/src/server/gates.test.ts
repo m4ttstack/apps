@@ -508,6 +508,7 @@ describe('GET /api/badge', () => {
   }
 
   it('counts Matt-owned waiting gates on runs that exist, with a path to the oldest', async () => {
+    const now = Date.now();
     vi.mocked(rt.gateList).mockResolvedValueOnce({
       ok: true,
       data: {
@@ -516,9 +517,10 @@ describe('GET /api/badge', () => {
           row({ id: 'mine-old', subject: 'run:r2', status: 'parked', openedAt: 10 }),
           row({ id: 'herd', subject: 'run:r1', owner: 'herd:h1' }),
           row({ id: 'orphan', subject: 'run:gone' }),
-          row({ id: 'att', subject: 'run:r1', kind: 'pane-attention' }),
+          row({ id: 'att-young', subject: 'run:r1', kind: 'pane-attention', openedAt: now - 1_000 }),
+          row({ id: 'att-old', subject: 'run:r1', kind: 'pane-attention', openedAt: now - 200_000 }),
         ],
-        cursor: 5,
+        cursor: 6,
       },
     });
     vi.mocked(rt.listRuns).mockResolvedValueOnce({
@@ -534,7 +536,7 @@ describe('GET /api/badge', () => {
     const res = await badge();
 
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ count: 2, path: '/runs/acme/r2' });
+    await expect(res.json()).resolves.toEqual({ count: 3, path: '/runs/acme/r2' });
   });
 
   it('answers 502 when gate:list fails', async () => {
