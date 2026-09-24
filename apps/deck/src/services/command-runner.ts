@@ -19,31 +19,41 @@ export type SpawnFn = (
 // A detached run outlives the deck that started it, and with it the in-memory
 // `runs` entry, so it is also recorded on disk for the next deck to see. A pid
 // alone could be reused by an unrelated process after the run ends, so the
-// record only counts while that pid is still running the same command.
+// record also holds the process's start time; the command line cannot serve,
+// since `sh -c` execs a lone command in place and ps then shows that command.
 const runPidFile = (dir: string, name: string) => join(dir, `${name}.run.pid`);
 
-function commandOf(pid: number): string {
-  const ps = Bun.spawnSync(['ps', '-o', 'command=', '-p', String(pid)]);
+function startTimeOf(pid: number): string {
+  const ps = Bun.spawnSync(['ps', '-o', 'lstart=', '-p', String(pid)]);
   return ps.stdout.toString().trim();
+}
+
+function removeQuietly(file: string): void {
+  try {
+    rmSync(file, { force: true });
+  } catch {
+    /* a leftover record is re-checked, and removed, on the next start */
+  }
 }
 
 function detachedRunAlive(dir: string, name: string): boolean {
   const file = runPidFile(dir, name);
-  let rec: { pid?: unknown; shell?: unknown };
+  let rec: { pid?: unknown; started?: unknown };
   try {
     rec = JSON.parse(readFileSync(file, 'utf8'));
   } catch {
     return false;
   }
-  const { pid, shell } = rec;
+  const { pid, started } = rec;
   const live =
     typeof pid === 'number' &&
     Number.isInteger(pid) &&
     pid > 0 &&
-    typeof shell === 'string' &&
+    typeof started === 'string' &&
+    started !== '' &&
     isAlive(pid) &&
-    commandOf(pid) === `sh -c ${shell}`;
-  if (!live) rmSync(file, { force: true });
+    startTimeOf(pid) === started;
+  if (!live) removeQuietly(file);
   return live;
 }
 
@@ -124,7 +134,7 @@ export function startCommandRun(
     try {
       writeFileSync(
         pidFile,
-        JSON.stringify({ pid: proc.pid, shell: input.shell })
+        JSON.stringify({ pid: proc.pid, started: startTimeOf(proc.pid!) })
       );
     } catch {
       /* unrecorded: only a restarted deck loses the busy guard */
@@ -133,7 +143,6 @@ export function startCommandRun(
   proc.exited.then(code => {
     run.status = 'exited';
     run.exitCode = code;
-    if (recorded) rmSync(pidFile, { force: true });
     // Bun.spawn's ownership of numeric stdio fds is ambiguous; a bare closeSync
     // could double-close and throw EBADF, so each close is independently guarded.
     try {
@@ -146,6 +155,7 @@ export function startCommandRun(
     } catch {
       /* already closed */
     }
+    if (recorded) removeQuietly(pidFile);
   });
 
   return { started: true, runId };

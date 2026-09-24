@@ -43,7 +43,7 @@ test('a detached run is spawned in its own process group; others are not', () =>
   expect(calls.map(c => c.detached)).toEqual([true, false]);
 });
 
-test('a detached run still in flight keeps the app busy after deck restarts', () => {
+test('a detached run still in flight keeps the app busy after deck restarts', async () => {
   const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
   const input = {
     name: 'deck',
@@ -56,6 +56,9 @@ test('a detached run still in flight keeps the app busy after deck restarts', ()
   const { pid } = JSON.parse(
     readFileSync(join(logDir, 'deck.run.pid'), 'utf8')
   ) as { pid: number };
+  // Long enough for sh to exec its single command in place, which changes
+  // what ps reports as the process's command line.
+  await new Promise(res => setTimeout(res, 300));
   try {
     resetRuns();
     expect(startCommandRun(input, { logDir })).toEqual({
@@ -63,7 +66,7 @@ test('a detached run still in flight keeps the app busy after deck restarts', ()
       reason: 'busy',
     });
   } finally {
-    process.kill(pid);
+    process.kill(-pid);
   }
 });
 
@@ -71,7 +74,7 @@ test('a pid file naming a live but unrelated process is stale: the run starts an
   const logDir = mkdtempSync(join(tmpdir(), 'runlog-'));
   writeFileSync(
     join(logDir, 'deck.run.pid'),
-    JSON.stringify({ pid: process.pid, shell: 'bun run deploy' })
+    JSON.stringify({ pid: process.pid, started: 'Thu Jan  1 00:00:00 1970' })
   );
   const spawn = () => ({ exited: new Promise<number>(() => {}), pid: 4242 });
   const r = startCommandRun(
