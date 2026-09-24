@@ -13,6 +13,7 @@ import {
   setQueued,
   settleMerging,
   type Axis,
+  type Merging,
   type OptimisticState,
 } from './optimistic.ts';
 
@@ -45,19 +46,19 @@ export function useOptimisticLifecycle(data: BoardData | null) {
 /** The MRs the board has fired a merge on and not yet seen leave, for
     overlayMerging; settled against every fresh load. */
 export function useMerging(data: BoardData | null) {
-  const [merging, setMerging] = useState<ReadonlySet<string>>(new Set());
+  const [merging, setMerging] = useState<Merging>(new Map());
 
   useEffect(() => {
     if (!data) return;
-    setMerging(s => settleMerging(s, data.mrs));
+    setMerging(s => settleMerging(s, data.mrs, Date.now()));
   }, [data]);
 
   const start = useCallback((url: string) => {
-    setMerging(s => new Set(s).add(url));
+    setMerging(s => new Map(s).set(url, Date.now()));
   }, []);
 
   const fail = useCallback((url: string) => {
-    setMerging(s => new Set([...s].filter(u => u !== url)));
+    setMerging(s => new Map([...s].filter(([u]) => u !== url)));
   }, []);
 
   return { merging, start, fail };
