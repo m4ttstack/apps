@@ -115,6 +115,7 @@ import { upsertEnvKeys } from './env-file.ts';
 import faviconSvg from './favicon.svg' with { type: 'text' };
 import { focusPane } from './focus-pane.ts';
 import { answerGate } from './gates/answer.ts';
+import { boardBadge } from './gates/badge.ts';
 import {
   answeredWinner,
   attachGates,
@@ -957,6 +958,16 @@ const httpServer = Bun.serve({
     switch (pathname) {
       case '/healthz':
         return new Response('ok');
+      case '/api/badge': {
+        const visible = config.members.filter(m => !m.hidden);
+        const mrs = cache.peek()?.mrs ?? [];
+        const mrGates = attachGates(visibleMrsFor(mrs, visible), gateCache).flatMap(
+          mr => mr.gates
+        );
+        return Response.json(
+          boardBadge([...mrGates, ...buildQueueExtras(gateCache.rows())], Date.now())
+        );
+      }
       case '/events': {
         // One-way nudge channel: browsers re-pull /data.json on any message.
         let ctrl: ReadableStreamDefaultController<Uint8Array>;
