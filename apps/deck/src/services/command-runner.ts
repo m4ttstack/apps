@@ -23,8 +23,12 @@ export type SpawnFn = (
 // since `sh -c` execs a lone command in place and ps then shows that command.
 const runPidFile = (dir: string, name: string) => join(dir, `${name}.run.pid`);
 
+// lstart's text follows LANG and TZ, which differ between a launchd deck and
+// one started from a terminal, so both sides of the comparison pin them.
 function startTimeOf(pid: number): string {
-  const ps = Bun.spawnSync(['ps', '-o', 'lstart=', '-p', String(pid)]);
+  const ps = Bun.spawnSync(['/bin/ps', '-o', 'lstart=', '-p', String(pid)], {
+    env: { LC_ALL: 'C', TZ: 'UTC' },
+  });
   return ps.stdout.toString().trim();
 }
 
