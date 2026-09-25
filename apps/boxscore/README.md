@@ -157,6 +157,9 @@ See `gitlab-leaderboard-spec.md` for the exact definitions.
 | `bun run typecheck`    | `tsc --noEmit` over the whole tree (server, app, shared).                                                                                          |
 | `bun run lint`         | ESLint over `src`.                                                                                                                                 |
 
+`scripts/binary-gate.sh` moves `dist/` aside while it runs, so run it from a
+worktree, never from a checkout deck serves boxscore from.
+
 The metric layer (`src/server/metrics/`) is pure functions over a normalized model
 (`src/server/store/model.ts`), so all the math is tested offline without a live GitLab.
 
