@@ -489,13 +489,21 @@ export function startApi(deps: ApiDeps) {
           const r = await reresolveManagedApps(deps);
           return json(r.body, r.status);
         }
-        if (
-          pathname === '/api/v1/apps/managed/remove' &&
-          req.method === 'POST'
-        ) {
-          const b = await body(req);
-          const only =
-            typeof b.name === 'string' && b.name ? b.name : undefined;
+        // A named remove carries its name in the path: deck 1.0.x reads no
+        // body here and would remove every managed row, but 404s this path.
+        const managedRemove = pathname.match(
+          /^\/api\/v1\/apps\/managed\/remove(?:\/([^/]+))?$/
+        );
+        if (managedRemove && req.method === 'POST') {
+          const only = managedRemove[1];
+          if (only === undefined && (await body(req)).name !== undefined)
+            return json(
+              {
+                error:
+                  'name the app in the path: /api/v1/apps/managed/remove/<name>',
+              },
+              400
+            );
           const remoteDrivers = listRecords().some(
             r => r.managedBy !== 'user' && r.remote
           )

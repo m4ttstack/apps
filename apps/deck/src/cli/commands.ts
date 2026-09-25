@@ -155,11 +155,10 @@ export async function runCommand(
         if (rest.includes('--managed')) {
           const only = rest.find(a => !a.startsWith('--'));
           const { status, body } = await apiJson(
-            `/api/v1/apps/managed/remove`,
-            {
-              method: 'POST',
-              ...(only && { body: JSON.stringify({ name: only }) }),
-            }
+            only
+              ? `/api/v1/apps/managed/remove/${encodeURIComponent(only)}`
+              : `/api/v1/apps/managed/remove`,
+            { method: 'POST' }
           );
           if (status !== 200) {
             io.err(body.error ?? `failed (${status})`);

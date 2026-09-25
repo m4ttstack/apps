@@ -30,7 +30,8 @@ const { FakeServiceManager } = await import('../services/fake.ts');
 const { FakeEdgeProxy } = await import('../edge/portless.ts');
 const { FakeTunnelDriver } = await import('../edge/tunnel.ts');
 const { FakeCfDns } = await import('../../test/fixture/remote.ts');
-const { reloadRegistry, getRecord } = await import('../registry/records.ts');
+const { reloadRegistry, getRecord, putRecord } =
+  await import('../registry/records.ts');
 const { reloadPlatformSettings } = await import('./platform-settings.ts');
 
 const PORT = 18917;
@@ -362,6 +363,73 @@ test('managed/reresolve answers 200 with the ok/restarted/unchanged/failed body 
     unchanged: [],
     failed: [],
   });
+});
+
+test('managed/remove/<name> removes only that managed row', async () => {
+  for (const [name, port] of [
+    ['mr-one', 12101],
+    ['mr-two', 12102],
+  ] as const)
+    putRecord({
+      name,
+      managedBy: 'rt',
+      port,
+      kind: 'external',
+      createdAt: '2026-09-25T00:00:00Z',
+    });
+  putRecord({
+    name: 'mr-mine',
+    managedBy: 'user',
+    port: 12103,
+    kind: 'external',
+    createdAt: '2026-09-25T00:00:00Z',
+  });
+
+  const one = await api('/api/v1/apps/managed/remove/mr-one', {
+    method: 'POST',
+  });
+  expect(one.status).toBe(200);
+  expect(await one.json()).toMatchObject({
+    ok: true,
+    removed: ['mr-one'],
+    failed: [],
+  });
+  expect(getRecord('mr-one')).toBeUndefined();
+  expect(getRecord('mr-two')).toBeDefined();
+
+  const ghost = await api('/api/v1/apps/managed/remove/mr-ghost', {
+    method: 'POST',
+  });
+  expect(ghost.status).toBe(404);
+  const mine = await api('/api/v1/apps/managed/remove/mr-mine', {
+    method: 'POST',
+  });
+  expect(mine.status).toBe(409);
+  expect(getRecord('mr-two')).toBeDefined();
+  expect(getRecord('mr-mine')).toBeDefined();
+});
+
+test('managed/remove refuses a name in its body instead of removing every managed row', async () => {
+  for (const [name, port] of [
+    ['mb-one', 12111],
+    ['mb-two', 12112],
+  ] as const)
+    putRecord({
+      name,
+      managedBy: 'rt',
+      port,
+      kind: 'external',
+      createdAt: '2026-09-25T00:00:00Z',
+    });
+
+  const res = await post('/api/v1/apps/managed/remove', { name: 'mb-one' });
+
+  expect(res.status).toBe(400);
+  expect((await res.json()).error).toContain(
+    '/api/v1/apps/managed/remove/<name>'
+  );
+  expect(getRecord('mb-one')).toBeDefined();
+  expect(getRecord('mb-two')).toBeDefined();
 });
 
 test('publish flips settings through the versioned path', async () => {

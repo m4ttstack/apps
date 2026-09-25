@@ -169,6 +169,36 @@ test('remove --managed <name> removes only that app', async () => {
   setServeShapeDeps({});
 });
 
+test('remove --managed <name> against a deck that predates named removes fails instead of removing every managed app', async () => {
+  const bulkCalls: string[] = [];
+  const oldDeck = Bun.serve({
+    port: 0,
+    hostname: '127.0.0.1',
+    fetch(req) {
+      const { pathname } = new URL(req.url);
+      if (pathname === '/api/v1/apps/managed/remove') {
+        bulkCalls.push(req.method);
+        return Response.json({
+          ok: true,
+          removed: ['board', 'chat', 'console'],
+          failed: [],
+        });
+      }
+      return Response.json({ error: 'not found' }, { status: 404 });
+    },
+  });
+  writeApiInfo(oldDeck.port!);
+  try {
+    const x = io();
+    expect(await runCommand(['remove', '--managed', 'chat'], x)).toBe(1);
+    expect(bulkCalls).toEqual([]);
+    expect(x.lines.join('\n')).toContain('not found');
+  } finally {
+    writeApiInfo(PORT);
+    oldDeck.stop(true);
+  }
+});
+
 test('unknown verb exits 2 with usage', async () => {
   const x = io();
   expect(await runCommand(['frobnicate'], x)).toBe(2);
