@@ -12,6 +12,7 @@ import {
   fieldSource,
   firstSentence,
   isRung,
+  layerLabel,
   leafWrite,
   NO_FILTER,
   rungBase,
@@ -282,5 +283,11 @@ describe('layer rungs and write targets', () => {
   it('the scope filter matches a repo rung by its store', () => {
     const f = { ...NO_FILTER, scope: 'team' as const };
     expect(applyFilter([roles('team.repo')], f)).toHaveLength(1);
+  });
+
+  it('layerLabel names a rung distinctly from its global layer', () => {
+    expect(layerLabel('team.repo')).toBe('team · repo');
+    expect(layerLabel('team')).toBe('team');
+    expect(layerLabel('machine.repo')).toBe('machine · repo');
   });
 });

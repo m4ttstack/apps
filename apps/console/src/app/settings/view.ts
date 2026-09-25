@@ -70,6 +70,14 @@ export function rungOf(scope: StoreScope, repo: string | null): LayerScope {
   return repo ? (`${scope}.repo` as RungScope) : scope;
 }
 
+/** How a layer reads in UI copy: a rung as its store name plus `· repo`, a
+    global layer as its own name. The one source every layer-naming string
+    reads from, so a rung and its global layer never share an accessible
+    name. */
+export function layerLabel(scope: LayerScope): string {
+  return isRung(scope) ? `${rungBase(scope)} · repo` : scope;
+}
+
 export interface WriteTarget {
   scope: StoreScope;
   repo?: string;

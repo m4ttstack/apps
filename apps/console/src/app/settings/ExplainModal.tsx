@@ -33,7 +33,7 @@ import {
   type ConsoleStore,
 } from './useConsoleSettings';
 import { useRowSave, type RowStore } from './useRowSave';
-import { rungBase, type LayerScope } from './view';
+import { layerLabel, rungBase, type LayerScope } from './view';
 
 export type ExplainStore = Pick<
   ConsoleStore,
@@ -121,6 +121,7 @@ function LayerLine({
   }, [row]); // eslint-disable-line react-hooks/exhaustive-deps
   const scope = row.scope;
   const store = rungBase(scope);
+  const label = store ? layerLabel(scope as LayerScope) : null;
   const allowed = store !== null && def.scopes.includes(store);
   const writable = allowed && def.writable && !def.secret;
   const kind = rowKind(def);
@@ -216,7 +217,7 @@ function LayerLine({
           style={{ flex: 'none' }}
         >
           {editable && store && (
-            <Tooltip label={editing ? 'Cancel' : `Set at ${store}`}>
+            <Tooltip label={editing ? 'Cancel' : `Set at ${label}`}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
@@ -224,8 +225,8 @@ function LayerLine({
                 disabled={busy}
                 aria-label={
                   editing
-                    ? `cancel editing ${def.key} at ${store}`
-                    : `set ${def.key} at ${store}`
+                    ? `cancel editing ${def.key} at ${label}`
+                    : `set ${def.key} at ${label}`
                 }
                 onClick={() => setEditing(e => !e)}
               >
@@ -234,13 +235,13 @@ function LayerLine({
             </Tooltip>
           )}
           {writable && store && row.present && (
-            <Tooltip label={`Remove from ${store}`}>
+            <Tooltip label={`Remove from ${label}`}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
                 c={text.muted}
                 disabled={busy}
-                aria-label={`remove ${def.key} from ${store}`}
+                aria-label={`remove ${def.key} from ${label}`}
                 onClick={() => void onRemove(scope)}
               >
                 <Icons.trash size={14} />

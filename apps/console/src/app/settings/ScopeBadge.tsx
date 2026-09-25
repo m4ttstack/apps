@@ -1,6 +1,6 @@
 import { Badge, Box } from '@mattstack/app-kit/core';
 
-import { isRung, rungBase, type LayerScope, type StoreScope } from './view';
+import { layerLabel, rungBase, type LayerScope, type StoreScope } from './view';
 
 export const SCOPE_COLOR: Record<StoreScope, string> = {
   team: 'purple',
@@ -44,7 +44,7 @@ export function ScopeBadge({ scope }: { scope: LayerScope }) {
       }}
       styles={{ section: { marginInlineEnd: 4 } }}
     >
-      {isRung(scope) ? `${base} · repo` : scope}
+      {layerLabel(scope)}
     </Badge>
   );
 }

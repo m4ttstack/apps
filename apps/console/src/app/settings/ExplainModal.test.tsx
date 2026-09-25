@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ExplainModal, type ExplainStore } from './ExplainModal';
+import { SettingsRepoContext } from './useConsoleSettings';
 
 const KEY = 'board.agent.model';
 
@@ -281,5 +282,83 @@ describe('ExplainModal', () => {
   it('is closed without a key', () => {
     renderModal(store(), null);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('with a repo picked', () => {
+  const REPO = 'gitlab.example.com/acme/app';
+  const REPO_KEY = 'rt.roles';
+
+  const REPO_DEF: SettingDefWire = {
+    key: REPO_KEY,
+    type: 'string',
+    scopes: ['team', 'user', 'machine'],
+    merge: 'replace',
+    secret: false,
+    teamLocked: false,
+    repoScoped: true,
+    writable: true,
+    description: 'Per-repo dev role definitions.',
+    hasDefault: false,
+    defaultValue: null,
+    effective: { scope: 'team', file: '/stores/team.jsonc', value: 'global' },
+    storeVersion: 1,
+  };
+
+  const REPO_ROWS: ExplainRowWire[] = [
+    { scope: 'default', file: null, present: false },
+    {
+      scope: 'team',
+      file: '/stores/team.jsonc',
+      present: true,
+      value: 'global',
+    },
+    {
+      scope: 'team.repo',
+      file: '/stores/team-repo.jsonc',
+      present: true,
+      value: 'override',
+    },
+    { scope: 'user', file: '/stores/user.jsonc', present: false },
+    { scope: 'user.repo', file: '/stores/user-repo.jsonc', present: false },
+    { scope: 'machine', file: '/stores/local.jsonc', present: false },
+    {
+      scope: 'machine.repo',
+      file: '/stores/machine-repo.jsonc',
+      present: false,
+    },
+  ];
+
+  it('names a repo rung distinctly from its global layer', async () => {
+    explainGet.mockResolvedValue(ok({ def: REPO_DEF, rows: REPO_ROWS }));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderWithProviders(
+      <SettingsRepoContext.Provider value={REPO}>
+        <QueryClientProvider client={queryClient}>
+          <ExplainModal
+            settingKey={REPO_KEY}
+            store={store({ defs: [REPO_DEF] })}
+            onClose={vi.fn()}
+          />
+        </QueryClientProvider>
+      </SettingsRepoContext.Provider>
+    );
+
+    const globalRemove = await screen.findByRole('button', {
+      name: `remove ${REPO_KEY} from team`,
+    });
+    const rungRemove = screen.getByRole('button', {
+      name: `remove ${REPO_KEY} from team · repo`,
+    });
+    expect(globalRemove).not.toBe(rungRemove);
+
+    expect(
+      screen.getByRole('button', { name: `set ${REPO_KEY} at team` })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: `set ${REPO_KEY} at team · repo` })
+    ).toBeInTheDocument();
   });
 });

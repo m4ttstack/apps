@@ -5,7 +5,14 @@ import type { SettingDefWire } from '@mattstack/settings-kit/react';
 
 import { ScopeDot } from './ScopeBadge';
 import type { useRowSave } from './useRowSave';
-import { isRung, isStoreScope, rungBase, type StoreScope } from './view';
+import {
+  isRung,
+  isStoreScope,
+  layerLabel,
+  rungBase,
+  type LayerScope,
+  type StoreScope,
+} from './view';
 
 const SLOT = 28;
 
@@ -31,7 +38,7 @@ export function RowMenu({
     def.effective.invalid === undefined && !isRung(from)
       ? (def.scopes as StoreScope[]).filter(s => s !== from && isStoreScope(s))
       : [];
-  const label = isRung(from) ? `${base} · repo` : from;
+  const label = layerLabel(from as LayerScope);
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
