@@ -1,9 +1,16 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
-import { expect, test } from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
 
-import { readBundledIdentity } from './bundled-identity.ts';
+import {
+  effectiveIdentity,
+  readBundledIdentity,
+  setBundledResourcesDir,
+  statusIconUrl,
+} from './bundled-identity.ts';
+import { iconPathFor } from './manifest.ts';
+import type { AppRecord } from './records.ts';
 
 // Parity anchor: repo-tools scripts/lib/__tests__/fixtures/bundle-resources/
 // holds byte-identical files, and its staging test proves bundle-apps writes
@@ -100,4 +107,80 @@ test('an oversize or non-svg bundled icon yields no identity', () => {
     { 'i.svg': 'PNG' }
   );
   expect(readBundledIdentity(png, 'board')).toBeNull();
+});
+
+function record(over: Partial<AppRecord> = {}): AppRecord {
+  return {
+    name: 'board',
+    managedBy: 'rt',
+    port: 11006,
+    kind: 'service',
+    createdAt: '2026-09-24T00:00:00Z',
+    ...over,
+  };
+}
+
+afterEach(() => setBundledResourcesDir(undefined));
+
+test('an unlinked managed row takes its identity from the bundle', () => {
+  expect(effectiveIdentity(record(), FIXTURE_RESOURCES)).toEqual({
+    displayName: 'Board',
+    description: 'Open MRs ready for review.',
+    badge: '/api/badge',
+    iconFile: BOARD_ICON,
+  });
+});
+
+test('bundled identity replaces a stale stored identity on an unlinked row', () => {
+  const id = effectiveIdentity(
+    record({ displayName: 'Old', icon: { ext: 'svg' } }),
+    FIXTURE_RESOURCES
+  );
+  expect(id.displayName).toBe('Board');
+  expect(id.iconFile).toBe(BOARD_ICON);
+});
+
+test('a linked row with an ingested identity keeps it', () => {
+  const id = effectiveIdentity(
+    record({
+      dev: { workingDirectory: '/src/board' },
+      displayName: 'Board (source)',
+      icon: { ext: 'svg' },
+    }),
+    FIXTURE_RESOURCES
+  );
+  expect(id.displayName).toBe('Board (source)');
+  expect(id.iconFile).toBe(iconPathFor('board'));
+});
+
+test('a linked row that never ingested an identity falls back to the bundle', () => {
+  const id = effectiveIdentity(
+    record({ dev: { workingDirectory: '/src/board' } }),
+    FIXTURE_RESOURCES
+  );
+  expect(id.displayName).toBe('Board');
+});
+
+test('user and platform rows never read the bundle', () => {
+  expect(
+    effectiveIdentity(record({ managedBy: 'user' }), FIXTURE_RESOURCES)
+  ).toEqual({ displayName: 'board', iconFile: null });
+  expect(
+    effectiveIdentity(record({ managedBy: 'deck' }), FIXTURE_RESOURCES)
+  ).toEqual({ displayName: 'board', iconFile: null });
+});
+
+test('outside a bundle the stored fields are the identity', () => {
+  expect(effectiveIdentity(record(), null)).toEqual({
+    displayName: 'board',
+    iconFile: null,
+  });
+});
+
+test('statusIconUrl follows the effective identity through the seam', () => {
+  setBundledResourcesDir(FIXTURE_RESOURCES);
+  expect(statusIconUrl(record())).toBe('/api/apps/board/icon');
+  expect(statusIconUrl(record({ managedBy: 'deck' }))).toBe('/favicon.svg');
+  setBundledResourcesDir(null);
+  expect(statusIconUrl(record())).toBeNull();
 });
