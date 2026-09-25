@@ -1496,7 +1496,10 @@ export function Board() {
           canBack={queue.canBack}
           canNext={queue.canNext}
           onFocusPane={handleFocusPane}
-          onAnswered={() => queue.noteAnswered(activeGateId)}
+          onAnswered={() => {
+            queue.noteAnswered(activeGateId);
+            void load();
+          }}
           onContinue={() => queue.noteAnswered(activeGateId)}
           onLostChange={lost => queue.hold(lost ? activeGateId : null)}
           people={
