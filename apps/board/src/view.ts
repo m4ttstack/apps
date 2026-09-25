@@ -368,10 +368,21 @@ export function flattenStack<M extends BoardMR>(
   ];
 }
 
+/** GitLab counts approvals per rule, and one approver can fill several
+    rules, so `given` (approvers) and `required` (rule slots) are different
+    units. Every "n/m approved" reads this pair so the two never mix. */
+export function approvalSlots(mr: BoardMR): {
+  filled: number;
+  required: number;
+} {
+  const { required, remaining } = mr.reviews;
+  return { filled: Math.max(required - remaining, 0), required };
+}
+
 /** Approval ratio in [0,1]; used by the "progress" sort. */
 function progress(mr: BoardMR): number {
-  const req = mr.reviews.required;
-  if (req > 0) return mr.reviews.given / req;
+  const { filled, required } = approvalSlots(mr);
+  if (required > 0) return filled / required;
   return mr.reviews.given > 0 ? 1 : 0;
 }
 

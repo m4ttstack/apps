@@ -629,15 +629,30 @@ describe('sortMRs', () => {
     const list = [
       mr({
         iid: 1,
-        reviews: { required: 2, given: 0, isApproved: false } as any,
+        reviews: {
+          required: 2,
+          given: 0,
+          remaining: 2,
+          isApproved: false,
+        } as any,
       }),
       mr({
         iid: 2,
-        reviews: { required: 2, given: 2, isApproved: true } as any,
+        reviews: {
+          required: 2,
+          given: 2,
+          remaining: 0,
+          isApproved: true,
+        } as any,
       }),
       mr({
         iid: 3,
-        reviews: { required: 2, given: 1, isApproved: false } as any,
+        reviews: {
+          required: 2,
+          given: 1,
+          remaining: 1,
+          isApproved: false,
+        } as any,
       }),
     ];
     expect(sortMRs(list, 'progress').map(m => m.iid)).toEqual([2, 3, 1]);

@@ -7,6 +7,7 @@ import {
   EXECUTION_UNASSIGNED_MESSAGE,
   rowStatus,
   statusPhrase,
+  statusReasons,
 } from '../row-status.ts';
 
 const NOW = Date.parse('2026-09-12T12:00:00Z');
@@ -58,7 +59,13 @@ const settled = (over: Over = {}) =>
     ...over,
   } as never);
 const unapproved = (given: number, required: number) => ({
-  reviews: { isApproved: false, required, given, reviewers: [] },
+  reviews: {
+    isApproved: false,
+    required,
+    given,
+    remaining: required - given,
+    reviewers: [],
+  },
 });
 const blockedBy = (flags: Over) => ({ blockers: { any: true, ...flags } });
 const MERGEABLE = {
@@ -1598,6 +1605,7 @@ describe('statusPhrase: the pill says what the status group says', () => {
         isApproved: false,
         required: 2,
         given: 1,
+        remaining: 1,
         reviewers: [{ username: 'pat', reviewState: 'APPROVED' }],
       },
     };
@@ -1608,6 +1616,21 @@ describe('statusPhrase: the pill says what the status group says', () => {
     expect(
       statusPhrase(settled({ ...rosterApproved, reviewerComments: 2 }))
     ).toEqual({ text: '1/2 approved', hue: 'cyan' });
+  });
+
+  test('the count is rule slots filled, not approvers: one approver can fill many rules', () => {
+    const wide = settled({
+      reviews: {
+        isApproved: false,
+        required: 83,
+        given: 1,
+        remaining: 64,
+        reviewers: [{ username: 'pat', reviewState: 'APPROVED' }],
+      },
+      blockers: { any: true, awaitingApprovals: true },
+    });
+    expect(statusPhrase(wide)).toEqual({ text: '19/83 approved', hue: 'cyan' });
+    expect(statusReasons(wide)).toBe('blocked:\n· awaiting approvals (19/83)');
   });
 
   test('an untouched MR is amber', () => {
