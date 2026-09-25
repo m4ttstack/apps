@@ -1,4 +1,5 @@
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -67,6 +68,7 @@ type ServiceSpec = Parameters<
 >[0];
 const { agentsDir } = await import('../services/launchd.ts');
 const { catalogReport } = await import('../registry/catalog-report.ts');
+const { updatePlatformSettings } = await import('./platform-settings.ts');
 
 /** agentsDir() falls back to the real ~/Library/LaunchAgents when its env
     seam is unset, so a recursive rm checks it first. */
@@ -275,6 +277,57 @@ test('unregister: registrar-owned, 409 with escape hatch, force overrides', asyn
   expect(getRecord('myapp')).toBeUndefined();
   expect(drivers.manager.installed.size).toBe(0);
   expect(drivers.edge.aliases.size).toBe(0);
+});
+
+function writeRoutes(hostnames: string[]): void {
+  writeFileSync(
+    process.env.LOCAL_APPS_ROUTES_PATH!,
+    JSON.stringify(
+      hostnames.map(hostname => ({ hostname, port: 11008, pid: 0 }))
+    )
+  );
+}
+
+function routeHosts(): string[] {
+  return JSON.parse(
+    readFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, 'utf8')
+  ).map((r: { hostname: string }) => r.hostname);
+}
+
+test('unregister: a forced remove of a managed app also drops the .mattstack route deck wrote for it', async () => {
+  await registerApp({ ...input, managedBy: 'rt' }, drivers);
+  updatePlatformSettings({ tlds: ['localhost', 'mattstack'] });
+  writeRoutes(['myapp.mattstack', 'myapp-docs.mattstack']);
+
+  const res = await unregisterApp('myapp', 'user', true, drivers);
+
+  expect(res).toEqual({ status: 200, body: { ok: true } });
+  expect(routeHosts()).toEqual(['myapp-docs.mattstack']);
+});
+
+test('unregister: a route-only row whose only route is name.mattstack loses that route', async () => {
+  updatePlatformSettings({ tlds: ['localhost', 'mattstack'] });
+  writeRoutes(['gitq.mattstack', 'gitq-docs.mattstack']);
+
+  const res = await unregisterApp('gitq', 'user', false, drivers);
+
+  expect(res).toEqual({ status: 200, body: { ok: true } });
+  expect(routeHosts()).toEqual(['gitq-docs.mattstack']);
+});
+
+test('unregister: a route-only remove that cannot rewrite routes.json answers ok:false with the error', async () => {
+  updatePlatformSettings({ tlds: ['localhost', 'mattstack'] });
+  writeRoutes(['gitq.mattstack']);
+  chmodSync(process.env.LOCAL_APPS_ROUTES_PATH!, 0o444);
+  try {
+    const res = await unregisterApp('gitq', 'user', false, drivers);
+    expect(res.status).toBe(200);
+    expect((res.body as any).ok).toBe(false);
+    expect((res.body as any).error).toMatch(/EACCES/);
+  } finally {
+    chmodSync(process.env.LOCAL_APPS_ROUTES_PATH!, 0o644);
+  }
+  expect(routeHosts()).toEqual(['gitq.mattstack']);
 });
 
 test('edit re-ports: reinstalls the service on the new port and re-aliases', async () => {

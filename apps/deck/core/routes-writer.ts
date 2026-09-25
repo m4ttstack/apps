@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 
 import { bareName, routesPath } from './discover.ts';
 
@@ -76,4 +76,27 @@ export function repointRoutes(
   }
   if (moved.length) writeFileSync(path, JSON.stringify(routes, null, 2));
   return moved;
+}
+
+/** Drop every static (pid 0) host whose bare name is `name`, with the same
+    in-place write as setRoutePort. A host with a live pid belongs to a
+    `portless run` process, which portless prunes itself. Unlike the writers
+    above, an unreadable or unwritable file throws: a remove must be able to
+    report that the row it was asked to clear is still there. Returns the
+    hostnames removed; nothing is written when none were. */
+export function removeRoutes(name: string, tlds: string[]): string[] {
+  const path = routesPath();
+  if (!existsSync(path)) return [];
+  const routes: Array<Record<string, unknown>> = JSON.parse(
+    readFileSync(path, 'utf8')
+  );
+  const removed: string[] = [];
+  const kept = routes.filter(r => {
+    const host = String(r.hostname);
+    if (r.pid !== 0 || bareName(host, tlds) !== name) return true;
+    removed.push(host);
+    return false;
+  });
+  if (removed.length) writeFileSync(path, JSON.stringify(kept, null, 2));
+  return removed;
 }

@@ -1,4 +1,5 @@
 import {
+  chmodSync,
   existsSync,
   mkdtempSync,
   readFileSync,
@@ -14,7 +15,8 @@ const dir = mkdtempSync(join(tmpdir(), 'la-routes-'));
 process.env.LOCAL_APPS_ROUTES_PATH = join(dir, 'routes.json');
 const routesPath = process.env.LOCAL_APPS_ROUTES_PATH;
 
-const { repointRoutes, setRoutePort } = await import('./routes-writer.ts');
+const { removeRoutes, repointRoutes, setRoutePort } =
+  await import('./routes-writer.ts');
 const { readRoutes } = await import('./discover.ts');
 
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -145,4 +147,62 @@ test('repointRoutes writes nothing when every host already serves the port', () 
 
   expect(repointRoutes('deck', 7940, ['localhost'])).toEqual([]);
   expect(readFileSync(routesPath, 'utf8')).toBe(raw);
+});
+
+test("removeRoutes drops a name's static routes under every TLD, in place, and nothing else", () => {
+  writeFileSync(
+    routesPath,
+    JSON.stringify([
+      { hostname: 'gitq.localhost', port: 11008, pid: 0 },
+      { hostname: 'gitq.mattstack', port: 11008, pid: 0 },
+      { hostname: 'gitq-docs.mattstack', port: 11009, pid: 0 },
+      { hostname: 'gitq.docs.mattstack', port: 11010, pid: 0 },
+      { hostname: 'board.mattstack', port: 11006, pid: 0 },
+    ])
+  );
+  const before = statSync(routesPath).ino;
+
+  expect(removeRoutes('gitq', ['localhost', 'mattstack'])).toEqual([
+    'gitq.localhost',
+    'gitq.mattstack',
+  ]);
+
+  expect(
+    JSON.parse(readFileSync(routesPath, 'utf8')).map(
+      (r: { hostname: string }) => r.hostname
+    )
+  ).toEqual(['gitq-docs.mattstack', 'gitq.docs.mattstack', 'board.mattstack']);
+  expect(statSync(routesPath).ino).toBe(before);
+});
+
+test('removeRoutes leaves a route a live process owns to portless', () => {
+  writeFileSync(
+    routesPath,
+    JSON.stringify([{ hostname: 'gitq.localhost', port: 11008, pid: 4242 }])
+  );
+  const raw = readFileSync(routesPath, 'utf8');
+
+  expect(removeRoutes('gitq', ['localhost'])).toEqual([]);
+  expect(readFileSync(routesPath, 'utf8')).toBe(raw);
+});
+
+test('removeRoutes with no routes file has nothing to remove', () => {
+  rmSync(routesPath);
+  expect(removeRoutes('gitq', ['localhost'])).toEqual([]);
+  expect(existsSync(routesPath)).toBe(false);
+});
+
+test('removeRoutes throws when the write fails, so a remove can report it', () => {
+  writeFileSync(
+    routesPath,
+    JSON.stringify([{ hostname: 'gitq.mattstack', port: 11008, pid: 0 }])
+  );
+  chmodSync(routesPath, 0o444);
+  try {
+    expect(() => removeRoutes('gitq', ['localhost', 'mattstack'])).toThrow(
+      /EACCES/
+    );
+  } finally {
+    chmodSync(routesPath, 0o644);
+  }
 });

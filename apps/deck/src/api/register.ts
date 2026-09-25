@@ -8,6 +8,7 @@ import {
   readServices,
   type PortlessRoute,
 } from '../../core/discover.ts';
+import { removeRoutes } from '../../core/routes-writer.ts';
 import {
   clearOverride,
   getOverride,
@@ -358,7 +359,21 @@ async function flipRemoteBack(
   return flip.status === 200 ? null : flip;
 }
 
-/** Shared by unregisterApp and removeManagedApps: tears down a record's launchd service and portless alias. */
+/** Every route a name owns. portless's alias removal only matches the TLDs
+    its own proxy runs with, so it can miss the name.mattstack host deck
+    writes itself (reconcileMattstackTld); that one is dropped from the
+    route table directly. */
+function removeNameRoutes(
+  name: string,
+  drivers: Drivers
+): Promise<SyncIssue | null> {
+  return runDriver('portless', async () => {
+    await drivers.edge.removeAlias(name);
+    removeRoutes(name, getPlatformSettings().tlds);
+  });
+}
+
+/** Shared by unregisterApp and removeManagedApps: tears down a record's launchd service and routes. */
 async function teardownRecord(
   record: AppRecord,
   drivers: Drivers
@@ -370,9 +385,7 @@ async function teardownRecord(
     );
     if (issue) issues.push(issue);
   }
-  const portlessIssue = await runDriver('portless', () =>
-    drivers.edge.removeAlias(record.name)
-  );
+  const portlessIssue = await removeNameRoutes(record.name, drivers);
   if (portlessIssue) issues.push(portlessIssue);
 
   if (issues.length > 0) {
@@ -398,12 +411,10 @@ export async function unregisterApp(
     if (!knownRouteApp(name))
       return { status: 404, body: { error: 'unknown app' } };
     // Route-only teardown: no registry record, no launchd service -- the
-    // route IS the row, so removing the alias is the whole job. No
+    // routes ARE the row, so removing them is the whole job. No
     // structural authorization either, matching the publish endpoint's
     // treatment of route-only names.
-    const issue = await runDriver('portless', () =>
-      drivers.edge.removeAlias(name)
-    );
+    const issue = await removeNameRoutes(name, drivers);
     if (issue)
       return { status: 200, body: { ok: false, error: issue.message } };
     return { status: 200, body: { ok: true } };
