@@ -52,6 +52,18 @@
         "$TURBO_ROOT$/packages/ui/src/**",
         "$TURBO_ROOT$/packages/tokyo/src/**",
         "$TURBO_ROOT$/packages/tui-kit/src/**",
+        "$TURBO_ROOT$/packages/tui-kit/assets/**",
+        "!$TURBO_ROOT$/**/node_modules/**",
+        "!$TURBO_ROOT$/**/.turbo/**",
+        "!$TURBO_ROOT$/**/dist/**",
+        "!$TURBO_ROOT$/**/dist-bin/**"
+      ]
+    },
+    "boxscore#test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/turbo.json",
         "!$TURBO_ROOT$/**/node_modules/**",
         "!$TURBO_ROOT$/**/.turbo/**",
         "!$TURBO_ROOT$/**/dist/**",
@@ -77,6 +89,7 @@
     },
     "//#tokens:fresh": {
       "inputs": [
+        "bun.lock",
         "$TURBO_ROOT$/packages/tokens/**",
         "$TURBO_ROOT$/packages/tui-kit/src/generated/**",
         "$TURBO_ROOT$/packages/tui-kit/assets/**",
@@ -95,6 +108,7 @@
         "$TURBO_ROOT$/packages/ui/**",
         "$TURBO_ROOT$/packages/tokyo/**",
         "$TURBO_ROOT$/packages/gate-kit/src/**",
+        "$TURBO_ROOT$/packages/tokens/src/**",
         "$TURBO_ROOT$/apps/console/src/**",
         "$TURBO_ROOT$/apps/board/src/**",
         "!$TURBO_ROOT$/**/node_modules/**",

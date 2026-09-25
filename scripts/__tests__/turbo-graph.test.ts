@@ -130,6 +130,7 @@ describe('turbo task graph', () => {
     expect(inputs.some(f => f.startsWith('../ui/src/'))).toBe(true);
     expect(inputs.some(f => f.startsWith('../tokyo/src/'))).toBe(true);
     expect(inputs.some(f => f.startsWith('../tui-kit/src/'))).toBe(true);
+    expect(inputs.some(f => f.startsWith('../tui-kit/assets/'))).toBe(true);
   });
 
   test('no root task hashes ignored build output', () => {
