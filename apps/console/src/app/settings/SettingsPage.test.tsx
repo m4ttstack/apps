@@ -5,6 +5,8 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { schemaFields } from './testSchemas';
+
 vi.mock('../config/useSettings', () => ({
   useAgentModels: () => ({
     data: { models: [{ value: 'opus', label: 'Opus' }] },
@@ -27,6 +29,8 @@ function def(key: string, over: Partial<SettingDefWire> = {}): SettingDefWire {
     hasDefault: false,
     defaultValue: null,
     effective: { scope: null, file: null },
+    storeVersion: 1,
+    ...schemaFields(key),
     ...over,
   };
 }

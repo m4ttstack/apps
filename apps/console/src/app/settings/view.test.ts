@@ -4,6 +4,7 @@ import type {
 } from '@mattstack/settings-kit/react';
 import { describe, expect, it } from 'vitest';
 
+import { schemaFields } from './testSchemas';
 import {
   applyFilter,
   badgeScope,
@@ -30,6 +31,8 @@ function def(key: string, over: Partial<SettingDefWire> = {}): SettingDefWire {
     hasDefault: false,
     defaultValue: null,
     effective: { scope: null, file: null },
+    storeVersion: 1,
+    ...schemaFields(key),
     ...over,
   };
 }

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SettingRow } from './SettingRow';
+import { schemaFields } from './testSchemas';
 
 function def(key: string, over: Partial<SettingDefWire>): SettingDefWire {
   return {
@@ -20,6 +21,8 @@ function def(key: string, over: Partial<SettingDefWire>): SettingDefWire {
     hasDefault: false,
     defaultValue: null,
     effective: { scope: null, file: null },
+    storeVersion: 1,
+    ...schemaFields(key),
     ...over,
   };
 }

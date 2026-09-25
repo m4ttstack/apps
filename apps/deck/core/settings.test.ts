@@ -22,6 +22,20 @@ function userStorePath(): string {
   return join(process.env.HOME!, '.mattstack', 'user', 'settings.user.jsonc');
 }
 
+/** Writes a value straight into the user store, past rt-client's write
+    gate, for tests that need a malformed value on disk. */
+function seedUserStore(key: string, value: unknown): void {
+  const path = userStorePath();
+  mkdirSync(dirname(path), { recursive: true });
+  let current: Record<string, unknown> = {};
+  try {
+    current = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
+  } catch {
+    current = {};
+  }
+  writeFileSync(path, JSON.stringify({ ...current, [key]: value }, null, 2));
+}
+
 // Point the module at a throwaway file BEFORE importing it.
 const dir = mkdtempSync(join(tmpdir(), 'la-settings-'));
 process.env.LOCAL_APPS_SETTINGS_PATH = join(dir, 'settings.json');
@@ -477,7 +491,7 @@ test("store key present: a file-write failure's store revert overlays the curren
 });
 
 test('a resolver throw on the ownership probe degrades to unowned rather than crashing the write', async () => {
-  setSetting('deck.apps', { poison: '${repoRoot}' }, 'user');
+  seedUserStore('deck.apps', { poison: '${repoRoot}' });
   reloadSettings(); // load()'s own fallback already tolerates this; unaffected by the probe fix
 
   await expect(setPublished('nihongo', false)).resolves.toBeUndefined();

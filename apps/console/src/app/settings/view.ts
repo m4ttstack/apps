@@ -9,6 +9,7 @@ import {
   isSet,
   rowKind,
   setLeaf,
+  type RowKind,
 } from '@mattstack/settings-kit/shapes';
 
 import { groupOf, GROUPS, type Group } from './groups';
@@ -49,9 +50,18 @@ export function isStoreScope(s: string | null | undefined): s is StoreScope {
   return s === 'team' || s === 'user' || s === 'machine';
 }
 
+/** Row kinds console draws an editor for. JSON kinds join as their editors
+    land; until then they render read-only and do not count as editable. */
+export const EDITOR_KINDS: ReadonlySet<RowKind> = new Set<RowKind>([
+  'scalar',
+  'enum',
+  'stringList',
+  'stringMap',
+  'leaves',
+]);
+
 export function isEditable(def: SettingDefWire): boolean {
-  const kind = rowKind(def);
-  return kind !== 'readonly' && kind !== 'external';
+  return EDITOR_KINDS.has(rowKind(def));
 }
 
 export function applyFilter(

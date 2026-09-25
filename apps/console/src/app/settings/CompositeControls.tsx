@@ -30,11 +30,10 @@ import {
 import {
   addToList,
   getLeaf,
-  matchesShape,
-  SHAPES,
+  matchesSchema,
+  recognize,
   summarize,
   targetScope,
-  type CompositeShape,
   type LeafType,
   type RowKind,
 } from '@mattstack/settings-kit/shapes';
@@ -640,17 +639,9 @@ function ShapeLock({
   );
 }
 
-/** A deep key's merged value can fail its shape because of any layer, so
+/** A deep key's merged value can fail its schema because of any layer, so
     Clear targets the strongest layer whose own value fails, not the winner. */
-function DeepShapeLock({
-  def,
-  row,
-  shape,
-}: {
-  def: SettingDefWire;
-  row: Row;
-  shape: CompositeShape;
-}) {
+function DeepShapeLock({ def, row }: { def: SettingDefWire; row: Row }) {
   const { rows, loading } = useSettingKey(def.key);
   const bad = [...rows]
     .reverse()
@@ -659,7 +650,7 @@ function DeepShapeLock({
         r.present &&
         isStoreScope(r.scope) &&
         r.value !== undefined &&
-        !matchesShape(shape, r.value)
+        !matchesSchema(def, r.value)
     );
   return (
     <ShapeLock
@@ -688,7 +679,7 @@ export function compositeParts(
   open: boolean,
   onToggle: () => void
 ): { control: ReactNode; body: ReactNode } {
-  const shape = SHAPES[def.key];
+  const shape = recognize(def.schema);
   const value = def.effective.value;
   const toggle = (
     <ExpandToggle label={summarize(def)} open={open} onToggle={onToggle} />
@@ -698,21 +689,19 @@ export function compositeParts(
       ? { control: <UnsetSummary />, body: null }
       : { control: toggle, body: open ? <ReadonlyBody def={def} /> : null };
 
-  // Secret and unwritable keys can still carry a SHAPES entry; they must
-  // reach neither an editor nor the Clear escape hatch.
-  if (kind === 'readonly' || !shape) return readonly;
+  if (kind !== 'stringList' && kind !== 'stringMap' && kind !== 'leaves')
+    return readonly;
 
   // An invalid winning layer arrives with no value; an editor seeded from
   // nothing would discard whatever that layer stores on its first edit.
   if (
-    shape.kind !== 'external' &&
-    (def.effective.invalid !== undefined ||
-      (value !== undefined && !matchesShape(shape, value)))
+    def.effective.invalid !== undefined ||
+    (value !== undefined && !matchesSchema(def, value))
   ) {
     return {
       control:
         def.merge === 'deep' && def.effective.invalid === undefined ? (
-          <DeepShapeLock def={def} row={row} shape={shape} />
+          <DeepShapeLock def={def} row={row} />
         ) : (
           <ShapeLock at={def.effective.scope} row={row} />
         ),
@@ -735,17 +724,23 @@ export function compositeParts(
       body: open ? <StringListBody def={def} row={row} /> : null,
     };
   }
-  if (kind === 'stringMap' && shape.kind === 'stringMap')
+  if (shape.kind === 'stringMap')
     return {
       control: toggle,
       body: open ? (
         <StringMapBody def={def} row={row} labels={shape.labels} />
       ) : null,
     };
-  if (kind === 'leaves' && shape.kind === 'leaves')
+  if (shape.kind === 'leaves')
     return {
       control: toggle,
-      body: open ? <LeavesBody def={def} row={row} shape={shape} /> : null,
+      body: open ? (
+        <LeavesBody
+          def={def}
+          row={row}
+          shape={{ fields: shape.fields, fallbacks: shape.placeholders }}
+        />
+      ) : null,
     };
   return readonly;
 }
