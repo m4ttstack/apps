@@ -46,6 +46,7 @@ early would brick rebuilds of older tags whose deps.lock still points
 at the old repo. Boxscore is exempt from this gate: it has no
 deps.lock row (it does not ship in the bundle) and can archive as soon
 as its fold-in merges.
+Since 2026-09-24 boxscore is bundle-ready (`includeInBundle` and a `bundle` recipe in `apps/boxscore/mattstack.deck.json`) and ships from its own deps.lock row.
 
 **f. NPM_READ_TOKEN.** The four platform packages (`@mattstack/app-kit`,
 `@mattstack/app-server`, `@mattstack/mantine-tokyo`, `@mattstack/tui-kit`)

@@ -108,3 +108,13 @@ describe('compiled binary hardening', () => {
     expect(script).toContain('--no-compile-autoload-bunfig');
   });
 });
+
+describe('CI binary gate', () => {
+  it('builds the binary and then runs the gate in the checks job', () => {
+    const ci = readFileSync('../../.github/workflows/ci.yml', 'utf8');
+    const build = ci.indexOf('cd apps/boxscore && bun run build:binary');
+    const gate = ci.indexOf('bash apps/boxscore/scripts/binary-gate.sh');
+    expect(build).toBeGreaterThan(-1);
+    expect(gate).toBeGreaterThan(build);
+  });
+});
