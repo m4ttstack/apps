@@ -30,6 +30,7 @@ import {
   PROXY_WAIT_MS,
   reconcileRestarting,
   REFRESH_MS,
+  registerOutcome,
   sections as sectionsOf,
   subline as sublineOf,
   tunnels as tunnelsOf,
@@ -47,6 +48,10 @@ export interface EditingState {
 }
 
 export interface AddModalState {
+  /** 'dir' asks for the app's directory and registers from its manifest;
+      'manual' is the hand-filled form. */
+  step: 'dir' | 'manual';
+  dir: string;
   name: string;
   external: boolean;
   command: string;
@@ -152,6 +157,19 @@ async function pollCommandRun(
     if (st.status === 'exited') return { exitCode: st.exitCode ?? 0 };
   }
   return 'timeout';
+}
+
+function blankAddModal(step: AddModalState['step']): AddModalState {
+  return {
+    step,
+    dir: '',
+    name: '',
+    external: false,
+    command: '',
+    workingDirectory: '',
+    staticPort: '',
+    error: null,
+  };
 }
 
 export function useBoardState() {
@@ -452,14 +470,10 @@ export function useBoardState() {
 
   // ---- add ----
   const openAdd = useCallback(() => {
-    setAddModal({
-      name: '',
-      external: false,
-      command: '',
-      workingDirectory: '',
-      staticPort: '',
-      error: null,
-    });
+    setAddModal(blankAddModal('dir'));
+  }, []);
+  const openManualAdd = useCallback((name: string) => {
+    setAddModal({ ...blankAddModal('manual'), name });
   }, []);
   const closeAdd = useCallback(() => setAddModal(null), []);
   const updateAddModal = useCallback((patch: Partial<AddModalState>) => {
@@ -467,17 +481,38 @@ export function useBoardState() {
   }, []);
   const submitAdd = useCallback(async () => {
     if (!addModal) return;
-    const payload = addPayload(addModal);
     try {
-      const res = await apiPost('/api/v1/apps', payload);
-      const body = await res
-        .json()
-        .catch(() => ({}) as { message?: string; error?: string });
-      if (!res.ok) {
-        updateAddModal({
-          error: body.message || body.error || `failed (${res.status})`,
-        });
-        return;
+      if (addModal.step === 'dir') {
+        const dir = addModal.dir.trim();
+        const res = await apiPost('/api/v1/apps/register', { dir });
+        const outcome = registerOutcome(
+          res.status,
+          await res.json().catch(() => ({}))
+        );
+        if (outcome.kind === 'no-manifest') {
+          updateAddModal({
+            step: 'manual',
+            dir,
+            workingDirectory: dir,
+            error: null,
+          });
+          return;
+        }
+        if (outcome.kind === 'error') {
+          updateAddModal({ error: outcome.message });
+          return;
+        }
+      } else {
+        const res = await apiPost('/api/v1/apps', addPayload(addModal));
+        const body = await res
+          .json()
+          .catch(() => ({}) as { message?: string; error?: string });
+        if (!res.ok) {
+          updateAddModal({
+            error: body.message || body.error || `failed (${res.status})`,
+          });
+          return;
+        }
       }
       setAddModal(null);
     } catch (err) {
@@ -822,6 +857,7 @@ export function useBoardState() {
     onPushRemote,
     addModal,
     openAdd,
+    openManualAdd,
     closeAdd,
     updateAddModal,
     submitAdd,
