@@ -22,6 +22,25 @@
     "lint": {},
     "test": {
       "dependsOn": ["^build"]
+    },
+    "serve-check": {},
+    "chat#serve-check": {
+      "dependsOn": ["build"]
+    },
+    "mattstack-console#serve-check": {
+      "dependsOn": ["build:binary"]
+    },
+    "boxscore#serve-check": {
+      "dependsOn": ["build:binary"]
+    },
+    "@mattstack/tui-kit#browsers": {
+      "cache": false
+    },
+    "@mattstack/tui-kit#test": {
+      "dependsOn": ["^build", "browsers"]
+    },
+    "@mattstack/tui-kit#gates": {
+      "dependsOn": ["^build"]
     }
   }
 }
