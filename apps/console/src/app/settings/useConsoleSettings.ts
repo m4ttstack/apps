@@ -248,8 +248,8 @@ export function useRepos(): { repos: RepoOption[]; error: string | null } {
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    getJson<{ repos: RepoOption[] }>(`${BASE}/repos`)
-      .then(body => alive && setRepos(body.repos))
+    getJson<{ repos?: RepoOption[] }>(`${BASE}/repos`)
+      .then(body => alive && setRepos(body.repos ?? []))
       .catch((err: Error) => alive && setError(err.message));
     return () => {
       alive = false;

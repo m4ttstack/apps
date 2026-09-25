@@ -699,3 +699,39 @@ describe('with a repo picked', () => {
     );
   });
 });
+
+describe('repo reach', () => {
+  it('a repo-scoped row says it edits all repos and how many repos set it', () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.worktreeCwd', {
+          scopes: ['user', 'team'],
+          repoScoped: true,
+          repos: [
+            { identity: 'gitlab.example.com/acme/app', scopes: ['team'] },
+            { identity: 'gitlab.example.com/acme/web', scopes: ['user'] },
+          ],
+          effective: { scope: 'user', file: '/u', value: 'a' },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.getByText('all repos · set in 2 repos')).toBeInTheDocument();
+  });
+
+  it('a key that is not repo-scoped says nothing about repos', () => {
+    renderWithProviders(
+      <SettingRow
+        def={def('agent.claude.effort', {
+          effective: { scope: 'user', file: '/u', value: 'high' },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.queryByText(/all repos/)).toBeNull();
+  });
+});

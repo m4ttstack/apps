@@ -20,6 +20,7 @@ import {
 } from '@mattstack/settings-kit/shapes';
 
 import { compositeParts } from './CompositeControls';
+import { RepoReach } from './RepoReach';
 import { RowMenu } from './RowMenu';
 import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
@@ -147,6 +148,7 @@ export function SettingRow({
                 {plain}
               </Text>
             ) : null}
+            <RepoReach def={def} />
           </Group>
           <Marked
             text={

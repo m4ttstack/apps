@@ -78,6 +78,13 @@ export function layerLabel(scope: LayerScope): string {
   return isRung(scope) ? `${rungBase(scope)} · repo` : scope;
 }
 
+/** A repo identity's display label: everything after the host, the same
+    rule settings-kit's /repos uses. */
+export function repoLabel(identity: string): string {
+  const at = identity.indexOf('/');
+  return at < 0 ? identity : identity.slice(at + 1);
+}
+
 export interface WriteTarget {
   scope: StoreScope;
   repo?: string;

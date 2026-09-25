@@ -361,4 +361,54 @@ describe('with a repo picked', () => {
       screen.getByRole('button', { name: `set ${REPO_KEY} at team · repo` })
     ).toBeInTheDocument();
   });
+
+  it('with all repos, lists each repo that sets the key and switches to it', async () => {
+    const REPO = 'gitlab.example.com/acme/app';
+    const ROLES: SettingDefWire = {
+      ...DEF,
+      key: 'rt.roles',
+      type: 'object',
+      scopes: ['user', 'team', 'machine'],
+      merge: 'deep',
+      repoScoped: true,
+      repos: [{ identity: REPO, scopes: ['team'] }],
+      effective: { scope: null, file: null },
+    };
+    explainGet.mockImplementation(async (url: string) =>
+      ok({
+        def: ROLES,
+        rows: url.includes('repo=')
+          ? [
+              { scope: 'default', file: null, present: false },
+              {
+                scope: 'team.repo',
+                file: '/home/team/settings.team.jsonc',
+                present: true,
+                value: { dev: { fixedPort: 3000 } },
+              },
+            ]
+          : [{ scope: 'default', file: null, present: false }],
+      })
+    );
+    const onPickRepo = vi.fn();
+    const queryClient = new QueryClient();
+    renderWithProviders(
+      <QueryClientProvider client={queryClient}>
+        <ExplainModal
+          settingKey="rt.roles"
+          store={store({ defs: [ROLES] })}
+          onClose={vi.fn()}
+          onPickRepo={onPickRepo}
+        />
+      </QueryClientProvider>
+    );
+    const section = await screen.findByTestId(`repo-${REPO}`);
+    expect(within(section).getByText('acme/app')).toBeInTheDocument();
+    expect(within(section).getByText('team · repo')).toBeInTheDocument();
+    expect(section).toHaveTextContent('"fixedPort": 3000');
+    await userEvent.click(
+      within(section).getByRole('button', { name: 'Show acme/app' })
+    );
+    expect(onPickRepo).toHaveBeenCalledWith(REPO);
+  });
 });

@@ -26,6 +26,7 @@ import { PAGE_ROW_HEIGHT } from '../chrome';
 import { ExplainModal } from './ExplainModal';
 import { useExplainParam } from './explainParam';
 import { TIER_LABEL, type Tier } from './groups';
+import { RepoPicker } from './RepoPicker';
 import { ScopeDot } from './ScopeBadge';
 import { SettingsSection, type Provider } from './SettingsSection';
 import { SettingsRepoContext, useConsoleSettings } from './useConsoleSettings';
@@ -165,6 +166,17 @@ export function SettingsPage() {
       { replace: true }
     );
 
+  const setRepo = (next: string | null) =>
+    setParams(
+      prev => {
+        const p = new URLSearchParams(prev);
+        if (next) p.set('repo', next);
+        else p.delete('repo');
+        return p;
+      },
+      { replace: true }
+    );
+
   const sections = useMemo(
     () =>
       buildSections(store.defs, { query, changedOnly, editableOnly, scope }),
@@ -234,16 +246,19 @@ export function SettingsPage() {
                 >
                   Settings
                 </Title>
-                {asOf && (
-                  <Group gap={6} wrap="nowrap">
-                    <Text fz={12} ff="monospace" c={text.muted}>
-                      {'>_ rt settings list'}
-                    </Text>
-                    <Text fz={12} c={text.muted}>
-                      {`${total} keys · as of ${asOf.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
-                    </Text>
-                  </Group>
-                )}
+                <Group gap={12} wrap="nowrap">
+                  <RepoPicker value={repo} onChange={setRepo} />
+                  {asOf && (
+                    <Group gap={6} wrap="nowrap">
+                      <Text fz={12} ff="monospace" c={text.muted}>
+                        {'>_ rt settings list'}
+                      </Text>
+                      <Text fz={12} c={text.muted}>
+                        {`${total} keys · as of ${asOf.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
+                      </Text>
+                    </Group>
+                  )}
+                </Group>
               </Group>
               <Group gap={12} px={32} h={TOOLBAR_ROW} wrap="nowrap">
                 <TextInput
@@ -426,6 +441,7 @@ export function SettingsPage() {
           settingKey={explain.key}
           store={store}
           onClose={explain.close}
+          onPickRepo={setRepo}
         />
       </PageShell>
     </SettingsRepoContext.Provider>

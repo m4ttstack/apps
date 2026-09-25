@@ -5,6 +5,8 @@ import {
   Anchor,
   Badge,
   Box,
+  Button,
+  Code,
   Group,
   Modal,
   Skeleton,
@@ -33,7 +35,13 @@ import {
   type ConsoleStore,
 } from './useConsoleSettings';
 import { useRowSave, type RowStore } from './useRowSave';
-import { layerLabel, rungBase, type LayerScope } from './view';
+import {
+  isRung,
+  layerLabel,
+  repoLabel,
+  rungBase,
+  type LayerScope,
+} from './view';
 
 export type ExplainStore = Pick<
   ConsoleStore,
@@ -43,7 +51,9 @@ export type ExplainStore = Pick<
 const MODAL_WIDTH = 760;
 const ESCAPE_OWNERS =
   'input, textarea, select, [contenteditable="true"], [role="menu"], [role="listbox"]';
-const SCOPE_COL = 88;
+// Wide enough for the longest rung label ("machine · repo") without
+// truncating: a repo picked always adds a "· repo" suffix to a badge.
+const SCOPE_COL = 132;
 
 type Role = 'winner' | 'overridden' | 'contributor' | 'inert';
 type Provider = 'claude' | 'codex';
@@ -282,23 +292,83 @@ function LayerLine({
   );
 }
 
+function RepoSection({
+  settingKey,
+  identity,
+  onPick,
+}: {
+  settingKey: string;
+  identity: string;
+  onPick?: (repo: string) => void;
+}) {
+  const { text } = useSchemeColors();
+  const { rows, loading } = useKeyExplain(settingKey, identity);
+  const set = rows.filter(r => r.present && isRung(r.scope));
+  return (
+    <Box
+      py={10}
+      data-testid={`repo-${identity}`}
+      style={{ borderBottom: '1px solid var(--tk-border-soft)' }}
+    >
+      <Group gap={12} wrap="nowrap" justify="space-between">
+        <Text fz={13} ff="monospace">
+          {repoLabel(identity)}
+        </Text>
+        {onPick && (
+          <Button
+            size="compact-xs"
+            variant="default"
+            aria-label={`Show ${repoLabel(identity)}`}
+            onClick={() => onPick(identity)}
+          >
+            Show
+          </Button>
+        )}
+      </Group>
+      {loading ? (
+        <Skeleton h={28} mt={8} />
+      ) : (
+        set.map(r => (
+          <Stack key={r.scope} gap={4} pt={8}>
+            <ScopeBadge scope={r.scope as LayerScope} />
+            <Code block>{JSON.stringify(r.value, null, 2)}</Code>
+          </Stack>
+        ))
+      )}
+      {!loading && set.length === 0 && (
+        <Text fz={12} c={text.muted} pt={6}>
+          no repo section sets it now
+        </Text>
+      )}
+    </Box>
+  );
+}
+
 function ExplainBody({
   def: storeDef,
   store,
   onRead,
   onChanged,
+  onPickRepo,
 }: {
   def: SettingDefWire;
   store: RowStore;
   onRead: (at: Date) => void;
   onChanged?: () => void;
+  onPickRepo?: (repo: string) => void;
 }) {
   const { text } = useSchemeColors();
-  const explained = useKeyExplain(storeDef.key, useSettingsRepo());
+  const repo = useSettingsRepo();
+  const explained = useKeyExplain(storeDef.key, repo);
   const { refresh, rows, loading } = explained;
   // A settled explain read is fresher than a store loaded when the page
   // mounted; while a re-read runs, the store already holds the write.
-  const def = !loading && explained.def ? explained.def : storeDef;
+  // settings-kit 0.4.0's /explain route never sets `repos` (only /defs
+  // does), so it is carried over from storeDef regardless of freshness.
+  const def =
+    !loading && explained.def
+      ? { ...explained.def, repos: explained.def.repos ?? storeDef.repos }
+      : storeDef;
   useEffect(() => {
     if (!loading && rows.length > 0) onRead(new Date());
   }, [loading, rows, onRead]);
@@ -405,6 +475,32 @@ function ExplainBody({
           {layers.error}
         </Text>
       )}
+      {def.repoScoped && repo === null && (def.repos?.length ?? 0) > 0 && (
+        <>
+          <Group
+            gap={8}
+            pt={22}
+            pb={6}
+            wrap="nowrap"
+            style={{ borderBottom: '1px solid var(--tk-line-2)' }}
+          >
+            <Text fz={12} fw={500} tt="uppercase" lts={0.6} c={text.muted}>
+              Repos
+            </Text>
+            <Text fz={12} c={text.muted}>
+              · sections that override every repo's value for one repo
+            </Text>
+          </Group>
+          {def.repos!.map(r => (
+            <RepoSection
+              key={r.identity}
+              settingKey={def.key}
+              identity={r.identity}
+              onPick={onPickRepo}
+            />
+          ))}
+        </>
+      )}
     </Stack>
   );
 }
@@ -414,11 +510,13 @@ function Resolved({
   store,
   onRead,
   onChanged,
+  onPickRepo,
 }: {
   settingKey: string;
   store: ExplainStore;
   onRead: (at: Date) => void;
   onChanged?: () => void;
+  onPickRepo?: (repo: string) => void;
 }) {
   const { text } = useSchemeColors();
   const def = store.defs.find(d => d.key === settingKey);
@@ -430,6 +528,7 @@ function Resolved({
         store={store}
         onRead={onRead}
         onChanged={onChanged}
+        onPickRepo={onPickRepo}
       />
     );
   if (store.error)
@@ -483,11 +582,13 @@ export function ExplainModal({
   store,
   onClose,
   onChanged,
+  onPickRepo,
 }: {
   settingKey: string | null;
   store?: ExplainStore;
   onClose: () => void;
   onChanged?: () => void;
+  onPickRepo?: (repo: string) => void;
 }) {
   const { text, bg } = useSchemeColors();
   const key = useLastKey(settingKey);
@@ -541,6 +642,7 @@ export function ExplainModal({
             store={store}
             onRead={setReadAt}
             onChanged={onChanged}
+            onPickRepo={onPickRepo}
           />
         ) : (
           <OwnStore settingKey={key} onRead={setReadAt} onChanged={onChanged} />
