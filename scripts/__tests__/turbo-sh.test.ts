@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdtempSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, test } from 'bun:test';
@@ -16,18 +16,23 @@ function run(
     ...opts.env,
     TURBO_TELEMETRY_DISABLED: '1',
   };
-  if (opts.uname) {
-    const bin = mkdtempSync(join(tmpdir(), 'fake-uname-'));
-    writeFileSync(join(bin, 'uname'), `#!/bin/sh\necho ${opts.uname}\n`);
-    chmodSync(join(bin, 'uname'), 0o755);
-    env.PATH = `${bin}:${process.env.PATH}`;
+  let bin: string | undefined;
+  try {
+    if (opts.uname) {
+      bin = mkdtempSync(join(tmpdir(), 'fake-uname-'));
+      writeFileSync(join(bin, 'uname'), `#!/bin/sh\necho ${opts.uname}\n`);
+      chmodSync(join(bin, 'uname'), 0o755);
+      env.PATH = `${bin}:${process.env.PATH}`;
+    }
+    const proc = Bun.spawnSync(['bash', SCRIPT, ...args], { cwd: ROOT, env });
+    return {
+      code: proc.exitCode,
+      out: proc.stdout.toString(),
+      err: proc.stderr.toString(),
+    };
+  } finally {
+    if (bin) rmSync(bin, { recursive: true, force: true });
   }
-  const proc = Bun.spawnSync(['bash', SCRIPT, ...args], { cwd: ROOT, env });
-  return {
-    code: proc.exitCode,
-    out: proc.stdout.toString(),
-    err: proc.stderr.toString(),
-  };
 }
 
 // `check --dry=json` prints one JSON document per turbo invocation; each
@@ -50,14 +55,21 @@ const commonDir = Bun.spawnSync(
 
 describe('scripts/turbo.sh', () => {
   test('caches under the repo common git dir', () => {
+    const dry = run(['typecheck', '--filter=@mattstack/tokens', '--dry=json']);
+    expect(dry.code, dry.err).toBe(0);
+    const { hash } = documents(dry.out)[0].tasks.find(
+      t => t.taskId === '@mattstack/tokens#typecheck'
+    )!;
     const r = run([
       'typecheck',
       '--filter=@mattstack/tokens',
       '--output-logs=none',
     ]);
     expect(r.code, r.err).toBe(0);
-    expect(existsSync(join(commonDir, 'turbo-cache'))).toBe(true);
-  });
+    expect(
+      existsSync(join(commonDir, 'turbo-cache', `${hash}-meta.json`))
+    ).toBe(true);
+  }, 30_000);
 
   test('check runs codegen gates, then package gates, then root gates and the tokens suite', () => {
     const r = run(['check', '--dry=json']);

@@ -14,6 +14,7 @@ export type DryRun = {
     package: string;
     task: string;
     command: string;
+    hash: string;
     dependencies: string[];
     inputs?: Record<string, string>;
     cache: { status: string };
