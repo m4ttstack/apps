@@ -64,3 +64,13 @@ test('a throwing sweep is logged, never thrown into boot', async () => {
     '[reresolve] boot sweep failed: Error: launchctl gone',
   ]);
 });
+
+test('a bundled deck names the rows it does not serve', async () => {
+  const lines: string[] = [];
+  await reresolveOnBoot({
+    bundleRoot: '/Applications/mattstack.app',
+    reresolve: async () => swept({ notServed: ['gitq'] }),
+    log: line => lines.push(line),
+  });
+  expect(lines).toEqual(['[reresolve] boot: not-served gitq']);
+});

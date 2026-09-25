@@ -37,6 +37,7 @@ import {
 } from '../registry/records.ts';
 import {
   dataDir,
+  notServedHere,
   serveShape,
   type ResolvedShape,
   type ServeShapeDeps,
@@ -286,7 +287,7 @@ export async function registerApp(
 
   if (!input.adopt) {
     mkdirSync(logsDir(), { recursive: true });
-    if (isService) {
+    if (isService && !notServedHere(record, serveShapeDeps)) {
       const shape = serveShape(record, serveShapeDeps);
       if (shape)
         await tryDriver(name, 'launchd', () =>
@@ -433,6 +434,7 @@ export async function restartManagedApps(
   const failed: Array<{ name: string; error: string }> = [];
   for (const record of managed) {
     if (record.kind !== 'service' || !record.label) continue;
+    if (notServedHere(record, serveShapeDeps)) continue;
     try {
       // kickstart signals failure via its boolean return (label not
       // installed), not by throwing — same contract the single-app
@@ -448,19 +450,20 @@ export async function restartManagedApps(
 }
 
 /**
- * Selective restart after the dev/prod flavor may have moved: deck runs this
- * at boot, since switching between mattstack-dev.app and mattstack.app starts
- * a different deck, so every managed app must re-resolve its shape, but only
- * the ones whose resolved command actually moved get torn down and rebuilt. The diff is against the installed plist (ProgramArguments,
- * WorkingDirectory, EnvironmentVariables), not any last-resolved value on the
- * record, so a flip and a flip-back reads as the same "unchanged" outcome
- * both times.
+ * The flavor sweep. Deck runs it on every bundled start, which is every
+ * switch between mattstack-dev.app and mattstack.app, and it is the only
+ * writer that moves managed apps between shapes. An rt row prod does not
+ * serve loses its plist but keeps its record and dev link for the other
+ * flavor. Every other managed row is re-resolved and diffed against its
+ * installed plist (ProgramArguments, WorkingDirectory, EnvironmentVariables),
+ * so a flip and a flip-back both read as "unchanged".
  */
 export async function reresolveManagedApps(
   drivers: Drivers
 ): Promise<FlowResult> {
   const restarted: string[] = [];
   const unchanged: string[] = [];
+  const notServed: string[] = [];
   const failed: Array<{ name: string; error: string }> = [];
   for (const record of listRecords()) {
     if (
@@ -471,38 +474,62 @@ export async function reresolveManagedApps(
       continue;
     // The platform never restarts itself mid-request; bootstrapSelf owns its shape.
     if (isPlatformManagedBy(record.managedBy)) continue;
+    if (notServedHere(record, serveShapeDeps)) {
+      const issue = await runDriver('launchd', () =>
+        drivers.manager.uninstall(record.label!)
+      );
+      if (issue) {
+        addIssue(record.name, issue);
+        failed.push({ name: record.name, error: issue.message });
+        continue;
+      }
+      clearIssues(record.name, 'launchd');
+      clearIssues(record.name, 'dev-link');
+      notServed.push(record.name);
+      continue;
+    }
     const shape = serveShape(record, serveShapeDeps);
     if (!shape) {
       failed.push({ name: record.name, error: 'no runnable shape' });
       continue;
     }
-    let spec: ServiceSpec;
+    let built: BuiltSpec;
     try {
-      spec = specFor(record, shape);
+      built = buildSpec(record, shape);
     } catch (err) {
-      failed.push({ name: record.name, error: String(err).slice(0, 300) });
+      const message = String(err).slice(0, 300);
+      addIssue(record.name, {
+        source: 'launchd',
+        message,
+        at: new Date().toISOString(),
+      });
+      failed.push({ name: record.name, error: message });
       continue;
     }
-    const installed = readInstalledProgramArguments(record.label);
-    const installedCwd = readInstalledWorkingDirectory(record.label);
-    const installedEnv = readInstalledEnvironment(record.label);
-    if (
-      installed !== null &&
-      installed.length === spec.programArguments.length &&
-      installed.every((a, i) => a === spec.programArguments[i]) &&
-      installedCwd === spec.workingDirectory &&
-      installedEnv !== null &&
-      sameEnvironment(installedEnv, renderedEnvironment(spec))
-    ) {
-      unchanged.push(record.name);
+    const { spec, createdCwd } = built;
+    if (installedMatches(record.label, spec)) {
+      if (!createdCwd) {
+        clearIssues(record.name, 'launchd');
+        unchanged.push(record.name);
+        continue;
+      }
+      // The installed job has been failing to spawn on the missing dir, and
+      // launchd's KeepAlive backoff would otherwise decide when it recovers.
+      const ok = await drivers.manager
+        .kickstart(record.label)
+        .catch(() => false);
+      if (ok) {
+        clearIssues(record.name, 'launchd');
+        restarted.push(record.name);
+      } else {
+        failed.push({ name: record.name, error: 'kickstart failed' });
+      }
       continue;
     }
     // launchd has no atomic replace, so a failure between the two calls is a
-    // real possibility, not just a defensive catch: an uninstall that throws
-    // must not be followed by an install attempt (nothing to replace), and an
-    // install that throws leaves the app down -- loud enough to survive past
-    // this response body via a SyncIssue, the same convention editApp and
-    // registerApp already use for their own install failures.
+    // real possibility: an uninstall that throws must not be followed by an
+    // install attempt, and an install that throws leaves the app down, which
+    // is recorded as a SyncIssue so it outlives this response.
     const uninstallIssue = await runDriver('launchd', () =>
       drivers.manager.uninstall(record.label!)
     );
@@ -523,8 +550,21 @@ export async function reresolveManagedApps(
   }
   return {
     status: 200,
-    body: { ok: failed.length === 0, restarted, unchanged, failed },
+    body: { ok: failed.length === 0, restarted, unchanged, notServed, failed },
   };
+}
+
+function installedMatches(label: string, spec: ServiceSpec): boolean {
+  const installed = readInstalledProgramArguments(label);
+  const installedEnv = readInstalledEnvironment(label);
+  return (
+    installed !== null &&
+    installed.length === spec.programArguments.length &&
+    installed.every((a, i) => a === spec.programArguments[i]) &&
+    readInstalledWorkingDirectory(label) === spec.workingDirectory &&
+    installedEnv !== null &&
+    sameEnvironment(installedEnv, renderedEnvironment(spec))
+  );
 }
 
 /**
@@ -667,7 +707,9 @@ export async function editApp(
   // runnable one: resolve the prospective shape before any teardown call, not
   // after, or a patch that resolves to nothing tears down with nothing to fall
   // back on.
-  if (next.kind === 'service' && !serveShape(next, serveShapeDeps)) {
+  const servedHere =
+    next.kind === 'service' && !notServedHere(next, serveShapeDeps);
+  if (servedHere && !serveShape(next, serveShapeDeps)) {
     return {
       status: 400,
       body: {
@@ -720,7 +762,7 @@ export async function editApp(
   }
   if (portChanged) clearOverride(next.name);
   putRecord(next);
-  if (next.kind === 'service') {
+  if (servedHere) {
     const shape = serveShape(next, serveShapeDeps);
     if (shape)
       await tryDriver(next.name, 'launchd', () =>
@@ -844,6 +886,7 @@ export async function reinstallSupervised(
       !record.label
     )
       continue;
+    if (notServedHere(record, serveShapeDeps)) continue;
     const shape = serveShape(record, serveShapeDeps);
     if (!shape) {
       failed.push(record.name);

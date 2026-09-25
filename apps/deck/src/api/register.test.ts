@@ -10,6 +10,8 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 
+import type { AppRecord } from '../registry/records.ts';
+
 const dir = mkdtempSync(join(tmpdir(), 'local-flows-'));
 process.env.LOCAL_REGISTRY_PATH = join(dir, 'registry.json');
 process.env.LOCAL_STATE_DIR = dir;
@@ -1128,6 +1130,49 @@ class CountingManager extends FakeServiceManager {
   }
 }
 
+/** Writes and removes real plist files the way LaunchdManager does, so the
+    sweep's diff reads what the previous sweep installed. */
+class PlistManager extends CountingManager {
+  override async install(spec: ServiceSpec): Promise<void> {
+    await super.install(spec);
+    mkdirSync(agentsDir(), { recursive: true });
+    writeFileSync(join(agentsDir(), `${spec.label}.plist`), renderPlist(spec));
+  }
+  override async uninstall(label: string): Promise<void> {
+    await super.uninstall(label);
+    rmSync(join(agentsDir(), `${label}.plist`), { force: true });
+  }
+}
+
+const AT = '2026-09-24T00:00:00Z';
+
+function checkout(name: string, start: string): string {
+  const dir = mkdtempSync(join(tmpdir(), `${name}-src-`));
+  writeFileSync(
+    join(dir, 'mattstack.deck.json'),
+    JSON.stringify({ name, dev: { start } })
+  );
+  return dir;
+}
+
+function rtRow(
+  name: string,
+  port: number,
+  over: Partial<AppRecord> = {}
+): void {
+  putRecord({
+    name,
+    managedBy: 'rt',
+    port,
+    kind: 'service',
+    label: `${LABEL_PREFIX}${name}`,
+    createdAt: AT,
+    ...over,
+  });
+}
+
+const CHAT_ONLY = new Map([['chat', { port: 11002, args: [] as string[] }]]);
+
 test('reresolve: reinstalls only the app whose resolved command differs from its installed plist', async () => {
   const counting = new CountingManager();
   const reresolveDrivers = { manager: counting, edge: drivers.edge };
@@ -1528,6 +1573,166 @@ test('reresolve: a later successful install clears the launchd issue a previous 
     failed: [],
   });
   expect(getRecord('recovered')!.issues ?? []).toEqual([]);
+});
+
+test('reresolve: prod does not serve an rt row outside the catalog; its plist goes, its row and dev link stay', async () => {
+  rmSync(agentsDir(), { recursive: true, force: true });
+  try {
+    const manager = new PlistManager();
+    const d = { manager, edge: drivers.edge };
+    const h = bundleHelpers('chat');
+    const gitqSrc = checkout('gitq', 'bun src/server/server.ts');
+    rtRow('gitq', 11008, { dev: { workingDirectory: gitqSrc } });
+    setServeShapeDeps({
+      devMode: () => true,
+      helpersDir: h.dir,
+      catalog: CHAT_ONLY,
+    });
+    await reresolveManagedApps(d);
+    const plist = join(agentsDir(), `${LABEL_PREFIX}gitq.plist`);
+    expect(existsSync(plist)).toBe(true);
+
+    setServeShapeDeps({
+      devMode: () => false,
+      helpersDir: h.dir,
+      catalog: CHAT_ONLY,
+    });
+    const body = (await reresolveManagedApps(d)).body as any;
+
+    expect(body).toMatchObject({ ok: true, notServed: ['gitq'], failed: [] });
+    expect(existsSync(plist)).toBe(false);
+    expect(manager.installed.has(`${LABEL_PREFIX}gitq`)).toBe(false);
+    expect(getRecord('gitq')!.dev).toEqual({ workingDirectory: gitqSrc });
+    expect(getRecord('gitq')!.issues).toBeUndefined();
+    expect(existsSync(dataDir('gitq'))).toBe(false);
+  } finally {
+    rmSync(agentsDir(), { recursive: true, force: true });
+  }
+});
+
+test('reresolve: prod with no catalog serves rt rows as before and marks none not-served', async () => {
+  const h = bundleHelpers('gitq');
+  setServeShapeDeps({ devMode: () => false, helpersDir: h.dir, catalog: null });
+  await registerApp(
+    {
+      ...input,
+      name: 'gitq',
+      managedBy: 'rt',
+      command: h.command('gitq', 'board'),
+    },
+    drivers
+  );
+  const body = (await reresolveManagedApps(drivers)).body as any;
+  expect(body.notServed).toEqual([]);
+  expect(
+    drivers.manager.installed.get(`${LABEL_PREFIX}gitq`)!.programArguments
+  ).toEqual([join(h.dir, 'gitq'), 'board']);
+});
+
+test('reresolve: an unchanged plist whose owned data dir went missing gets the dir back and a kickstart', async () => {
+  rmSync(agentsDir(), { recursive: true, force: true });
+  try {
+    const manager = new PlistManager();
+    const d = { manager, edge: drivers.edge };
+    const h = bundleHelpers('chat');
+    setServeShapeDeps({
+      devMode: () => false,
+      helpersDir: h.dir,
+      catalog: CHAT_ONLY,
+    });
+    rtRow('chat', 11002);
+    await reresolveManagedApps(d);
+    rmSync(dataDir('chat'), { recursive: true, force: true });
+    manager.kickstarts = [];
+
+    const body = (await reresolveManagedApps(d)).body as any;
+
+    expect(body).toMatchObject({
+      ok: true,
+      restarted: ['chat'],
+      unchanged: [],
+    });
+    expect(existsSync(dataDir('chat'))).toBe(true);
+    expect(manager.kickstarts).toEqual([`${LABEL_PREFIX}chat`]);
+    expect(manager.installCalls).toEqual([`${LABEL_PREFIX}chat`]);
+  } finally {
+    rmSync(agentsDir(), { recursive: true, force: true });
+  }
+});
+
+test('reresolve: a managed row whose non-owned cwd is gone is refused with a launchd issue and never installed', async () => {
+  const counting = new CountingManager();
+  const h = bundleHelpers('legacy');
+  const gone = join(tmpdir(), `gone-${Date.now()}`);
+  rtRow('legacy', 11050, {
+    command: h.command('legacy'),
+    workingDirectory: gone,
+  });
+  setServeShapeDeps({ devMode: () => false, helpersDir: h.dir, catalog: null });
+
+  const body = (
+    await reresolveManagedApps({ manager: counting, edge: drivers.edge })
+  ).body as any;
+
+  expect(body.failed).toEqual([
+    {
+      name: 'legacy',
+      error: expect.stringContaining(
+        `working directory ${gone} does not exist`
+      ),
+    },
+  ]);
+  expect(getRecord('legacy')!.issues![0]!.source).toBe('launchd');
+  expect(counting.installCalls).toEqual([]);
+});
+
+test('restartManagedApps skips a row prod does not serve, so the verb does not fail on its missing plist', async () => {
+  writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
+  const h = bundleHelpers('chat');
+  setServeShapeDeps({
+    devMode: () => false,
+    helpersDir: h.dir,
+    catalog: CHAT_ONLY,
+  });
+  rtRow('gitq', 11008);
+  await registerApp(
+    { ...input, name: 'chat', managedBy: 'rt', command: h.command('chat') },
+    drivers
+  );
+  const res = await restartManagedApps(drivers);
+  expect(res.body).toEqual({ ok: true, restarted: ['chat'], failed: [] });
+  expect(drivers.manager.kickstarts).toEqual([`${LABEL_PREFIX}chat`]);
+});
+
+test('prod: registering or linking a not-served row writes the record but never its plist', async () => {
+  writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
+  const h = bundleHelpers('chat', 'gitq');
+  setServeShapeDeps({
+    devMode: () => false,
+    helpersDir: h.dir,
+    catalog: CHAT_ONLY,
+  });
+  await registerApp(
+    {
+      ...input,
+      name: 'gitq',
+      managedBy: 'rt',
+      command: h.command('gitq', 'board'),
+    },
+    drivers
+  );
+  expect(drivers.manager.installed.has(`${LABEL_PREFIX}gitq`)).toBe(false);
+  const src = checkout('gitq', 'bun src/server/server.ts');
+  const res = await editApp(
+    'gitq',
+    { dev: { workingDirectory: src } },
+    'user',
+    false,
+    drivers
+  );
+  expect(res.status).toBe(200);
+  expect(getRecord('gitq')!.dev).toEqual({ workingDirectory: src });
+  expect(drivers.manager.installed.has(`${LABEL_PREFIX}gitq`)).toBe(false);
 });
 
 // ─── editApp: never uninstall a shape the patch can't replace ─────────────
