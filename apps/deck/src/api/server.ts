@@ -493,6 +493,9 @@ export function startApi(deps: ApiDeps) {
           pathname === '/api/v1/apps/managed/remove' &&
           req.method === 'POST'
         ) {
+          const b = await body(req);
+          const only =
+            typeof b.name === 'string' && b.name ? b.name : undefined;
           const remoteDrivers = listRecords().some(
             r => r.managedBy !== 'user' && r.remote
           )
@@ -501,7 +504,10 @@ export function startApi(deps: ApiDeps) {
                 await readDeckSecrets(deps.deckSecrets)
               )
             : {};
-          const r = await removeManagedApps({ ...deps, ...remoteDrivers });
+          const r = await removeManagedApps(
+            { ...deps, ...remoteDrivers },
+            only
+          );
           return json(r.body, r.status);
         }
 

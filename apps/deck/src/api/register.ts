@@ -725,14 +725,24 @@ function installedMatches(label: string, spec: ServiceSpec): boolean {
 }
 
 /**
- * Bulk lifecycle verb behind `deck remove --managed`: the app calls this
- * during `rt uninstall` (installer spec §12.3) to unregister every non-user
- * record deck supervises. Same implicit-authority model as restartManagedApps.
+ * Lifecycle verb behind `deck remove --managed [name]`: with a name it removes
+ * only that managed record, without one every non-user record deck
+ * supervises. Same implicit-authority model as restartManagedApps.
  */
-export async function removeManagedApps(drivers: Drivers): Promise<FlowResult> {
-  const managed = listRecords().filter(
+export async function removeManagedApps(
+  drivers: Drivers,
+  only?: string
+): Promise<FlowResult> {
+  let managed = listRecords().filter(
     r => r.managedBy !== 'user' && !isPlatformManagedBy(r.managedBy)
   );
+  if (only !== undefined) {
+    if (!getRecord(only))
+      return { status: 404, body: { error: 'unknown app' } };
+    managed = managed.filter(r => r.name === only);
+    if (managed.length === 0)
+      return { status: 409, body: { error: `${only} is not managed` } };
+  }
   const removed: string[] = [];
   const failed: string[] = [];
   for (const record of managed) {

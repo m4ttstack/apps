@@ -23,7 +23,7 @@ usage:
   deck alt <app> <name|off>                activate a declared serve overlay, or return to base
   deck cmd <app> <name>                    run a declared action command (dev mode only)
   deck remove <name> [--force]             unregister (registrar-owned; --force is the escape hatch)
-  deck remove --managed                    unregister every app deck manages (installer's uninstall step)
+  deck remove --managed [name]             unregister one managed app, or every one (installer's uninstall step)
   deck restart <name>                      kickstart its service
   deck restart --managed                   kickstart every app deck manages (installer's version-change step)
   deck logs <name> [--lines N]             tail stderr
@@ -153,9 +153,13 @@ export async function runCommand(
       }
       case 'remove': {
         if (rest.includes('--managed')) {
+          const only = rest.find(a => !a.startsWith('--'));
           const { status, body } = await apiJson(
             `/api/v1/apps/managed/remove`,
-            { method: 'POST' }
+            {
+              method: 'POST',
+              ...(only && { body: JSON.stringify({ name: only }) }),
+            }
           );
           if (status !== 200) {
             io.err(body.error ?? `failed (${status})`);

@@ -256,7 +256,7 @@ test('unregister: registrar-owned, 409 with escape hatch, force overrides', asyn
   const denied = await unregisterApp('myapp', 'user', false, drivers);
   expect(denied.status).toBe(409);
   expect((denied.body as any).message).toBe(
-    'Managed by mattstack — `rt uninstall myapp`'
+    'Managed by mattstack: remove it anyway with `deck remove myapp --force`'
   );
   const forced = await unregisterApp('myapp', 'user', true, drivers);
   expect(forced.status).toBe(200);
@@ -1075,6 +1075,36 @@ test('removeManagedApps: tears down every non-user record, leaves user apps alon
   expect(getRecord('board')).toBeUndefined();
   expect(getRecord('myuserapp')).toBeDefined();
   expect(drivers.manager.installed.has('com.mattstack.deck.board')).toBe(false);
+});
+
+test('removeManagedApps with a name removes only that managed record', async () => {
+  const h = bundleHelpers('one', 'two');
+  for (const n of ['one', 'two'])
+    await registerApp(
+      { ...input, name: n, managedBy: 'rt', command: h.command(n) },
+      drivers
+    );
+  await registerApp({ ...input, name: 'mine' }, drivers);
+
+  const res = await removeManagedApps(drivers, 'one');
+
+  expect(res.body).toMatchObject({ ok: true, removed: ['one'], failed: [] });
+  expect(getRecord('one')).toBeUndefined();
+  expect(getRecord('two')).toBeDefined();
+  expect(getRecord('mine')).toBeDefined();
+});
+
+test('removeManagedApps with an absent or user-owned name removes nothing and says so', async () => {
+  await registerApp({ ...input, name: 'mine' }, drivers);
+  expect(await removeManagedApps(drivers, 'ghost')).toEqual({
+    status: 404,
+    body: { error: 'unknown app' },
+  });
+  expect(await removeManagedApps(drivers, 'mine')).toEqual({
+    status: 409,
+    body: { error: 'mine is not managed' },
+  });
+  expect(getRecord('mine')).toBeDefined();
 });
 
 test('removeManagedApps: a driver failure keeps the record and reports it in failed', async () => {
