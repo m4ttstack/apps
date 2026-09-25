@@ -56,6 +56,7 @@
     "treeshake": "packages/ui/scripts/treeshake-check.sh",
     "tui-kit:build": "scripts/turbo.sh build --filter=@mattstack/tui-kit",
     "tui-kit:test": "scripts/turbo.sh test --filter=@mattstack/tui-kit",
+    "tui-kit:oracles": "scripts/turbo.sh test:oracles --filter=@mattstack/tui-kit",
     "tui-kit:gates": "scripts/turbo.sh gates --filter=@mattstack/tui-kit",
     "tokens:test": "scripts/turbo.sh test --filter=@mattstack/tokens",
     "tokens:codegen": "bun run packages/tokens/scripts/generate.ts",

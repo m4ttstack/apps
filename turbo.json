@@ -47,6 +47,10 @@
     "@mattstack/tui-kit#test": {
       "dependsOn": ["^build", "browsers"]
     },
+    "@mattstack/tui-kit#test:oracles": {
+      "dependsOn": ["^build", "browsers"],
+      "cache": false
+    },
     "@mattstack/tui-kit#gates": {
       "dependsOn": ["^build"]
     },

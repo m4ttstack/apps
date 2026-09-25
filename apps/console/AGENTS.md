@@ -92,8 +92,8 @@ string)`. The `as string` cast keeps `tsc` from trying to resolve the gitignored
 typecheck time, while `bun build --compile` still sees the literal specifier and embeds the module
 into the compiled binary. `serveMattstackApp`'s embedded-mode detection (`decideServingMode` /
 `loadEmbeddedManifest`, both in the app-server package) is what lets the resulting `dist-bin/console`
-binary serve its own assets with no `dist/` on disk next to it. See the CI job in
-`.github/workflows/ci.yml` for the end-to-end proof (build the binary, hide `dist/`, curl it).
+binary serve its own assets with no `dist/` on disk next to it. See `apps/console/scripts/serve-check.sh` (run by the `serve-check` task) for the end-to-end proof
+(build the binary, hide `dist/`, curl it).
 
 ## Formatting, linting, testing
 

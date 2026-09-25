@@ -83,11 +83,13 @@ they rewrite files the package tests read; the package gates (`typecheck`,
 plus `@mattstack/tokens#test`. The first and last groups run on every PR
 whatever changed, because `--affected` walks the package graph and those
 tasks read trees the graph does not connect them to; their declared
-`inputs` decide the cache hit.
+`inputs` decide the cache hit. The tui-kit visual and parity oracles are
+not in `check`; `bun run tui-kit:oracles` runs them locally.
 
 The cache is `<common git dir>/turbo-cache`, shared by every worktree of
 the checkout; CI restores the same path from the Actions cache. `--force`
-bypasses it. A test that reads files outside its own package must declare
+bypasses it. Nothing prunes it locally; delete the directory to reclaim
+space. A test that reads files outside its own package must declare
 them as `$TURBO_ROOT$` inputs on its package's `test` task
 (`scripts/__tests__/turbo-inputs.test.ts` fails otherwise), and every
 `$TURBO_ROOT$` glob carries the `node_modules`/`.turbo`/`dist`/`dist-bin`
