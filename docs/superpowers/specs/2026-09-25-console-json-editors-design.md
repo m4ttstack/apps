@@ -172,8 +172,7 @@ optional within a layer and the summary names which fields this layer sets.
 ### Values from older schema versions
 
 - When explain rows carry spec 3's `storedVersion` and migrated `value`, editors
-  start from the migrated value, and a save writes the current shape. A write that
-  spec 3's floor rule refuses shows its message on the row. Without spec 3 these
+  start from the migrated value, and a save writes the current shape under the current store name (`key@N`). Without spec 3 these
   fields are absent and nothing changes.
 
 ### Writers and other apps
