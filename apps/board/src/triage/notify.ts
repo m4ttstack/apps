@@ -12,21 +12,34 @@ export function boardMrLink(boardUrl: string, mrUrl: string): string {
   return `${boardUrl}/?mr=${encodeURIComponent(mrUrl)}`;
 }
 
-const BODY_SUFFIX = '-- details on the board';
 const SNIPPET_MAX = 120;
 
 /** One-line tray body for a doctor diagnosis: first sentence, truncated to
-    ~120 chars with an ellipsis, plus a fixed pointer to the board. The full
-    diagnosis stays in the doctor state file and audit log; only the
-    notification shrinks. */
+    ~120 chars with an ellipsis. The full diagnosis stays in the doctor state
+    file and audit log; only the notification shrinks. */
 export function escalationBody(diagnosis: string): string {
   const firstLine = diagnosis.trim().split('\n', 1)[0] ?? '';
   const sentence = firstLine.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? firstLine;
-  const snippet =
-    sentence.length > SNIPPET_MAX
-      ? `${sentence.slice(0, SNIPPET_MAX).trimEnd()}...`
-      : sentence;
-  return `${snippet} ${BODY_SUFFIX}`;
+  return sentence.length > SNIPPET_MAX
+    ? `${sentence.slice(0, SNIPPET_MAX).trimEnd()}...`
+    : sentence;
+}
+
+/** The notification an AUTO doctor escalates with when it hits `error`.
+    `boardUrl` is deck's board url, null when deck did not answer, which
+    sends the notification with no click target. */
+export function doctorStuckNotice(
+  doctor: { iid: number; mrUrl: string; message?: string },
+  boardUrl: string | null
+): { title: string; message: string; url: string | null } {
+  const diagnosis = doctor.message?.trim();
+  return {
+    title: `Auto-fix stuck on !${doctor.iid}`,
+    message: diagnosis
+      ? escalationBody(diagnosis)
+      : 'No reason given, over to you',
+    url: boardUrl ? boardMrLink(boardUrl, doctor.mrUrl) : null,
+  };
 }
 
 /** Escalation-only notification (ruling 3: quiet on success). rt mode pushes

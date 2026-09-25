@@ -5,22 +5,23 @@ import { afterAll, describe, expect, test } from 'bun:test';
 
 import {
   boardMrLink,
+  doctorStuckNotice,
   escalationBody,
   notifyEscalation,
 } from '../triage/notify.ts';
 
 describe('escalationBody', () => {
-  test('keeps a short first sentence and appends the board pointer', () => {
+  test('keeps a short first sentence and nothing after it', () => {
     expect(
       escalationBody(
         'typecheck failed on src/foo.ts. Ran tsc twice.\nMore detail here.'
       )
-    ).toBe('typecheck failed on src/foo.ts. -- details on the board');
+    ).toBe('typecheck failed on src/foo.ts.');
   });
 
   test('uses the whole first line when there is no sentence terminator', () => {
     expect(escalationBody('rebase blocked by conflict in bun.lock')).toBe(
-      'rebase blocked by conflict in bun.lock -- details on the board'
+      'rebase blocked by conflict in bun.lock'
     );
   });
 
@@ -30,9 +31,7 @@ describe('escalationBody', () => {
     const body = escalationBody(
       `${firstSentence} Second sentence with remediation detail. Third sentence.`
     );
-    expect(body).toBe(
-      `${firstSentence.slice(0, 120).trimEnd()}... -- details on the board`
-    );
+    expect(body).toBe(`${firstSentence.slice(0, 120).trimEnd()}...`);
     expect(body).not.toContain('Second sentence');
     expect(body.split('\n')).toHaveLength(1);
   });
@@ -55,16 +54,16 @@ describe('notifyEscalation', () => {
 
   test('rt mode POSTs the tray notify contract to the unix socket', async () => {
     await notifyEscalation(
-      'doctor stuck on !12',
+      'Auto-fix stuck on !12',
       escalationBody('typecheck failed; diagnosis attached.'),
       'rt',
       { traySock: sock }
     );
     expect(received).toHaveLength(1);
     expect(received[0].path).toBe('/notify');
-    expect(received[0].body.title).toBe('doctor stuck on !12');
+    expect(received[0].body.title).toBe('Auto-fix stuck on !12');
     expect(received[0].body.message).toBe(
-      'typecheck failed; diagnosis attached. -- details on the board'
+      'typecheck failed; diagnosis attached.'
     );
     expect(received[0].body.category).toBe('mr-doctor');
     expect(typeof received[0].body.id).toBe('string');
@@ -104,5 +103,41 @@ describe('boardMrLink', () => {
     ).toBe(
       'https://board.mattstack/?mr=https%3A%2F%2Fgitlab.example.com%2Facme%2Fwebapp%2F-%2Fmerge_requests%2F45'
     );
+  });
+});
+
+describe('doctorStuckNotice', () => {
+  const MR = 'https://gitlab.example.com/acme/webapp/-/merge_requests/45';
+
+  test('titles the MR, shows the diagnosis snippet and links its board row', () => {
+    expect(
+      doctorStuckNotice(
+        {
+          iid: 45,
+          mrUrl: MR,
+          message: 'rebase blocked by conflict in bun.lock. Tried twice.',
+        },
+        'https://board.mattstack'
+      )
+    ).toEqual({
+      title: 'Auto-fix stuck on !45',
+      message: 'rebase blocked by conflict in bun.lock.',
+      url: boardMrLink('https://board.mattstack', MR),
+    });
+  });
+
+  test('no board url from deck means no click target', () => {
+    expect(
+      doctorStuckNotice({ iid: 45, mrUrl: MR, message: 'ci red.' }, null).url
+    ).toBeNull();
+  });
+
+  test('a doctor that stopped without a message still reads plainly', () => {
+    expect(doctorStuckNotice({ iid: 45, mrUrl: MR }, null).message).toBe(
+      'No reason given, over to you'
+    );
+    expect(
+      doctorStuckNotice({ iid: 45, mrUrl: MR, message: '  ' }, null).message
+    ).toBe('No reason given, over to you');
   });
 });
