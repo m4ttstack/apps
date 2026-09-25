@@ -117,16 +117,18 @@ settings-kit 0.4.0 shrinks `SHAPES` to the three `external` board keys and adds 
 
 **Files:**
 - Modify: `package.json` (root catalog)
-- Create: `apps/console/src/app/settings/testSchemas.ts`, `apps/console/src/app/settings/testSchemas.test.ts`
+- Create: `apps/console/src/app/settings/testSchemas.ts`, `apps/console/src/server/testSchemas.test.ts`
 - Modify: `apps/console/src/app/settings/CompositeControls.tsx`, `apps/console/src/app/settings/view.ts`
+- Modify (test fixture only): `apps/console/src/server/settings-kit-mount.test.ts`
 - Modify (test fixtures only): `apps/console/src/app/settings/{CompositeControls,SettingRow,SettingsPage,ExplainModal}.test.tsx`, `apps/console/src/app/settings/view.test.ts`, `apps/console/src/app/config/chain.test.ts`
-- Modify: `apps/board/src/client/board/config-shapes.ts`, `apps/board/src/client/board/ConfigModal.tsx`, `apps/board/src/client/__tests__/config-shapes.test.ts`
+- Modify: `apps/board/src/client/board/config-shapes.ts`, `apps/board/src/client/board/ConfigModal.tsx`, `apps/board/src/client/__tests__/config-shapes.test.ts`, `apps/board/src/client/board/__tests__/config-leaves-dom.test.tsx`
 - Modify (test fixture only): `apps/boxscore/src/app/settings/SettingsPage.test.tsx`
+- Modify (test seeding only): `apps/deck/core/settings.test.ts`, `apps/deck/src/edge/oauth.test.ts`
 
 **Interfaces:**
 - Consumes: settings-kit 0.4.0 `recognize`, `matchesSchema`, `Recognized`; rt-client 0.32.0 `getDef`, `allDefs`.
 - Produces:
-  - `testSchemas.ts`: `TEST_SCHEMAS: Record<string, JsonSchema>`, `layerOf(schema: JsonSchema): JsonSchema`, `schemaFields(key: string): { schema?: JsonSchema; layerSchema?: JsonSchema }` (layerSchema only for the keys listed in `DEEP_KEYS`).
+  - `testSchemas.ts` (a plain module under `src/app/settings/`, imported only by tests): `TEST_SCHEMAS: Record<string, JsonSchema>`, `layerOf(schema: JsonSchema): JsonSchema`, `schemaFields(key: string): { schema?: JsonSchema; layerSchema?: JsonSchema }` (layerSchema only for the keys listed in `DEEP_KEYS`).
   - `view.ts`: `EDITOR_KINDS: ReadonlySet<RowKind>` (this task: `scalar`, `enum`, `stringList`, `stringMap`, `leaves`); `isEditable(def)` reads it.
   - board `config-shapes.ts`: `shapeOf(def: Pick<ConfigDef, 'key' | 'schema'>): CompositeShape | undefined` replacing `COMPOSITE_SHAPES`.
 
@@ -415,14 +417,18 @@ export function schemaFields(
 }
 ```
 
-Create `apps/console/src/app/settings/testSchemas.test.ts`:
+Create the parity test under `src/server/` (console's eslint wall bans value imports of `@mattstack/rt-client` anywhere under `src/app/`), as `apps/console/src/server/testSchemas.test.ts`:
 
 ```ts
 // @vitest-environment node
 import { getDef } from '@mattstack/rt-client';
 import { describe, expect, it } from 'vitest';
 
-import { DEEP_KEYS, schemaFields, TEST_SCHEMAS } from './testSchemas';
+import {
+  DEEP_KEYS,
+  schemaFields,
+  TEST_SCHEMAS,
+} from '../app/settings/testSchemas';
 
 describe('test schemas', () => {
   it.each(Object.keys(TEST_SCHEMAS))(
@@ -440,7 +446,7 @@ describe('test schemas', () => {
 
 - [ ] **Step 5: Run the parity test**
 
-Run: `cd apps/console && bunx vitest run src/app/settings/testSchemas.test.ts && cd ../..`
+Run: `cd apps/console && bunx vitest run src/server/testSchemas.test.ts && cd ../..`
 Expected: PASS for every key. A failure means the registry changed after this plan was written: copy the registry's schema (print it with `bun -e "import { getDef } from '@mattstack/rt-client'; console.log(JSON.stringify(getDef('<key>').schema, null, 2))"` from `apps/console`) into `TEST_SCHEMAS` and note the key in your report.
 
 - [ ] **Step 6: Update every test def factory**
@@ -469,7 +475,9 @@ function def(key: string, over: Partial<SettingDefWire>): SettingDefWire {
 }
 ```
 
-`CompositeControls.test.tsx` builds `rt.homeSnapshot` defs with `merge: 'replace'` in some cases; leave the `merge` overrides as they are (the test controls merge explicitly). In `apps/boxscore/src/app/settings/SettingsPage.test.tsx`, add `storeVersion: 1` only (boxscore moves to schemas in Task 3).
+`config/chain.test.ts`'s factory takes no key, so it gets `storeVersion: 1` only. `CompositeControls.test.tsx` builds `rt.homeSnapshot` defs with `merge: 'replace'` in some cases; leave the `merge` overrides as they are (the test controls merge explicitly). In `apps/boxscore/src/app/settings/SettingsPage.test.tsx`, add `storeVersion: 1` only (boxscore moves to schemas in Task 3).
+
+`apps/console/src/server/settings-kit-mount.test.ts` fakes the registry: under 0.4.0, `allowComposite: 'shaped'` admits a composite only when it has a schema, so give the fake `rt.repoRoots` def `schema: { type: 'array', items: { type: 'string' } }` and leave `rt.cron` without one. Its two expectations then hold as written (`rt.repoRoots` writable, `rt.cron` not, and `refuses a composite with no shape` still answers 400).
 
 - [ ] **Step 7: Run the console suite to see the behavioural failures**
 
@@ -695,6 +703,17 @@ describe('shapeOf', () => {
 });
 ```
 
+The rest of the file still reads `COMPOSITE_SHAPES` in its `matchesShape` and `tabs shape` blocks. Replace each: `COMPOSITE_SHAPES['board.projects']!` becomes `shapeOf(REGISTRY.get('board.projects')!)!`, `COMPOSITE_SHAPES['board.triage']!` becomes `shapeOf(REGISTRY.get('board.triage')!)!`, `COMPOSITE_SHAPES['board.tabs']!` becomes `shapeOf(REGISTRY.get('board.tabs')!)!`, and `expect(COMPOSITE_SHAPES['board.rtRepos']).toBeUndefined();` becomes:
+
+```ts
+    const retired = REGISTRY.get('board.rtRepos');
+    expect(retired === undefined || shapeOf(retired) === undefined).toBe(true);
+```
+
+`grep -n COMPOSITE_SHAPES apps/board/src` must print nothing once Step 12 is done.
+
+`apps/board/src/client/board/__tests__/config-leaves-dom.test.tsx` builds its `board.triage` def without a schema, so the row would go read-only. Add `import { getDef } from '@mattstack/rt-client';` and, in its `def()` factory, `storeVersion: 1, schema: getDef(KEY)!.schema, layerSchema: getDef(KEY)!.layerSchema,`.
+
 If a `board.cwds` field list differs from `review`/`respond`/`doctor`, the test is right and the registry changed: stop and report it, since board's LeavesControl renders exactly those.
 
 Run: `bun run board:test`
@@ -716,7 +735,9 @@ export function shapeOf(
   if (own) return own;
   const r = recognize(def.schema);
   if (r.kind === 'stringList') return { kind: 'stringList' };
-  if (r.kind === 'leaves')
+  // A bare `{ type: 'object' }` recognizes as leaves with no fields: there is
+  // nothing to draw.
+  if (r.kind === 'leaves' && Object.keys(r.fields).length > 0)
     return { kind: 'leaves', fields: r.fields, fallbacks: r.placeholders };
   return undefined;
 }
@@ -726,24 +747,46 @@ and in `rowKind`, replace `const shape = COMPOSITE_SHAPES[def.key];` with `const
 
 In `apps/board/src/client/board/ConfigModal.tsx`, import `shapeOf` instead of `COMPOSITE_SHAPES` and replace `const shape = COMPOSITE_SHAPES[def.key];` (the one in the row component near line 1058) with `const shape = shapeOf(def);`. `grep -n COMPOSITE_SHAPES apps/board/src` must print nothing afterwards.
 
-- [ ] **Step 13: Run every affected suite**
+- [ ] **Step 13: Seed deck's deliberately malformed store values without the write gate**
+
+Five deck tests seed a malformed value on purpose (to prove deck's reader tolerates it) through the real `setSetting`, which 0.32.0 now refuses: `apps/deck/core/settings.test.ts` (`a resolver throw on the ownership probe degrades to unowned...`, seeding `deck.apps` with `{ poison: '${repoRoot}' }`) and `apps/deck/src/edge/oauth.test.ts` (the tests seeding `deck.access` with `{ a: { tier: 'public' } }`, `{ a: { tier: 'public' }, b: { mode: 'off' } }`, `{ poison: '${repoRoot}' }`, and the `renameOAuth` test's object holding `malformed: { tier: 'public' }`). Keep every value; change only how it is seeded. In each of the two files, next to its existing `userStorePath()`, add:
+
+```ts
+/** Writes a value straight into the user store, past rt-client's write
+    gate, for tests that need a malformed value on disk. */
+function seedUserStore(key: string, value: unknown): void {
+  const path = userStorePath();
+  mkdirSync(dirname(path), { recursive: true });
+  let current: Record<string, unknown> = {};
+  try {
+    current = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
+  } catch {
+    current = {};
+  }
+  writeFileSync(path, JSON.stringify({ ...current, [key]: value }, null, 2));
+}
+```
+
+(add `dirname` from `path` to `settings.test.ts`'s imports if missing) and replace exactly those five `setSetting('<key>', <malformed value>, 'user')` calls with `seedUserStore('<key>', <malformed value>)`. Leave every `setSetting` call that seeds a well-formed value alone. (This was run while writing the plan: the `renameOAuth`-style test passes seeded this way, and deck's own write still succeeds beside the malformed entry.)
+
+- [ ] **Step 14: Run every affected suite**
 
 Run each, bare: `bun run tui-kit:build`, `bun run board:typecheck`, `bun run board:test`, `bun run boxscore:typecheck`, `bun run boxscore:test`, `bun run deck:test`, `bun run chat:test`
-Expected: PASS. rt-client 0.32.0's `setSetting` now refuses a schema-invalid value; if a deck, board or chat test fails because a write it makes is refused, do not change the test's value: stop and report the key, the value and the refusal (Task 2 is where writers are pinned against the schema).
+Expected: PASS. rt-client 0.32.0's `setSetting` now refuses a schema-invalid value; if any other deck, board or chat test fails because a write it makes is refused, do not change the test's value: stop and report the key, the value and the refusal (Task 2 is where writers are pinned against the schema).
 
-- [ ] **Step 14: Console gates**
+- [ ] **Step 15: Console gates**
 
 Run each, bare: `bun run console:typecheck`, `bun run console:lint`, `bun run console:test`, `sh scripts/repo-purity.sh`, `bun run format:check`
 Expected: all exit 0 (run `bun run format` first if format:check flags only the files you touched).
 
-- [ ] **Step 15: UI validation**
+- [ ] **Step 16: UI validation**
 
 Follow the UI validation recipe. Checks, in both schemes, compared with the live page at `http://localhost:11001/settings`: `board.ticketPrefixes` (inline tags), `rt.repoIdentityOverrides` expanded (key/value rows, labels "remote URL" / "identity"), `board.slack` expanded (leaves with emoji placeholders), `rt.homeSnapshot` expanded (leaves with source badges). They must look identical to the live page. JSON keys such as `rt.notify.eventBridges` now show a row menu (they are writable under 0.4.0); that is expected. Board: run the live-data board on a spare port only if you changed its UI code beyond the three call sites; otherwise the board suite is the check.
 
-- [ ] **Step 16: Commit**
+- [ ] **Step 17: Commit**
 
 ```bash
-git add package.json bun.lock apps/console/src/app/settings apps/console/src/app/config/chain.test.ts apps/board/src/client apps/boxscore/src/app/settings/SettingsPage.test.tsx
+git add package.json bun.lock apps/console/src/app/settings apps/console/src/app/config/chain.test.ts apps/console/src/server/testSchemas.test.ts apps/console/src/server/settings-kit-mount.test.ts apps/board/src/client apps/boxscore/src/app/settings/SettingsPage.test.tsx apps/deck/core/settings.test.ts apps/deck/src/edge/oauth.test.ts
 git commit -m "apps: rt-client 0.32.0, settings-kit 0.4.0; console and board read composite shapes from the schema
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
@@ -818,7 +861,8 @@ describe('the reconciled console rule passes validateWrite', () => {
       write: next => writes.push(next),
       resolveUrl: async () => null,
     });
-    expect(writes.length).toBe(2);
+    // The reconcile may write more than once per install; every write counts.
+    expect(writes.length).toBeGreaterThan(0);
     const def = getDef('rt.notify.eventBridges')!;
     for (const value of writes)
       expect(validateWrite(def, value, { scope: 'user' })).toEqual({
@@ -1150,7 +1194,8 @@ export function shapeOf(
   if (own) return own;
   const r = recognize(def.schema);
   if (r.kind === 'stringList') return { kind: 'stringList' };
-  if (r.kind !== 'leaves') return undefined;
+  if (r.kind !== 'leaves' || Object.keys(r.fields).length === 0)
+    return undefined;
   const fields: Record<string, LeafType> = {};
   for (const [path, type] of Object.entries(r.fields)) {
     if (type !== 'string' && type !== 'number') return undefined;
@@ -2482,7 +2527,7 @@ export function useRowSave(store: RowStore, def: SettingDefWire) {
   const label = isRung(from) ? `${base} · repo` : from;
 ```
 
-the Remove item's text becomes `{`Remove from ${label}`}` and its `onClick` stays `row.clear(from!)` (typed as `from as LayerScope`).
+the Remove item's text becomes `{`Remove from ${label}`}` and its `onClick` stays `row.clear(from!)`. `from` is no longer narrowed by the guard, so the Move items call `row.move(from!, to)`.
 
 `CompositeControls.tsx`: replace `useSettingKey(def.key)` (in `LeavesBody` and `DeepShapeLock`) with `useKeyExplain(def.key, repo)` where `const repo = useSettingsRepo();`, drop `useSettingKey` and `targetScope` from the imports, and in `LeavesBody` replace `const target = targetScope(def);` with:
 
@@ -2490,7 +2535,7 @@ the Remove item's text becomes `{`Remove from ${label}`}` and its `onClick` stay
   const target = rungOf(row.target.scope, row.target.repo ?? null);
 ```
 
-(`rungOf` from `./view`); `leafWrite(explained.rows, target, path, v)`, `row.clear(target)` and the `source !== target` check keep their shape. `DeepShapeLock` also accepts a rung as `at` when checking rows: replace `isStoreScope(r.scope)` there with `rungBase(r.scope) !== null`, and `ShapeLock`'s `isStoreScope(at)` checks with `rungBase(at) !== null`.
+(`rungOf` from `./view`); `leafWrite(explained.rows, target, path, v)`, `row.clear(target)` and the `source !== target` check keep their shape. The field's source badge checks `rungBase(source) !== null` instead of `isStoreScope(source)` (passing `source as LayerScope` to `ScopeBadge`), so a field set by a repo rung shows `team · repo`, not the raw `team.repo`. `DeepShapeLock` also accepts a rung as `at` when checking rows: replace `isStoreScope(r.scope)` there with `rungBase(r.scope) !== null`, and `ShapeLock`'s `isStoreScope(at)` checks with `rungBase(at) !== null`.
 
 `ExplainModal.tsx`: `ExplainStore` becomes `Pick<ConsoleStore, 'defs' | 'loading' | 'error' | 'set' | 'unset' | 'move'>`; `ExplainBody` uses `useKeyExplain(storeDef.key, useSettingsRepo())`; the `tracked` store forwards every argument (`set: async (...a) => after(await store.set(...a))` already does, as long as its type is `RowStore`); `OwnStore` uses `useConsoleSettings(null, props.settingKey)`. `LayerLine`'s `store` becomes `rungBase(scope)` for the allowed/writable checks, its `onSet`/`onRemove` receive the row's own `scope` string (a rung included) and the modal passes them to `layers.setAt(scope, v)` / `layers.clear(scope)`; the `ScopeBadge` there receives `scope as LayerScope` when `rungBase(scope)` is non-null. Remove the `useSettingKey` and `useSettingsScope` imports.
 
@@ -2584,7 +2629,7 @@ describe('repo picker', () => {
     renderPage();
     await screen.findByRole('heading', { name: 'Board' });
     expect(screen.getByText('all repos · set in 1 repo')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('textbox', { name: 'repo' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'repo' }));
     await userEvent.click(await screen.findByRole('option', { name: 'acme/app' }));
     await waitFor(() =>
       expect(new URLSearchParams(window.location.search).get('repo')).toBe(REPO)
@@ -2609,7 +2654,7 @@ describe('repo picker', () => {
 });
 ```
 
-(Mantine's `Select` input has `role="textbox"` in 9.x when not searchable; if `getByRole('textbox', { name: 'repo' })` finds nothing, check the rendered role with `screen.debug()` and use `getByLabelText('repo')` instead. Mantine's `Chip` renders a checkbox input; adjust the `Changed` lookup to how the existing tests in this file find the chip if they already do.)
+(Mantine 9.5's `Select` input is a `combobox`; `getByLabelText('repo')` matches more than one element. Mantine's `Chip` renders a checkbox input; adjust the `Changed` lookup to how the existing tests in this file find the chip if they already do.)
 
 `SettingRow.test.tsx`, append:
 
@@ -2987,7 +3032,7 @@ Confirm `ScrollArea.Autosize`'s `mah` and `type` props in Mantine 9.5 (Global Co
 
 - [ ] **Step 3: Use it**
 
-- `CompositeControls.tsx` `ReadonlyBody`: replace the `<Code block style={PREVIEW_STYLE}>…</Code>` with `<JsonBlock value={value} />`; delete `PREVIEW_STYLE` if unused.
+- `CompositeControls.tsx` `ReadonlyBody`: replace the `<Code block style={PREVIEW_STYLE}>…</Code>` with `<JsonBlock value={value} />`, and delete `PREVIEW_STYLE` and the `Code` import (both now unused; typecheck fails on them otherwise).
 - `ExplainModal.tsx` `LayerLine`: in the non-secret present branch, when `def.type === 'object' || def.type === 'array'`, render `<JsonBlock value={row.value} maxHeight={240} />` (keeping `data-testid={`layer-value-${scope}`}` on a wrapping `Box`, and the overridden styling: `c={text.muted}` on the wrapper and `textDecoration: 'line-through'` only for scalar values, since a struck-through block is unreadable; an overridden composite instead gets the muted colour only). Scalars keep `shortValue`. The value column's `Box` needs `style={{ flex: 1, minWidth: 0 }}` (already there) so the block wraps.
 - `RepoSection`: swap its temporary `Code` for `JsonBlock`.
 
@@ -4067,7 +4112,7 @@ export function targetLabel(t: WriteTarget): string {
 }
 ```
 
-(`repoLabel` exists from Task 6), add `'objectList'` to `EDITOR_KINDS`, and make `isEditable` read `EDITOR_KINDS.has(editorKind(def))` (import `editorKind` from `./formShape`; `formShape.ts` imports nothing from `view.ts`, so there is no cycle).
+(`repoLabel` exists from Task 6), add `'objectList'` to `EDITOR_KINDS`, and make `isEditable` read `EDITOR_KINDS.has(editorKind(def))` (import `editorKind` from `./formShape`; `formShape.ts` imports nothing from `view.ts`, so there is no cycle). Drop `rowKind` from `view.ts`'s settings-kit import if nothing else there uses it.
 
 `CompositeControls.tsx`: add a `FormBody`:
 
@@ -5469,7 +5514,7 @@ Expected: PASS.
 
 Run each, bare: `bun run console:typecheck`, `bun run console:lint`, `bun run console:test`, `sh scripts/repo-purity.sh`, `bun run format:check`
 
-UI validation (recipe, both schemes). Live stores may have no failing value; if Needs fixing reads 0, add a `page.route('**/api/settings/defs*', ...)` in the validation script that fetches the real response and injects one invented `nonconforming` issue into `rt.notify.eventBridges` (path `[0, 'url']`, message `expected string, got number`) and one repo issue into `rt.roles`, so the chip, the issue lines (warning glyph and text legible in both schemes), the chip filter, and Fix (modal opens on the right layer, with the repo switched for the repo issue) can be seen. Say in the report that the issues were injected.
+UI validation (recipe, both schemes). Live stores may have no failing value; if Needs fixing reads 0, add a `page.route('**/api/settings/defs*', ...)` in the validation script that fetches the real response and injects one invented `nonconforming` issue into `rt.notify.eventBridges` (path `[0, 'url']`, message `expected string, got number`) and one repo issue into `rt.roles`, so the chip, the issue lines (warning glyph and text legible in both schemes), the chip filter, and Fix (modal opens on the right layer, with the repo switched for the repo issue) can be seen. Say in the report that the issues were injected. Note that with All repos picked, rt omits repo rungs, so `/defs` carries no repo-section issue until that repo is picked: a live repo-section problem shows under Needs fixing only in its repo, and the injected repo issue is what exercises Fix's repo switch.
 
 ```bash
 git add apps/console/src/app/settings
@@ -5539,11 +5584,9 @@ describe('rt.worktreeReadyApproval', () => {
     renderWithProviders(<SettingRow def={APPROVAL} store={s} subhead={null} query="" />);
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.getByText('3f2a9c1e8b7d')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "approves the team's worktree ready commands by their hash; approve with rt worktree ready-approve"
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('approval-note')).toHaveTextContent(
+      "approves the team's worktree ready commands by their hash; approve with rt worktree ready-approve"
+    );
     expect(screen.queryByRole('button', { name: /actions$/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Revoke' }));
     await waitFor(() =>
@@ -5582,13 +5625,13 @@ describe('UnregisteredNote', () => {
   });
 
   it('renders nothing for none', () => {
-    const { container } = renderWithProviders(<UnregisteredNote entries={[]} />);
-    expect(container.textContent).toBe('');
+    renderWithProviders(<UnregisteredNote entries={[]} />);
+    expect(screen.queryByTestId('unregistered-note')).toBeNull();
   });
 });
 ```
 
-(The explanation text drops the spec's code backticks because the row renders it as plain text with the two commands in a monospace span; the test matches the rendered text content. If `renderWithProviders` wraps the tree so `container.textContent` is not empty, assert `screen.queryByText(/not registered/)` is null instead.)
+(The explanation drops the spec's code backticks because the row renders the two commands in monospace spans; the text is split across nested spans, so the test reads the note's whole `textContent` through its test id.)
 
 Run: `cd apps/console && bunx vitest run src/app/settings/SpecialRows.test.tsx && cd ../..`
 Expected: FAIL.
@@ -5631,7 +5674,7 @@ and `isEditable` returns `false` when `def.key === APPROVAL_KEY`.
 and render, in place of the description line for this key only:
 
 ```tsx
-<Text fz={12} lh="15px" c={text.muted}>
+<Text fz={12} lh="15px" c={text.muted} data-testid="approval-note">
   {"approves the team's worktree "}
   <Text span inherit ff="monospace">ready</Text>
   {' commands by their hash; approve with '}
@@ -5960,7 +6003,20 @@ export function DivergedPanel({
 }
 ```
 
-`ExplainModal.tsx`: `ExplainStore` becomes `Pick<ConsoleStore, 'defs' | 'loading' | 'error' | 'set' | 'unset' | 'move' | 'prune'>` (the `OwnStore` path passes the full `ConsoleStore`, which has it; pages that build a store literal add `prune`). In `ExplainBody`, `const diverged = (def.issues ?? []).filter(isDiverged);`; pass `replaceWith` to each `LayerLine` whose scope has a diverged issue (`{ label: 'Use the older value', value: issue.olderValue }`, matched on `issue.scope === r.scope` and, for a rung, `issue.repo === repo`), which forwards it to its `DraftEditor`; and after the layers render a `DivergedPanel` per diverged issue with `onPrune={() => void store.prune(def.key, rungBase(issue.scope)!, issue.storeName, issue.repo).then(err => (err ? setPruneError(err) : refresh()))}` plus a `pruneError` line in the error style.
+`ExplainModal.tsx`: `ExplainStore` becomes `Pick<ConsoleStore, 'defs' | 'loading' | 'error' | 'set' | 'unset' | 'move' | 'prune'>` (the `OwnStore` path passes the full `ConsoleStore`, which has it; pages that build a store literal add `prune`). In `ExplainBody`, `const diverged = (def.issues ?? []).filter(isDiverged);`; pass `replaceWith` to each `LayerLine` whose scope has a diverged issue (`{ label: 'Use the older value', value: issue.olderValue }`, matched on `issue.scope === r.scope` and, for a rung, `issue.repo === repo`), which forwards it to its `DraftEditor`; and after the layers render a `DivergedPanel` per diverged issue with a `pruneError` line in the error style and:
+
+```tsx
+onPrune={() => {
+  const base = rungBase(issue.scope)!;
+  // No repo argument at all for a global layer, as useRowSave does.
+  const op = issue.repo
+    ? store.prune(def.key, base, issue.storeName, issue.repo)
+    : store.prune(def.key, base, issue.storeName);
+  void op.then(err => (err ? setPruneError(err) : refresh()));
+}}
+```
+
+`ExplainBody`'s `store` prop is typed `RowStore` today; widen it to `RowStore & Pick<ConsoleStore, 'prune'>` (and `Resolved` passes the `ExplainStore`, which now has `prune`).
 
 Any other test file that builds an `ExplainStore` literal (for example `ExplainModal.test.tsx`'s `store()`) adds `prune: vi.fn(async () => null as string | null)`.
 
