@@ -266,7 +266,9 @@ export function dedupeRoutes(
 
 /**
  * Join routes to services: exact match on the plist's PORT env var first,
- * name overlap as a fallback. Unmatched routes render without service info.
+ * then a service whose short label or working directory is exactly the
+ * row's name (gitq-docs is another app, never gitq's). Unmatched routes
+ * render without service info.
  */
 export function joinApps(
   routes: PortlessRoute[],
@@ -274,15 +276,17 @@ export function joinApps(
   requestHost?: string
 ): App[] {
   const domain = publicDomainFor(requestHost);
-  const { publicDomain, tlds } = getPlatformSettings();
+  const { publicDomain, tlds, legacyPrefixes } = getPlatformSettings();
+  const prefixes = servicePrefixes(legacyPrefixes);
   return dedupeRoutes(routes, tlds).map(route => {
     const name = bareName(route.hostname, tlds);
     const service =
       services.find(s => s.port === route.port) ??
-      services.find(s => {
-        const dir = s.workingDirectory?.split('/').pop() ?? '';
-        return s.label.includes(name) || dir.includes(name);
-      }) ??
+      services.find(
+        s =>
+          shortLabel(s.label, prefixes) === name ||
+          s.workingDirectory?.split('/').pop() === name
+      ) ??
       null;
     const url = domain
       ? `https://${name}.${domain}`

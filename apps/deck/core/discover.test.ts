@@ -6,6 +6,7 @@ import { expect, test } from 'bun:test';
 import {
   bareName,
   dedupeRoutes,
+  joinApps,
   nextFreePort,
   readServices,
   servicePrefixes,
@@ -132,4 +133,21 @@ test('LOCAL_LAUNCHCTL_PIDS replaces the launchctl read', async () => {
     else process.env.LOCAL_LAUNCHCTL_PIDS = prevPids;
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("joinApps gives a row only its own service, never a longer name's", () => {
+  const gitqDocs: LaunchdService = {
+    ...svc(11009),
+    label: 'com.mattstack.deck.gitq-docs',
+    workingDirectory: '/apps/gitq-docs',
+  };
+  const apps = joinApps(
+    [
+      { hostname: 'gitq.localhost', port: 11008 },
+      { hostname: 'gitq-docs.localhost', port: 11020 },
+    ],
+    [gitqDocs]
+  );
+  expect(apps.find(a => a.name === 'gitq')!.service).toBeNull();
+  expect(apps.find(a => a.name === 'gitq-docs')!.service).toBe(gitqDocs);
 });
