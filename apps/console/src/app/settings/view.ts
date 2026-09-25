@@ -50,8 +50,7 @@ export function isStoreScope(s: string | null | undefined): s is StoreScope {
   return s === 'team' || s === 'user' || s === 'machine';
 }
 
-/** Row kinds console draws an editor for. JSON kinds join as their editors
-    land; until then they render read-only and do not count as editable. */
+/** Row kinds console draws an editor for. */
 export const EDITOR_KINDS: ReadonlySet<RowKind> = new Set<RowKind>([
   'scalar',
   'enum',
