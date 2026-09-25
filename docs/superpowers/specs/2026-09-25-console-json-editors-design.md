@@ -179,8 +179,7 @@ optional within a layer and the summary names which fields this layer sets.
   the editor on the current value with a "Use the older value" action that replaces
   the draft with the older, migrated value; Save writes the current name either
   way. The modal also offers "Remove the older name", which confirms while showing
-  the older value and deletes that name and its baseline through the same path
-  `rt settings migrate --prune --force` uses; until then the issue stays listed.
+  the older value and deletes that name and its baseline through settings-kit's `/prune` route (spec 3, forced for a diverged name); until then the issue stays listed.
 
 ### Writers and other apps
 
