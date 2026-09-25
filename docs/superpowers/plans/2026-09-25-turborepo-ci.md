@@ -631,7 +631,7 @@ test('every test that reads outside its package declares $TURBO_ROOT$ inputs', (
 - [ ] **Step 3: Run both files to see them fail**
 
 Run: `bun test ./scripts`
-Expected: FAIL. The root-task test gets an empty list, the tokens inputs test finds no `../ui/src/` input, and the guard names `packages/tokens/test/consumption.test.ts`, `font-identity.test.ts`, `fragment-sync.test.ts`.
+Expected: FAIL. The root-task test throws from `dryRun` (turbo exits with "could not find task" until Step 5 registers them), the tokens inputs test finds no `../ui/src/` input, and the guard names `packages/tokens/test/consumption.test.ts`, `font-identity.test.ts`, `fragment-sync.test.ts`.
 
 - [ ] **Step 4: Add the root scripts**
 
@@ -1214,4 +1214,4 @@ Open a throwaway PR from a branch with one whitespace change under `apps/board/s
 
 - [ ] **Step 6: Close the ticket**
 
-Paste the three numbers into MANKIT-4 and mark it Done. If any target is missed, leave the ticket open with the number and the likely cause (cache restore size, an undeclared input forcing a miss, or serve-check time).
+Paste the three numbers into MANKIT-4 and mark it Done. If any target is missed, leave the ticket open with the number and the likely cause (cache restore size, an undeclared input forcing a miss, serve-check time, or the storybook rebuild that every board-only PR now pays because board's `src` is a storybook input).

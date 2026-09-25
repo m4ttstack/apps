@@ -216,7 +216,7 @@ log readable, and a failed task still prints its full output.
   fact; add a short "Turbo" note (where the cache is, how to bypass it
   with `--force`, that `inputs` must be declared for any test reading
   outside its package).
-- Acceptance, measured on the PR's own CI runs and the first main push
+- Acceptance, measured on the PR's own CI runs and the main pushes
   after merge:
   - a board-only PR finishes `checks` in under 2 min;
   - a cold full run (`--force`) finishes in under 4 min;
