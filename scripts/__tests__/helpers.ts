@@ -1,7 +1,10 @@
 import { join } from 'path';
 
 export const ROOT = join(import.meta.dirname, '..', '..');
-export const TURBO = join(ROOT, 'node_modules', '.bin', 'turbo');
+// The `.bin` entry is a Node shim (`#!/usr/bin/env node`); a version-manager
+// shim for `node` on PATH reads the real home, which the root preload has
+// repointed, so run this shim under bun instead of exec'ing it directly.
+export const TURBO = join(ROOT, 'node_modules', 'turbo', 'bin', 'turbo');
 
 export type DryRun = {
   packages: string[];
@@ -22,10 +25,13 @@ export function dryRun(
   args: string[],
   env: Record<string, string> = {}
 ): DryRun {
-  const proc = Bun.spawnSync([TURBO, 'run', ...args, '--dry=json'], {
-    cwd: ROOT,
-    env: { ...process.env, ...env, TURBO_TELEMETRY_DISABLED: '1' },
-  });
+  const proc = Bun.spawnSync(
+    [process.execPath, TURBO, 'run', ...args, '--dry=json'],
+    {
+      cwd: ROOT,
+      env: { ...process.env, ...env, TURBO_TELEMETRY_DISABLED: '1' },
+    }
+  );
   const out = proc.stdout.toString();
   if (proc.exitCode !== 0)
     throw new Error(`turbo failed: ${proc.stderr.toString()}\n${out}`);
