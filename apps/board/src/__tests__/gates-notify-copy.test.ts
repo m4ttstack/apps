@@ -8,9 +8,7 @@ const CODE_CHANGES = { id: 'code-changes' };
 
 describe('gateNotifyCopy', () => {
   test('a review gate says the review is ready to pick from', () => {
-    expect(
-      gateNotifyCopy('review-post', 812, [{ id: 'findings-1' }])
-    ).toEqual({
+    expect(gateNotifyCopy('review-post', 812, [{ id: 'findings-1' }])).toEqual({
       headline: 'Your review of !812 is ready',
       summary: 'Pick what to post',
     });
