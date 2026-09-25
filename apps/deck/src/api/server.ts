@@ -68,6 +68,7 @@ import {
   commandRunStatus,
   startCommandRun,
 } from '../services/command-runner.ts';
+import { selfLabelCache } from '../services/helper-owner.ts';
 import { PLATFORM_NAME } from '../services/manager.ts';
 import { isDevMode } from './dev-mode.ts';
 import { buildDiscoveryApps, iconResponse } from './discovery.ts';
@@ -320,6 +321,7 @@ function rowsByName(rows: StatusRow[]): Map<string, StatusRow> {
 }
 
 export function startApi(deps: ApiDeps) {
+  const selfLabel = selfLabelCache(deps.deckOwner);
   return Bun.serve({
     port: deps.port,
     hostname: '127.0.0.1',
@@ -360,6 +362,10 @@ export function startApi(deps: ApiDeps) {
         devMode: (deps.devMode ?? isDevMode)(),
         readyFetch: deps.readyFetch,
         edgeDrift,
+        selfService: async () => {
+          const label = await selfLabel();
+          return label ? { label, pid: process.pid } : null;
+        },
       };
 
       // ---- static / identity (carried from core/server.ts) ----
@@ -519,8 +525,14 @@ export function startApi(deps: ApiDeps) {
         // named "register" or "managed" can never shadow these routes.
         if (pathname === '/api/v1/apps/register' && req.method === 'POST') {
           const b = await body(req);
-          const { applyManifest } = await import('./register-manifest.ts');
-          const r = await applyManifest(String(b.dir ?? ''), undefined, deps);
+          const { applyManifest, checkRegisterDir } =
+            await import('./register-manifest.ts');
+          const dir = String(b.dir ?? '');
+          const bad = checkRegisterDir(dir);
+          if (bad) return json(bad.body, bad.status);
+          const r = await applyManifest(dir, undefined, deps, {
+            create: b.create === true,
+          });
           return json(r.body, r.status);
         }
         if (

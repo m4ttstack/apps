@@ -406,8 +406,8 @@ describe('boardBridgeRule', () => {
       pattern: 'gate/opened/*',
       subjectPrefix: 'mr:',
       category: 'gate',
-      title: '{label}',
-      message: '{question}',
+      title: '{headline}',
+      message: '{summary}',
       url: `${BOARD_URL}/?gate={id}`,
     });
   });
@@ -506,6 +506,29 @@ describe('installBoardBridgeRule', () => {
     expect(io.writes).toEqual([[boardBridgeRule('https://board.local.test')]]);
   });
 
+  test('deck answers: an installed rule with the old label/question templates is rewritten in place', async () => {
+    const installed: EventBridgeRule = {
+      ...boardBridgeRule('https://board.local.test'),
+      title: '{label}',
+      message: '{question}',
+    };
+    const other: EventBridgeRule = {
+      pattern: 'chat/mention/*',
+      category: 'chat',
+      title: 'mention',
+      message: '{body}',
+    };
+    const io = fakeIo([installed, other]);
+    await installBoardBridgeRule({
+      ...io,
+      resolveUrl: async () => 'https://board.local.test',
+      stillWriter: () => true,
+    });
+    expect(io.writes).toEqual([
+      [boardBridgeRule('https://board.local.test'), other],
+    ]);
+  });
+
   test('deck does not answer: an existing rule is left exactly as it is', async () => {
     const io = fakeIo([boardBridgeRule('http://localhost:7941')]);
     await installBoardBridgeRule({
@@ -595,14 +618,51 @@ describe('GateResync', () => {
     return { list, calls };
   }
 
-  test('run() reconciles both the mr: and the pane-attention scopes', async () => {
+  test('run() reconciles the mr:, pane-attention and run: scopes', async () => {
     const { list, calls } = listOf([]);
     const resync = new GateResync(list, new GateCache(), () => {});
     await resync.run();
     expect(calls).toEqual([
       { subjectPrefix: 'mr:', kind: undefined },
       { subjectPrefix: undefined, kind: 'pane-attention' },
+      { subjectPrefix: 'run:', kind: undefined },
     ]);
+  });
+
+  function listByScope(rows: FacilityGateRow[]) {
+    return async (payload: { subjectPrefix?: string; kind?: string }) => ({
+      ok: true,
+      data: {
+        gates: rows.filter(
+          r =>
+            (!payload.subjectPrefix ||
+              r.subject.startsWith(payload.subjectPrefix)) &&
+            (!payload.kind || r.kind === payload.kind)
+        ),
+        cursor: 1,
+      },
+    });
+  }
+
+  test('a run gate answered during a relay gap stops being open after run()', async () => {
+    const cache = new GateCache();
+    const open = row({ id: 'r1g', subject: 'run:r1', kind: 'post-confirm' });
+    cache.reconcile([open]);
+    const answered = { ...open, status: 'answered' as const };
+    await new GateResync(listByScope([answered]), cache, () => {}).run();
+    expect(cache.get('run:r1', 'post-confirm')?.status).toBe('answered');
+  });
+
+  test('a settled run gate the cache never held is not added by run()', async () => {
+    const cache = new GateCache();
+    const closed = row({
+      id: 'r2g',
+      subject: 'run:r2',
+      kind: 'post-confirm',
+      status: 'closed',
+    });
+    await new GateResync(listByScope([closed]), cache, () => {}).run();
+    expect(cache.get('run:r2', 'post-confirm')).toBeUndefined();
   });
 
   test('a gate answered during a relay gap stops being open after run()', async () => {
@@ -679,6 +739,6 @@ describe('GateResync', () => {
     await resync.run();
     release();
     await first;
-    expect(calls).toBe(2);
+    expect(calls).toBe(3);
   });
 });

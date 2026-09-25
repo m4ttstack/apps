@@ -1,4 +1,6 @@
 // src/cli/commands.ts
+import { resolve } from 'path';
+
 import pkg from '../../package.json';
 import { apiJson, deckNotRunning } from './client.ts';
 import { configInit } from './config-init.ts';
@@ -187,7 +189,11 @@ export async function runCommand(
         // as "removed" sends someone off believing an app is gone while it
         // is still registered, still routed, and still on the board.
         if (body.ok === false) {
-          const issues = (body.record?.issues ?? []) as Array<{
+          if (body.error) {
+            io.err(`could not remove ${name}: ${body.error}`);
+            return 1;
+          }
+          const issues = (body.issues ?? []) as Array<{
             source: string;
             message: string;
           }>;
@@ -428,7 +434,7 @@ export async function runCommand(
         return configInit(process.cwd(), io);
       }
       case 'register': {
-        const dir = flag(rest, '--dir') ?? process.cwd();
+        const dir = resolve(flag(rest, '--dir') ?? process.cwd());
         const { status, body } = await apiJson('/api/v1/apps/register', {
           method: 'POST',
           body: JSON.stringify({ dir }),

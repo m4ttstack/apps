@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { join, relative } from 'path';
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 
 import { configInit } from './config-init.ts';
@@ -89,6 +89,40 @@ test('remove on a managed record prints the escape hatch and exits 1', async () 
   expect(r.lines.join('\n')).toContain('Managed by mattstack');
   const f = io();
   expect(await runCommand(['remove', 't-rt', '--force'], f)).toBe(0);
+});
+
+test("remove reports a 200 ok:false: a route-only error as is, a kept record's issues by source", async () => {
+  const answers: Record<string, unknown> = {
+    '/api/v1/apps/gitq': { ok: false, error: 'still routed by pid 4242' },
+    '/api/v1/apps/myapp': {
+      ok: false,
+      issues: [{ source: 'launchd', message: 'bootout failed' }],
+    },
+  };
+  const deck = Bun.serve({
+    port: 0,
+    hostname: '127.0.0.1',
+    fetch(req) {
+      const answer = answers[new URL(req.url).pathname];
+      return answer
+        ? Response.json(answer)
+        : Response.json({ error: 'not found' }, { status: 404 });
+    },
+  });
+  writeApiInfo(deck.port!);
+  try {
+    const routeOnly = io();
+    expect(await runCommand(['remove', 'gitq'], routeOnly)).toBe(1);
+    expect(routeOnly.lines.join('\n')).toBe(
+      'could not remove gitq: still routed by pid 4242'
+    );
+    const kept = io();
+    expect(await runCommand(['remove', 'myapp'], kept)).toBe(1);
+    expect(kept.lines.join('\n')).toContain('(launchd: bootout failed)');
+  } finally {
+    writeApiInfo(PORT);
+    deck.stop(true);
+  }
 });
 
 test('restart --managed / remove --managed only touch non-user records', async () => {
@@ -447,6 +481,25 @@ test('register from a manifest dir, then config init refuses overwrite', async (
 
   const c = io();
   expect(configInit(appDir, c)).toBe(1);
+});
+
+test('register sends a relative --dir as an absolute path', async () => {
+  const appDir = mkdtempSync(join(tmpdir(), 'regrel-'));
+  writeFileSync(
+    join(appDir, 'mattstack.deck.json'),
+    JSON.stringify({
+      name: 'regrel',
+      port: 4323,
+      commands: { start: 'bun run serve' },
+    })
+  );
+  const a = io();
+  const code = await runCommand(
+    ['register', '--dir', relative(process.cwd(), appDir)],
+    a
+  );
+  expect(a.lines).toEqual(['registered regrel on port 4323']);
+  expect(code).toBe(0);
 });
 
 test('deck alt on/off round-trip', async () => {

@@ -10,9 +10,12 @@ import {
   editPatch,
   HEAL_RECENT_MS,
   isPlatform,
+  NAME_PATTERN,
   PROXY_WAIT_MS,
   reconcileRestarting,
   REFRESH_MS,
+  registerOutcome,
+  removeFailure,
   RESTART_TIMEOUT_MS,
   sections,
   showDevLinkPrompt,
@@ -371,31 +374,127 @@ test('autoBanner: nothing to report reads null', () => {
 
 // ---- addPayload ----
 
-test('addPayload: external app sends name and numeric staticPort', () => {
-  expect(
-    addPayload({
-      name: ' ext ',
-      external: true,
-      command: '',
-      workingDirectory: '',
-      staticPort: '4100',
-    })
-  ).toEqual({ name: 'ext', staticPort: 4100 });
-});
-
 test('addPayload: service app sends name, whitespace-split command, workingDirectory', () => {
   expect(
     addPayload({
       name: 'svc',
-      external: false,
       command: '  bun run dev  ',
       workingDirectory: ' /tmp/svc ',
-      staticPort: '',
     })
   ).toEqual({
     name: 'svc',
     command: ['bun', 'run', 'dev'],
     workingDirectory: '/tmp/svc',
+  });
+});
+
+// ---- registerOutcome ----
+
+test('registerOutcome: an ok answer means the manifest registered the app', () => {
+  expect(registerOutcome(200, { record: { name: 'x' } })).toEqual({
+    kind: 'registered',
+  });
+});
+
+test('registerOutcome: the missing-manifest 400 asks for the manual form', () => {
+  expect(
+    registerOutcome(400, { error: 'no mattstack.deck.json in /code/app' })
+  ).toEqual({ kind: 'no-manifest' });
+});
+
+test("registerOutcome: any other 400 carries the route's error text", () => {
+  expect(
+    registerOutcome(400, {
+      error: 'manifest must declare commands.start or a port',
+    })
+  ).toEqual({
+    kind: 'error',
+    message: 'manifest must declare commands.start or a port',
+  });
+});
+
+test('registerOutcome: an existing app reads as already registered, by name', () => {
+  expect(
+    registerOutcome(409, {
+      error: 'already registered',
+      name: 'forecast',
+      dir: '/code/forecast',
+    })
+  ).toEqual({ kind: 'error', message: 'forecast is already registered' });
+});
+
+test('registerOutcome: a conflict names the port or app it is about', () => {
+  expect(registerOutcome(409, { error: 'port in use', port: 4321 })).toEqual({
+    kind: 'error',
+    message: 'port in use: 4321',
+  });
+  expect(registerOutcome(409, { error: 'name taken', name: 'x' })).toEqual({
+    kind: 'error',
+    message: 'name taken: x',
+  });
+  expect(
+    registerOutcome(400, { error: 'directory not found', dir: '/nope' })
+  ).toEqual({ kind: 'error', message: 'directory not found: /nope' });
+});
+
+// ---- removeFailure ----
+
+test('removeFailure: an ok answer removed the app, nothing to say', () => {
+  expect(removeFailure('gitq', 200, { ok: true })).toBeNull();
+});
+
+test('removeFailure: a refusal carries the API message verbatim, escape hatch included', () => {
+  expect(
+    removeFailure('board', 409, {
+      error: 'managed',
+      message:
+        'Managed by mattstack: remove it anyway with `deck remove board --force`',
+    })
+  ).toBe(
+    'Managed by mattstack: remove it anyway with `deck remove board --force`'
+  );
+  expect(removeFailure('ghost', 404, { error: 'unknown app' })).toBe(
+    'unknown app'
+  );
+  expect(removeFailure('ghost', 500, {})).toBe('remove failed (500)');
+});
+
+test('removeFailure: a 200 that says ok:false is a failure, named by its error', () => {
+  expect(
+    removeFailure('gitq', 200, {
+      ok: false,
+      error: "Error: EACCES: permission denied, open 'routes.json'",
+    })
+  ).toBe(
+    "removing gitq failed: Error: EACCES: permission denied, open 'routes.json'"
+  );
+});
+
+test("removeFailure: an ok:false record answer names this teardown's issues", () => {
+  expect(
+    removeFailure('myapp', 200, {
+      ok: false,
+      issues: [
+        { message: 'bootout failed' },
+        { message: 'alias removal failed' },
+      ],
+    })
+  ).toBe('removing myapp failed: bootout failed; alias removal failed');
+  expect(removeFailure('myapp', 200, { ok: false })).toBe(
+    'removing myapp failed.'
+  );
+});
+
+test('NAME_PATTERN compiles under the v flag browsers use for pattern', () => {
+  const re = new RegExp(`^(?:${NAME_PATTERN})$`, 'v');
+  expect(re.test('my-app.2')).toBe(true);
+  expect(re.test('My App')).toBe(false);
+});
+
+test('registerOutcome: a failure with no error text names the status', () => {
+  expect(registerOutcome(500, {})).toEqual({
+    kind: 'error',
+    message: 'failed (500)',
   });
 });
 

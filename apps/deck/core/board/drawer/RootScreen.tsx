@@ -360,7 +360,7 @@ export function buildAppRoot(
         {/* Extra top margin beyond the group gap, per the atlas: destructive
             actions read as a visually separate cluster, not just the next
             group in the list. */}
-        {data.canManage && (
+        {data.canManage && !row.self && (
           <div className="drawer-danger-group">
             <ListGroup>
               <ListGroup.Danger
@@ -409,10 +409,7 @@ export function buildServiceRoot(
           />
           <ListGroup.Action
             label="+ give it a route…"
-            onClick={() => {
-              board.openAdd();
-              board.updateAddModal({ name: row.name });
-            }}
+            onClick={() => board.openManualAdd(row.name)}
           />
         </ListGroup>
       </div>

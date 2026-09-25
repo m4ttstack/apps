@@ -10,7 +10,7 @@ import { unwrapGateAnswer } from '@mattstack/gate-kit';
 import type { BoardMR } from '../../data.ts';
 import { hasChangesRequested } from '../../data.ts';
 import { respondOutcome } from '../../respond-outcome.ts';
-import { statusBucket } from '../../view.ts';
+import { approvalSlots, statusBucket } from '../../view.ts';
 import type {
   BoardMRWithReview,
   DoctorStatus,
@@ -26,6 +26,7 @@ import {
   NUDGE_RETRYABLE,
   RESPOND_ACTIVE,
 } from './format.ts';
+import { parseGateCtx } from './gate-ctx.ts';
 
 type Tone = 'bad' | 'warn' | 'work' | 'go' | 'quiet' | 'clear';
 
@@ -89,10 +90,10 @@ export function statusReasons(mr: BoardMR): string {
   if (b.needsRebase) reasons.push('source branch needs a rebase');
   if (b.pipelineFailing) reasons.push('pipeline is failing');
   if (b.pipelineRunning) reasons.push('pipeline still running');
-  if (b.awaitingApprovals)
-    reasons.push(
-      `awaiting approvals (${mr.reviews.given}/${mr.reviews.required})`
-    );
+  if (b.awaitingApprovals) {
+    const { filled, required } = approvalSlots(mr);
+    reasons.push(`awaiting approvals (${filled}/${required})`);
+  }
   if (b.hasUnresolvedDiscussions)
     reasons.push(`unresolved discussions (${mr.unresolvedThreads})`);
   if (b.hasMergeError)
@@ -118,15 +119,9 @@ const PILL_HUE: Record<string, PillHue> = {
     approvals have got refines the untouched state rather than replacing it. */
 export function statusPhrase(mr: BoardMR): { text: string; hue: PillHue } {
   const { label } = statusBucket(mr);
-  if (
-    label === 'needs review' &&
-    mr.reviews.required > 0 &&
-    mr.reviews.given > 0
-  )
-    return {
-      text: `${mr.reviews.given}/${mr.reviews.required} approved`,
-      hue: 'cyan',
-    };
+  const { filled, required } = approvalSlots(mr);
+  if (label === 'needs review' && required > 0 && filled > 0)
+    return { text: `${filled}/${required} approved`, hue: 'cyan' };
   return { text: label, hue: PILL_HUE[label] ?? 'amber' };
 }
 
@@ -189,13 +184,28 @@ function verdictWord(
   return fallback;
 }
 
+/** A respond gate asks one question per thread, labelled with the thread's
+    file:line, so its first label is a path, not a question. */
+function openGateWord(gate: BoardMRWithReview['gates'][number]): string {
+  const ctx = parseGateCtx(gate.context);
+  if (ctx?.shape === 'plan@1') {
+    const n = ctx.threads.total;
+    return `${n === 1 ? 'one thread' : `${n} threads`} to decide`;
+  }
+  if (ctx?.shape === 'post@1') {
+    const n = ctx.replies;
+    return `${n === 1 ? 'one reply' : `${n} replies`} to post`;
+  }
+  return lowerFirst(gate.questions[0]?.label ?? gate.label);
+}
+
 function gateLines(mr: BoardMRWithReview): Candidate[] {
   const out: Candidate[] = [];
   for (const gate of mr.gates) {
     if (gate.status === 'open' || gate.status === 'parked') {
       out.push({
         tone: 'warn',
-        word: lowerFirst(gate.questions[0]?.label ?? gate.label),
+        word: openGateWord(gate),
         detail: gate.status === 'parked' ? 'parked' : undefined,
         verbs: [{ kind: 'answer', label: 'answer', gateId: gate.gateId }],
       });
@@ -663,9 +673,9 @@ const CI_RUNNING: Candidate = {
 };
 
 function approvalsDetail(mr: BoardMRWithReview): string | undefined {
-  const { given, required } = mr.reviews;
-  return given > 0 && required > 0
-    ? `${given} of ${required} approvals`
+  const { filled, required } = approvalSlots(mr);
+  return filled > 0 && required > 0
+    ? `${filled} of ${required} approvals`
     : undefined;
 }
 
