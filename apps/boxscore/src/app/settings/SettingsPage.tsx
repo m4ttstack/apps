@@ -25,7 +25,6 @@ import {
 } from '@mattstack/settings-kit/react';
 import {
   asRosterEntries,
-  COMPOSITE_SHAPES,
   formatValue,
   getLeaf,
   isSet,
@@ -33,6 +32,7 @@ import {
   rowKind,
   selectOptions,
   setLeaf,
+  shapeOf,
   type ConfigDef,
   type RosterEntry,
 } from './shapes';
@@ -207,9 +207,9 @@ function SettingRow({
   const kind = rowKind(def);
   const row = useRowSave(store, def);
   const value = def.effective.value;
-  const shape = COMPOSITE_SHAPES[def.key];
+  const shape = shapeOf(def);
   const malformed =
-    shape !== undefined && value !== undefined && !matchesShape(shape, value);
+    shape !== undefined && value !== undefined && !matchesShape(def, value);
 
   let control;
   if (def.secret || kind === 'readonly' || malformed) {
