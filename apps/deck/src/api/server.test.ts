@@ -951,6 +951,16 @@ test('POST /apps/register creates a record from a manifest dir', async () => {
   expect(get.status).toBe(200);
 });
 
+test("POST /apps/register on a dir without a manifest answers the 400 the board's Add app reads as no manifest", async () => {
+  const { registerOutcome } = await import('../../core/board/logic.ts');
+  const dir = mkdtempSync(join(tmpdir(), 'reg-none-'));
+  const res = await post('/api/v1/apps/register', { dir });
+  expect(res.status).toBe(400);
+  expect(registerOutcome(res.status, await res.json())).toEqual({
+    kind: 'no-manifest',
+  });
+});
+
 test('POST /apps/:name/alt activates and clears an overlay', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'alt-'));
   writeFileSync(

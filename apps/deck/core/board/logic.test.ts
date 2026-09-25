@@ -13,6 +13,7 @@ import {
   PROXY_WAIT_MS,
   reconcileRestarting,
   REFRESH_MS,
+  registerOutcome,
   RESTART_TIMEOUT_MS,
   sections,
   showDevLinkPrompt,
@@ -396,6 +397,38 @@ test('addPayload: service app sends name, whitespace-split command, workingDirec
     name: 'svc',
     command: ['bun', 'run', 'dev'],
     workingDirectory: '/tmp/svc',
+  });
+});
+
+// ---- registerOutcome ----
+
+test('registerOutcome: an ok answer means the manifest registered the app', () => {
+  expect(registerOutcome(200, { record: { name: 'x' } })).toEqual({
+    kind: 'registered',
+  });
+});
+
+test('registerOutcome: the missing-manifest 400 asks for the manual form', () => {
+  expect(
+    registerOutcome(400, { error: 'no mattstack.deck.json in /code/app' })
+  ).toEqual({ kind: 'no-manifest' });
+});
+
+test("registerOutcome: any other 400 carries the route's error text", () => {
+  expect(
+    registerOutcome(400, {
+      error: 'manifest must declare commands.start or a port',
+    })
+  ).toEqual({
+    kind: 'error',
+    message: 'manifest must declare commands.start or a port',
+  });
+});
+
+test('registerOutcome: a failure with no error text names the status', () => {
+  expect(registerOutcome(500, {})).toEqual({
+    kind: 'error',
+    message: 'failed (500)',
   });
 });
 

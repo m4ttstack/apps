@@ -253,6 +253,30 @@ export function addPayload(m: {
       };
 }
 
+export type RegisterOutcome =
+  | { kind: 'registered' }
+  | { kind: 'no-manifest' }
+  | { kind: 'error'; message: string };
+
+// Must track applyManifest's missing-manifest error in
+// src/api/register-manifest.ts; server.test.ts pins the pair together.
+const NO_MANIFEST_PREFIX = 'no mattstack.deck.json in ';
+
+/** Reads a POST /api/v1/apps/register answer, the route `deck register --dir`
+    uses, into what the Add app modal does next. */
+export function registerOutcome(
+  status: number,
+  body: unknown
+): RegisterOutcome {
+  if (status >= 200 && status < 300) return { kind: 'registered' };
+  const fields = (body ?? {}) as { error?: unknown; message?: unknown };
+  const error = typeof fields.error === 'string' ? fields.error : '';
+  if (status === 400 && error.startsWith(NO_MANIFEST_PREFIX))
+    return { kind: 'no-manifest' };
+  const message = typeof fields.message === 'string' ? fields.message : '';
+  return { kind: 'error', message: error || message || `failed (${status})` };
+}
+
 export function editPatch(m: {
   name: string;
   port: string;
