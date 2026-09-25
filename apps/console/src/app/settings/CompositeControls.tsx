@@ -9,7 +9,6 @@ import {
   ActionIcon,
   Box,
   Button,
-  Code,
   Group,
   NumberInput,
   Pill,
@@ -43,6 +42,7 @@ import {
   SWITCH_SIZE,
 } from './controlStyles';
 import { ExpandToggle } from './ExpandToggle';
+import { JsonBlock } from './JsonBlock';
 import { ScopeBadge } from './ScopeBadge';
 import { unitOf } from './units';
 import { useKeyExplain, useSettingsRepo } from './useConsoleSettings';
@@ -59,13 +59,6 @@ type Row = ReturnType<typeof useRowSave>;
 const INLINE_MAX_ITEMS = 3;
 const INLINE_MAX_CHARS = 16;
 const LEAVES_FIRST = 5;
-
-const PREVIEW_STYLE = {
-  background: 'var(--tk-inset)',
-  fontSize: 12,
-  whiteSpace: 'pre-wrap',
-  wordBreak: 'break-word',
-} as const;
 
 function blurOnEnter(e: KeyboardEvent<HTMLInputElement>) {
   if (e.key === 'Enter') e.currentTarget.blur();
@@ -602,9 +595,7 @@ function ReadonlyBody({ def }: { def: SettingDefWire }) {
           •••
         </Text>
       ) : (
-        <Code block style={PREVIEW_STYLE}>
-          {JSON.stringify(value, null, 2)}
-        </Code>
+        <JsonBlock value={value} />
       )}
       {def.effective.file && (
         <Text fz={12} ff="monospace" c={text.muted} pt={8}>

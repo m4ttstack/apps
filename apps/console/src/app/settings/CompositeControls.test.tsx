@@ -865,6 +865,7 @@ describe('composite rows', () => {
     await userEvent.click(screen.getByRole('button', { name: /1 field/ }));
     expect(screen.getByText('/stores/local.jsonc')).toBeInTheDocument();
     expect(screen.getByText(/"triggers"/)).toBeInTheDocument();
+    expect(screen.getByTestId('json-block')).toBeInTheDocument();
   });
 
   it('an unset read-only composite summarises as unset, with no toggle', () => {

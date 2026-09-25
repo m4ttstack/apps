@@ -283,6 +283,45 @@ describe('ExplainModal', () => {
     renderModal(store(), null);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('a composite layer shows its whole value, never cut at 40 characters', async () => {
+    const LONG = {
+      triggers: [
+        {
+          name: 'nightly-sync',
+          event: 'cron/tick',
+          run: ['rt', 'sync', '--all'],
+        },
+      ],
+    };
+    const CRON: SettingDefWire = {
+      ...DEF,
+      key: 'rt.cron',
+      type: 'object',
+      scopes: ['machine'],
+      merge: 'deep',
+      effective: { scope: 'machine', file: '/stores/local.jsonc', value: LONG },
+    };
+    explainGet.mockResolvedValue(
+      ok({
+        def: CRON,
+        rows: [
+          { scope: 'default', file: null, present: false },
+          {
+            scope: 'machine',
+            file: '/stores/local.jsonc',
+            present: true,
+            value: LONG,
+          },
+        ],
+      })
+    );
+    renderModal(store({ defs: [CRON] }), 'rt.cron');
+    const layer = await screen.findByTestId('layer-machine');
+    expect(layer).toHaveTextContent('"name": "nightly-sync"');
+    expect(layer).toHaveTextContent('"--all"');
+    expect(layer.textContent).not.toContain('…');
+  });
 });
 
 describe('with a repo picked', () => {
@@ -374,9 +413,13 @@ describe('with a repo picked', () => {
       repos: [{ identity: REPO, scopes: ['team'] }],
       effective: { scope: null, file: null },
     };
+    // settings-kit 0.4.0's /explain never sets `repos` (only /defs does), so
+    // the mock omits it here to exercise ExplainBody's carry-over from the
+    // /defs-sourced store def.
+    const EXPLAINED_ROLES: SettingDefWire = { ...ROLES, repos: undefined };
     explainGet.mockImplementation(async (url: string) =>
       ok({
-        def: ROLES,
+        def: EXPLAINED_ROLES,
         rows: url.includes('repo=')
           ? [
               { scope: 'default', file: null, present: false },

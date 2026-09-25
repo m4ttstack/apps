@@ -6,7 +6,6 @@ import {
   Badge,
   Box,
   Button,
-  Code,
   Group,
   Modal,
   Skeleton,
@@ -25,6 +24,7 @@ import { rowKind } from '@mattstack/settings-kit/shapes';
 import { analyzeChain, shortValue } from '../config/chain';
 import { useAgentModels } from '../config/useSettings';
 import { useEditorHref } from '../editorHref';
+import { JsonBlock } from './JsonBlock';
 import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
 import { SettingRow } from './SettingRow';
@@ -165,6 +165,17 @@ function LayerLine({
       <Text fz={12} c={text.muted}>
         present, never shown here
       </Text>
+    );
+  else if (def.type === 'object' || def.type === 'array')
+    // A struck-through block is unreadable, so an overridden composite gets
+    // only the muted colour, on the wrapper rather than inside JsonBlock.
+    value = (
+      <Box
+        c={role === 'overridden' ? text.muted : undefined}
+        data-testid={`layer-value-${scope}`}
+      >
+        <JsonBlock value={row.value} maxHeight={240} />
+      </Box>
     );
   else
     value = (
@@ -331,7 +342,7 @@ function RepoSection({
         set.map(r => (
           <Stack key={r.scope} gap={4} pt={8}>
             <ScopeBadge scope={r.scope as LayerScope} />
-            <Code block>{JSON.stringify(r.value, null, 2)}</Code>
+            <JsonBlock value={r.value} />
           </Stack>
         ))
       )}
