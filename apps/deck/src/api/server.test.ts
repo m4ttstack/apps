@@ -235,10 +235,11 @@ test('a freshly-registered app with no route yet shows up in the list without le
 });
 
 test("a public host gets the row's record shape redacted; a local one still pre-fills the edit dialog", async () => {
+  const secretDir = mkdtempSync(join(tmpdir(), 'secret-dir-'));
   const created = await post('/api/v1/apps', {
     name: 'secretful',
     command: ['bun', 's.ts'],
-    workingDirectory: '/tmp/secret-dir',
+    workingDirectory: secretDir,
     env: { API_KEY: 'shh-do-not-leak' },
   });
   expect(created.status).toBe(201);
@@ -248,7 +249,7 @@ test("a public host gets the row's record shape redacted; a local one still pre-
     await api('/api/v1/apps', { headers: pubHeaders })
   ).text();
   // Whole-body assertions: a leak that sinks one level deeper must still fail.
-  expect(pubRaw).not.toContain('/tmp/secret-dir');
+  expect(pubRaw).not.toContain(secretDir);
   expect(pubRaw).not.toContain('shh-do-not-leak');
   const pubRow = JSON.parse(pubRaw).apps.find(
     (a: any) => a.name === 'secretful'
@@ -263,7 +264,7 @@ test("a public host gets the row's record shape redacted; a local one still pre-
   const oneRaw = await (
     await api('/api/v1/apps/secretful', { headers: pubHeaders })
   ).text();
-  expect(oneRaw).not.toContain('/tmp/secret-dir');
+  expect(oneRaw).not.toContain(secretDir);
   expect(JSON.parse(oneRaw).row.record).toEqual({
     kind: 'service',
     command: null,
@@ -276,7 +277,7 @@ test("a public host gets the row's record shape redacted; a local one still pre-
   expect(localRow.record).toEqual({
     kind: 'service',
     command: ['bun', 's.ts'],
-    workingDirectory: '/tmp/secret-dir',
+    workingDirectory: secretDir,
   });
 });
 

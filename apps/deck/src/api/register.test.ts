@@ -43,6 +43,7 @@ const { FakeServiceManager } = await import('../services/fake.ts');
 const { FakeEdgeProxy } = await import('../edge/portless.ts');
 const { getRecord, putRecord, reloadRegistry, listRecords, deleteRecord } =
   await import('../registry/records.ts');
+const { dataDir } = await import('../registry/serve-shape.ts');
 const {
   getAppSettings,
   setPublished,
@@ -84,7 +85,7 @@ afterEach(() => {
 const input = {
   name: 'myapp',
   command: ['bun', 'src/server.ts'],
-  workingDirectory: '/tmp/myapp',
+  workingDirectory: mkdtempSync(join(tmpdir(), 'myapp-')),
 };
 
 /** A managed row only serves what the resolver finds: a binary inside the
@@ -113,7 +114,7 @@ test('register: allocates from 11000, installs the service, registers the alias,
   expect(rec.label).toBe('com.mattstack.deck.myapp');
   const spec = drivers.manager.installed.get('com.mattstack.deck.myapp')!;
   expect(spec.environment.PORT).toBe('11000');
-  expect(spec.workingDirectory).toBe('/tmp/myapp');
+  expect(spec.workingDirectory).toBe(input.workingDirectory);
   expect(drivers.edge.aliases.get('myapp')).toBe(11000);
 });
 
@@ -204,6 +205,39 @@ test('adopt succeeds when the route ALREADY exists — the bootstrap/migrate rea
   writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
 });
 
+test('register: a user app whose working directory is gone is refused with a launchd issue, never handed to launchd', async () => {
+  const gone = join(tmpdir(), `gone-${Date.now()}`);
+  const res = await registerApp(
+    { ...input, name: 'gone', workingDirectory: gone },
+    drivers
+  );
+  expect(res.status).toBe(201);
+  expect(drivers.manager.installed.has(`${LABEL_PREFIX}gone`)).toBe(false);
+  const issue = getRecord('gone')!.issues![0]!;
+  expect(issue.source).toBe('launchd');
+  expect(issue.message).toContain(`working directory ${gone} does not exist`);
+  expect(existsSync(gone)).toBe(false);
+});
+
+test('register: a managed app served from the bundle gets the data dir deck owns', async () => {
+  const h = bundleHelpers('fresh');
+  const res = await registerApp(
+    {
+      ...input,
+      name: 'fresh',
+      managedBy: 'rt',
+      command: h.command('fresh'),
+      workingDirectory: dataDir('fresh'),
+    },
+    drivers
+  );
+  expect(res.status).toBe(201);
+  expect(existsSync(dataDir('fresh'))).toBe(true);
+  expect(
+    drivers.manager.installed.get(`${LABEL_PREFIX}fresh`)!.workingDirectory
+  ).toBe(dataDir('fresh'));
+});
+
 test('a portless failure still registers, but lands a loud portless issue', async () => {
   drivers.edge.failNext = 'myapp';
   const res = await registerApp(input, drivers);
@@ -241,7 +275,11 @@ test('edit re-ports: reinstalls the service on the new port and re-aliases', asy
 test('edit re-ports onto a port already held by another record is a 409, and the port stays unchanged', async () => {
   await registerApp(input, drivers);
   const otherRes = await registerApp(
-    { name: 'other', command: ['bun', 'x'], workingDirectory: '/tmp/other' },
+    {
+      name: 'other',
+      command: ['bun', 'x'],
+      workingDirectory: mkdtempSync(join(tmpdir(), 'other-')),
+    },
     drivers
   );
   const otherPort = (otherRes.body as any).record.port as number;
@@ -839,7 +877,11 @@ test('adopt refuses a rename target that is a different existing app', async () 
   await Bun.write(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
   await registerApp({ ...input, name: 'mrs' }, drivers);
   await registerApp(
-    { ...input, name: 'board', workingDirectory: '/tmp/other' },
+    {
+      ...input,
+      name: 'board',
+      workingDirectory: mkdtempSync(join(tmpdir(), 'other-')),
+    },
     drivers
   );
   const res = await adoptApp('mrs', { as: 'board' }, drivers);
@@ -1105,7 +1147,7 @@ test('reresolve: reinstalls only the app whose resolved command differs from its
       name: 'changed',
       managedBy: 'rt',
       command: h.command('changed', 'serve'),
-      workingDirectory: '/tmp/changed',
+      workingDirectory: mkdtempSync(join(tmpdir(), 'changed-')),
     },
     reresolveDrivers
   );
@@ -1189,7 +1231,7 @@ test('reresolve: a flip-then-flip-back is a no-op (restarts nothing, churns no d
       name: 'app2',
       managedBy: 'rt',
       command: h.command('app2', 'serve'),
-      workingDirectory: '/tmp/app2',
+      workingDirectory: mkdtempSync(join(tmpdir(), 'app2-')),
     },
     reresolveDrivers
   );

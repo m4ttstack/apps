@@ -28,6 +28,7 @@ import {
   clearIssues,
   deleteRecord,
   getRecord,
+  isMattstackOwned,
   listRecords,
   putRecord,
   reloadRegistry,
@@ -35,6 +36,7 @@ import {
   type SyncIssue,
 } from '../registry/records.ts';
 import {
+  dataDir,
   serveShape,
   type ResolvedShape,
   type ServeShapeDeps,
@@ -95,33 +97,53 @@ export function setServeShapeDeps(deps: ServeShapeDeps): void {
   serveShapeDeps = deps;
 }
 
+interface BuiltSpec {
+  spec: ServiceSpec;
+  createdCwd: boolean;
+}
+
 /**
  * launchd does not search PATH for `ProgramArguments[0]`, so argv0 must be
- * absolute in the plist. The caller passes the shape resolved for this render
- * (bundled binary or linked source), and this resolves argv0 to an absolute
- * path on every render, so an interpreter that moves -- a version manager
- * reorganizing, or being swapped for another -- is picked up by the next
- * render instead of being frozen at registration.
+ * absolute in the plist, and it is resolved again on every render so an
+ * interpreter that moves is picked up by the next render.
  *
- * Throws rather than naming a program that does not exist: launchd declines
- * to start such a job without logging anything, so writing it anyway produces
- * an app that is silently, inexplicably down.
+ * Throws rather than naming a program or a working directory that does not
+ * exist: launchd declines such a job (exit 78 for a missing cwd) without
+ * logging anything, so writing it anyway produces an app that is silently down.
  */
-function specFor(record: AppRecord, shape: ResolvedShape): ServiceSpec {
+function buildSpec(record: AppRecord, shape: ResolvedShape): BuiltSpec {
   const env = serviceEnv(record);
   const path = env.PATH ?? composeServicePath();
   const [argv0, ...rest] = shape.command;
   const program = resolveProgram(argv0!, path);
   if (!program)
     throw new Error(`${argv0} not found on the service PATH (${path})`);
+  const createdCwd = ensureWorkingDirectory(record, shape.cwd);
   return {
-    label: record.label!,
-    programArguments: [program, ...rest],
-    workingDirectory: shape.cwd,
-    environment: { ...env, PATH: path },
-    stdoutPath: join(logsDir(), `${record.name}.out.log`),
-    stderrPath: join(logsDir(), `${record.name}.err.log`),
+    spec: {
+      label: record.label!,
+      programArguments: [program, ...rest],
+      workingDirectory: shape.cwd,
+      environment: { ...env, PATH: path },
+      stdoutPath: join(logsDir(), `${record.name}.out.log`),
+      stderrPath: join(logsDir(), `${record.name}.err.log`),
+    },
+    createdCwd,
   };
+}
+
+/** Deck owns only a mattstack app's data dir; creating anyone else's missing
+    dir would hide a deleted checkout behind an empty one. */
+function ensureWorkingDirectory(record: AppRecord, cwd: string): boolean {
+  if (existsSync(cwd)) return false;
+  if (!isMattstackOwned(record) || cwd !== dataDir(record.name))
+    throw new Error(`working directory ${cwd} does not exist`);
+  mkdirSync(cwd, { recursive: true });
+  return true;
+}
+
+function specFor(record: AppRecord, shape: ResolvedShape): ServiceSpec {
+  return buildSpec(record, shape).spec;
 }
 
 function sameEnvironment(
