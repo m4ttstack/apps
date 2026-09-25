@@ -239,6 +239,13 @@ test('iconResponse serves the bundled svg for an unlinked catalog row', async ()
   );
 });
 
+test('iconResponse 404s a name inherited from Object.prototype inside a bundle', () => {
+  boardRow();
+  setBundledResourcesDir(FIXTURE_RESOURCES);
+  for (const name of ['__proto__', 'constructor', 'toString'])
+    expect(iconResponse(name).status).toBe(404);
+});
+
 test('a linked row keeps the identity ingested from its checkout', async () => {
   const src = mkdtempSync(join(tmpdir(), 'discovery-linked-'));
   writeFileSync(
