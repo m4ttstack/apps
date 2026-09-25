@@ -3,12 +3,15 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, expect, test } from 'bun:test';
 
+import type { Status } from './status.ts';
+
 const dir = mkdtempSync(join(tmpdir(), 'local-api-restart-self-'));
 process.env.LOCAL_REGISTRY_PATH = join(dir, 'registry.json');
 process.env.LOCAL_STATE_DIR = dir;
 process.env.LOCAL_APPS_ROUTES_PATH = join(dir, 'routes.json');
 process.env.LOCAL_APPS_SETTINGS_PATH = join(dir, 'settings.json');
 process.env.LOCAL_PLATFORM_SETTINGS_PATH = join(dir, 'platform.json');
+process.env.LOCAL_AGENTS_DIR = join(dir, 'agents-not-present');
 process.env.HOME = dir;
 writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH, '[]');
 
@@ -53,4 +56,22 @@ test('restarting deck kickstarts the helper launchd runs, not the retired hand l
 
   expect(res.status).toBe(200);
   expect(manager.kickstarts).toEqual(['com.mattstack.deck.dev']);
+});
+
+test("deck's row carries the helper's label and this process's pid, so the board offers its restart", async () => {
+  writeFileSync(
+    process.env.LOCAL_APPS_ROUTES_PATH!,
+    JSON.stringify([{ hostname: 'deck.localhost', port: PORT, pid: 0 }])
+  );
+
+  const res = await fetch(`http://127.0.0.1:${PORT}/api/v1/status`);
+  const status = (await res.json()) as Status;
+  const row = status.apps.find(a => a.name === 'deck')!;
+
+  expect(status.canRestart).toBe(true);
+  expect(row.service).toMatchObject({
+    label: 'com.mattstack.deck.dev',
+    short: 'deck',
+    pid: process.pid,
+  });
 });

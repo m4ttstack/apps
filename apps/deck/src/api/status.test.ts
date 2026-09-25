@@ -170,6 +170,52 @@ test("the catalog report joins the platform record's own launchd issue, one issu
   ]);
 });
 
+test("deck's own row shows the launchd job running it and its pid; no other row does", async () => {
+  writeFileSync(
+    process.env.LOCAL_APPS_ROUTES_PATH!,
+    JSON.stringify([
+      { hostname: 'deck.localhost', port: 7940, pid: 0 },
+      { hostname: 'myapp.localhost', port: 19999, pid: 0 },
+    ])
+  );
+
+  const status = await buildStatus({
+    ...opts,
+    selfService: async () => ({ label: 'com.mattstack.deck.dev', pid: 4242 }),
+  });
+
+  expect(status.apps.find(a => a.name === 'deck')!.service).toEqual({
+    label: 'com.mattstack.deck.dev',
+    short: 'deck',
+    pid: 4242,
+    lastExitStatus: null,
+    unmanaged: null,
+    stderr: [],
+  });
+  expect(status.apps.find(a => a.name === 'myapp')!.service?.label).not.toBe(
+    'com.mattstack.deck.dev'
+  );
+});
+
+test('with no launchd job running deck, its row borrows no service', async () => {
+  writeFileSync(
+    process.env.LOCAL_APPS_ROUTES_PATH!,
+    JSON.stringify([{ hostname: 'deck.localhost', port: 7940, pid: 0 }])
+  );
+  const agentsDir = process.env.LOCAL_AGENTS_DIR;
+  process.env.LOCAL_AGENTS_DIR = join(dir, 'no-agents');
+  try {
+    const status = await buildStatus({
+      ...opts,
+      selfService: async () => null,
+    });
+    expect(status.apps.find(a => a.name === 'deck')!.service).toBeNull();
+  } finally {
+    if (agentsDir === undefined) delete process.env.LOCAL_AGENTS_DIR;
+    else process.env.LOCAL_AGENTS_DIR = agentsDir;
+  }
+});
+
 test('a pre-rename self-record (managedBy local) still marks its row self', async () => {
   // Local -> Deck rename: an upgrading machine's self-row may still carry
   // the pre-rename managedBy id until `deck setup` next runs and migrates

@@ -360,6 +360,10 @@ export function startApi(deps: ApiDeps) {
         devMode: (deps.devMode ?? isDevMode)(),
         readyFetch: deps.readyFetch,
         edgeDrift,
+        selfService: async () => {
+          const label = await deps.deckOwner?.runningLabel();
+          return label ? { label, pid: process.pid } : null;
+        },
       };
 
       // ---- static / identity (carried from core/server.ts) ----
