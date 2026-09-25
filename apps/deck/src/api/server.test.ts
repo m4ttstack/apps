@@ -425,7 +425,7 @@ test('managed/remove refuses a name in its body instead of removing every manage
   const res = await post('/api/v1/apps/managed/remove', { name: 'mb-one' });
 
   expect(res.status).toBe(400);
-  expect((await res.json()).error).toContain(
+  expect(((await res.json()) as { error: string }).error).toContain(
     '/api/v1/apps/managed/remove/<name>'
   );
   expect(getRecord('mb-one')).toBeDefined();
@@ -448,6 +448,11 @@ describe('/api/apps during the boot sweep', () => {
       bootSweep,
       bootSweepWaitMs,
     });
+  }
+
+  async function appNames(res: Response): Promise<string[]> {
+    const body = (await res.json()) as { apps: Array<{ name: string }> };
+    return body.apps.map(a => a.name);
   }
 
   function sweptApp(): void {
@@ -476,9 +481,7 @@ describe('/api/apps during the boot sweep', () => {
       sweep.resolve();
       const ready = await fetch(`http://127.0.0.1:${BOOT_PORT}/api/apps`);
       expect(ready.status).toBe(200);
-      expect((await ready.json()).apps.map((a: any) => a.name)).toEqual([
-        'bs-app',
-      ]);
+      expect(await appNames(ready)).toEqual(['bs-app']);
     } finally {
       booting.stop(true);
       writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
@@ -495,9 +498,7 @@ describe('/api/apps during the boot sweep', () => {
       sweep.resolve();
       const res = await pending;
       expect(res.status).toBe(200);
-      expect((await res.json()).apps.map((a: any) => a.name)).toEqual([
-        'bs-app',
-      ]);
+      expect(await appNames(res)).toEqual(['bs-app']);
     } finally {
       booting.stop(true);
       writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');

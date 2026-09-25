@@ -22,6 +22,8 @@ await Bun.write(process.env.LOCAL_APPS_ROUTES_PATH, '[]');
 // so this test's port allocations aren't shifted by real launchd agents
 // already running on the dev machine (see LOCAL_AGENTS_DIR in core/discover.ts).
 process.env.LOCAL_AGENTS_DIR = join(dir, 'agents-not-present');
+// readServices() would otherwise run the machine's `launchctl list`.
+process.env.LOCAL_LAUNCHCTL_PIDS = '';
 // Settings live in the same throwaway dir: the rename tests write real
 // published/password state and must never touch the repo's data/settings.json.
 process.env.LOCAL_APPS_SETTINGS_PATH = join(dir, 'settings.json');
@@ -39,6 +41,7 @@ const {
   restartLabelFor,
   reresolveManagedApps,
   removeManagedApps,
+  reinstallSupervised,
   setServeShapeDeps,
 } = await import('./register.ts');
 const { FakeServiceManager } = await import('../services/fake.ts');
@@ -63,6 +66,15 @@ type ServiceSpec = Parameters<
   InstanceType<typeof FakeServiceManager>['install']
 >[0];
 const { agentsDir } = await import('../services/launchd.ts');
+const { catalogReport } = await import('../registry/catalog-report.ts');
+
+/** agentsDir() falls back to the real ~/Library/LaunchAgents when its env
+    seam is unset, so a recursive rm checks it first. */
+function wipeAgentsDir(): void {
+  if (!agentsDir().startsWith(dir))
+    throw new Error(`refusing to remove ${agentsDir()} outside ${dir}`);
+  rmSync(agentsDir(), { recursive: true, force: true });
+}
 const { renderPlist } = await import('../services/plist.ts');
 
 let drivers: {
@@ -1608,7 +1620,7 @@ test('reresolve: a later successful install clears the launchd issue a previous 
 });
 
 test('reresolve: prod does not serve an rt row outside the catalog; its plist goes, its row and dev link stay', async () => {
-  rmSync(agentsDir(), { recursive: true, force: true });
+  wipeAgentsDir();
   try {
     const manager = new PlistManager();
     const d = { manager, edge: drivers.edge };
@@ -1638,7 +1650,7 @@ test('reresolve: prod does not serve an rt row outside the catalog; its plist go
     expect(getRecord('gitq')!.issues).toBeUndefined();
     expect(existsSync(dataDir('gitq'))).toBe(false);
   } finally {
-    rmSync(agentsDir(), { recursive: true, force: true });
+    wipeAgentsDir();
   }
 });
 
@@ -1662,7 +1674,7 @@ test('reresolve: prod with no catalog serves rt rows as before and marks none no
 });
 
 test('reresolve: an unchanged plist whose owned data dir went missing gets the dir back and a kickstart', async () => {
-  rmSync(agentsDir(), { recursive: true, force: true });
+  wipeAgentsDir();
   try {
     const manager = new PlistManager();
     const d = { manager, edge: drivers.edge };
@@ -1688,7 +1700,7 @@ test('reresolve: an unchanged plist whose owned data dir went missing gets the d
     expect(manager.kickstarts).toEqual([`${LABEL_PREFIX}chat`]);
     expect(manager.installCalls).toEqual([`${LABEL_PREFIX}chat`]);
   } finally {
-    rmSync(agentsDir(), { recursive: true, force: true });
+    wipeAgentsDir();
   }
 });
 
@@ -1765,6 +1777,26 @@ test('prod: registering or linking a not-served row writes the record but never 
   expect(drivers.manager.installed.has(`${LABEL_PREFIX}gitq`)).toBe(false);
 });
 
+test('reinstallSupervised in prod reinstalls the catalog app and skips an rt row outside the catalog', async () => {
+  const counting = new CountingManager();
+  const h = bundleHelpers('chat', 'gitq');
+  setServeShapeDeps({
+    devMode: () => false,
+    helpersDir: h.dir,
+    catalog: CHAT_ONLY,
+  });
+  rtRow('chat', 11002);
+  rtRow('gitq', 11008);
+
+  const res = await reinstallSupervised({
+    manager: counting,
+    edge: drivers.edge,
+  });
+
+  expect(res).toEqual({ reinstalled: ['chat'], failed: [] });
+  expect(counting.installCalls).toEqual([`${LABEL_PREFIX}chat`]);
+});
+
 // ─── editApp: never uninstall a shape the patch can't replace ─────────────
 
 test('edit: unlinking a slim row with no bundle installed is rejected before any teardown', async () => {
@@ -1807,6 +1839,28 @@ test('edit: unlinking a slim row with no bundle installed is rejected before any
   expect(counting.uninstallCalls).toEqual([]);
   expect(counting.installCalls).toEqual([]);
   expect(counting.installed.get(label)).toEqual(installedBefore);
+});
+
+test('edit: a port change on a user row whose directory is gone is refused before any teardown', async () => {
+  const counting = new CountingManager();
+  const d = { manager: counting, edge: drivers.edge };
+  const gone = mkdtempSync(join(tmpdir(), 'gone-edit-'));
+  await registerApp({ ...input, name: 'goneapp', workingDirectory: gone }, d);
+  const port = getRecord('goneapp')!.port;
+  rmSync(gone, { recursive: true, force: true });
+  counting.installCalls = [];
+  counting.uninstallCalls = [];
+
+  const res = await editApp('goneapp', { port: 11999 }, 'user', false, d);
+
+  expect(res.status).toBe(400);
+  expect((res.body as any).error).toBe(
+    `working directory ${gone} does not exist`
+  );
+  expect(counting.uninstallCalls).toEqual([]);
+  expect(counting.installCalls).toEqual([]);
+  expect(counting.installed.has(`${LABEL_PREFIX}goneapp`)).toBe(true);
+  expect(getRecord('goneapp')!.port).toBe(port);
 });
 
 // The flavor flip on a lived-in registry.
@@ -1858,7 +1912,7 @@ const DECK_107_RECORD_KEYS = new Set([
 ]);
 
 test('flip: dev -> prod -> dev on a lived-in registry creates missing catalog rows in either flavor, adopts only in prod, and deletes nothing', async () => {
-  rmSync(agentsDir(), { recursive: true, force: true });
+  wipeAgentsDir();
   try {
     const manager = new PlistManager();
     const flip = { manager, edge: drivers.edge };
@@ -1992,7 +2046,7 @@ test('flip: dev -> prod -> dev on a lived-in registry creates missing catalog ro
       for (const key of Object.keys(record))
         expect(DECK_107_RECORD_KEYS.has(key)).toBe(true);
   } finally {
-    rmSync(agentsDir(), { recursive: true, force: true });
+    wipeAgentsDir();
   }
 });
 
@@ -2038,17 +2092,9 @@ test('prod catalog: a catalog port held by another row, or a route-only row with
   expect(getRecord('chat')!.kind).toBe('external');
 });
 
-test("catalog: an app the bundle ships no Helpers binary for gets no row, and deck's own row names it until it ships", async () => {
+test('catalog: an app the bundle ships no Helpers binary for gets no row, and the catalog report names it until it ships, with no platform record', async () => {
   const helpers = mkdtempSync(join(tmpdir(), 'partial-helpers-'));
   writeFileSync(join(helpers, 'chat'), '');
-  putRecord({
-    name: PLATFORM_NAME,
-    managedBy: 'deck',
-    port: 11000,
-    kind: 'service',
-    label: PLATFORM_LABEL,
-    createdAt: AT,
-  });
   setServeShapeDeps({
     devMode: () => true,
     helpersDir: helpers,
@@ -2065,18 +2111,109 @@ test("catalog: an app the bundle ships no Helpers binary for gets no row, and de
     { name: 'board', error: 'this bundle ships no Helpers/board' },
   ]);
   expect(getRecord('board')).toBeUndefined();
-  expect(getRecord(PLATFORM_NAME)!.issues).toEqual([
-    {
-      source: 'launchd',
-      message: 'catalog apps missing from this bundle: board',
-      at: expect.any(String),
-    },
-  ]);
+  expect(listRecords().some(r => r.managedBy === 'deck')).toBe(false);
+  expect(catalogReport()).toEqual({
+    source: 'launchd',
+    message:
+      'bundled apps deck cannot serve: board (this bundle ships no Helpers/board)',
+    at: expect.any(String),
+  });
 
   writeFileSync(join(helpers, 'board'), '');
   const healed = (await reresolveManagedApps(drivers)).body as any;
 
   expect(healed).toMatchObject({ ok: true, created: ['board'], failed: [] });
   expect(getRecord('board')!.port).toBe(11006);
-  expect(getRecord(PLATFORM_NAME)!.issues).toBeUndefined();
+  expect(catalogReport()).toBeNull();
+});
+
+test("catalog: the report leaves deck's own record and its launchd issue alone", async () => {
+  const platformIssue = {
+    source: 'launchd' as const,
+    message: 'bootstrap install failed',
+    at: AT,
+  };
+  putRecord({
+    name: PLATFORM_NAME,
+    managedBy: 'deck',
+    port: 11000,
+    kind: 'service',
+    label: PLATFORM_LABEL,
+    createdAt: AT,
+    issues: [platformIssue],
+  });
+  setServeShapeDeps({
+    devMode: () => false,
+    helpersDir: mkdtempSync(join(tmpdir(), 'empty-helpers-')),
+    catalog: new Map([['board', { port: 11006, args: [] as string[] }]]),
+  });
+
+  await reresolveManagedApps(drivers);
+
+  expect(catalogReport()!.message).toContain('board');
+  expect(getRecord(PLATFORM_NAME)!.issues).toEqual([platformIssue]);
+});
+
+test("catalog: a catalog port a portless route holds is reported and never written; the app's own leftover plist is not a holder", async () => {
+  const helpers = fakeBundle('mattstack.app');
+  writeFileSync(
+    process.env.LOCAL_APPS_ROUTES_PATH!,
+    JSON.stringify([{ hostname: 'squatter.localhost', port: 11006, pid: 0 }])
+  );
+  wipeAgentsDir();
+  try {
+    seedPlist(`${LABEL_PREFIX}chat`, [join(helpers, 'chat')], '/tmp', {
+      PORT: '11002',
+    });
+    setServeShapeDeps({
+      devMode: () => false,
+      helpersDir: helpers,
+      catalog: new Map([
+        ['board', { port: 11006, args: [] as string[] }],
+        ['chat', { port: 11002, args: [] as string[] }],
+      ]),
+    });
+
+    const body = (await reresolveManagedApps(drivers)).body as any;
+
+    expect(body.created).toEqual(['chat']);
+    expect(body.failed).toEqual([
+      {
+        name: 'board',
+        error: 'catalog port 11006 is held by squatter.localhost',
+      },
+    ]);
+    expect(getRecord('board')).toBeUndefined();
+    expect(catalogReport()!.message).toContain(
+      'board (catalog port 11006 is held by squatter.localhost)'
+    );
+  } finally {
+    wipeAgentsDir();
+  }
+});
+
+test('catalog: board is not created while a legacy mrs row waits for its rename, and is once mrs is gone', async () => {
+  const helpers = fakeBundle('mattstack-dev.app');
+  rtRow('mrs', 11040, { managedBy: 'user' });
+  setServeShapeDeps({
+    devMode: () => true,
+    helpersDir: helpers,
+    catalog: new Map([['board', { port: 11006, args: [] as string[] }]]),
+  });
+
+  const waiting = (await reresolveManagedApps(drivers)).body as any;
+
+  expect(waiting.created).toEqual([]);
+  expect(waiting.failed).toEqual([
+    {
+      name: 'board',
+      error:
+        'the legacy mrs row becomes board through `deck adopt mrs --as board`',
+    },
+  ]);
+  expect(getRecord('board')).toBeUndefined();
+
+  deleteRecord('mrs');
+  const created = (await reresolveManagedApps(drivers)).body as any;
+  expect(created.created).toEqual(['board']);
 });

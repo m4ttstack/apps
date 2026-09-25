@@ -24,6 +24,7 @@ import {
   MATTSTACK_REGISTRAR,
   type BundleCatalog,
 } from '../registry/bundle-catalog.ts';
+import { setCatalogReport } from '../registry/catalog-report.ts';
 import { readDeckManifest } from '../registry/deck-manifest.ts';
 import { authorizeStructural } from '../registry/lifecycle.ts';
 import { ingestManifest, removeIcon } from '../registry/manifest.ts';
@@ -141,10 +142,16 @@ function buildSpec(record: AppRecord, shape: ResolvedShape): BuiltSpec {
 
 /** Deck owns only a mattstack app's data dir; creating anyone else's missing
     dir would hide a deleted checkout behind an empty one. */
+function missingCwdRefusal(record: AppRecord, cwd: string): string | null {
+  if (existsSync(cwd)) return null;
+  if (isMattstackOwned(record) && cwd === dataDir(record.name)) return null;
+  return `working directory ${cwd} does not exist`;
+}
+
 function ensureWorkingDirectory(record: AppRecord, cwd: string): boolean {
   if (existsSync(cwd)) return false;
-  if (!isMattstackOwned(record) || cwd !== dataDir(record.name))
-    throw new Error(`working directory ${cwd} does not exist`);
+  const refusal = missingCwdRefusal(record, cwd);
+  if (refusal) throw new Error(refusal);
   mkdirSync(cwd, { recursive: true });
   return true;
 }
@@ -209,28 +216,40 @@ async function runDriver(
 }
 
 /**
- * True when `port` is already held by another record, a portless route, or a
- * launchd service. Used only for a manifest-declared SERVICE port
- * (`registerApp`'s `input.port`, `editApp`'s `patch.port`): `allocatePort`
- * never sees a caller-declared port, so nothing else guards against handing
- * out a port a real process is already bound to.
+ * What already holds `port`: another record, a portless route, or a launchd
+ * service other than `excludeName`'s own, named for a refusal message.
+ * `allocatePort` never sees a caller-declared or catalog port, so nothing
+ * else guards against handing out a port a real process is already bound to.
  */
+async function portHolder(
+  port: number,
+  excludeName: string,
+  routes: PortlessRoute[]
+): Promise<string | null> {
+  const record = listRecords().find(
+    r => r.name !== excludeName && r.port === port
+  );
+  if (record) return record.name;
+  const tlds = getPlatformSettings().tlds;
+  const route = routes.find(
+    r => bareName(r.hostname, tlds) !== excludeName && r.port === port
+  );
+  if (route) return route.hostname;
+  const ownLabel = `${LABEL_PREFIX}${excludeName}`;
+  const service = (await readServices()).find(
+    s => s.label !== ownLabel && s.port === port
+  );
+  return service?.label ?? null;
+}
+
+/** Guards a manifest-declared SERVICE port (`registerApp`'s `input.port`,
+    `editApp`'s `patch.port`). */
 async function portCollides(
   port: number,
   excludeName: string,
   routes: PortlessRoute[]
 ): Promise<boolean> {
-  if (listRecords().some(r => r.name !== excludeName && r.port === port))
-    return true;
-  const tlds = getPlatformSettings().tlds;
-  if (
-    routes.some(
-      r => bareName(r.hostname, tlds) !== excludeName && r.port === port
-    )
-  )
-    return true;
-  const services = await readServices();
-  return services.some(s => s.port === port);
+  return (await portHolder(port, excludeName, routes)) !== null;
 }
 
 export async function registerApp(
@@ -460,16 +479,20 @@ type SweepFailure = { name: string; error: string };
 interface EnsuredCatalog {
   created: string[];
   adopted: string[];
-  missing: string[];
   failed: SweepFailure[];
 }
+
+/** rt setup renames these legacy rows with `deck adopt <old> --as <new>`,
+    which answers "name taken" once a row of the new name exists. */
+const RENAMED_FROM: Record<string, string> = { board: 'mrs' };
 
 /**
  * Every catalog app gets an rt row in either flavor, so a fresh machine
  * serves the catalog whichever app it opens first. Only prod (`adopt`) takes
  * over a same-named user row: dev serves the user's registrations as they
- * are. A route-only row, a catalog port another row holds, or an app whose
- * binary this bundle does not ship is reported, never written.
+ * are. A route-only row, a catalog port something else holds, a legacy row
+ * awaiting its rename, or an app whose binary this bundle does not ship is
+ * reported, never written.
  */
 async function ensureCatalogRows(
   catalog: BundleCatalog,
@@ -477,28 +500,30 @@ async function ensureCatalogRows(
   drivers: Drivers,
   adopt: boolean
 ): Promise<EnsuredCatalog> {
-  const out: EnsuredCatalog = {
-    created: [],
-    adopted: [],
-    missing: [],
-    failed: [],
-  };
+  const out: EnsuredCatalog = { created: [], adopted: [], failed: [] };
   for (const [name, entry] of catalog) {
     const existing = getRecord(name);
     if (!existing) {
       if (!bundleBinaryPath(name, helpersDir)) {
-        out.missing.push(name);
         out.failed.push({
           name,
           error: `this bundle ships no Helpers/${name}`,
         });
         continue;
       }
-      const holder = listRecords().find(r => r.port === entry.port);
+      const legacy = RENAMED_FROM[name];
+      if (legacy && getRecord(legacy)) {
+        out.failed.push({
+          name,
+          error: `the legacy ${legacy} row becomes ${name} through \`deck adopt ${legacy} --as ${name}\``,
+        });
+        continue;
+      }
+      const holder = await portHolder(entry.port, name, readRoutes());
       if (holder) {
         out.failed.push({
           name,
-          error: `catalog port ${entry.port} is held by ${holder.name}`,
+          error: `catalog port ${entry.port} is held by ${holder}`,
         });
         continue;
       }
@@ -553,28 +578,6 @@ function adoptedCatalogRow(record: AppRecord): AppRecord {
   };
 }
 
-const MISSING_HELPERS = 'catalog apps missing from this bundle';
-
-/** A catalog app with no binary has no row to carry its issue, so deck's own
-    row carries it, and only this sweep clears it. */
-function reportMissingHelpers(names: string[]): void {
-  const platform = listRecords().find(r => isPlatformManagedBy(r.managedBy));
-  if (!platform) return;
-  if (names.length) {
-    addIssue(platform.name, {
-      source: 'launchd',
-      message: `${MISSING_HELPERS}: ${names.join(', ')}`,
-      at: new Date().toISOString(),
-    });
-  } else if (
-    platform.issues?.some(
-      i => i.source === 'launchd' && i.message.startsWith(MISSING_HELPERS)
-    )
-  ) {
-    clearIssues(platform.name, 'launchd');
-  }
-}
-
 /**
  * The flavor sweep. Deck runs it on every bundled start, which is every
  * switch between mattstack-dev.app and mattstack.app, and it is the only
@@ -601,9 +604,9 @@ export async function reresolveManagedApps(
         drivers,
         !flavor.dev
       )
-    : { created: [], adopted: [], missing: [], failed: [] };
+    : { created: [], adopted: [], failed: [] };
   failed.push(...ensured.failed);
-  reportMissingHelpers(ensured.missing);
+  setCatalogReport(ensured.failed);
   for (const record of listRecords()) {
     if (
       record.managedBy === 'user' ||
@@ -876,7 +879,8 @@ export async function editApp(
   // back on.
   const servedHere =
     next.kind === 'service' && !notServedHere(next, serveShapeDeps);
-  if (servedHere && !serveShape(next, serveShapeDeps)) {
+  const nextShape = servedHere ? serveShape(next, serveShapeDeps) : null;
+  if (servedHere && !nextShape) {
     return {
       status: 400,
       body: {
@@ -884,6 +888,8 @@ export async function editApp(
       },
     };
   }
+  const cwdRefusal = nextShape && missingCwdRefusal(next, nextShape.cwd);
+  if (cwdRefusal) return { status: 400, body: { error: cwdRefusal } };
 
   // Teardown-phase failures are collected, not recorded yet: the record they
   // belong to doesn't exist under its final cache key yet (a rename deletes the
