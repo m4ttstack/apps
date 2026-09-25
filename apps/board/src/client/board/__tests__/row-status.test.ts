@@ -1592,6 +1592,24 @@ describe('statusPhrase: the pill says what the status group says', () => {
     });
   });
 
+  test('every assigned reviewer approved but a codeowner rule still open reads partial, not approved', () => {
+    const rosterApproved = {
+      reviews: {
+        isApproved: false,
+        required: 2,
+        given: 1,
+        reviewers: [{ username: 'pat', reviewState: 'APPROVED' }],
+      },
+    };
+    expect(statusPhrase(settled(rosterApproved))).toEqual({
+      text: '1/2 approved',
+      hue: 'cyan',
+    });
+    expect(
+      statusPhrase(settled({ ...rosterApproved, reviewerComments: 2 }))
+    ).toEqual({ text: '1/2 approved', hue: 'cyan' });
+  });
+
   test('an untouched MR is amber', () => {
     expect(statusPhrase(settled(unapproved(0, 2)))).toEqual({
       text: 'needs review',

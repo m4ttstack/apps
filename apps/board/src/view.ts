@@ -493,10 +493,9 @@ function ageBucket(
   return { label: 'Older', order: 9 };
 }
 
-/** The roster's verdict, not the approval rule's arithmetic: every assigned
-    reviewer has approved. An MR in this state reads approved even while a
-    project rule still wants more approvals -- the shortfall stays visible as
-    the awaiting-approvals blocker, not as the review state. */
+/** Every assigned reviewer has approved. Only GitLab's `isApproved` makes an
+    MR approved: an unassigned codeowner section can still be owed, so a
+    fully approved roster reads as a partial count, never as approved. */
 function allReviewersApproved(mr: BoardMR): boolean {
   const reviewers = mr.reviews.reviewers ?? [];
   return (
@@ -516,8 +515,8 @@ export function statusBucket(mr: BoardMR): { label: string; order: number } {
   // not their own groups, so an MR with conflicts still shows under its review
   // state instead of being hidden in a "conflicts" bucket.
   if (hasChangesRequested(mr)) return { label: 'changes requested', order: 0 };
-  if (mr.reviews.isApproved || allReviewersApproved(mr))
-    return { label: 'approved', order: 4 };
+  if (mr.reviews.isApproved) return { label: 'approved', order: 4 };
+  if (allReviewersApproved(mr)) return { label: 'needs review', order: 2 };
   if (mr.reviewerComments > 0) return { label: 'commented', order: 1 };
   // Reviewed and all threads resolved, just not formally approved — further along
   // than an untouched MR, so it sits between "needs review" and "approved".

@@ -893,11 +893,11 @@ describe('groupMRs status', () => {
     expect(groups.map(g => g.label)).toEqual(['approved']);
   });
 
-  test('every assigned reviewer approved buckets approved even short of the rule count', () => {
+  test('every assigned reviewer approved stays out of approved while a rule is short', () => {
     const list = [
       mr({
         iid: 1,
-        reviewerComments: 0,
+        reviewerComments: 2,
         threadSummary: { awaiting: 0, replied: 0, resolved: 4 },
         reviews: {
           required: 2,
@@ -908,7 +908,7 @@ describe('groupMRs status', () => {
       }),
     ];
     const groups = groupMRs(list, 'status', [], NOW);
-    expect(groups.map(g => g.label)).toEqual(['approved']);
+    expect(groups.map(g => g.label)).toEqual(['needs review']);
   });
 
   test('a reviewer still pending keeps a part-approved MR out of the approved bucket', () => {
