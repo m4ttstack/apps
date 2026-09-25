@@ -44,7 +44,7 @@
   },
   "scripts": {
     "typecheck": "bun run --filter '@mattstack/*' typecheck",
-    "lint": "eslint --no-error-on-unmatched-pattern packages .storybook stories 'apps/board/src/**/*.css'",
+    "lint:root": "eslint --no-error-on-unmatched-pattern packages .storybook stories 'apps/board/src/**/*.css'",
     "test": "vitest",
     "format": "prettier --write . --cache",
     "format:check": "prettier --check . --cache",
@@ -59,6 +59,8 @@
     "tokens:radix": "bun run packages/tokens/scripts/generate-radix.ts",
     "tokens:ramps": "bun run packages/tokens/scripts/generate-ramps.ts",
     "tokens:migrate": "bun run packages/tokens/scripts/migrate-tokens.ts",
+    "tokens:fresh": "bun run tokens:radix && bun run tokens:codegen && bun run tokens:ramps && git diff --exit-code packages/tokens/src/radix.ts packages/tui-kit/src/generated packages/tui-kit/assets packages/tokyo/src",
+    "purity": "scripts/repo-purity.sh",
     "gate-kit:test": "cd packages/gate-kit && bun run test",
     "chat:typecheck": "cd apps/chat && bun run typecheck",
     "chat:lint": "cd apps/chat && bun run lint",

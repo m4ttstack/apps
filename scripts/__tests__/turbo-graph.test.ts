@@ -82,4 +82,70 @@ describe('turbo task graph', () => {
       expect(script, `${file} test script`).toMatch(/vitest run\b/);
     }
   });
+
+  test('root gates are registered root tasks', () => {
+    const run = dryRun([
+      'lint:root',
+      'format:check',
+      'tokens:fresh',
+      'build-storybook',
+      'treeshake',
+      'purity',
+      'scripts:test',
+      '--filter=//',
+    ]);
+    expect(realIds(run)).toEqual([
+      '//#build-storybook',
+      '//#format:check',
+      '//#lint:root',
+      '//#purity',
+      '//#scripts:test',
+      '//#tokens:fresh',
+      '//#treeshake',
+      '@mattstack/tui-kit#build',
+    ]);
+  });
+
+  test('root configs are global cache inputs', () => {
+    const files = Object.keys(
+      dryRun(['lint:root', '--filter=//']).globalCacheInputs.files
+    );
+    for (const f of [
+      'tsconfig.tools.json',
+      '.prettierrc',
+      'bunfig.toml',
+      'eslint.config.js',
+    ]) {
+      expect(files).toContain(f);
+    }
+  });
+
+  test('the tokens suite hashes the trees it reads from disk', () => {
+    // Dry-run input keys are relative to the package, so packages/ui/src
+    // appears as ../ui/src from packages/tokens.
+    const task = byId(dryRun(['test', '--filter=@mattstack/tokens'])).get(
+      '@mattstack/tokens#test'
+    );
+    const inputs = Object.keys(task?.inputs ?? {});
+    expect(inputs.some(f => f.startsWith('../ui/src/'))).toBe(true);
+    expect(inputs.some(f => f.startsWith('../tokyo/src/'))).toBe(true);
+    expect(inputs.some(f => f.startsWith('../tui-kit/src/'))).toBe(true);
+  });
+
+  test('no root task hashes ignored build output', () => {
+    const run = dryRun([
+      'lint:root',
+      'tokens:fresh',
+      'build-storybook',
+      'treeshake',
+      'scripts:test',
+      '--filter=//',
+    ]);
+    for (const t of run.tasks) {
+      const bad = Object.keys(t.inputs ?? {}).filter(f =>
+        /(^|\/)(node_modules|\.turbo|dist|dist-bin|storybook-static)\//.test(f)
+      );
+      expect(bad, t.taskId).toEqual([]);
+    }
+  });
 });
