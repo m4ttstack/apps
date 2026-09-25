@@ -19,6 +19,7 @@ import { tunnelRowHealth } from '../edge/edge-health.ts';
 import { edgeDrift } from '../edge/edge-reconcile.ts';
 import { getOAuth, type OAuth } from '../edge/oauth.ts';
 import { allocatePort } from '../registry/allocate.ts';
+import { statusIconUrl } from '../registry/bundled-identity.ts';
 import { withCatalogReport } from '../registry/catalog-report.ts';
 import {
   listRecords,
@@ -214,13 +215,7 @@ export async function buildStatus(opts: BuildStatusOpts): Promise<Status> {
         publicFollowsOverride: follows,
         self,
         managedBy: record?.managedBy ?? null,
-        icon: record
-          ? isPlatformManagedBy(record.managedBy)
-            ? '/favicon.svg'
-            : record.icon
-              ? `/api/apps/${a.name}/icon`
-              : null
-          : null,
+        icon: record ? statusIconUrl(record) : null,
         issues: self
           ? withCatalogReport(record?.issues ?? [])
           : (record?.issues ?? []),
