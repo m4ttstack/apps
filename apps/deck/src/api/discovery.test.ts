@@ -44,6 +44,7 @@ beforeEach(() => {
 });
 
 const statusOpts = {
+  local: false,
   port: 7940,
   canaryPort: 7942,
   proxyFreshness: 'unknown' as const,
