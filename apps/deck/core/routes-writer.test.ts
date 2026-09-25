@@ -1,10 +1,12 @@
 import {
   chmodSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   statSync,
+  utimesSync,
   writeFileSync,
 } from 'fs';
 import { tmpdir } from 'os';
@@ -22,6 +24,7 @@ const { readRoutes } = await import('./discover.ts');
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 beforeEach(() => {
+  rmSync(join(dir, 'routes.lock'), { recursive: true, force: true });
   writeFileSync(
     routesPath,
     JSON.stringify(
@@ -149,7 +152,20 @@ test('repointRoutes writes nothing when every host already serves the port', () 
   expect(readFileSync(routesPath, 'utf8')).toBe(raw);
 });
 
-test("removeRoutes drops a name's static routes under every TLD, in place, and nothing else", () => {
+/** A pid that no process holds: a child that has already exited and been reaped. */
+function deadPid(): number {
+  return Bun.spawnSync(['true']).pid;
+}
+
+function hostnames(): string[] {
+  return JSON.parse(readFileSync(routesPath, 'utf8')).map(
+    (r: { hostname: string }) => r.hostname
+  );
+}
+
+const lockPath = join(dir, 'routes.lock');
+
+test("removeRoutes drops a name's static routes under every TLD, in place, and nothing else", async () => {
   writeFileSync(
     routesPath,
     JSON.stringify([
@@ -162,47 +178,84 @@ test("removeRoutes drops a name's static routes under every TLD, in place, and n
   );
   const before = statSync(routesPath).ino;
 
-  expect(removeRoutes('gitq', ['localhost', 'mattstack'])).toEqual([
+  expect(await removeRoutes('gitq', ['localhost', 'mattstack'])).toEqual([
     'gitq.localhost',
     'gitq.mattstack',
   ]);
 
-  expect(
-    JSON.parse(readFileSync(routesPath, 'utf8')).map(
-      (r: { hostname: string }) => r.hostname
-    )
-  ).toEqual(['gitq-docs.mattstack', 'gitq.docs.mattstack', 'board.mattstack']);
+  expect(hostnames()).toEqual([
+    'gitq-docs.mattstack',
+    'gitq.docs.mattstack',
+    'board.mattstack',
+  ]);
   expect(statSync(routesPath).ino).toBe(before);
 });
 
-test('removeRoutes leaves a route a live process owns to portless', () => {
+test('removeRoutes drops a route whose process is gone and keeps one whose process is alive', async () => {
   writeFileSync(
     routesPath,
-    JSON.stringify([{ hostname: 'gitq.localhost', port: 11008, pid: 4242 }])
+    JSON.stringify([
+      { hostname: 'gitq.localhost', port: 11008, pid: deadPid() },
+      { hostname: 'gitq.mattstack', port: 11008, pid: process.pid },
+    ])
   );
-  const raw = readFileSync(routesPath, 'utf8');
 
-  expect(removeRoutes('gitq', ['localhost'])).toEqual([]);
-  expect(readFileSync(routesPath, 'utf8')).toBe(raw);
+  expect(await removeRoutes('gitq', ['localhost', 'mattstack'])).toEqual([
+    'gitq.localhost',
+  ]);
+  expect(hostnames()).toEqual(['gitq.mattstack']);
 });
 
-test('removeRoutes with no routes file has nothing to remove', () => {
+test('removeRoutes with no routes file has nothing to remove', async () => {
   rmSync(routesPath);
-  expect(removeRoutes('gitq', ['localhost'])).toEqual([]);
+  expect(await removeRoutes('gitq', ['localhost'])).toEqual([]);
   expect(existsSync(routesPath)).toBe(false);
 });
 
-test('removeRoutes throws when the write fails, so a remove can report it', () => {
+test('removeRoutes throws when the write fails, so a remove can report it, and releases the lock', async () => {
   writeFileSync(
     routesPath,
     JSON.stringify([{ hostname: 'gitq.mattstack', port: 11008, pid: 0 }])
   );
   chmodSync(routesPath, 0o444);
   try {
-    expect(() => removeRoutes('gitq', ['localhost', 'mattstack'])).toThrow(
-      /EACCES/
-    );
+    await expect(
+      removeRoutes('gitq', ['localhost', 'mattstack'])
+    ).rejects.toThrow(/EACCES/);
   } finally {
     chmodSync(routesPath, 0o644);
   }
+  expect(existsSync(lockPath)).toBe(false);
+});
+
+test("removeRoutes waits for portless's routes.lock, then takes and releases it", async () => {
+  writeFileSync(
+    routesPath,
+    JSON.stringify([{ hostname: 'gitq.mattstack', port: 11008, pid: 0 }])
+  );
+  mkdirSync(lockPath);
+  const removing = removeRoutes('gitq', ['localhost', 'mattstack']);
+
+  await Bun.sleep(150);
+  expect(hostnames()).toEqual(['gitq.mattstack']);
+
+  rmSync(lockPath, { recursive: true });
+  expect(await removing).toEqual(['gitq.mattstack']);
+  expect(hostnames()).toEqual([]);
+  expect(existsSync(lockPath)).toBe(false);
+});
+
+test('removeRoutes takes over a routes.lock older than 10s', async () => {
+  writeFileSync(
+    routesPath,
+    JSON.stringify([{ hostname: 'gitq.mattstack', port: 11008, pid: 0 }])
+  );
+  mkdirSync(lockPath);
+  const stale = (Date.now() - 11_000) / 1000;
+  utimesSync(lockPath, stale, stale);
+
+  expect(await removeRoutes('gitq', ['localhost', 'mattstack'])).toEqual([
+    'gitq.mattstack',
+  ]);
+  expect(existsSync(lockPath)).toBe(false);
 });
