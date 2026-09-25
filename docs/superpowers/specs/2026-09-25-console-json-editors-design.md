@@ -174,6 +174,11 @@ optional within a layer and the summary names which fields this layer sets.
 - When explain rows carry spec 3's `storedVersion` and migrated `value`, editors
   start from the migrated value, and a save writes the current shape under the current store name (`key@N`). Without spec 3 these
   fields are absent and nothing changes.
+- A `diverged` issue (spec 3: an older store name edited after the current one
+  exists) shows both values on the row. Fix opens the editor on the current value
+  with a "Use the older value" action that replaces the draft with the older,
+  migrated value; Save writes the current name either way, and the older name is
+  left for `rt settings migrate --prune`.
 
 ### Writers and other apps
 
