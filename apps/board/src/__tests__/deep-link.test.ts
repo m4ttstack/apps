@@ -4,8 +4,9 @@ import {
   gateDeepLinkAction,
   gateParam,
   mrForGate,
-  stripGateParam,
-  viewStateForGate,
+  mrParam,
+  stripDeepLinkParams,
+  viewStateForMr,
 } from '../client/board/deep-link.ts';
 import type { TabConfig } from '../config.ts';
 import type { BoardMR } from '../data.ts';
@@ -45,6 +46,28 @@ describe('gateParam', () => {
   });
 });
 
+describe('mrParam', () => {
+  const MR_URL = 'https://gitlab.example.com/acme/webapp/-/merge_requests/45';
+
+  test('reads an encoded MR url back as the plain url', () => {
+    expect(mrParam(`?mr=${encodeURIComponent(MR_URL)}`)).toBe(MR_URL);
+  });
+
+  test('reads mr alongside other params', () => {
+    expect(
+      mrParam(`?member=alice&mr=${encodeURIComponent(MR_URL)}&tab=mine`)
+    ).toBe(MR_URL);
+  });
+
+  test('returns null when mr is absent', () => {
+    expect(mrParam('?gate=abc123')).toBeNull();
+  });
+
+  test('returns null when mr is present but empty', () => {
+    expect(mrParam('?mr=')).toBeNull();
+  });
+});
+
 describe('mrForGate', () => {
   const mrs = [
     { iid: 1, gates: [{ gateId: 'g1' }] },
@@ -69,7 +92,7 @@ describe('mrForGate', () => {
   });
 });
 
-describe('viewStateForGate', () => {
+describe('viewStateForMr', () => {
   const teamTab: TabConfig = {
     id: 'team',
     label: 'Team',
@@ -80,6 +103,7 @@ describe('viewStateForGate', () => {
     label: 'Design',
     source: { kind: 'codeowners', section: 'design' },
   };
+  const byIid = (iid: number) => (m: GateLinkMR) => m.iid === iid;
 
   test('widens member to all when the current pick hides the row', () => {
     const mrs = [
@@ -93,12 +117,12 @@ describe('viewStateForGate', () => {
       }),
     ];
     const state = { ...DEFAULT_VIEW, tab: 'team', member: 'alice' };
-    const result = viewStateForGate(
+    const result = viewStateForMr(
       state,
       mrs,
       [teamTab],
       new Set(['alice', 'bob']),
-      2
+      byIid(2)
     );
     expect(result.member).toBe('all');
     expect(result.tab).toBe('team');
@@ -114,12 +138,12 @@ describe('viewStateForGate', () => {
     ];
     // carol isn't on the roster, so the authors tab hides her row entirely.
     const state = { ...DEFAULT_VIEW, tab: 'team' };
-    const result = viewStateForGate(
+    const result = viewStateForMr(
       state,
       mrs,
       [teamTab, designTab],
       new Set(['alice', 'bob']),
-      3
+      byIid(3)
     );
     expect(result.tab).toBe('design');
   });
@@ -132,12 +156,12 @@ describe('viewStateForGate', () => {
       }),
     ];
     const state = { ...DEFAULT_VIEW, tab: 'team' };
-    const result = viewStateForGate(
+    const result = viewStateForMr(
       state,
       mrs,
       [teamTab, designTab],
       new Set(['bob']),
-      4
+      byIid(4)
     );
     expect(result.tab).toBe('team');
   });
@@ -145,48 +169,96 @@ describe('viewStateForGate', () => {
   test('clears a posted-only slack filter that would hide the row', () => {
     const mrs = [mr({ iid: 5, slack: { posted: false } })];
     const state = { ...DEFAULT_VIEW, tab: 'team', slack: 'posted' as const };
-    const result = viewStateForGate(state, mrs, [teamTab], new Set(['bob']), 5);
+    const result = viewStateForMr(
+      state,
+      mrs,
+      [teamTab],
+      new Set(['bob']),
+      byIid(5)
+    );
     expect(result.slack).toBe('all');
   });
 
   test('clears a drafts-hide filter that would hide the row', () => {
     const mrs = [mr({ iid: 5, isDraft: true } as Partial<GateLinkMR>)];
     const state = { ...DEFAULT_VIEW, tab: 'team', drafts: 'hide' as const };
-    const result = viewStateForGate(state, mrs, [teamTab], new Set(['bob']), 5);
-    expect(result.drafts).toBe('all');
-  });
-
-  test('returns state unchanged when no row carries the iid', () => {
-    const mrs = [mr({ iid: 6 })];
-    const state = { ...DEFAULT_VIEW, tab: 'team', member: 'bob' };
-    const result = viewStateForGate(
+    const result = viewStateForMr(
       state,
       mrs,
       [teamTab],
       new Set(['bob']),
-      999
+      byIid(5)
+    );
+    expect(result.drafts).toBe('all');
+  });
+
+  test('returns state unchanged when no row matches', () => {
+    const mrs = [mr({ iid: 6 })];
+    const state = { ...DEFAULT_VIEW, tab: 'team', member: 'bob' };
+    const result = viewStateForMr(
+      state,
+      mrs,
+      [teamTab],
+      new Set(['bob']),
+      byIid(999)
     );
     expect(result).toEqual(state);
   });
+
+  test('a url match lands on its own repo when another repo shares the iid', () => {
+    const REPO_A = 'https://gitlab.example.com/acme/webapp/-/merge_requests/7';
+    const REPO_B = 'https://gitlab.example.com/acme/design/-/merge_requests/7';
+    const mrs = [
+      mr({
+        iid: 7,
+        webUrl: REPO_A,
+        author: { id: 'b', username: 'bob', name: 'Bob', avatarUrl: null },
+      } as Partial<GateLinkMR>),
+      mr({
+        iid: 7,
+        webUrl: REPO_B,
+        author: { id: 'c', username: 'carol', name: 'Carol', avatarUrl: null },
+        codeownerSections: ['design'],
+      } as Partial<GateLinkMR>),
+    ];
+    const state = { ...DEFAULT_VIEW, tab: 'team' };
+    const result = viewStateForMr(
+      state,
+      mrs,
+      [teamTab, designTab],
+      new Set(['bob']),
+      m => m.webUrl === REPO_B
+    );
+    expect(result.tab).toBe('design');
+  });
 });
 
-describe('stripGateParam', () => {
+describe('stripDeepLinkParams', () => {
   test('removes gate and leaves other params intact', () => {
-    expect(stripGateParam('?member=alice&gate=abc123&tab=mine')).toBe(
+    expect(stripDeepLinkParams('?member=alice&gate=abc123&tab=mine')).toBe(
       '?member=alice&tab=mine'
     );
   });
 
-  test('returns empty string when gate was the only param', () => {
-    expect(stripGateParam('?gate=abc123')).toBe('');
+  test('removes mr and leaves other params intact', () => {
+    expect(
+      stripDeepLinkParams(
+        `?member=alice&mr=${encodeURIComponent('https://x/-/merge_requests/1')}&tab=mine`
+      )
+    ).toBe('?member=alice&tab=mine');
   });
 
-  test('returns the search string unchanged when there is no gate param', () => {
-    expect(stripGateParam('?member=alice')).toBe('?member=alice');
+  test('returns empty string when a link param was the only one', () => {
+    expect(stripDeepLinkParams('?gate=abc123')).toBe('');
+    expect(stripDeepLinkParams('?mr=https%3A%2F%2Fx')).toBe('');
+  });
+
+  test('returns the search string unchanged when there is no link param', () => {
+    expect(stripDeepLinkParams('?member=alice')).toBe('?member=alice');
   });
 
   test('returns empty string for an empty search string', () => {
-    expect(stripGateParam('')).toBe('');
+    expect(stripDeepLinkParams('')).toBe('');
   });
 });
 
