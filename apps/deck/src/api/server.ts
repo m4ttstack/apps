@@ -68,6 +68,7 @@ import {
   commandRunStatus,
   startCommandRun,
 } from '../services/command-runner.ts';
+import { selfLabelCache } from '../services/helper-owner.ts';
 import { PLATFORM_NAME } from '../services/manager.ts';
 import { isDevMode } from './dev-mode.ts';
 import { buildDiscoveryApps, iconResponse } from './discovery.ts';
@@ -320,6 +321,7 @@ function rowsByName(rows: StatusRow[]): Map<string, StatusRow> {
 }
 
 export function startApi(deps: ApiDeps) {
+  const selfLabel = selfLabelCache(deps.deckOwner);
   return Bun.serve({
     port: deps.port,
     hostname: '127.0.0.1',
@@ -361,7 +363,7 @@ export function startApi(deps: ApiDeps) {
         readyFetch: deps.readyFetch,
         edgeDrift,
         selfService: async () => {
-          const label = await deps.deckOwner?.runningLabel();
+          const label = await selfLabel();
           return label ? { label, pid: process.pid } : null;
         },
       };

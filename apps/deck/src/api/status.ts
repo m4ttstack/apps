@@ -44,8 +44,8 @@ export interface BuildStatusOpts {
   readyFetch?: typeof fetch;
   /** Drift flags from the edge reconcile loop; tests inject, production reads edgeDrift(). */
   edgeDrift?: () => { tunnelGone: boolean };
-  /** The launchd job running this deck and this process's pid; null when
-      launchd runs no deck. Production reads deckOwner; tests inject. */
+  /** The launchd job running this process and its pid; null when no deck
+      job runs as this pid. Production reads deckOwner; tests inject. */
   selfService?: () => Promise<RunningDeck | null>;
 }
 
@@ -230,11 +230,13 @@ export async function buildStatus(opts: BuildStatusOpts): Promise<Status> {
         url: `https://${a.name}.${displayTld}`,
         publicUrl: a.publicUrl,
         health,
-        service: runningDeck
-          ? runningDeckJson(runningDeck)
-          : a.service
-            ? serviceJson(a.service, health, unmanaged)
-            : null,
+        // A hand agent running deck keeps its plist's exit status and stderr.
+        service:
+          runningDeck && a.service?.label !== runningDeck.label
+            ? runningDeckJson(runningDeck)
+            : a.service
+              ? serviceJson(a.service, health, unmanaged)
+              : null,
         published: settings.published,
         hasPassword: !!settings.passwordHash,
         isTunnel: false,
