@@ -789,6 +789,26 @@ function storeOwnsRequiredFields(resolve: GetSettingFn): boolean {
   );
 }
 
+/** Whether loadConfigFrom(path) can get past its missing-config refusal. Any
+    read failure other than a missing file answers true, so the real server
+    still surfaces it loudly. */
+export function boardConfiguredAt(
+  path: string,
+  resolve: GetSettingFn = getSetting
+): boolean {
+  try {
+    readFileSync(path, 'utf8');
+    return true;
+  } catch (err) {
+    if (!isEnoent(err)) return true;
+    try {
+      return storeOwnsRequiredFields(resolve);
+    } catch {
+      return false;
+    }
+  }
+}
+
 /** Read `path`, layer the store on top — the shared reload every writer below
     returns through, so a write to one key never regresses another already-
     store-owned field back to its file value. A missing file degrades to the
