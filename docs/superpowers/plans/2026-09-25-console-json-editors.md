@@ -710,7 +710,7 @@ The rest of the file still reads `COMPOSITE_SHAPES` in its `matchesShape` and `t
     expect(retired === undefined || shapeOf(retired) === undefined).toBe(true);
 ```
 
-`grep -n COMPOSITE_SHAPES apps/board/src` must print nothing once Step 12 is done.
+Also reword the doc comment above `DELIBERATELY_READONLY_COMPOSITES` ("no COMPOSITE_SHAPES entry") to "no shapeOf editor". `grep -n COMPOSITE_SHAPES apps/board/src` must print nothing once Step 12 is done.
 
 `apps/board/src/client/board/__tests__/config-leaves-dom.test.tsx` builds its `board.triage` def without a schema, so the row would go read-only. Add `import { getDef } from '@mattstack/rt-client';` and, in its `def()` factory, `storeVersion: 1, schema: getDef(KEY)!.schema, layerSchema: getDef(KEY)!.layerSchema,`.
 
