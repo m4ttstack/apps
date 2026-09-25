@@ -1,7 +1,8 @@
 /** Answering the last queued gate and closing the recap leaves the board
     showing the answer: the board re-pulls its data after the answer lands,
-    so the sidebar's queue button goes and nothing reopens the gate. No SSE
-    frame fires here, so the re-pull has to come from the answer itself. */
+    or after continuing past an answer that lost to another surface, so the
+    sidebar's queue button goes and nothing reopens the gate. No SSE frame
+    fires here, so the re-pull has to come from the answer itself. */
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'bun:test';
@@ -102,6 +103,7 @@ let React: typeof import('react');
 let createRoot: typeof import('react-dom/client').createRoot;
 let Board: typeof import('../Board.tsx').Board;
 let serverAnswered: boolean;
+let answeredElsewhere: boolean;
 
 beforeAll(async () => {
   React = await import('react');
@@ -112,6 +114,7 @@ beforeAll(async () => {
 beforeEach(() => {
   localStorage.clear();
   serverAnswered = false;
+  answeredElsewhere = false;
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (url.startsWith('/data.json'))
@@ -119,6 +122,24 @@ beforeEach(() => {
         status: 200,
       });
     if (url === '/gate/answer') serverAnswered = true;
+    if (answeredElsewhere && url === '/gate/answer')
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          conflict: true,
+          row: {
+            ...GATE,
+            id: GATE.gateId,
+            status: 'answered',
+            answer: {
+              answers: { verify: 'local' },
+              by: 'console',
+              answeredAt: Date.now(),
+            },
+          },
+        }),
+        { status: 409 }
+      );
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   }) as typeof fetch;
 });
@@ -144,7 +165,7 @@ async function click(el: Element | null | undefined) {
 const queueButton = (container: HTMLElement) =>
   container.querySelector('.tui-dq-open');
 
-test('the answered gate leaves the queue once the recap closes', async () => {
+async function answerThenClose(finish: () => Promise<void>) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -159,6 +180,7 @@ test('the answered gate leaves the queue once the recap closes', async () => {
     const sheet = document.body.querySelector('.tui-gate-sheet')!;
     await click(sheet.querySelector('input[value="push-ci"]'));
     await click(sheet.querySelector('.tui-sheet-submit'));
+    await finish();
     await click(document.body.querySelector('.tui-triage-done-action'));
 
     expect(queueButton(container)).toBeNull();
@@ -166,4 +188,20 @@ test('the answered gate leaves the queue once the recap closes', async () => {
     await React.act(async () => root.unmount());
     container.remove();
   }
+}
+
+test('the answered gate leaves the queue once the recap closes', async () => {
+  await answerThenClose(async () => {});
+});
+
+test('a gate answered elsewhere leaves the queue once continue and the recap close', async () => {
+  answeredElsewhere = true;
+  await answerThenClose(async () => {
+    const lost = document.body.querySelector('.tui-sheet-lost');
+    await click(
+      [...(lost?.querySelectorAll('button') ?? [])].find(
+        b => b.textContent?.trim() === 'continue'
+      )
+    );
+  });
 });
