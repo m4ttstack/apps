@@ -17,7 +17,10 @@ export type DryRun = {
     dependencies: string[];
     inputs?: Record<string, string>;
     cache: { status: string };
-    resolvedTaskDefinition?: { cache?: boolean };
+    resolvedTaskDefinition?: {
+      cache?: boolean;
+      passThroughEnv?: string[] | null;
+    };
   }>;
 };
 

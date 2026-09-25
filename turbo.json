@@ -25,13 +25,16 @@
     },
     "serve-check": {},
     "chat#serve-check": {
-      "dependsOn": ["build"]
+      "dependsOn": ["build"],
+      "passThroughEnv": ["GATE_PORT"]
     },
     "mattstack-console#serve-check": {
-      "dependsOn": ["build:binary"]
+      "dependsOn": ["build:binary"],
+      "passThroughEnv": ["GATE_PORT"]
     },
     "boxscore#serve-check": {
-      "dependsOn": ["build:binary"]
+      "dependsOn": ["build:binary"],
+      "passThroughEnv": ["GATE_PORT"]
     },
     "@mattstack/tui-kit#browsers": {
       "cache": false

@@ -51,6 +51,16 @@ describe('turbo task graph', () => {
     expect(tasks.get('boxscore#serve-check')?.dependencies).toContain(
       'boxscore#build:binary'
     );
+    for (const id of [
+      'chat#serve-check',
+      'mattstack-console#serve-check',
+      'boxscore#serve-check',
+    ]) {
+      expect(
+        tasks.get(id)?.resolvedTaskDefinition?.passThroughEnv,
+        id
+      ).toContain('GATE_PORT');
+    }
   });
 
   test('tui-kit tests install browsers first, and the install is never cached', () => {
