@@ -14,12 +14,9 @@ import {
 } from '@mattstack/app-kit/core';
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import { Icons } from '@mattstack/app-kit/icons';
-import {
-  useSettingKey,
-  useSettingsScope,
-  type ExplainRowWire,
-  type SettingDefWire,
-  type SettingsScopeState,
+import type {
+  ExplainRowWire,
+  SettingDefWire,
 } from '@mattstack/settings-kit/react';
 import { rowKind } from '@mattstack/settings-kit/shapes';
 
@@ -29,11 +26,17 @@ import { useEditorHref } from '../editorHref';
 import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
 import { SettingRow } from './SettingRow';
+import {
+  useConsoleSettings,
+  useKeyExplain,
+  useSettingsRepo,
+  type ConsoleStore,
+} from './useConsoleSettings';
 import { useRowSave, type RowStore } from './useRowSave';
-import { isStoreScope, type StoreScope } from './view';
+import { rungBase, type LayerScope } from './view';
 
 export type ExplainStore = Pick<
-  SettingsScopeState,
+  ConsoleStore,
   'defs' | 'loading' | 'error' | 'set' | 'unset' | 'move'
 >;
 
@@ -103,8 +106,8 @@ function LayerLine({
   row: ExplainRowWire;
   role: Role;
   busy: boolean;
-  onSet: (scope: StoreScope, value: unknown) => Promise<boolean>;
-  onRemove: (scope: StoreScope) => Promise<boolean>;
+  onSet: (scope: string, value: unknown) => Promise<boolean>;
+  onRemove: (scope: string) => Promise<boolean>;
 }) {
   const { text } = useSchemeColors();
   const editorHref = useEditorHref();
@@ -117,7 +120,7 @@ function LayerLine({
     setEditing(false);
   }, [row]); // eslint-disable-line react-hooks/exhaustive-deps
   const scope = row.scope;
-  const store = isStoreScope(scope) ? scope : null;
+  const store = rungBase(scope);
   const allowed = store !== null && def.scopes.includes(store);
   const writable = allowed && def.writable && !def.secret;
   const kind = rowKind(def);
@@ -132,7 +135,7 @@ function LayerLine({
             def={layerDef(def, row)}
             suggestions={suggestions}
             onSave={v =>
-              void (v === undefined ? onRemove(store) : onSet(store, v)).then(
+              void (v === undefined ? onRemove(scope) : onSet(scope, v)).then(
                 ok => ok && setSaved(true)
               )
             }
@@ -175,7 +178,7 @@ function LayerLine({
       <Group gap={12} wrap="nowrap" mih={28}>
         <Box w={SCOPE_COL} style={{ flex: 'none' }}>
           {store ? (
-            <ScopeBadge scope={store} />
+            <ScopeBadge scope={scope as LayerScope} />
           ) : (
             <Text fz={12} fw={500} c={text.muted}>
               {scope}
@@ -238,7 +241,7 @@ function LayerLine({
                 c={text.muted}
                 disabled={busy}
                 aria-label={`remove ${def.key} from ${store}`}
-                onClick={() => void onRemove(store)}
+                onClick={() => void onRemove(scope)}
               >
                 <Icons.trash size={14} />
               </ActionIcon>
@@ -290,7 +293,7 @@ function ExplainBody({
   onChanged?: () => void;
 }) {
   const { text } = useSchemeColors();
-  const explained = useSettingKey(storeDef.key);
+  const explained = useKeyExplain(storeDef.key, useSettingsRepo());
   const { refresh, rows, loading } = explained;
   // A settled explain read is fresher than a store loaded when the page
   // mounted; while a re-read runs, the store already holds the write.
@@ -455,7 +458,7 @@ function OwnStore(props: {
   onRead: (at: Date) => void;
   onChanged?: () => void;
 }) {
-  const store = useSettingsScope(props.settingKey);
+  const store = useConsoleSettings(null, props.settingKey);
   return <Resolved {...props} store={store} />;
 }
 

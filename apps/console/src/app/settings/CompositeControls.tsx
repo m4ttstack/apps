@@ -22,10 +22,9 @@ import {
 } from '@mattstack/app-kit/core';
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import { Icons } from '@mattstack/app-kit/icons';
-import {
-  useSettingKey,
-  type ExplainRowWire,
-  type SettingDefWire,
+import type {
+  ExplainRowWire,
+  SettingDefWire,
 } from '@mattstack/settings-kit/react';
 import {
   addToList,
@@ -33,7 +32,6 @@ import {
   matchesSchema,
   recognize,
   summarize,
-  targetScope,
   type LeafType,
   type RowKind,
 } from '@mattstack/settings-kit/shapes';
@@ -47,8 +45,15 @@ import {
 import { ExpandToggle } from './ExpandToggle';
 import { ScopeBadge } from './ScopeBadge';
 import { unitOf } from './units';
+import { useKeyExplain, useSettingsRepo } from './useConsoleSettings';
 import type { useRowSave } from './useRowSave';
-import { fieldSource, isStoreScope, leafWrite } from './view';
+import {
+  fieldSource,
+  leafWrite,
+  rungBase,
+  rungOf,
+  type LayerScope,
+} from './view';
 
 type Row = ReturnType<typeof useRowSave>;
 const INLINE_MAX_ITEMS = 3;
@@ -482,12 +487,13 @@ function LeavesBody({
   };
 }) {
   const { text } = useSchemeColors();
-  const explained = useSettingKey(def.key);
+  const repo = useSettingsRepo();
+  const explained = useKeyExplain(def.key, repo);
   const [all, setAll] = useState(false);
   const [resets, setResets] = useState(0);
   const paths = Object.keys(shape.fields);
   const shown = all ? paths : paths.slice(0, LEAVES_FIRST);
-  const target = targetScope(def);
+  const target = rungOf(row.target.scope, row.target.repo ?? null);
 
   // leafWrite rebuilds the target layer's own object from these rows, so they
   // must postdate the def's current scope and value and our last write, or a
@@ -529,8 +535,8 @@ function LeavesBody({
               </Text>
             }
             source={
-              isStoreScope(source) ? (
-                <ScopeBadge scope={source} />
+              rungBase(source) !== null ? (
+                <ScopeBadge scope={source as LayerScope} />
               ) : source ? (
                 <Text fz={12} c={text.muted}>
                   {source}
@@ -623,13 +629,13 @@ function ShapeLock({
       <Text fz={12} fw={500} c="var(--tk-text-bad-small)">
         unexpected shape
       </Text>
-      {(loading || isStoreScope(at)) && (
+      {(loading || rungBase(at) !== null) && (
         <Button
           size="compact-xs"
           variant="default"
           disabled={loading}
           onClick={() => {
-            if (isStoreScope(at)) void row.clear(at);
+            if (rungBase(at) !== null) void row.clear(at!);
           }}
         >
           Clear
@@ -642,13 +648,13 @@ function ShapeLock({
 /** A deep key's merged value can fail its schema because of any layer, so
     Clear targets the strongest layer whose own value fails, not the winner. */
 function DeepShapeLock({ def, row }: { def: SettingDefWire; row: Row }) {
-  const { rows, loading } = useSettingKey(def.key);
+  const { rows, loading } = useKeyExplain(def.key, useSettingsRepo());
   const bad = [...rows]
     .reverse()
     .find(
       r =>
         r.present &&
-        isStoreScope(r.scope) &&
+        rungBase(r.scope) !== null &&
         r.value !== undefined &&
         !matchesSchema(def, r.value)
     );

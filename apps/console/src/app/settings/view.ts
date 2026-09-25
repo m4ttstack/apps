@@ -9,6 +9,7 @@ import {
   isSet,
   rowKind,
   setLeaf,
+  targetScope,
   type RowKind,
 } from '@mattstack/settings-kit/shapes';
 
@@ -50,6 +51,58 @@ export function isStoreScope(s: string | null | undefined): s is StoreScope {
   return s === 'team' || s === 'user' || s === 'machine';
 }
 
+export type RungScope = 'team.repo' | 'user.repo' | 'machine.repo';
+/** A store layer, or a store's section for the picked repo. */
+export type LayerScope = StoreScope | RungScope;
+
+export function isRung(s: string | null | undefined): s is RungScope {
+  return s === 'team.repo' || s === 'user.repo' || s === 'machine.repo';
+}
+
+/** The store a layer lives in: `team.repo` is the team store's repo
+    section. */
+export function rungBase(s: string | null | undefined): StoreScope | null {
+  if (isStoreScope(s)) return s;
+  return isRung(s) ? (s.slice(0, -'.repo'.length) as StoreScope) : null;
+}
+
+export function rungOf(scope: StoreScope, repo: string | null): LayerScope {
+  return repo ? (`${scope}.repo` as RungScope) : scope;
+}
+
+export interface WriteTarget {
+  scope: StoreScope;
+  repo?: string;
+}
+
+/** Where an edit of `def` lands. With a repo picked, a repo-scoped key
+    writes that repo's section of the layer its value comes from, so a value
+    inherited from a global layer gets a repo override rather than a global
+    write; with no allowed winning layer, the key's first scope. */
+export function writeTarget(
+  def: SettingDefWire,
+  repo: string | null
+): WriteTarget {
+  if (def.repoScoped && repo) {
+    const base = rungBase(def.effective.scope);
+    const scope =
+      base && (def.scopes as readonly string[]).includes(base)
+        ? base
+        : (def.scopes[0] as StoreScope);
+    return { scope, repo };
+  }
+  return { scope: targetScope(def) as StoreScope };
+}
+
+/** A layer line's scope as a write target; a repo rung needs the picked
+    repo. */
+export function targetAt(at: string, repo: string | null): WriteTarget | null {
+  const scope = rungBase(at);
+  if (!scope) return null;
+  if (!isRung(at)) return { scope };
+  return repo ? { scope, repo } : null;
+}
+
 /** Row kinds console draws an editor for. */
 export const EDITOR_KINDS: ReadonlySet<RowKind> = new Set<RowKind>([
   'scalar',
@@ -71,7 +124,7 @@ export function applyFilter(
     d =>
       (!f.changedOnly || isSet(d)) &&
       (!f.editableOnly || isEditable(d)) &&
-      (f.scope === 'any' || d.effective.scope === f.scope)
+      (f.scope === 'any' || rungBase(d.effective.scope) === f.scope)
   );
 }
 
@@ -123,8 +176,9 @@ export function buildSections(all: SettingDefWire[], f: ViewFilter): Section[] {
 export function badgeScope(
   def: SettingDefWire,
   subhead: StoreScope | null
-): StoreScope | null {
+): LayerScope | null {
   const scope = def.effective.scope;
+  if (isRung(scope)) return scope;
   return isStoreScope(scope) && scope !== subhead ? scope : null;
 }
 
@@ -149,11 +203,12 @@ export function splitKey(key: string): [ns: string, name: string] {
 export function fieldSource(
   rows: ExplainRowWire[],
   path: string
-): StoreScope | 'default' | null {
+): LayerScope | 'default' | null {
   for (const r of [...rows].reverse()) {
     if (!r.present || r.shadowed || r.invalid) continue;
     if (getLeaf(r.value, path) === undefined) continue;
-    if (r.scope === 'default' || isStoreScope(r.scope)) return r.scope;
+    if (r.scope === 'default' || isStoreScope(r.scope) || isRung(r.scope))
+      return r.scope;
   }
   return null;
 }

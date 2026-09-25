@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
 import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import { screen, waitFor } from '@testing-library/react';
@@ -6,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { SettingRow } from './SettingRow';
 import { schemaFields } from './testSchemas';
+import { SettingsRepoContext } from './useConsoleSettings';
 
 function def(key: string, over: Partial<SettingDefWire> = {}): SettingDefWire {
   return {
@@ -614,5 +616,86 @@ describe('SettingRow', () => {
       />
     );
     expect(screen.getByText('3 members · edited in board')).toBeInTheDocument();
+  });
+});
+
+describe('with a repo picked', () => {
+  const REPO = 'gitlab.example.com/acme/app';
+  const inRepo = (ui: ReactElement) =>
+    renderWithProviders(
+      <SettingsRepoContext.Provider value={REPO}>
+        {ui}
+      </SettingsRepoContext.Provider>
+    );
+
+  it('an edit of a repo-scoped key inherited from a global layer writes a repo override', async () => {
+    const s = store();
+    inRepo(
+      <SettingRow
+        def={def('rt.worktreeCwd', {
+          scopes: ['user', 'team', 'machine'],
+          repoScoped: true,
+          effective: { scope: 'team', file: '/t', value: 'a' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    const input = screen.getByLabelText('rt.worktreeCwd');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'b');
+    await userEvent.tab();
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('rt.worktreeCwd', 'team', 'b', REPO)
+    );
+  });
+
+  it('a key that is not repo-scoped writes as before, with no repo argument', async () => {
+    const s = store();
+    inRepo(
+      <SettingRow
+        def={def('agent.claude.effort', {
+          effective: { scope: 'user', file: '/u', value: 'high' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    const input = screen.getByLabelText('agent.claude.effort');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'low');
+    await userEvent.tab();
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('agent.claude.effort', 'user', 'low')
+    );
+  });
+
+  it('a value from a repo rung can be removed but not moved', async () => {
+    const s = store();
+    inRepo(
+      <SettingRow
+        def={def('rt.worktreeCwd', {
+          scopes: ['user', 'team', 'machine'],
+          repoScoped: true,
+          effective: { scope: 'team.repo', file: '/t', value: 'a' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    expect(screen.getByText('team · repo')).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'rt.worktreeCwd actions' })
+    );
+    expect(screen.queryByRole('menuitem', { name: /^Move to/ })).toBeNull();
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'Remove from team · repo' })
+    );
+    await waitFor(() =>
+      expect(s.unset).toHaveBeenCalledWith('rt.worktreeCwd', 'team', REPO)
+    );
   });
 });

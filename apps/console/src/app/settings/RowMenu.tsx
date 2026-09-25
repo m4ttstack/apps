@@ -5,7 +5,7 @@ import type { SettingDefWire } from '@mattstack/settings-kit/react';
 
 import { ScopeDot } from './ScopeBadge';
 import type { useRowSave } from './useRowSave';
-import { isStoreScope, type StoreScope } from './view';
+import { isRung, isStoreScope, rungBase, type StoreScope } from './view';
 
 const SLOT = 28;
 
@@ -21,14 +21,17 @@ export function RowMenu({
 }) {
   const { text } = useSchemeColors();
   const from = def.effective.scope;
-  if (!def.writable || !isStoreScope(from) || !def.scopes.includes(from))
+  const base = rungBase(from);
+  if (!def.writable || !base || !def.scopes.includes(base))
     return <Box w={SLOT} />;
   // A move re-sets the value at its target, which rejects what rt already
-  // refused here; removing it still works.
+  // refused here; removing it still works. settings-kit's move reads and
+  // writes global layers only, so a repo rung offers removal alone.
   const moveTo =
-    def.effective.invalid === undefined
+    def.effective.invalid === undefined && !isRung(from)
       ? (def.scopes as StoreScope[]).filter(s => s !== from && isStoreScope(s))
       : [];
+  const label = isRung(from) ? `${base} · repo` : from;
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
@@ -46,7 +49,7 @@ export function RowMenu({
           <Menu.Item
             key={to}
             leftSection={<ScopeDot scope={to} />}
-            onClick={() => void row.move(from, to)}
+            onClick={() => void row.move(from!, to)}
           >
             {`Move to ${to}`}
           </Menu.Item>
@@ -55,9 +58,9 @@ export function RowMenu({
         <Menu.Item
           c="var(--tk-text-bad)"
           leftSection={<Icons.trash size={14} />}
-          onClick={() => void row.clear(from)}
+          onClick={() => void row.clear(from!)}
         >
-          {`Remove from ${from}`}
+          {`Remove from ${label}`}
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>
