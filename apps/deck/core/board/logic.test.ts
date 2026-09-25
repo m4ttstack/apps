@@ -470,16 +470,14 @@ test('removeFailure: a 200 that says ok:false is a failure, named by its error',
   );
 });
 
-test("removeFailure: an ok:false record answer names the record's issues", () => {
+test("removeFailure: an ok:false record answer names this teardown's issues", () => {
   expect(
     removeFailure('myapp', 200, {
       ok: false,
-      record: {
-        issues: [
-          { message: 'bootout failed' },
-          { message: 'alias removal failed' },
-        ],
-      },
+      issues: [
+        { message: 'bootout failed' },
+        { message: 'alias removal failed' },
+      ],
     })
   ).toBe('removing myapp failed: bootout failed; alias removal failed');
   expect(removeFailure('myapp', 200, { ok: false })).toBe(

@@ -286,7 +286,7 @@ export interface RemoveAnswer {
   ok?: boolean;
   error?: string;
   message?: string;
-  record?: { issues?: Array<{ message: string }> };
+  issues?: Array<{ message: string }>;
 }
 
 /** The notice a DELETE /api/v1/apps/:name answer earns, or null when the app
@@ -302,7 +302,7 @@ export function removeFailure(
   if (!ok) return body.message || body.error || `remove failed (${status})`;
   if (body.ok !== false) return null;
   const detail =
-    body.error || (body.record?.issues ?? []).map(i => i.message).join('; ');
+    body.error || (body.issues ?? []).map(i => i.message).join('; ');
   return detail
     ? `removing ${name} failed: ${detail}`
     : `removing ${name} failed.`;

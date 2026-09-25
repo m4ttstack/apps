@@ -1006,6 +1006,19 @@ test('remove: confirm DELETEs the app and closes the drawer', async () => {
   });
 }, 12000);
 
+test("remove: deck's own row offers no remove app", async () => {
+  await withBoard(async page => {
+    await openDrawer(page, 'forecast');
+    expect(
+      await page
+        .locator('[data-part="listgroup-action"] button', {
+          hasText: 'remove app',
+        })
+        .count()
+    ).toBe(0);
+  });
+});
+
 async function confirmRemove(page: Page, name: string): Promise<void> {
   await openDrawer(page, name);
   await page
