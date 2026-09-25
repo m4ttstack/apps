@@ -1,4 +1,5 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'fs';
+import { createHash } from 'crypto';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { afterEach, expect, test } from 'bun:test';
@@ -12,9 +13,16 @@ import {
 import { iconPathFor } from './manifest.ts';
 import type { AppRecord } from './records.ts';
 
-// Parity anchor: repo-tools scripts/lib/__tests__/fixtures/bundle-resources/
-// holds byte-identical files, and its staging test proves bundle-apps writes
-// exactly these bytes into every app tarball.
+// Parity anchor: byte-identical twin at repo-tools
+// scripts/lib/__tests__/fixtures/bundle-resources/, the form its stageIdentity
+// writes for board. Change both copies together and move these digests in
+// both repos' tests.
+const FIXTURE_SHA256 = {
+  'mattstack.deck.json':
+    '50f5e9e8ac66f05befbe8d819f8d2a8d23c1d190e39fb5d505d2aa199f668523',
+  'src/favicon.svg':
+    '1226b22e369865eaf8b319d5aba863a7c531f313552cf47b4f0dbcec6d199142',
+};
 const FIXTURE_RESOURCES = join(
   import.meta.dir,
   '__fixtures__',
@@ -48,6 +56,16 @@ function resources(
   return root;
 }
 
+test('the fixture bytes match the digests its repo-tools twin pins', () => {
+  const board = join(FIXTURE_RESOURCES, 'apps', 'board');
+  for (const [rel, digest] of Object.entries(FIXTURE_SHA256))
+    expect(
+      createHash('sha256')
+        .update(readFileSync(join(board, rel)))
+        .digest('hex')
+    ).toBe(digest);
+});
+
 test('reads the staged identity bundle-apps ships', () => {
   expect(readBundledIdentity(FIXTURE_RESOURCES, 'board')).toEqual({
     displayName: 'Board',
@@ -71,12 +89,18 @@ test('a manifest naming a different app is ignored', () => {
 });
 
 test('a manifest without displayName or icon is no identity', () => {
-  const root = resources(
+  const noName = resources(
     'board',
     { name: 'board', icon: './i.svg' },
     { 'i.svg': SVG }
   );
-  expect(readBundledIdentity(root, 'board')).toBeNull();
+  expect(readBundledIdentity(noName, 'board')).toBeNull();
+  const noIcon = resources(
+    'board',
+    { name: 'board', displayName: 'Board' },
+    { 'i.svg': SVG }
+  );
+  expect(readBundledIdentity(noIcon, 'board')).toBeNull();
 });
 
 test('an icon path that escapes the identity dir is refused', () => {

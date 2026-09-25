@@ -86,7 +86,8 @@ export interface StatusRow {
   /**
    * URL of the app's icon (the mattstack mark) for the board to render, or null.
    * The platform's own row resolves to the bundled deck mark at /favicon.svg;
-   * other managed products resolve to their ingested icon; user apps get null.
+   * other managed products resolve to their effective identity's icon (a
+   * linked checkout's ingested icon, else the bundle's); user apps get null.
    */
   icon: string | null;
   issues: SyncIssue[];

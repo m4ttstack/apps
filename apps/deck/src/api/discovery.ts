@@ -12,7 +12,8 @@ export interface DiscoveryApp {
   displayName: string;
   description?: string;
   url: string;
-  /** The app's own name when it has a stored icon, null otherwise. The route
+  /** The app's own name when its effective identity (a linked checkout's
+      ingested icon, else the bundle's) has an icon, null otherwise. The route
       turns this into an absolute /api/apps/<name>/icon URL. */
   icon: string | null;
   badge?: string;
