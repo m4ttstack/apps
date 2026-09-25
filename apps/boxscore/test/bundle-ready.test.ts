@@ -1,5 +1,7 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, normalize } from 'node:path';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 interface DeckManifest {
@@ -67,5 +69,34 @@ describe('release identity', () => {
     expect(readFileSync('src/server/index.ts', 'utf8')).toMatch(
       /\bport: 11005\b/
     );
+  });
+});
+
+describe('embedded assets wiring', () => {
+  it('hands serveMattstackApp the generated manifest loader', () => {
+    expect(readFileSync('src/server/index.ts', 'utf8')).toMatch(
+      /embedded: \(\) => import\('\.\/embedded\/manifest' as string\)/
+    );
+  });
+
+  it('keeps the generated manifest out of the type-check', () => {
+    const { config, error } = ts.readConfigFile(
+      'tsconfig.json',
+      ts.sys.readFile
+    );
+    expect(error).toBeUndefined();
+    expect(config.exclude).toContain('src/server/embedded/manifest.ts');
+  });
+
+  it('never tracks build output', () => {
+    for (const path of [
+      'dist-bin/boxscore',
+      'src/server/embedded/manifest.ts',
+    ]) {
+      expect(
+        () => execFileSync('git', ['check-ignore', '-q', '--no-index', path]),
+        path
+      ).not.toThrow();
+    }
   });
 });
