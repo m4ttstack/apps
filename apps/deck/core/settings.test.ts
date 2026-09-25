@@ -11,7 +11,12 @@ import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { afterAll, afterEach, beforeEach, expect, spyOn, test } from 'bun:test';
 
-import { getSetting, setSetting } from '@mattstack/rt-client';
+import {
+  getDef,
+  getSetting,
+  setSetting,
+  validateWrite,
+} from '@mattstack/rt-client';
 
 // rt-client doesn't export its user-store path helper; this literal is
 // duplicated from rt-client/src/settings/paths.ts#userSettingsPath (which
@@ -519,4 +524,26 @@ test('store key present: renameAppSettings carries published/publicFollowsOverri
   expect(stored?.['old-name']).toBeUndefined();
   expect(stored?.['new-name']?.publicFollowsOverride).toBe(true);
   expect(getPublicFollowsOverride('new-name')).toBe(true);
+});
+
+test('store key present: every deck.apps write passes validateWrite', async () => {
+  setSetting(
+    'deck.apps',
+    { 'acme-app': { published: true, publicFollowsOverride: false } },
+    'user'
+  );
+  reloadSettings();
+
+  await setPublished('acme-app', false);
+  await setPassword('acme-app', 'correct horse');
+  setOverride('acme-app', { devPort: 5173, basePort: 4100 });
+  setPublicFollowsOverride('acme-app', true);
+  clearOverride('acme-app');
+  renameAppSettings('acme-app', 'acme-web');
+  await clearPassword('acme-web');
+
+  const stored = getSetting('deck.apps').value;
+  expect(
+    validateWrite(getDef('deck.apps')!, stored, { scope: 'user' })
+  ).toEqual({ ok: true });
 });
