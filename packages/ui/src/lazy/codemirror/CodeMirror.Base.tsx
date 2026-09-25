@@ -1,7 +1,9 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { autocompletion } from '@codemirror/autocomplete';
 import { indentWithTab } from '@codemirror/commands';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
+import { linter, lintGutter } from '@codemirror/lint';
 import { Annotation, Compartment, EditorState } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import {
@@ -12,6 +14,14 @@ import {
 import type { ViewUpdate } from '@codemirror/view';
 import { useComputedColorScheme } from '@mantine/core';
 import { basicSetup } from 'codemirror';
+
+import {
+  jsonDiagnostics,
+  jsonSchemaCompletion,
+  type JsonSchemaCheck,
+} from './jsonSchema';
+
+export type { JsonPathIssue, JsonSchemaCheck } from './jsonSchema';
 
 // Tags a transaction as originating from the `value`-sync effect (below)
 // rather than from the user editing the document, so the update listener
@@ -57,6 +67,13 @@ export interface CodeMirrorBaseProps {
    * theme entirely. Omitted (default): follows the computed color scheme.
    */
   theme?: 'light' | 'dark' | Extension;
+  /** A JSON Schema for `language="json"`: completes property names and
+      enum, const and boolean values. Reconfigures live. */
+  jsonSchema?: Record<string, unknown>;
+  /** Lints `language="json"`: a parse error, else each returned issue
+      underlined at its path. The caller supplies the checker so the kit
+      needs no validator and the messages match the caller's own. */
+  jsonCheck?: JsonSchemaCheck;
 }
 
 /** Imperative handle exposed via `ref`: the live `EditorView`, or `null` before/after mount. */
@@ -101,6 +118,23 @@ function languageExtensionFor(
   language: CodeMirrorLanguage | undefined
 ): Extension {
   return language ? languageExtensions[language]() : [];
+}
+
+function schemaExtensions(
+  language: CodeMirrorLanguage | undefined,
+  schema: Record<string, unknown> | undefined,
+  check: JsonSchemaCheck | undefined
+): Extension[] {
+  if (language !== 'json') return [];
+  const out: Extension[] = [];
+  if (schema)
+    out.push(autocompletion({ override: [jsonSchemaCompletion(schema)] }));
+  if (check)
+    out.push(
+      linter(view => jsonDiagnostics(view.state, check), { delay: 250 }),
+      lintGutter()
+    );
+  return out;
 }
 
 /**
@@ -157,6 +191,8 @@ const CodeMirrorBase = /* @__PURE__ */ forwardRef<
     onCreateEditor,
     onUpdate,
     theme,
+    jsonSchema,
+    jsonCheck,
   }: CodeMirrorBaseProps,
   ref
 ) {
@@ -165,6 +201,7 @@ const CodeMirrorBase = /* @__PURE__ */ forwardRef<
   const languageCompartment = useRef(new Compartment()).current;
   const readOnlyCompartment = useRef(new Compartment()).current;
   const themeCompartment = useRef(new Compartment()).current;
+  const schemaCompartment = useRef(new Compartment()).current;
 
   // Resolved 'light' | 'dark' (never 'auto'), read synchronously on first
   // render -- same anti-flicker approach as the kit's useColorScheme.
@@ -210,6 +247,7 @@ const CodeMirrorBase = /* @__PURE__ */ forwardRef<
       basicSetup,
       keymap.of([indentWithTab]),
       languageCompartment.of(languageExtensionFor(language)),
+      schemaCompartment.of(schemaExtensions(language, jsonSchema, jsonCheck)),
       readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
       updateListener,
       // User-supplied extensions, read once at creation -- see the
@@ -285,6 +323,16 @@ const CodeMirrorBase = /* @__PURE__ */ forwardRef<
       ),
     });
   }, [readOnly, readOnlyCompartment]);
+
+  // Reconfigure schema completion and lint when the schema, checker or
+  // language changes.
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: schemaCompartment.reconfigure(
+        schemaExtensions(language, jsonSchema, jsonCheck)
+      ),
+    });
+  }, [language, jsonSchema, jsonCheck, schemaCompartment]);
 
   return <div ref={parentRef} data-testid="codemirror-editor" />;
 });

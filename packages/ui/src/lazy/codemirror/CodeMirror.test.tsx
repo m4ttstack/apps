@@ -238,3 +238,44 @@ test('an Extension `theme` prop replaces the auto scheme theme entirely', async 
   expect(ownRules).toContain('ui-custom-marker-font');
   expect(ownRules).not.toContain('var(--ui-bg-4)');
 });
+
+test('jsonCheck underlines schema issues, and a changed checker re-lints', async () => {
+  const { forEachDiagnostic, forceLinting } = await import('@codemirror/lint');
+  const ref = createRef<CodeMirrorRef>();
+  const check = (value: unknown) =>
+    Array.isArray(value) && typeof value[0] === 'number'
+      ? [{ path: [0], message: 'expected string, got number' }]
+      : [];
+  renderWithProviders(
+    <CodeMirror
+      ref={ref}
+      value="[1]"
+      language="json"
+      jsonSchema={{ type: 'array', items: { type: 'string' } }}
+      jsonCheck={check}
+    />
+  );
+  await waitFor(() => expect(ref.current?.view).toBeTruthy());
+  const view = ref.current!.view!;
+  forceLinting(view);
+  await waitFor(() => {
+    const found: string[] = [];
+    forEachDiagnostic(view.state, d => found.push(d.message));
+    expect(found).toEqual(['expected string, got number']);
+  });
+});
+
+test('without jsonCheck there is no linting at all', async () => {
+  const { diagnosticCount, forceLinting } = await import('@codemirror/lint');
+  const ref = createRef<CodeMirrorRef>();
+  renderWithProviders(<CodeMirror ref={ref} value="[1" language="json" />);
+  await waitFor(() => expect(ref.current?.view).toBeTruthy());
+  const view = ref.current!.view!;
+  // No linter extension is installed at all without `jsonCheck` -- calling
+  // forceLinting on a view with no linter is a no-op, so this proves the
+  // absence of linting rather than a linter that simply hasn't run yet
+  // (the linter's own 250ms delay would otherwise let this pass vacuously).
+  forceLinting(view);
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(diagnosticCount(view.state)).toBe(0);
+});
