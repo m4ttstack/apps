@@ -40,8 +40,9 @@ Per-package tasks, run by every workspace member that declares the
 script:
 
 - `build`: `dependsOn: ["^build"]`, `outputs: ["dist/**"]`.
-- `build:binary` (console, boxscore): `dependsOn: ["^build"]`,
-  `outputs: ["dist-bin/**"]`.
+- `build:binary` (console, boxscore): `dependsOn: ["build"]` (both
+  write `dist/`, so they serialise), `outputs: ["dist/**", "dist-bin/**",
+  "src/server/embedded/**"]`.
 - `typecheck`: `dependsOn: ["^build"]`.
 - `lint`.
 - `test`: `dependsOn: ["^build"]`.
@@ -74,6 +75,10 @@ Root tasks (`//#<name>`), each with declared `inputs` so they cache:
   (`tokens:radix`, `tokens:codegen`, `tokens:ramps`, then
   `git diff --exit-code` over the committed outputs).
 - `//#build-storybook` and `//#treeshake` (the existing scripts).
+  Storybook imports `@mattstack/tui-kit/provider` and `/theme`, which
+  resolve to tui-kit's gitignored `dist/`, so `//#build-storybook`
+  depends on `@mattstack/tui-kit#build`; its inputs cover every tree
+  `.storybook/main.ts` collects stories from, board's included.
 - `@mattstack/tui-kit#gates` is a package task, not a root one.
 
 Scoped root tasks use explicit `$TURBO_ROOT$/...` globs. Those globs
@@ -102,7 +107,8 @@ an undeclared variable is invisible to the task, which is the point.
 
 Root `package.json`:
 
-- `test`, `typecheck`, `lint`, `build`: `scripts/turbo.sh run <task>`.
+- `test`, `typecheck`, `build`: `scripts/turbo.sh <task>` (the script
+  prepends `run`); `lint`: `scripts/turbo.sh lint lint:root`.
 - `check`: `scripts/turbo.sh check`, three turbo invocations in order:
   1. `gates tokens:fresh --filter=@mattstack/tui-kit --filter=//
      --concurrency=1`: the two codegen gates rewrite
@@ -118,7 +124,7 @@ Root `package.json`:
   This list is the one definition of "what CI gates"; `ci.yml` calls
   the same mode.
 - `<app>:<task>` (board, chat, console, boxscore, deck): kept as
-  `scripts/turbo.sh run <task> --filter=<app>`, so `apps/<name>/AGENTS.md`
+  `scripts/turbo.sh <task> --filter=<app>`, so `apps/<name>/AGENTS.md`
   and habits keep working.
 - `tui-kit:build`, `tui-kit:test`, `tokens:test`, `gate-kit:test`: same
   shape, `--filter=@mattstack/<pkg>`.

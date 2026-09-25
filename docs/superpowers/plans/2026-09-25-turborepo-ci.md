@@ -19,7 +19,7 @@
 - Package scripts named `test` must exit (no watch mode): `vitest run`, never bare `vitest`.
 - Every `serve-check` server runs under `env -i HOME=<scratch dir> PATH=$PATH PORT=<port>`; nothing in this plan touches the developer's real `~/.mattstack`.
 - A package with no script for a task still runs that task's same-package `dependsOn`, so a generic task definition never carries a `dependsOn` that only some packages should pay for.
-- `$TURBO_ROOT$` input globs ignore `.gitignore`; every one is paired with the negations `!$TURBO_ROOT$/**/node_modules/**`, `!$TURBO_ROOT$/**/.turbo/**`, `!$TURBO_ROOT$/**/dist/**`, `!$TURBO_ROOT$/**/dist-bin/**`. `$TURBO_ROOT$/**` is never used.
+- `$TURBO_ROOT$` input globs ignore `.gitignore`; every task that uses one carries the negations `!$TURBO_ROOT$/**/node_modules/**`, `!$TURBO_ROOT$/**/.turbo/**`, `!$TURBO_ROOT$/**/dist/**`, `!$TURBO_ROOT$/**/dist-bin/**`. `$TURBO_ROOT$/**` is never used.
 - Comments in code state only what the code cannot show. No ticket ids, no process history, no narration.
 - No em dashes or en dashes anywhere (code, docs, commits, PR body), and none of the phrases the global writing rules ban.
 - Commit messages: lowercase imperative subject, ending with `Co-Authored-By: Claude <noreply@anthropic.com>`.
@@ -514,14 +514,11 @@ mkdir -p apps/console/dist-bin/dist-hidden && bash apps/console/scripts/serve-ch
 Expected: `serve-check: .../dist-bin/dist-hidden is left from an interrupted run ...` and `exit=1`, and `apps/console/dist` still present.
 
 ```bash
-(cd apps/chat && PORT=11123 bun src/server/index.ts >/dev/null 2>&1 &); sleep 2; bash apps/chat/scripts/serve-check.sh; echo "exit=$?"
+bun -e 'Bun.serve({ port: 11123, fetch: () => new Response("") }); setTimeout(() => {}, 60000)' &
+sleep 1; bash apps/chat/scripts/serve-check.sh; echo "exit=$?"; kill $!
 ```
 
-Expected: `serve-check: port 11123 already answers ...` and `exit=1`. Then stop that server by port, never by command name (deck's dev servers run the same command):
-
-```bash
-kill "$(lsof -ti tcp:11123)"
-```
+Expected: `serve-check: port 11123 already answers ...` and `exit=1`. Any listener will do for this check; starting chat itself from source would run it under the real HOME, which the constraints forbid.
 
 - [ ] **Step 10: Run tui-kit's split test once**
 
@@ -564,7 +561,7 @@ Append to the `describe` in `scripts/__tests__/turbo-graph.test.ts`:
     ]);
     expect(realIds(run)).toEqual([
       '//#build-storybook', '//#format:check', '//#lint:root', '//#purity', '//#scripts:test',
-      '//#tokens:fresh', '//#treeshake',
+      '//#tokens:fresh', '//#treeshake', '@mattstack/tui-kit#build',
     ]);
   });
 
@@ -671,7 +668,8 @@ Inside `"tasks"`, add:
         "!$TURBO_ROOT$/**/node_modules/**",
         "!$TURBO_ROOT$/**/.turbo/**",
         "!$TURBO_ROOT$/**/dist/**",
-        "!$TURBO_ROOT$/**/dist-bin/**"
+        "!$TURBO_ROOT$/**/dist-bin/**",
+        "!$TURBO_ROOT$/**/.vitest-attachments/**"
       ]
     },
     "//#format:check": {
@@ -690,16 +688,20 @@ Inside `"tasks"`, add:
       ]
     },
     "//#build-storybook": {
+      "dependsOn": ["@mattstack/tui-kit#build"],
       "inputs": [
         ".storybook/**",
         "stories/**",
         "$TURBO_ROOT$/packages/ui/**",
         "$TURBO_ROOT$/packages/tokyo/**",
+        "$TURBO_ROOT$/packages/gate-kit/src/**",
         "$TURBO_ROOT$/apps/console/src/**",
+        "$TURBO_ROOT$/apps/board/src/**",
         "!$TURBO_ROOT$/**/node_modules/**",
         "!$TURBO_ROOT$/**/.turbo/**",
         "!$TURBO_ROOT$/**/dist/**",
-        "!$TURBO_ROOT$/**/dist-bin/**"
+        "!$TURBO_ROOT$/**/dist-bin/**",
+        "!$TURBO_ROOT$/**/src/server/embedded/**"
       ],
       "outputs": ["storybook-static/**"]
     },
@@ -716,17 +718,13 @@ Inside `"tasks"`, add:
       "inputs": ["$TURBO_DEFAULT$"]
     },
     "//#scripts:test": {
-      "inputs": [
-        "scripts/**",
-        "turbo.json",
-        "package.json",
-        "$TURBO_ROOT$/apps/*/package.json",
-        "$TURBO_ROOT$/packages/*/package.json"
-      ]
+      "inputs": ["$TURBO_DEFAULT$"]
     }
 ```
 
-Two facts drive this shape. For the root package, `$TURBO_DEFAULT$` is every tracked file in the repo and respects `.gitignore`, so it is right for the whole-repo gates (`format:check`, `purity`) and wrong for anything meant to be narrower. `$TURBO_ROOT$` globs ignore `.gitignore`, so every scoped list carries the four negations; without them a task's own `.turbo` logs and build output change its hash on every run.
+Also add the four negations to the `@mattstack/tokens#test` inputs written above, after its three `$TURBO_ROOT$` globs, so every `$TURBO_ROOT$` list in the file has the same shape.
+
+Three facts drive this shape. For the root package, `$TURBO_DEFAULT$` is every tracked file in the repo and respects `.gitignore`, so it is right for the whole-repo gates (`format:check`, `purity`, and `scripts:test`, whose inputs guard must rerun whenever any test file changes) and wrong for anything meant to be narrower. `$TURBO_ROOT$` globs ignore `.gitignore`, so every scoped list carries the four negations; without them a task's own `.turbo` logs and build output change its hash on every run. And storybook imports `@mattstack/tui-kit/provider` and `/theme`, which resolve to tui-kit's gitignored `dist/`, so `//#build-storybook` depends on `@mattstack/tui-kit#build` (turbo pulls a package task in past `--filter=//`), and its inputs cover every tree `.storybook/main.ts` collects stories from (board's stories import board components and `@mattstack/gate-kit`). The `src/server/embedded` negation keeps console's generated manifest, which `build:binary` writes, out of the hash.
 
 - [ ] **Step 6: Run the tests to see them pass**
 
@@ -740,7 +738,7 @@ node_modules/.bin/turbo run lint:root format:check tokens:fresh build-storybook 
 node_modules/.bin/turbo run lint:root format:check tokens:fresh build-storybook treeshake purity scripts:test --filter=// --output-logs=errors-only
 ```
 
-Expected: first run ends `Tasks: 7 successful, 7 total`, `Cached: 0 cached`; second run ends `Cached: 7 cached, 7 total` and `>>> FULL TURBO`. A task that misses on the second run has an input that the first run wrote; find it with `--dry=json` and add the negation.
+Expected: first run ends `Tasks: 8 successful, 8 total` (the seven root tasks plus `@mattstack/tui-kit#build`, which storybook pulls in), `Cached: 0 cached`; second run ends `Cached: 8 cached, 8 total` and `>>> FULL TURBO`. A task that misses on the second run has an input that the first run wrote; find it with `--dry=json` and add the negation.
 
 - [ ] **Step 8: Format and commit**
 
@@ -827,7 +825,7 @@ describe('scripts/turbo.sh', () => {
     expect(pkgIds).not.toContain('@mattstack/tui-kit#gates');
     expect(realIds(roots)).toEqual([
       '//#build-storybook', '//#format:check', '//#lint:root', '//#purity', '//#scripts:test',
-      '//#treeshake', '@mattstack/tokens#test',
+      '//#treeshake', '@mattstack/tokens#test', '@mattstack/tui-kit#build',
     ]);
   });
 
@@ -949,7 +947,7 @@ Run: `bun test ./scripts`
 Expected: PASS, 15 tests across 3 files.
 
 Run: `bun run check`
-Expected: exits 0. Invocation 1 reports 2 tasks; invocation 2 includes deck (this is a Mac) and the three serve-checks; invocation 3 reports the 7 root-side tasks. Run `bun run check` again: invocations 1 and 3 report `>>> FULL TURBO`; invocation 2 reports every task cached except `@mattstack/tui-kit#browsers` (`cache: false`), so no `FULL TURBO` banner there.
+Expected: exits 0. Invocation 1 reports 2 tasks; invocation 2 includes deck (this is a Mac) and the three serve-checks; invocation 3 reports the 8 root-side tasks (seven root tasks, the tokens suite, and tui-kit's build, already cached from invocation 2). Run `bun run check` again: invocations 1 and 3 report `>>> FULL TURBO`; invocation 2 reports every task cached except `@mattstack/tui-kit#browsers` (`cache: false`), so no `FULL TURBO` banner there.
 
 - [ ] **Step 7: Format and commit**
 
@@ -1208,7 +1206,7 @@ The PR's first `checks` run has no cache and touches the root, so `--affected` s
 
 - [ ] **Step 4: Merge, then record the warm main run**
 
-After review and a green run, merge (with Matt's confirmation). The first push to `main` starts cold (a PR's cache is never visible to main) and seeds main's cache. Record the `Cached: N cached, M total` lines from the *second* main push (any merge after this one, or an empty commit if nothing lands within a day). Expected: at least 80% cached.
+After review and a green run, merge (with Matt's confirmation). The first push to `main` starts cold (a PR's cache is never visible to main) and seeds main's cache. Record the `Cached: N cached, M total` lines from the *second* main push (any merge after this one; if nothing lands within a day, an empty commit pushed to main with Matt's confirmation, since that is a direct push). Expected: at least 80% cached.
 
 - [ ] **Step 5: Record a board-only PR**
 
