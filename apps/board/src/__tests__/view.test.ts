@@ -39,7 +39,7 @@ function mr(overrides: Partial<BoardMR>): BoardMR {
     pipelineState: 'none',
     unresolvedThreads: 0,
     reviewerComments: 0,
-    reviews: { required: 2, given: 0, isApproved: false },
+    reviews: { required: 2, given: 0, remaining: 2, isApproved: false },
     blockers: {},
     autoMergeButton: { visible: false, isActive: false },
     ...overrides,
@@ -658,6 +658,30 @@ describe('sortMRs', () => {
     expect(sortMRs(list, 'progress').map(m => m.iid)).toEqual([2, 3, 1]);
   });
 
+  test('progress counts rule slots filled, not approvers', () => {
+    const list = [
+      mr({
+        iid: 1,
+        reviews: {
+          required: 4,
+          given: 2,
+          remaining: 2,
+          isApproved: false,
+        } as any,
+      }),
+      mr({
+        iid: 2,
+        reviews: {
+          required: 4,
+          given: 1,
+          remaining: 1,
+          isApproved: false,
+        } as any,
+      }),
+    ];
+    expect(sortMRs(list, 'progress').map(m => m.iid)).toEqual([2, 1]);
+  });
+
   test('does not mutate input', () => {
     const list = [
       mr({ iid: 1, createdAt: '2026-07-05T00:00:00Z' }),
@@ -917,6 +941,7 @@ describe('groupMRs status', () => {
         reviews: {
           required: 2,
           given: 1,
+          remaining: 1,
           isApproved: false,
           reviewers: [{ reviewState: 'APPROVED' }],
         } as any,
@@ -924,6 +949,24 @@ describe('groupMRs status', () => {
     ];
     const groups = groupMRs(list, 'status', [], NOW);
     expect(groups.map(g => g.label)).toEqual(['needs review']);
+  });
+
+  test('an approval that fills no rule slot keeps the conversation state', () => {
+    const list = [
+      mr({
+        iid: 1,
+        reviewerComments: 2,
+        reviews: {
+          required: 2,
+          given: 1,
+          remaining: 2,
+          isApproved: false,
+          reviewers: [{ reviewState: 'APPROVED' }],
+        } as any,
+      }),
+    ];
+    const groups = groupMRs(list, 'status', [], NOW);
+    expect(groups.map(g => g.label)).toEqual(['commented']);
   });
 
   test('a reviewer still pending keeps a part-approved MR out of the approved bucket', () => {
