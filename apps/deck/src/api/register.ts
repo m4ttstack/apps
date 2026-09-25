@@ -580,11 +580,11 @@ function reportMissingHelpers(names: string[]): void {
  * switch between mattstack-dev.app and mattstack.app, and it is the only
  * writer that moves managed apps between shapes. It first gives every catalog
  * app an rt row in either flavor, adopting same-named user rows only in prod
- * (ensureCatalogRows). An rt row prod does not
- * serve loses its plist but keeps its record and dev link for the other
- * flavor. Every other managed row is re-resolved and diffed against its
- * installed plist (ProgramArguments, WorkingDirectory, EnvironmentVariables),
- * so a flip and a flip-back both read as "unchanged".
+ * (ensureCatalogRows). An rt row prod does not serve loses its plist but
+ * keeps its record and dev link for the other flavor. Every other managed row
+ * is re-resolved and diffed against its installed plist (ProgramArguments,
+ * WorkingDirectory, EnvironmentVariables), so a flip and a flip-back both
+ * read as "unchanged".
  */
 export async function reresolveManagedApps(
   drivers: Drivers
