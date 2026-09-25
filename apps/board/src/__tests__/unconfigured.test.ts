@@ -50,6 +50,16 @@ describe('boardConfiguredAt', () => {
     expect(boardConfiguredAt(path, fakeResolve(partial))).toBe(false);
   });
 
+  test('no file and an empty roster in the store is not configured', () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'board-cfg-')), 'config.json');
+    expect(
+      boardConfiguredAt(
+        path,
+        fakeResolve({ ...STORE_OWNED, 'board.members': [] })
+      )
+    ).toBe(false);
+  });
+
   test('no file and an unreadable store is not configured', () => {
     const path = join(mkdtempSync(join(tmpdir(), 'board-cfg-')), 'config.json');
     expect(boardConfiguredAt(path, throwingResolve)).toBe(false);
@@ -70,6 +80,8 @@ describe('unconfiguredResponse', () => {
     const body = await res.text();
     expect(body).toContain("Board isn't set up yet");
     expect(body).toContain('board.members');
+    expect(body).toContain("fetch('/healthz'");
+    expect(body).toContain('location.reload()');
   });
 
   test('api routes answer 503 rather than an HTML page', async () => {

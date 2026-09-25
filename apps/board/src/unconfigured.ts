@@ -25,6 +25,16 @@ const SETUP_PAGE = `<!doctype html>
   <p>Board lists your team's open GitLab merge requests. It starts on its own once your team's board settings exist: join a team that has them, or set <code>board.gitlabHost</code>, <code>board.projects</code> and <code>board.members</code> with <code>rt settings</code>.</p>
   <p>This page checks again every few seconds.</p>
 </main>
+<script>
+  // The real board answers /healthz with plain "ok"; a fetch error is the
+  // restart gap between this server exiting and the board binding the port.
+  setInterval(async () => {
+    try {
+      const body = await (await fetch('/healthz', { cache: 'no-store' })).text();
+      if (!body.includes('"configured":false')) location.reload();
+    } catch {}
+  }, 5000);
+</script>
 </body>
 </html>
 `;

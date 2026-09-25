@@ -789,9 +789,10 @@ function storeOwnsRequiredFields(resolve: GetSettingFn): boolean {
   );
 }
 
-/** Whether loadConfigFrom(path) can get past its missing-config refusal. Any
-    read failure other than a missing file answers true, so the real server
-    still surfaces it loudly. */
+/** Whether a file-less board can boot from the store alone. Any read failure
+    other than a missing file answers true, so the real server still surfaces
+    it loudly. Loading the whole config (not just checking the keys exist)
+    keeps an empty roster or project list on the setup page. */
 export function boardConfiguredAt(
   path: string,
   resolve: GetSettingFn = getSetting
@@ -801,11 +802,12 @@ export function boardConfiguredAt(
     return true;
   } catch (err) {
     if (!isEnoent(err)) return true;
-    try {
-      return storeOwnsRequiredFields(resolve);
-    } catch {
-      return false;
-    }
+  }
+  try {
+    loadConfigFrom(path, resolve);
+    return true;
+  } catch {
+    return false;
   }
 }
 
