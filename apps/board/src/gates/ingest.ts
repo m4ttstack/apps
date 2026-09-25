@@ -272,9 +272,9 @@ export function buildQueueExtras(rows: FacilityGateRow[]): GateRow[] {
     notification that opens the gate in the board on click. `{headline}` and
     `{summary}` are rt's computed fields: the `meta.headline` /
     `meta.summary` gateOpen sets (see gateNotifyCopy), falling back to the
-    label and first question for a gate opened without them. They need an rt
-    whose notify bridge resolves them (m4ttstack/rt#465); an older rt renders
-    them literally. `subjectPrefix: 'mr:'` is the rule's identity half that
+    label and first question for a gate opened without them. An rt whose
+    notify bridge predates those two fields renders them literally.
+    `subjectPrefix: 'mr:'` is the rule's identity half that
     keeps it from colliding with console's `run:` rule on the same
     `gate/opened/*` pattern. Suppression is payload-driven on the daemon side
     (a payload `paneId` matching the focused pane drops the notification): no
