@@ -75,7 +75,7 @@ describe('release identity', () => {
 describe('embedded assets wiring', () => {
   it('hands serveMattstackApp the generated manifest loader', () => {
     expect(readFileSync('src/server/index.ts', 'utf8')).toMatch(
-      /embedded: \(\) => import\('\.\/embedded\/manifest' as string\)/
+      /^\s*embedded: \(\) => import\('\.\/embedded\/manifest' as string\),?$/m
     );
   });
 
@@ -112,8 +112,12 @@ describe('compiled binary hardening', () => {
 describe('CI binary gate', () => {
   it('builds the binary and then runs the gate in the checks job', () => {
     const ci = readFileSync('../../.github/workflows/ci.yml', 'utf8');
-    const build = ci.indexOf('cd apps/boxscore && bun run build:binary');
-    const gate = ci.indexOf('bash apps/boxscore/scripts/binary-gate.sh');
+    const build =
+      /^\s*- run: cd apps\/boxscore && bun run build:binary$/m.exec(ci)
+        ?.index ?? -1;
+    const gate =
+      /^\s*run: bash apps\/boxscore\/scripts\/binary-gate\.sh$/m.exec(ci)
+        ?.index ?? -1;
     expect(build).toBeGreaterThan(-1);
     expect(gate).toBeGreaterThan(build);
   });

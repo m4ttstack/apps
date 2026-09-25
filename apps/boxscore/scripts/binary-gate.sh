@@ -83,6 +83,14 @@ mediatype() {
 [ "$(mediatype /favicon.svg)" = "image/svg+xml" ] || fail "/favicon.svg is $(ctype /favicon.svg)"
 
 index=$(curl -fsS -m 5 "$base/")
+icons=$(grep -oE 'href="/[^"?]+\.(ico|png|svg)' <<<"$index" | sed 's/^href="//') || fail "index.html links no icons"
+for icon in $icons; do
+  [ "$(code "$icon")" = 200 ] || fail "$icon answered $(code "$icon")"
+  case "$(mediatype "$icon")" in
+    image/*) ;;
+    *) fail "$icon is $(ctype "$icon"), not an image" ;;
+  esac
+done
 re_js='(/assets/[^"]+\.js)'
 re_css='(/assets/[^"]+\.css)'
 re_font='(/assets/[^)"]+\.woff2)'
