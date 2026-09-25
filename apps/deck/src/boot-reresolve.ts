@@ -1,6 +1,8 @@
 import type { FlowResult } from './api/register.ts';
 
 interface Swept {
+  created?: string[];
+  adopted?: string[];
   restarted?: string[];
   notServed?: string[];
   failed?: Array<{ name: string; error: string }>;
@@ -26,6 +28,8 @@ export async function reresolveOnBoot(opts: {
     return;
   }
   const parts: string[] = [];
+  if (body.created?.length) parts.push(`created ${body.created.join(', ')}`);
+  if (body.adopted?.length) parts.push(`adopted ${body.adopted.join(', ')}`);
   if (body.restarted?.length)
     parts.push(`restarted ${body.restarted.join(', ')}`);
   if (body.notServed?.length)

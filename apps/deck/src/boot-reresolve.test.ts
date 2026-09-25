@@ -74,3 +74,21 @@ test('a bundled deck names the rows it does not serve', async () => {
   });
   expect(lines).toEqual(['[reresolve] boot: not-served gitq']);
 });
+
+test('a prod deck names the catalog rows it created and adopted ahead of what it restarted', async () => {
+  const lines: string[] = [];
+  await reresolveOnBoot({
+    bundleRoot: '/Applications/mattstack.app',
+    reresolve: async () =>
+      swept({
+        created: ['board'],
+        adopted: ['boxscore'],
+        restarted: ['board', 'boxscore'],
+        notServed: ['gitq'],
+      }),
+    log: line => lines.push(line),
+  });
+  expect(lines).toEqual([
+    '[reresolve] boot: created board; adopted boxscore; restarted board, boxscore; not-served gitq',
+  ]);
+});

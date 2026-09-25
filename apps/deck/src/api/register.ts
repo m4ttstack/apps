@@ -20,6 +20,10 @@ import type { RailwayDriver } from '../edge/railway.ts';
 import { disableRemote } from '../edge/remote.ts';
 import type { TunnelDriver } from '../edge/tunnel.ts';
 import { allocatePort } from '../registry/allocate.ts';
+import {
+  MATTSTACK_REGISTRAR,
+  type BundleCatalog,
+} from '../registry/bundle-catalog.ts';
 import { readDeckManifest } from '../registry/deck-manifest.ts';
 import { authorizeStructural } from '../registry/lifecycle.ts';
 import { ingestManifest, removeIcon } from '../registry/manifest.ts';
@@ -36,8 +40,10 @@ import {
   type SyncIssue,
 } from '../registry/records.ts';
 import {
+  bundleBinaryPath,
   dataDir,
   notServedHere,
+  resolveFlavor,
   serveShape,
   type ResolvedShape,
   type ServeShapeDeps,
@@ -449,10 +455,132 @@ export async function restartManagedApps(
   return { status: 200, body: { ok: failed.length === 0, restarted, failed } };
 }
 
+type SweepFailure = { name: string; error: string };
+
+interface EnsuredCatalog {
+  created: string[];
+  adopted: string[];
+  missing: string[];
+  failed: SweepFailure[];
+}
+
+/**
+ * Every catalog app gets an rt row in either flavor, so a fresh machine
+ * serves the catalog whichever app it opens first. Only prod (`adopt`) takes
+ * over a same-named user row: dev serves the user's registrations as they
+ * are. A route-only row, a catalog port another row holds, or an app whose
+ * binary this bundle does not ship is reported, never written.
+ */
+async function ensureCatalogRows(
+  catalog: BundleCatalog,
+  helpersDir: string | null,
+  drivers: Drivers,
+  adopt: boolean
+): Promise<EnsuredCatalog> {
+  const out: EnsuredCatalog = {
+    created: [],
+    adopted: [],
+    missing: [],
+    failed: [],
+  };
+  for (const [name, entry] of catalog) {
+    const existing = getRecord(name);
+    if (!existing) {
+      if (!bundleBinaryPath(name, helpersDir)) {
+        out.missing.push(name);
+        out.failed.push({
+          name,
+          error: `this bundle ships no Helpers/${name}`,
+        });
+        continue;
+      }
+      const holder = listRecords().find(r => r.port === entry.port);
+      if (holder) {
+        out.failed.push({
+          name,
+          error: `catalog port ${entry.port} is held by ${holder.name}`,
+        });
+        continue;
+      }
+      putRecord({
+        name,
+        managedBy: MATTSTACK_REGISTRAR,
+        port: entry.port,
+        kind: 'service',
+        label: `${LABEL_PREFIX}${name}`,
+        createdAt: new Date().toISOString(),
+      });
+      await tryDriver(name, 'portless', () =>
+        drivers.edge.alias(name, entry.port)
+      );
+      ingestManifest(name);
+      out.created.push(name);
+      continue;
+    }
+    if (!adopt || existing.managedBy !== 'user') continue;
+    if (existing.kind !== 'service') {
+      out.failed.push({
+        name,
+        error: `${name} is a route-only app; \`deck remove ${name}\` lets mattstack serve it`,
+      });
+      continue;
+    }
+    putRecord(adoptedCatalogRow(existing));
+    ingestManifest(name);
+    out.adopted.push(name);
+  }
+  return out;
+}
+
+/** A registered checkout becomes the dev link, the way migrateManagedDevShape
+    slims a row; without one the stored command stays and is flagged as legacy. */
+function adoptedCatalogRow(record: AppRecord): AppRecord {
+  const dir = record.workingDirectory;
+  const parsed = !record.dev && dir ? readDeckManifest(dir) : null;
+  const dev =
+    record.dev ??
+    (parsed?.ok && parsed.manifest.name === record.name
+      ? { workingDirectory: dir! }
+      : undefined);
+  if (!dev) return { ...record, managedBy: MATTSTACK_REGISTRAR };
+  return {
+    ...record,
+    managedBy: MATTSTACK_REGISTRAR,
+    dev,
+    command: undefined,
+    workingDirectory: undefined,
+    commands: undefined,
+  };
+}
+
+const MISSING_HELPERS = 'catalog apps missing from this bundle';
+
+/** A catalog app with no binary has no row to carry its issue, so deck's own
+    row carries it, and only this sweep clears it. */
+function reportMissingHelpers(names: string[]): void {
+  const platform = listRecords().find(r => isPlatformManagedBy(r.managedBy));
+  if (!platform) return;
+  if (names.length) {
+    addIssue(platform.name, {
+      source: 'launchd',
+      message: `${MISSING_HELPERS}: ${names.join(', ')}`,
+      at: new Date().toISOString(),
+    });
+  } else if (
+    platform.issues?.some(
+      i => i.source === 'launchd' && i.message.startsWith(MISSING_HELPERS)
+    )
+  ) {
+    clearIssues(platform.name, 'launchd');
+  }
+}
+
 /**
  * The flavor sweep. Deck runs it on every bundled start, which is every
  * switch between mattstack-dev.app and mattstack.app, and it is the only
- * writer that moves managed apps between shapes. An rt row prod does not
+ * writer that moves managed apps between shapes. It first gives every catalog
+ * app an rt row in either flavor, adopting same-named user rows only in prod
+ * (ensureCatalogRows). An rt row prod does not
  * serve loses its plist but keeps its record and dev link for the other
  * flavor. Every other managed row is re-resolved and diffed against its
  * installed plist (ProgramArguments, WorkingDirectory, EnvironmentVariables),
@@ -464,7 +592,18 @@ export async function reresolveManagedApps(
   const restarted: string[] = [];
   const unchanged: string[] = [];
   const notServed: string[] = [];
-  const failed: Array<{ name: string; error: string }> = [];
+  const failed: SweepFailure[] = [];
+  const flavor = resolveFlavor(serveShapeDeps);
+  const ensured = flavor.catalog
+    ? await ensureCatalogRows(
+        flavor.catalog,
+        flavor.helpersDir,
+        drivers,
+        !flavor.dev
+      )
+    : { created: [], adopted: [], missing: [], failed: [] };
+  failed.push(...ensured.failed);
+  reportMissingHelpers(ensured.missing);
   for (const record of listRecords()) {
     if (
       record.managedBy === 'user' ||
@@ -548,9 +687,27 @@ export async function reresolveManagedApps(
     clearIssues(record.name, 'launchd');
     restarted.push(record.name);
   }
+  if (ensured.created.length || ensured.adopted.length) {
+    try {
+      reconcileMattstackTld();
+    } catch (err) {
+      failed.push({
+        name: 'deck',
+        error: `mattstack route reconcile failed: ${String(err).slice(0, 200)}`,
+      });
+    }
+  }
   return {
     status: 200,
-    body: { ok: failed.length === 0, restarted, unchanged, notServed, failed },
+    body: {
+      ok: failed.length === 0,
+      restarted,
+      unchanged,
+      notServed,
+      created: ensured.created,
+      adopted: ensured.adopted,
+      failed,
+    },
   };
 }
 

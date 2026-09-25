@@ -72,6 +72,8 @@ let drivers: {
 beforeEach(() => {
   rmSync(process.env.LOCAL_REGISTRY_PATH!, { force: true });
   rmSync(process.env.LOCAL_APPS_SETTINGS_PATH!, { force: true });
+  // The sweep's catalog rows write .mattstack routes into this shared file.
+  writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
   // A fresh HOME per test keeps deck.platform store state (read via register.ts)
   // from leaking test-to-test, same as server.test.ts.
   process.env.HOME = mkdtempSync(join(tmpdir(), 'local-flows-home-'));
@@ -1687,7 +1689,6 @@ test('reresolve: a managed row whose non-owned cwd is gone is refused with a lau
 });
 
 test('restartManagedApps skips a row prod does not serve, so the verb does not fail on its missing plist', async () => {
-  writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
   const h = bundleHelpers('chat');
   setServeShapeDeps({
     devMode: () => false,
@@ -1705,7 +1706,6 @@ test('restartManagedApps skips a row prod does not serve, so the verb does not f
 });
 
 test('prod: registering or linking a not-served row writes the record but never its plist', async () => {
-  writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
   const h = bundleHelpers('chat', 'gitq');
   setServeShapeDeps({
     devMode: () => false,
@@ -1777,4 +1777,276 @@ test('edit: unlinking a slim row with no bundle installed is rejected before any
   expect(counting.uninstallCalls).toEqual([]);
   expect(counting.installCalls).toEqual([]);
   expect(counting.installed.get(label)).toEqual(installedBefore);
+});
+
+// The flavor flip on a lived-in registry.
+
+const FLIP_CATALOG = new Map([
+  ['board', { port: 11006, args: [] as string[] }],
+  ['chat', { port: 11002, args: [] as string[] }],
+  ['console', { port: 11001, args: [] as string[] }],
+  ['boxscore', { port: 11005, args: [] as string[] }],
+]);
+
+function fakeBundle(appName: string): string {
+  const helpers = join(
+    mkdtempSync(join(tmpdir(), 'flip-')),
+    appName,
+    'Contents',
+    'Helpers'
+  );
+  mkdirSync(helpers, { recursive: true });
+  for (const n of ['board', 'chat', 'console', 'boxscore', 'gitq', 'deck'])
+    writeFileSync(join(helpers, n), '');
+  return helpers;
+}
+
+/** Every key an AppRecord could carry in deck 1.0.7; the other flavor's
+    pinned deck reads the same registry file. */
+const DECK_107_RECORD_KEYS = new Set([
+  'name',
+  'managedBy',
+  'port',
+  'kind',
+  'command',
+  'workingDirectory',
+  'env',
+  'label',
+  'displayName',
+  'description',
+  'icon',
+  'badge',
+  'commands',
+  'altConfigs',
+  'activeAlt',
+  'sourceDirectory',
+  'dev',
+  'grandfathered',
+  'createdAt',
+  'issues',
+  'remote',
+]);
+
+test('flip: dev -> prod -> dev on a lived-in registry creates missing catalog rows in either flavor, adopts only in prod, and deletes nothing', async () => {
+  rmSync(agentsDir(), { recursive: true, force: true });
+  try {
+    const manager = new PlistManager();
+    const flip = { manager, edge: drivers.edge };
+    const prodHelpers = fakeBundle('mattstack.app');
+    const devHelpers = fakeBundle('mattstack-dev.app');
+    const chatSrc = checkout('chat', 'bun src/server/index.ts');
+    const gitqSrc = checkout('gitq', 'bun src/server/server.ts');
+    const boxSrc = checkout('boxscore', 'bun src/server/index.ts');
+    rtRow('chat', 11002, { dev: { workingDirectory: chatSrc } });
+    rtRow('gitq', 11008, { dev: { workingDirectory: gitqSrc } });
+    rtRow('console', 11001, {
+      command: [join(devHelpers, 'console')],
+      workingDirectory: dataDir('console'),
+    });
+    rtRow('boxscore', 11005, {
+      managedBy: 'user',
+      command: ['bun', 'src/server/index.ts'],
+      workingDirectory: boxSrc,
+    });
+    const spec = (name: string) =>
+      manager.installed.get(`${LABEL_PREFIX}${name}`);
+    const dev = {
+      devMode: () => true,
+      helpersDir: devHelpers,
+      catalog: FLIP_CATALOG,
+    };
+    const prod = {
+      devMode: () => false,
+      helpersDir: prodHelpers,
+      catalog: FLIP_CATALOG,
+    };
+
+    setServeShapeDeps(dev);
+    const dev0 = (await reresolveManagedApps(flip)).body as any;
+    expect(dev0).toMatchObject({
+      created: ['board'],
+      adopted: [],
+      notServed: [],
+      failed: [],
+    });
+    expect(getRecord('board')!.managedBy).toBe('rt');
+    expect(getRecord('board')!.command).toBeUndefined();
+    expect(spec('board')!.programArguments).toEqual([
+      join(devHelpers, 'board'),
+    ]);
+    expect(spec('board')!.workingDirectory).toBe(dataDir('board'));
+    expect(getRecord('boxscore')!.managedBy).toBe('user');
+    expect(spec('chat')!.workingDirectory).toBe(chatSrc);
+    expect(existsSync(dataDir('chat'))).toBe(false);
+
+    setServeShapeDeps(prod);
+    const toProd = (await reresolveManagedApps(flip)).body as any;
+    expect(toProd).toMatchObject({
+      ok: true,
+      created: [],
+      adopted: ['boxscore'],
+      notServed: ['gitq'],
+      failed: [],
+    });
+    expect([...toProd.restarted].sort()).toEqual([
+      'board',
+      'boxscore',
+      'chat',
+      'console',
+    ]);
+    for (const name of ['board', 'boxscore', 'chat', 'console']) {
+      expect(spec(name)!.programArguments).toEqual([join(prodHelpers, name)]);
+      expect(spec(name)!.workingDirectory).toBe(dataDir(name));
+      expect(existsSync(dataDir(name))).toBe(true);
+      expect(getRecord(name)!.managedBy).toBe('rt');
+      expect(getRecord(name)!.issues ?? []).toEqual([]);
+    }
+    expect(spec('gitq')).toBeUndefined();
+    expect(existsSync(join(agentsDir(), `${LABEL_PREFIX}gitq.plist`))).toBe(
+      false
+    );
+    expect(getRecord('gitq')!.dev).toEqual({ workingDirectory: gitqSrc });
+    expect(getRecord('board')!.port).toBe(11006);
+    expect(drivers.edge.aliases.get('board')).toBe(11006);
+    expect(getRecord('boxscore')!.dev).toEqual({ workingDirectory: boxSrc });
+    expect(getRecord('boxscore')!.command).toBeUndefined();
+
+    setServeShapeDeps(dev);
+    const toDev = (await reresolveManagedApps(flip)).body as any;
+    expect(toDev).toMatchObject({
+      ok: true,
+      created: [],
+      adopted: [],
+      notServed: [],
+      failed: [],
+    });
+    expect(spec('chat')!.workingDirectory).toBe(chatSrc);
+    expect(spec('gitq')!.workingDirectory).toBe(gitqSrc);
+    expect(spec('boxscore')!.workingDirectory).toBe(boxSrc);
+    expect(spec('console')!.programArguments).toEqual([
+      join(devHelpers, 'console'),
+    ]);
+    expect(spec('board')!.programArguments).toEqual([
+      join(devHelpers, 'board'),
+    ]);
+    expect(
+      listRecords()
+        .map(r => r.name)
+        .sort()
+    ).toEqual(['board', 'boxscore', 'chat', 'console', 'gitq']);
+
+    setServeShapeDeps(prod);
+    await reresolveManagedApps(flip);
+    const settled = (await reresolveManagedApps(flip)).body as any;
+    expect(settled).toMatchObject({
+      ok: true,
+      restarted: [],
+      created: [],
+      adopted: [],
+      notServed: ['gitq'],
+    });
+    expect([...settled.unchanged].sort()).toEqual([
+      'board',
+      'boxscore',
+      'chat',
+      'console',
+    ]);
+
+    const file = JSON.parse(
+      readFileSync(process.env.LOCAL_REGISTRY_PATH!, 'utf8')
+    );
+    expect(file.version).toBe(1);
+    for (const record of Object.values(file.apps) as Array<
+      Record<string, unknown>
+    >)
+      for (const key of Object.keys(record))
+        expect(DECK_107_RECORD_KEYS.has(key)).toBe(true);
+  } finally {
+    rmSync(agentsDir(), { recursive: true, force: true });
+  }
+});
+
+test('prod catalog: a catalog port held by another row, or a route-only row with a catalog name, is reported and never duplicated', async () => {
+  const helpers = fakeBundle('mattstack.app');
+  putRecord({
+    name: 'mine',
+    managedBy: 'user',
+    port: 11006,
+    kind: 'external',
+    createdAt: AT,
+  });
+  putRecord({
+    name: 'chat',
+    managedBy: 'user',
+    port: 11002,
+    kind: 'external',
+    createdAt: AT,
+  });
+  setServeShapeDeps({
+    devMode: () => false,
+    helpersDir: helpers,
+    catalog: new Map([
+      ['board', { port: 11006, args: [] as string[] }],
+      ['chat', { port: 11002, args: [] as string[] }],
+    ]),
+  });
+
+  const body = (await reresolveManagedApps(drivers)).body as any;
+
+  expect(body.created).toEqual([]);
+  expect(body.adopted).toEqual([]);
+  expect(body.failed).toEqual([
+    { name: 'board', error: 'catalog port 11006 is held by mine' },
+    {
+      name: 'chat',
+      error:
+        'chat is a route-only app; `deck remove chat` lets mattstack serve it',
+    },
+  ]);
+  expect(getRecord('board')).toBeUndefined();
+  expect(getRecord('chat')!.managedBy).toBe('user');
+  expect(getRecord('chat')!.kind).toBe('external');
+});
+
+test("catalog: an app the bundle ships no Helpers binary for gets no row, and deck's own row names it until it ships", async () => {
+  const helpers = mkdtempSync(join(tmpdir(), 'partial-helpers-'));
+  writeFileSync(join(helpers, 'chat'), '');
+  putRecord({
+    name: PLATFORM_NAME,
+    managedBy: 'deck',
+    port: 11000,
+    kind: 'service',
+    label: PLATFORM_LABEL,
+    createdAt: AT,
+  });
+  setServeShapeDeps({
+    devMode: () => true,
+    helpersDir: helpers,
+    catalog: new Map([
+      ['chat', { port: 11002, args: [] as string[] }],
+      ['board', { port: 11006, args: [] as string[] }],
+    ]),
+  });
+
+  const body = (await reresolveManagedApps(drivers)).body as any;
+
+  expect(body.created).toEqual(['chat']);
+  expect(body.failed).toEqual([
+    { name: 'board', error: 'this bundle ships no Helpers/board' },
+  ]);
+  expect(getRecord('board')).toBeUndefined();
+  expect(getRecord(PLATFORM_NAME)!.issues).toEqual([
+    {
+      source: 'launchd',
+      message: 'catalog apps missing from this bundle: board',
+      at: expect.any(String),
+    },
+  ]);
+
+  writeFileSync(join(helpers, 'board'), '');
+  const healed = (await reresolveManagedApps(drivers)).body as any;
+
+  expect(healed).toMatchObject({ ok: true, created: ['board'], failed: [] });
+  expect(getRecord('board')!.port).toBe(11006);
+  expect(getRecord(PLATFORM_NAME)!.issues).toBeUndefined();
 });
