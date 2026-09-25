@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import type { GateDomain } from '@mattstack/gate-kit';
 import { ICONS, Panel, SideDrawer, ToastHost } from '@mattstack/tui-kit';
@@ -67,6 +74,7 @@ import {
 import {
   gateDeepLinkAction,
   gateParam,
+  linkedGroupLabel,
   mrForGate,
   mrParam,
   stripDeepLinkParams,
@@ -109,6 +117,24 @@ declare global {
 
 const THEME_KEY = 'mrs-theme';
 const STATE_KEY = 'mrs-view-state';
+const PANEL_COLLAPSED_KEY = 'mrs-panel-collapsed';
+
+/** Drops `title` from the folded-panel set tui-kit's Panel persists under
+    PANEL_COLLAPSED_KEY (a JSON array of titles), so that panel mounts open. */
+function unfoldPanel(title: string): void {
+  try {
+    const folded: unknown = JSON.parse(
+      localStorage.getItem(PANEL_COLLAPSED_KEY) ?? '[]'
+    );
+    if (!Array.isArray(folded) || !folded.includes(title)) return;
+    localStorage.setItem(
+      PANEL_COLLAPSED_KEY,
+      JSON.stringify(folded.filter(t => t !== title))
+    );
+  } catch {
+    // Unreadable or blocked storage leaves the panel as the user folded it.
+  }
+}
 
 // A gate stuck on delivery or left execution-unassigned stays in the
 // decision queue despite being `answered` -- it still needs a human action
@@ -965,6 +991,22 @@ export function Board() {
   const queue = useDecisionQueue(queueEntries, answeredGateIds);
   const activeGateId = queue.active?.gate.gateId ?? null;
 
+  // Panel applies its stored folded state in a passive mount effect, which
+  // runs after this layout effect: unfolding the linked row's panel here is
+  // what keeps that row mounted for the flash below. The modal path flashes
+  // nothing, so it leaves the panels as they were.
+  useLayoutEffect(() => {
+    if (deepLink === null || !boardView) return;
+    if (
+      deepLink.gateId !== null &&
+      gateDeepLinkAction(queueEntries, deepLink.gateId) === 'modal'
+    )
+      return;
+    const label = linkedGroupLabel(boardView.groups, deepLink);
+    if (label !== null) unfoldPanel(label);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot link consumption, same as the effect below
+  }, [deepLink]);
+
   // `?gate=<id>` / `?mr=<url>` deep link: by the time this runs, the linked
   // row and queue entries have already rendered (deepLink is set in the same
   // batch as the data that produced them). history.replaceState strips the
@@ -1371,7 +1413,7 @@ export function Board() {
               // Pins the LEGACY persistence key: the recipe defaults to its own
               // "tui-panel-collapsed", and switching would orphan every panel a
               // user has already folded up.
-              storageKey="mrs-panel-collapsed"
+              storageKey={PANEL_COLLAPSED_KEY}
             >
               <RowView
                 mrs={g.mrs}

@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   gateDeepLinkAction,
   gateParam,
+  linkedGroupLabel,
   mrForGate,
   mrParam,
   stripDeepLinkParams,
@@ -230,6 +231,49 @@ describe('viewStateForMr', () => {
       m => m.webUrl === REPO_B
     );
     expect(result.tab).toBe('design');
+  });
+});
+
+describe('linkedGroupLabel', () => {
+  const groups = [
+    {
+      label: 'today',
+      mrs: [mr({ iid: 1, webUrl: 'https://h/a/-/merge_requests/1' })],
+    },
+    {
+      label: 'this week',
+      mrs: [
+        mr({ iid: 2, webUrl: 'https://h/a/-/merge_requests/2' }),
+        mr({ iid: 1, webUrl: 'https://h/b/-/merge_requests/1' }),
+      ],
+    },
+  ];
+
+  test('finds the group holding the linked url', () => {
+    expect(
+      linkedGroupLabel(groups, {
+        iid: null,
+        mrUrl: 'https://h/b/-/merge_requests/1',
+      })
+    ).toBe('this week');
+  });
+
+  test('finds the first group holding the linked iid', () => {
+    expect(linkedGroupLabel(groups, { iid: 1, mrUrl: null })).toBe('today');
+  });
+
+  test('returns null when no group holds the link', () => {
+    expect(
+      linkedGroupLabel(groups, {
+        iid: null,
+        mrUrl: 'https://h/c/-/merge_requests/9',
+      })
+    ).toBeNull();
+    expect(linkedGroupLabel(groups, { iid: 7, mrUrl: null })).toBeNull();
+  });
+
+  test('returns null for a link with no row to land on', () => {
+    expect(linkedGroupLabel(groups, { iid: null, mrUrl: null })).toBeNull();
   });
 });
 

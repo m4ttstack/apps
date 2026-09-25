@@ -83,6 +83,27 @@ export function gateDeepLinkAction(
   return entries.some(e => e.gate.gateId === gateId) ? 'modal' : 'flash';
 }
 
+/** The title of the group panel that renders the linked row, matched on the
+    same key the flash effect queries the DOM by (url for an MR link, iid for
+    a gate link), or null when no group holds it. */
+export function linkedGroupLabel(
+  groups: Array<{
+    label: string;
+    mrs: Array<{ iid: number; webUrl: string | null }>;
+  }>,
+  link: { iid: number | null; mrUrl: string | null }
+): string | null {
+  const { iid, mrUrl } = link;
+  const isLinked =
+    mrUrl !== null
+      ? (m: { webUrl: string | null }) => m.webUrl === mrUrl
+      : iid !== null
+        ? (m: { iid: number }) => m.iid === iid
+        : null;
+  if (!isLinked) return null;
+  return groups.find(g => g.mrs.some(isLinked))?.label ?? null;
+}
+
 /** `search` without its `gate` and `mr` params; every other param rides
     along untouched. */
 export function stripDeepLinkParams(search: string): string {
