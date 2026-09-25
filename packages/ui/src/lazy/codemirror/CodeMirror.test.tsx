@@ -246,7 +246,7 @@ test('jsonCheck underlines schema issues, and a changed checker re-lints', async
     Array.isArray(value) && typeof value[0] === 'number'
       ? [{ path: [0], message: 'expected string, got number' }]
       : [];
-  renderWithProviders(
+  const { rerender } = renderWithProviders(
     <CodeMirror
       ref={ref}
       value="[1]"
@@ -263,6 +263,28 @@ test('jsonCheck underlines schema issues, and a changed checker re-lints', async
     forEachDiagnostic(view.state, d => found.push(d.message));
     expect(found).toEqual(['expected string, got number']);
   });
+
+  const otherCheck = () => [{ path: [0], message: 'a different issue' }];
+  rerender(
+    <CodeMirror
+      ref={ref}
+      value="[1]"
+      language="json"
+      jsonSchema={{ type: 'array', items: { type: 'string' } }}
+      jsonCheck={otherCheck}
+    />
+  );
+  // The linter only re-runs on a real document change (or its own idle
+  // delay) -- a rerender alone doesn't touch CodeMirror's EditorState, so
+  // this edit is what proves the new checker (read through a ref, not
+  // rebuilt into the extension) takes effect on the next lint.
+  view.dispatch({ changes: { from: 1, to: 2, insert: '2' } });
+  forceLinting(view);
+  await waitFor(() => {
+    const found: string[] = [];
+    forEachDiagnostic(view.state, d => found.push(d.message));
+    expect(found).toEqual(['a different issue']);
+  });
 });
 
 test('without jsonCheck there is no linting at all', async () => {
@@ -271,10 +293,8 @@ test('without jsonCheck there is no linting at all', async () => {
   renderWithProviders(<CodeMirror ref={ref} value="[1" language="json" />);
   await waitFor(() => expect(ref.current?.view).toBeTruthy());
   const view = ref.current!.view!;
-  // No linter extension is installed at all without `jsonCheck` -- calling
-  // forceLinting on a view with no linter is a no-op, so this proves the
-  // absence of linting rather than a linter that simply hasn't run yet
-  // (the linter's own 250ms delay would otherwise let this pass vacuously).
+  // Waits past the linter's 250ms delay before asserting -- otherwise this
+  // would pass vacuously (the count is 0 before the linter has ever run).
   forceLinting(view);
   await new Promise(resolve => setTimeout(resolve, 300));
   expect(diagnosticCount(view.state)).toBe(0);

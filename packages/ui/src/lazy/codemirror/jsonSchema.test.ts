@@ -1,13 +1,50 @@
-import { CompletionContext } from '@codemirror/autocomplete';
+import {
+  autocompletion,
+  CompletionContext,
+  completionStatus,
+  currentCompletions,
+  insertBracket,
+  startCompletion,
+} from '@codemirror/autocomplete';
 import { json } from '@codemirror/lang-json';
 import { ensureSyntaxTree } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 
 import {
   jsonDiagnostics,
   jsonSchemaCompletion,
   nodeAtPath,
 } from './jsonSchema';
+
+// jsdom doesn't implement `Range.getClientRects`/`getBoundingClientRect`
+// (see CodeMirror.test.tsx for the same guard); a real `EditorView` measures
+// layout via `Range` on every update, so the completion tests below need it
+// too.
+if (!Range.prototype.getClientRects) {
+  Range.prototype.getClientRects = function stubGetClientRects() {
+    return {
+      length: 0,
+      item: () => null,
+      [Symbol.iterator]: function* () {},
+    } as unknown as DOMRectList;
+  };
+}
+if (!Range.prototype.getBoundingClientRect) {
+  Range.prototype.getBoundingClientRect = function stubGetBoundingClientRect() {
+    return {
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+      toJSON() {},
+    } as DOMRect;
+  };
+}
 
 const SCHEMA = {
   type: 'array',
@@ -34,6 +71,33 @@ function complete(docWithCursor: string) {
   const s = state(docWithCursor.replace('|', ''));
   const r = jsonSchemaCompletion(SCHEMA)(new CompletionContext(s, pos, true));
   return r ? r.options.map(o => o.label) : null;
+}
+
+/** Mounts a real `EditorView` (json + the schema's own completion source)
+    with the cursor at `|` in `docWithCursor`, for tests that need the
+    autocomplete engine's own match-range filtering, not just the source
+    function's raw output. */
+function mountView(docWithCursor: string) {
+  const pos = docWithCursor.indexOf('|');
+  const parent = document.createElement('div');
+  document.body.appendChild(parent);
+  const view = new EditorView({
+    parent,
+    state: EditorState.create({
+      doc: docWithCursor.replace('|', ''),
+      selection: { anchor: pos },
+      extensions: [
+        json(),
+        autocompletion({ override: [jsonSchemaCompletion(SCHEMA)] }),
+      ],
+    }),
+  });
+  view.focus();
+  return view;
+}
+
+async function wait(ms: number) {
+  await new Promise(resolve => setTimeout(resolve, ms));
 }
 
 describe('nodeAtPath', () => {
@@ -110,17 +174,54 @@ describe('jsonSchemaCompletion', () => {
     expect(complete('[{"owner": "|"}]')).toEqual(['"human"']);
   });
 
-  it('replaces the whole quoted token, closing quote included', () => {
-    const doc = '[{"provider": "|"}]';
-    const pos = doc.indexOf('|');
-    const s = state(doc.replace('|', ''));
-    const r = jsonSchemaCompletion(SCHEMA)(
-      new CompletionContext(s, pos, true)
-    )!;
-    expect([r.from, r.to]).toEqual([14, 16]);
-  });
-
   it('has nothing to offer where the schema says nothing', () => {
     expect(complete('[{"pattern": |}]')).toBeNull();
+  });
+});
+
+describe('jsonSchemaCompletion in a live editor', () => {
+  it('opens by typing the opening quote at a property-name position', async () => {
+    const view = mountView('[{|}]');
+    const tr = insertBracket(view.state, '"');
+    view.dispatch(tr!);
+    await wait(400);
+    expect(completionStatus(view.state)).toBe('active');
+    expect(currentCompletions(view.state).map(o => o.label)).toEqual([
+      '"category"',
+      '"owner"',
+      '"pattern"',
+      '"provider"',
+    ]);
+    view.destroy();
+  });
+
+  it('opens explicitly (startCompletion) inside an already-open pair of quotes', async () => {
+    const view = mountView('[{"provider": "|"}]');
+    startCompletion(view);
+    await wait(400);
+    expect(completionStatus(view.state)).toBe('active');
+    expect(currentCompletions(view.state).map(o => o.label)).toEqual([
+      '"github"',
+      '"gitlab"',
+    ]);
+    view.destroy();
+  });
+
+  it('narrows to the matching option after typing one more character at a value position', async () => {
+    const view = mountView('[{"owner": |}]');
+    const openQuote = insertBracket(view.state, '"');
+    view.dispatch(openQuote!);
+    await wait(400);
+    view.dispatch({
+      changes: { from: view.state.selection.main.head, insert: 'h' },
+      selection: { anchor: view.state.selection.main.head + 1 },
+      userEvent: 'input.type',
+    });
+    await wait(400);
+    expect(completionStatus(view.state)).toBe('active');
+    expect(currentCompletions(view.state).map(o => o.label)).toEqual([
+      '"human"',
+    ]);
+    view.destroy();
   });
 });

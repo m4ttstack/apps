@@ -1,10 +1,12 @@
 import type {
+  Completion,
   CompletionContext,
   CompletionResult,
 } from '@codemirror/autocomplete';
 import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { Diagnostic } from '@codemirror/lint';
 import type { EditorState } from '@codemirror/state';
+import type { EditorView } from '@codemirror/view';
 
 export type JsonPath = (string | number)[];
 export interface JsonPathIssue {
@@ -162,21 +164,47 @@ function enumValues(s: Schema | undefined): unknown[] {
   return [];
 }
 
+/** Replaces the quoted token this option was offered inside of, consuming
+    its closing quote wherever it currently sits. A static match range
+    covering both quotes filters out every option against a still-empty
+    "" (the pattern is two quote characters, which no label matches), so
+    the match range tracks the cursor instead (see `quotedToken` below)
+    and picking an option has to close the token itself here. */
+function applyQuoted(literal: string) {
+  return (
+    view: EditorView,
+    _completion: Completion,
+    from: number,
+    to: number
+  ) => {
+    const node = syntaxTree(view.state).resolveInner(to, -1);
+    const end =
+      node.name === 'PropertyName' || node.name === 'String' ? node.to : to;
+    view.dispatch({
+      changes: { from, to: end, insert: literal },
+      selection: { anchor: from + literal.length },
+    });
+  };
+}
+
 /** Property names the schema allows at the cursor's object, and enum,
     const or boolean values at a property's value. */
 export function jsonSchemaCompletion(schema: Schema) {
   return (ctx: CompletionContext): CompletionResult | null => {
     const node = syntaxTree(ctx.state).resolveInner(ctx.pos, -1);
     const word = ctx.matchBefore(/"?[\w$-]*/);
-    // Inside a quoted name or string the whole token is replaced, closing
-    // quote included, or picking an option leaves a stray quote behind.
     const quotedToken = node.name === 'PropertyName' || node.name === 'String';
     const from = quotedToken
       ? node.from
       : word && word.text !== ''
         ? word.from
         : ctx.pos;
-    const to = quotedToken ? node.to : undefined;
+    // `to` is left undefined (tracks the cursor) rather than the token's
+    // own end, even inside a quoted token -- see `applyQuoted` above.
+    const option = (literal: string, type: string) =>
+      quotedToken
+        ? { label: literal, type, apply: applyQuoted(literal) }
+        : { label: literal, type };
 
     const name = nameTarget(node);
     if (name) {
@@ -190,8 +218,8 @@ export function jsonSchemaCompletion(schema: Schema) {
       );
       const options = Object.keys(props)
         .filter(k => !taken.has(k))
-        .map(k => ({ label: JSON.stringify(k), type: 'property' }));
-      return options.length > 0 ? { from, to, options } : null;
+        .map(k => option(JSON.stringify(k), 'property'));
+      return options.length > 0 ? { from, options } : null;
     }
 
     const prop = valueTarget(node);
@@ -203,8 +231,7 @@ export function jsonSchemaCompletion(schema: Schema) {
     if (values.length === 0) return null;
     return {
       from,
-      to,
-      options: values.map(v => ({ label: JSON.stringify(v), type: 'enum' })),
+      options: values.map(v => option(JSON.stringify(v), 'enum')),
     };
   };
 }

@@ -120,18 +120,41 @@ function languageExtensionFor(
   return language ? languageExtensions[language]() : [];
 }
 
+/**
+ * Reads the schema/checker through refs rather than taking them as direct
+ * arguments -- a caller that builds a fresh schema object or checker
+ * function every render must not tear down and rebuild the completion/lint
+ * extensions on every keystroke, which would close an open completion popup
+ * and restart the lint debounce. The refs are read at call time instead, so
+ * a changed schema/checker still takes effect on the next completion or
+ * lint run without a reconfigure; only presence/absence (see the reconfigure
+ * effect below) triggers one.
+ */
 function schemaExtensions(
   language: CodeMirrorLanguage | undefined,
-  schema: Record<string, unknown> | undefined,
-  check: JsonSchemaCheck | undefined
+  schemaRef: { current: Record<string, unknown> | undefined },
+  checkRef: { current: JsonSchemaCheck | undefined }
 ): Extension[] {
   if (language !== 'json') return [];
   const out: Extension[] = [];
-  if (schema)
-    out.push(autocompletion({ override: [jsonSchemaCompletion(schema)] }));
-  if (check)
+  if (schemaRef.current)
     out.push(
-      linter(view => jsonDiagnostics(view.state, check), { delay: 250 }),
+      autocompletion({
+        override: [
+          ctx =>
+            schemaRef.current
+              ? jsonSchemaCompletion(schemaRef.current)(ctx)
+              : null,
+        ],
+      })
+    );
+  if (checkRef.current)
+    out.push(
+      linter(
+        view =>
+          checkRef.current ? jsonDiagnostics(view.state, checkRef.current) : [],
+        { delay: 250 }
+      ),
       lintGutter()
     );
   return out;
@@ -217,6 +240,10 @@ const CodeMirrorBase = /* @__PURE__ */ forwardRef<
   onChangeRef.current = onChange;
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
+  const jsonSchemaRef = useRef(jsonSchema);
+  jsonSchemaRef.current = jsonSchema;
+  const jsonCheckRef = useRef(jsonCheck);
+  jsonCheckRef.current = jsonCheck;
 
   useImperativeHandle(
     ref,
@@ -247,7 +274,9 @@ const CodeMirrorBase = /* @__PURE__ */ forwardRef<
       basicSetup,
       keymap.of([indentWithTab]),
       languageCompartment.of(languageExtensionFor(language)),
-      schemaCompartment.of(schemaExtensions(language, jsonSchema, jsonCheck)),
+      schemaCompartment.of(
+        schemaExtensions(language, jsonSchemaRef, jsonCheckRef)
+      ),
       readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
       updateListener,
       // User-supplied extensions, read once at creation -- see the
@@ -324,15 +353,20 @@ const CodeMirrorBase = /* @__PURE__ */ forwardRef<
     });
   }, [readOnly, readOnlyCompartment]);
 
-  // Reconfigure schema completion and lint when the schema, checker or
-  // language changes.
+  // Reconfigure schema completion and lint when the language changes, or
+  // when jsonSchema/jsonCheck go from absent to present (or back) -- not on
+  // every render a caller passes a fresh schema object or checker function,
+  // which schemaExtensions reads through the refs above instead. See
+  // schemaExtensions' own doc comment for why.
+  const hasJsonSchema = jsonSchema !== undefined;
+  const hasJsonCheck = jsonCheck !== undefined;
   useEffect(() => {
     viewRef.current?.dispatch({
       effects: schemaCompartment.reconfigure(
-        schemaExtensions(language, jsonSchema, jsonCheck)
+        schemaExtensions(language, jsonSchemaRef, jsonCheckRef)
       ),
     });
-  }, [language, jsonSchema, jsonCheck, schemaCompartment]);
+  }, [language, hasJsonSchema, hasJsonCheck, schemaCompartment]);
 
   return <div ref={parentRef} data-testid="codemirror-editor" />;
 });
