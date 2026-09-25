@@ -24,6 +24,15 @@ describe('turbo task graph', () => {
     );
   });
 
+  test('app-kit reruns when tokyo changes', () => {
+    const tasks = byId(dryRun(['typecheck', '--filter=@mattstack/app-kit']));
+    // tokyo has no `build` script, so the node lists with command
+    // `<NONEXISTENT>`; it still counts as a dependency turbo will rehash.
+    expect(tasks.get('@mattstack/app-kit#typecheck')?.dependencies).toContain(
+      '@mattstack/mantine-tokyo#build'
+    );
+  });
+
   test('build:binary runs after the package build', () => {
     const tasks = byId(dryRun(['build:binary', '--filter=mattstack-console']));
     expect(tasks.get('mattstack-console#build:binary')?.dependencies).toContain(

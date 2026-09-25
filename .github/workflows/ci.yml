@@ -44,11 +44,11 @@ jobs:
           restore-keys: turbo-${{ runner.os }}-
       - run: find .git/turbo-cache -type f -mtime +7 -delete 2>/dev/null || true
       - if: github.event_name == 'pull_request'
-        run: scripts/turbo.sh check --affected --output-logs=errors-only
+        run: scripts/turbo.sh check --affected --concurrency=4 --output-logs=errors-only
         env:
           TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
       - if: github.event_name != 'pull_request'
-        run: scripts/turbo.sh check --output-logs=errors-only
+        run: scripts/turbo.sh check --concurrency=4 --output-logs=errors-only
 
   # deck supervises launchd and shells to plutil, both macOS-only, so its
   # suite runs here and nowhere else (scripts/turbo.sh drops it off macOS).

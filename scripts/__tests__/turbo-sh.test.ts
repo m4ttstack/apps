@@ -1,5 +1,5 @@
 import { chmodSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
+import { tmpdir, userInfo } from 'os';
 import { join } from 'path';
 import { describe, expect, test } from 'bun:test';
 
@@ -60,11 +60,12 @@ describe('scripts/turbo.sh', () => {
     const { hash } = documents(dry.out)[0].tasks.find(
       t => t.taskId === '@mattstack/tokens#typecheck'
     )!;
-    const r = run([
-      'typecheck',
-      '--filter=@mattstack/tokens',
-      '--output-logs=none',
-    ]);
+    // tsc is a node script; a version-manager node shim on PATH cannot start
+    // under the HOME the root preload repoints, so this call needs the real one.
+    const r = run(
+      ['typecheck', '--filter=@mattstack/tokens', '--output-logs=none'],
+      { env: { HOME: userInfo().homedir } }
+    );
     expect(r.code, r.err).toBe(0);
     expect(
       existsSync(join(commonDir, 'turbo-cache', `${hash}-meta.json`))

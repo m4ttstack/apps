@@ -5,14 +5,14 @@
 set -euo pipefail
 
 app_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-port=${GATE_PORT:-11123}
+port=${GATE_PORT:-$(bun -e 'const s = Bun.listen({ hostname: "127.0.0.1", port: 0, socket: { data() {} } }); console.log(s.port); s.stop();')}
 base="http://127.0.0.1:$port"
 
 say() { echo "serve-check: $*" >&2; }
 
 [ -d "$app_dir/dist" ] || { say "$app_dir/dist is missing; run bun run build first"; exit 1; }
 if curl -s -m 1 -o /dev/null "$base/"; then
-  say "port $port already answers; set GATE_PORT to a free port"
+  say "GATE_PORT=$port already answers; choose a free port"
   exit 1
 fi
 
@@ -49,7 +49,7 @@ ctype() { curl -s -m 5 -o /dev/null -w '%{content_type}' "$base$1"; }
 
 [ "$(code /)" = 200 ] || fail "/ answered $(code /)"
 [ "$(ctype /)" = "text/html; charset=utf-8" ] || fail "/ is $(ctype /), not the built index"
-index=$(curl -fsS -m 5 "$base/")
+index=$(curl -fsS -m 5 "$base/") || fail "index.html did not load"
 re_js='(/assets/[^"]+\.js)'
 [[ $index =~ $re_js ]] || fail "index.html references no /assets/*.js"
 [ "$(code "${BASH_REMATCH[1]}")" = 200 ] || fail "${BASH_REMATCH[1]} answered $(code "${BASH_REMATCH[1]}")"

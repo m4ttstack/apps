@@ -14,7 +14,12 @@
     },
     "build:binary": {
       "dependsOn": ["build"],
-      "outputs": ["dist/**", "dist-bin/**", "src/server/embedded/**"]
+      "outputs": [
+        "dist/**",
+        "dist-bin/**",
+        "src/server/embedded/**",
+        "!dist-bin/dist-hidden/**"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^build"]
@@ -122,6 +127,7 @@
     "//#treeshake": {
       "inputs": [
         "$TURBO_ROOT$/packages/ui/**",
+        "$TURBO_ROOT$/packages/tokyo/**",
         "!$TURBO_ROOT$/**/node_modules/**",
         "!$TURBO_ROOT$/**/.turbo/**",
         "!$TURBO_ROOT$/**/dist/**",

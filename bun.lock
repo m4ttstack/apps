@@ -358,6 +358,9 @@
         "mantine-form-zod-resolver": "1.3.0",
         "react-interval-hook": "^1.1.5",
       },
+      "devDependencies": {
+        "@mattstack/mantine-tokyo": "workspace:*",
+      },
       "peerDependencies": {
         "@mantine/code-highlight": "catalog:",
         "@mantine/core": "catalog:",

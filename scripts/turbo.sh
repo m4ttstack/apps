@@ -7,6 +7,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$root"
 # Run the Node shim under bun: a version-manager node shim cannot start under the HOME the test preload repoints.
 turbo="$root/node_modules/turbo/bin/turbo"
 cache="$(git -C "$root" rev-parse --path-format=absolute --git-common-dir)/turbo-cache"
