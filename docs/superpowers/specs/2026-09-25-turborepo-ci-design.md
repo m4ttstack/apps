@@ -47,10 +47,15 @@ script:
 - `test`: `dependsOn: ["^build"]`.
 - `serve-check` (chat, console, boxscore): see section 3.
 
-There is no `ci` aggregate task: turbo skips a task in any package that
-has no script for it, so a script-less aggregate would silently drop
-its dependencies. The "everything CI gates" list is spelled out once,
-in `scripts/turbo.sh`'s `check` mode (section 2).
+A package with no script for a task still resolves that task's
+same-package `dependsOn` (turbo lists it as `<NONEXISTENT>` and runs
+what it depends on). So the generic `serve-check` carries no
+`dependsOn`; only the three packages that have the script get one
+(`chat#serve-check` on `build`, console's and boxscore's on
+`build:binary`). Otherwise every package would build on every `check`.
+For the same reason there is no `ci` aggregate: the "everything CI
+gates" list is spelled out once, in `scripts/turbo.sh`'s `check` mode
+(section 2).
 
 `^build` is what makes `packages/tui-kit` build before board and deck
 touch it; the footgun in AGENTS.md ("run `tui-kit:build` first") stops
@@ -58,20 +63,25 @@ being a rule anyone has to remember.
 
 Root tasks (`//#<name>`), each with declared `inputs` so they cache:
 
-- `//#format:check`: inputs are the prettier config and every file
-  prettier reads.
-- `//#lint`: the root eslint run over `packages`, `.storybook`,
-  `stories` and board's CSS.
+- `//#format:check`, `//#purity`, `//#scripts:test`: inputs
+  `["$TURBO_DEFAULT$"]`, which for the root package is every tracked
+  file in the repo and respects `.gitignore`.
+- `//#lint:root`: the root eslint run over `packages`, `.storybook`,
+  `stories` and board's CSS. It is not named `lint` because the root
+  `lint` script is turbo-backed and would recurse; `bun run lint` runs
+  `lint lint:root`, so it covers both.
 - `//#tokens:fresh`: the tokens codegen byte-compare
   (`tokens:radix`, `tokens:codegen`, `tokens:ramps`, then
   `git diff --exit-code` over the committed outputs).
-- `//#storybook`: `build-storybook` then `treeshake`.
-- `//#tui-kit:gates`.
-- `//#purity`: `scripts/repo-purity.sh`, inputs `**` minus
-  `node_modules`.
+- `//#build-storybook` and `//#treeshake` (the existing scripts).
+- `@mattstack/tui-kit#gates` is a package task, not a root one.
 
-`turbo run lint` runs both `//#lint` and every package `lint`; that is
-the intended meaning of the root `lint` script.
+Scoped root tasks use explicit `$TURBO_ROOT$/...` globs. Those globs
+ignore `.gitignore`, so every one carries the negations
+`!$TURBO_ROOT$/**/node_modules/**`, `!$TURBO_ROOT$/**/.turbo/**`,
+`!$TURBO_ROOT$/**/dist/**` and `!$TURBO_ROOT$/**/dist-bin/**`; without
+them a task's own logs and build output change its hash on every run.
+`$TURBO_ROOT$/**` is never used (it would hash `.git`).
 
 Cross-package inputs. `@mattstack/tokens#test` walks
 `packages/{ui,tokyo,tui-kit}/src` from disk
@@ -93,10 +103,20 @@ an undeclared variable is invisible to the task, which is the point.
 Root `package.json`:
 
 - `test`, `typecheck`, `lint`, `build`: `scripts/turbo.sh run <task>`.
-- `check`: `scripts/turbo.sh check`, which expands to
-  `run build build:binary typecheck lint test serve-check format:check
-  tokens:fresh storybook tui-kit:gates purity`. This list is the one
-  definition of "what CI gates"; `ci.yml` calls the same mode.
+- `check`: `scripts/turbo.sh check`, three turbo invocations in order:
+  1. `gates tokens:fresh --filter=@mattstack/tui-kit --filter=//
+     --concurrency=1`: the two codegen gates rewrite
+     `packages/tui-kit/src/generated/theme.css`, `packages/tokens/src`
+     and `packages/tokyo/src` in place, and tokens' and tui-kit's tests
+     read those files, so they run alone and first.
+  2. `typecheck lint test serve-check` (the package gates; dependency
+     builds arrive through `^build`, app builds through `serve-check`),
+     with `--affected` when given, and `--filter=!deck` off macOS.
+  3. `lint:root format:check build-storybook treeshake purity
+     scripts:test test --filter=// --filter=@mattstack/tokens`, with
+     `--affected` stripped (see section 3).
+  This list is the one definition of "what CI gates"; `ci.yml` calls
+  the same mode.
 - `<app>:<task>` (board, chat, console, boxscore, deck): kept as
   `scripts/turbo.sh run <task> --filter=<app>`, so `apps/<name>/AGENTS.md`
   and habits keep working.
@@ -119,11 +139,18 @@ explicit variant, and `test` becomes the CI one:
 - `packages/tui-kit`: `test` runs the node project and the browser
   project excluding `*.visual.test.tsx` and `*.parity.test.tsx`.
   `test:oracles` runs those two suites; they stay local until CI-recorded
-  baselines exist. `bunx playwright install chromium` becomes its own
-  task, `@mattstack/tui-kit#browsers`, with `cache: false`, and `test`
+  baselines exist (vitest's positional filters are substring matches,
+  so the script names `.visual.test.tsx .parity.test.tsx`, not globs).
+  `bunx playwright install chromium` becomes its own task,
+  `@mattstack/tui-kit#browsers`, with `cache: false`, and `test`
   depends on it (`bun run` does not fire `pretest`, and a cached
   no-output task would skip the install on a fresh runner). Playwright
   itself is a no-op when the browser is already present.
+- The three `serve-check` scripts start their server under
+  `env -i HOME=<scratch> PATH=$PATH PORT=<port>`: console's binary
+  writes `rt.notify.eventBridges` to the user settings store on boot,
+  so a gate run under the real HOME would edit the developer's live
+  `~/.mattstack`.
 - `apps/chat`, `apps/console`, `packages/ui`, `packages/server`:
   `test` becomes `vitest run`; `test:watch` is `vitest`. Today's root
   `test` script passed `-- --run` to get the same effect.
@@ -141,13 +168,20 @@ Job `checks` (ubuntu):
    (unchanged).
 4. `actions/cache@v4` on `.git/turbo-cache`, key
    `turbo-${{ runner.os }}-${{ github.sha }}`, restore-keys
-   `turbo-${{ runner.os }}-`. Every run saves, so a PR restores main's
-   most recent cache and main restores the merged PR's.
-5. On `pull_request`: `scripts/turbo.sh check --affected`.
-   On `push` to main: `scripts/turbo.sh check`.
-   Root tasks are part of `check` and are not subject to `--affected`
-   (turbo treats the root as affected when root files change; their
-   declared `inputs` decide whether they rerun).
+   `turbo-${{ runner.os }}-`. Every run saves. Actions cache scoping
+   means a PR restores main's most recent cache, and main restores its
+   own previous one; a PR's cache is never visible to main, so the
+   first main push after a merge starts cold. Before turbo runs, a
+   step deletes cache entries older than seven days
+   (`find .git/turbo-cache -type f -mtime +7 -delete`), so compiled
+   binaries do not pile up across restores.
+5. On `pull_request`: `scripts/turbo.sh check --affected
+   --output-logs=errors-only` with `TURBO_SCM_BASE` set to the PR's
+   base sha. On `push` to main: the same without `--affected`.
+   `check`'s three invocations are listed in section 2. The last one
+   strips `--affected` because `--affected` walks the package graph and
+   would skip the root and tokens when only an app changed; their
+   declared `inputs` decide the cache hit.
 
 The three served gates become package tasks so they skip with their
 app:
@@ -157,12 +191,13 @@ app:
   `dependsOn: ["build:binary"]`.
 - Each runs the shell that is inline in `ci.yml` today, moved to
   `apps/<name>/scripts/serve-check.sh` (boxscore already has
-  `scripts/binary-gate.sh`; it is renamed, not duplicated).
+  `scripts/binary-gate.sh`, which keeps its name; its `serve-check`
+  script points at it).
 
 Job `deck-macos` (macos-latest): same setup and cache, then
-`scripts/turbo.sh run test typecheck --filter=deck`, with `--affected`
-added on PRs, so a deck-untouched PR skips the macOS job's work (the
-job still runs and passes in seconds).
+`scripts/turbo.sh test --filter=deck`, with `--affected` added on PRs
+(`--affected` and `--filter` intersect), so a deck-untouched PR skips
+the macOS job's work (the job still runs and passes in seconds).
 
 Turbo prints a per-task summary; `--output-logs=errors-only` keeps the
 log readable, and a failed task still prints its full output.
@@ -179,7 +214,8 @@ log readable, and a failed task still prints its full output.
   after merge:
   - a board-only PR finishes `checks` in under 2 min;
   - a cold full run (`--force`) finishes in under 4 min;
-  - the main push after merge reports at least 80% cache hits;
+  - the second main push after merge (the first one seeds main's
+    cache) reports at least 80% cache hits;
   - every gate in today's `ci.yml` runs somewhere (a checklist in the
     PR body maps old step to new task).
 - Rollback is `git revert` of the one PR; no state outside the repo
