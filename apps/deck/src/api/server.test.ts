@@ -432,6 +432,79 @@ test('managed/remove refuses a name in its body instead of removing every manage
   expect(getRecord('mb-two')).toBeDefined();
 });
 
+describe('/api/apps during the boot sweep', () => {
+  const BOOT_PORT = 18927;
+
+  function bootingServer(bootSweep: Promise<void>, bootSweepWaitMs: number) {
+    return startApi({
+      manager: new FakeServiceManager(),
+      edge: new FakeEdgeProxy(),
+      port: BOOT_PORT,
+      canaryPort: BOOT_PORT + 1,
+      freshness: () => 'unknown',
+      autoHeal: () => null,
+      onRouteWrite: () => {},
+      tunnel: new FakeTunnelDriver(),
+      bootSweep,
+      bootSweepWaitMs,
+    });
+  }
+
+  function sweptApp(): void {
+    putRecord({
+      name: 'bs-app',
+      managedBy: 'rt',
+      port: 12120,
+      kind: 'external',
+      createdAt: '2026-09-25T00:00:00Z',
+    });
+    writeFileSync(
+      process.env.LOCAL_APPS_ROUTES_PATH!,
+      JSON.stringify([{ hostname: 'bs-app.localhost', port: 12120, pid: 0 }])
+    );
+  }
+
+  test('answers 503 with no app list while the sweep runs past the wait, then the list once it settles', async () => {
+    const sweep = Promise.withResolvers<void>();
+    const booting = bootingServer(sweep.promise, 20);
+    try {
+      const waiting = await fetch(`http://127.0.0.1:${BOOT_PORT}/api/apps`);
+      expect(waiting.status).toBe(503);
+      expect(await waiting.json()).not.toHaveProperty('apps');
+
+      sweptApp();
+      sweep.resolve();
+      const ready = await fetch(`http://127.0.0.1:${BOOT_PORT}/api/apps`);
+      expect(ready.status).toBe(200);
+      expect((await ready.json()).apps.map((a: any) => a.name)).toEqual([
+        'bs-app',
+      ]);
+    } finally {
+      booting.stop(true);
+      writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
+    }
+  });
+
+  test('a request that arrives mid-sweep waits for the rows the sweep creates', async () => {
+    const sweep = Promise.withResolvers<void>();
+    const booting = bootingServer(sweep.promise, 10_000);
+    try {
+      const pending = fetch(`http://127.0.0.1:${BOOT_PORT}/api/apps`);
+      await Bun.sleep(20);
+      sweptApp();
+      sweep.resolve();
+      const res = await pending;
+      expect(res.status).toBe(200);
+      expect((await res.json()).apps.map((a: any) => a.name)).toEqual([
+        'bs-app',
+      ]);
+    } finally {
+      booting.stop(true);
+      writeFileSync(process.env.LOCAL_APPS_ROUTES_PATH!, '[]');
+    }
+  });
+});
+
 test('publish flips settings through the versioned path', async () => {
   writeFileSync(
     process.env.LOCAL_APPS_ROUTES_PATH!,

@@ -40,3 +40,22 @@ export async function reresolveOnBoot(opts: {
     );
   if (parts.length) opts.log(`[reresolve] boot: ${parts.join('; ')}`);
 }
+
+/**
+ * Settles when the boot sweep does, or at `capMs`: launchd and portless calls
+ * carry no timeout, and a sweep wedged on one must not keep the app catalog
+ * unanswered for the rest of the session.
+ */
+export function bootSweepGate(
+  sweep: Promise<unknown>,
+  capMs: number
+): Promise<void> {
+  return new Promise(resolve => {
+    const timer = setTimeout(resolve, capMs);
+    const open = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    sweep.then(open, open);
+  });
+}
