@@ -1,6 +1,7 @@
 {
   "name": "app-kit",
   "private": true,
+  "packageManager": "bun@1.4.2",
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
@@ -74,7 +75,8 @@
     "board:test": "cd apps/board && bun run test",
     "board:build": "cd apps/board && bun run build",
     "deck:test": "cd apps/deck && bun run test",
-    "deck:test-dom": "cd apps/deck && bun run test:dom"
+    "deck:test-dom": "cd apps/deck && bun run test:dom",
+    "scripts:test": "bun test ./scripts"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.2.1",
@@ -115,6 +117,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "storybook": "^10.5.2",
+    "turbo": "2.11.4",
     "typescript": "catalog:",
     "typescript-eslint": "^8.64.0",
     "vite": "catalog:",
