@@ -2,8 +2,15 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 /** rt-tray's notify socket; contract matches repo-tools commands/settings.ts
-    test-push: POST /notify {id, title, message, category, timestamp}. */
+    test-push: POST /notify {id, title, message, category, timestamp, url?}.
+    The tray opens `url` on a banner click only when it is http(s). */
 export const TRAY_SOCK = join(homedir(), '.mattstack', 'rt', 'tray.sock');
+
+/** The board page a notification about `mrUrl` opens on click: the `?mr=`
+    deep link that lands on that MR's row. */
+export function boardMrLink(boardUrl: string, mrUrl: string): string {
+  return `${boardUrl}/?mr=${encodeURIComponent(mrUrl)}`;
+}
 
 const BODY_SUFFIX = '-- details on the board';
 const SNIPPET_MAX = 120;
@@ -25,12 +32,13 @@ export function escalationBody(diagnosis: string): string {
 /** Escalation-only notification (ruling 3: quiet on success). rt mode pushes
     tray+sound with an osascript fallback; badge-only does nothing -- the
     board's error badge is then the whole signal. Best-effort by design:
-    a missing tray must never fail the caller. */
+    a missing tray must never fail the caller. `url` is the banner's click
+    target; the osascript fallback has no way to carry one. */
 export async function notifyEscalation(
   title: string,
   message: string,
   mode: 'rt' | 'badge-only',
-  traySock: string = TRAY_SOCK
+  opts: { url?: string | null; traySock?: string } = {}
 ): Promise<void> {
   if (mode !== 'rt') return;
   const event = {
@@ -39,10 +47,11 @@ export async function notifyEscalation(
     message,
     category: 'mr-doctor',
     timestamp: Date.now(),
+    ...(opts.url ? { url: opts.url } : {}),
   };
   try {
     const res = await fetch('http://localhost/notify', {
-      unix: traySock,
+      unix: opts.traySock ?? TRAY_SOCK,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(event),

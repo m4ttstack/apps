@@ -3,7 +3,11 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, describe, expect, test } from 'bun:test';
 
-import { escalationBody, notifyEscalation } from '../triage/notify.ts';
+import {
+  boardMrLink,
+  escalationBody,
+  notifyEscalation,
+} from '../triage/notify.ts';
 
 describe('escalationBody', () => {
   test('keeps a short first sentence and appends the board pointer', () => {
@@ -54,7 +58,7 @@ describe('notifyEscalation', () => {
       'doctor stuck on !12',
       escalationBody('typecheck failed; diagnosis attached.'),
       'rt',
-      sock
+      { traySock: sock }
     );
     expect(received).toHaveLength(1);
     expect(received[0].path).toBe('/notify');
@@ -65,10 +69,40 @@ describe('notifyEscalation', () => {
     expect(received[0].body.category).toBe('mr-doctor');
     expect(typeof received[0].body.id).toBe('string');
     expect(typeof received[0].body.timestamp).toBe('number');
+    expect('url' in received[0].body).toBe(false);
   });
 
   test('badge-only mode is a no-op', async () => {
-    await notifyEscalation('t', 'm', 'badge-only', sock);
+    await notifyEscalation('t', 'm', 'badge-only', { traySock: sock });
     expect(received).toHaveLength(1); // unchanged
+  });
+
+  test('a url rides on the event as its click target', async () => {
+    const url = boardMrLink(
+      'https://board.mattstack',
+      'https://gitlab.example.com/acme/webapp/-/merge_requests/45'
+    );
+    await notifyEscalation('t', 'm', 'rt', { url, traySock: sock });
+    expect(received).toHaveLength(2);
+    expect(received[1].body.url).toBe(url);
+  });
+
+  test('a null url leaves the field off the event', async () => {
+    await notifyEscalation('t', 'm', 'rt', { url: null, traySock: sock });
+    expect(received).toHaveLength(3);
+    expect('url' in received[2].body).toBe(false);
+  });
+});
+
+describe('boardMrLink', () => {
+  test('points at the board root with the MR url encoded into ?mr=', () => {
+    expect(
+      boardMrLink(
+        'https://board.mattstack',
+        'https://gitlab.example.com/acme/webapp/-/merge_requests/45'
+      )
+    ).toBe(
+      'https://board.mattstack/?mr=https%3A%2F%2Fgitlab.example.com%2Facme%2Fwebapp%2F-%2Fmerge_requests%2F45'
+    );
   });
 });
