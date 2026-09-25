@@ -68,7 +68,8 @@ is what confirms the compiled factory behaves identically to the source one.
 | --- | --- |
 | `bun install` | install, and the whole setup |
 | `bun run dev:workshop` | the live component workshop, see below |
-| `bun run test` | both test tiers |
+| `bun run test` | the node and browser projects, excluding the visual and parity oracles |
+| `bun run test:oracles` | the visual and parity oracles |
 | `bun run gates` | the mechanical gates plus the codegen drift check |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run codegen` | regenerate `src/generated/theme.css` from `src/theme.ts` |
