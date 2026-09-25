@@ -1,5 +1,5 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
+import { homedir, tmpdir } from 'os';
 import { join } from 'path';
 import { expect, test } from 'bun:test';
 
@@ -9,6 +9,7 @@ import {
   joinApps,
   nextFreePort,
   readServices,
+  routesPath,
   servicePrefixes,
   shortLabel,
   type LaunchdService,
@@ -150,4 +151,25 @@ test("joinApps gives a row only its own service, never a longer name's", () => {
   );
   expect(apps.find(a => a.name === 'gitq')!.service).toBeNull();
   expect(apps.find(a => a.name === 'gitq-docs')!.service).toBe(gitqDocs);
+});
+
+test("joinApps prefers a service whose label is the row's name over one whose folder is", () => {
+  const byFolder: LaunchdService = {
+    ...svc(11030),
+    label: 'com.example.other',
+    workingDirectory: '/apps/gitq',
+  };
+  const byLabel: LaunchdService = {
+    ...svc(11031),
+    label: 'com.mattstack.deck.gitq',
+  };
+  const [row] = joinApps(
+    [{ hostname: 'gitq.localhost', port: 11008 }],
+    [byFolder, byLabel]
+  );
+  expect(row!.service).toBe(byLabel);
+});
+
+test('the test preload keeps every suite off the real portless route table', () => {
+  expect(routesPath()).not.toBe(join(homedir(), '.portless', 'routes.json'));
 });

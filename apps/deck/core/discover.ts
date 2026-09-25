@@ -37,6 +37,8 @@ export function shortLabel(label: string, prefixes: string[]): string {
 export interface PortlessRoute {
   hostname: string;
   port: number;
+  /** 0 for a static alias; otherwise the `portless run` process that owns it. */
+  pid?: number;
 }
 
 export interface LaunchdService {
@@ -266,9 +268,9 @@ export function dedupeRoutes(
 
 /**
  * Join routes to services: exact match on the plist's PORT env var first,
- * then a service whose short label or working directory is exactly the
- * row's name (gitq-docs is another app, never gitq's). Unmatched routes
- * render without service info.
+ * then a service whose short label is exactly the row's name, then one
+ * whose working directory is (gitq-docs is another app, never gitq's).
+ * Unmatched routes render without service info.
  */
 export function joinApps(
   routes: PortlessRoute[],
@@ -282,11 +284,8 @@ export function joinApps(
     const name = bareName(route.hostname, tlds);
     const service =
       services.find(s => s.port === route.port) ??
-      services.find(
-        s =>
-          shortLabel(s.label, prefixes) === name ||
-          s.workingDirectory?.split('/').pop() === name
-      ) ??
+      services.find(s => shortLabel(s.label, prefixes) === name) ??
+      services.find(s => s.workingDirectory?.split('/').pop() === name) ??
       null;
     const url = domain
       ? `https://${name}.${domain}`
