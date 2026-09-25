@@ -100,3 +100,11 @@ describe('embedded assets wiring', () => {
     }
   });
 });
+
+describe('compiled binary hardening', () => {
+  it('ignores a .env or bunfig.toml in the directory deck launches it from', () => {
+    const script = pkg.scripts['build:binary'] ?? '';
+    expect(script).toContain('--no-compile-autoload-dotenv');
+    expect(script).toContain('--no-compile-autoload-bunfig');
+  });
+});
