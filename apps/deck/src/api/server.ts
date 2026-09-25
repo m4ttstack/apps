@@ -84,6 +84,7 @@ import {
   reresolveManagedApps,
   restartLabelFor,
   restartManagedApps,
+  serveShapeDeps,
   unregisterApp,
   type Drivers,
 } from './register.ts';
@@ -367,7 +368,9 @@ export function startApi(deps: ApiDeps) {
           return new Response(null, { status: 204, headers: cors });
         if (pathname === '/api/apps' && req.method === 'GET') {
           const base = deckBaseFor(host); // https://deck.<tld> from the request host
-          const apps = (await buildDiscoveryApps(statusOpts)).map(a => ({
+          const apps = (
+            await buildDiscoveryApps(statusOpts, serveShapeDeps)
+          ).map(a => ({
             ...a,
             icon: a.icon ? `${base}/api/apps/${a.icon}/icon` : null,
           }));
