@@ -1,7 +1,6 @@
 // Add-app modal: the app's directory first, registered from its
 // mattstack.deck.json the way `deck register --dir` does; only a directory
-// without one gets the hand-filled form, ported field-for-field from
-// board.html's <dialog> and board.js's switch-before-name-field ordering.
+// without one gets the hand-filled service form (name, command, directory).
 // Edit now lives in the drawer (EditScreen.tsx); remove is triggered from the
 // drawer's danger row (RootScreen.tsx) but the confirmation itself stays a
 // board-level ConfirmDialog here, per drawer-states-atlas.html's blast-radius
@@ -11,7 +10,6 @@ import {
   Button,
   ConfirmDialog,
   Modal,
-  Switch,
   TextField,
 } from '@mattstack/tui-kit';
 import type { BoardState } from './useBoardState.ts';
@@ -36,8 +34,8 @@ export function AddAppModal({ board }: { board: BoardState }) {
         }}
       >
         <p>
-          Registers a local service: a named https domain, and (unless it runs
-          itself) a supervised process that starts on login.
+          Registers a local service: a named https domain and a supervised
+          process that starts on login.
         </p>
         <div className="modal-form">
           {addModal.step === 'dir' && (
@@ -67,23 +65,6 @@ export function AddAppModal({ board }: { board: BoardState }) {
                   details by hand.
                 </p>
               )}
-              {/* Switch first: see board.html's own note on why the Name
-                  label must not precede it. */}
-              <Switch
-                checked={addModal.external}
-                onChange={ev => updateAddModal({ external: ev.target.checked })}
-                label="I run this myself, just route a port"
-                aria-label={
-                  addModal.external
-                    ? 'stop routing only, let Local run this app'
-                    : 'route only, this app runs itself'
-                }
-                title={
-                  addModal.external
-                    ? 'runs itself, Local only routes a port to it'
-                    : 'Local runs it via launchd'
-                }
-              />
               <TextField
                 label="Name"
                 name="app-name"
@@ -95,44 +76,26 @@ export function AddAppModal({ board }: { board: BoardState }) {
                 title="lowercase letters, digits, dots, dashes"
                 inputRef={focusOnMount}
               />
-              {!addModal.external && (
-                <>
-                  <TextField
-                    label="Command"
-                    value={addModal.command}
-                    onChange={ev =>
-                      updateAddModal({ command: ev.target.value })
-                    }
-                    placeholder="bun src/server.ts"
-                    required
-                  />
-                  <TextField
-                    label="Working directory"
-                    value={addModal.workingDirectory}
-                    onChange={ev =>
-                      updateAddModal({ workingDirectory: ev.target.value })
-                    }
-                    placeholder="/Users/you/code/myapp"
-                    required
-                  />
-                  {data && data.nextPort != null && (
-                    <p className="muted">
-                      Will be assigned port {data.nextPort} (PORT env).
-                    </p>
-                  )}
-                </>
-              )}
-              {addModal.external && (
-                <TextField
-                  label="Port it listens on"
-                  value={addModal.staticPort}
-                  onChange={ev =>
-                    updateAddModal({ staticPort: ev.target.value })
-                  }
-                  inputMode="numeric"
-                  placeholder="4200"
-                  required
-                />
+              <TextField
+                label="Command"
+                value={addModal.command}
+                onChange={ev => updateAddModal({ command: ev.target.value })}
+                placeholder="bun src/server.ts"
+                required
+              />
+              <TextField
+                label="Working directory"
+                value={addModal.workingDirectory}
+                onChange={ev =>
+                  updateAddModal({ workingDirectory: ev.target.value })
+                }
+                placeholder="/Users/you/code/myapp"
+                required
+              />
+              {data && data.nextPort != null && (
+                <p className="muted">
+                  Will be assigned port {data.nextPort} (PORT env).
+                </p>
               )}
             </>
           )}

@@ -237,20 +237,16 @@ export function autoBanner(data: StatusData, now: number): Notice | null {
 
 export function addPayload(m: {
   name: string;
-  external: boolean;
   command: string;
   workingDirectory: string;
-  staticPort: string;
 }): unknown {
-  return m.external
-    ? { name: m.name.trim(), staticPort: Number(m.staticPort) }
-    : {
-        name: m.name.trim(),
-        // Whitespace split is the honest 90% case; commands needing shell
-        // quoting belong in a wrapper script, same rule the skill used.
-        command: m.command.trim().split(/\s+/),
-        workingDirectory: m.workingDirectory.trim(),
-      };
+  return {
+    name: m.name.trim(),
+    // Whitespace split is the honest 90% case; commands needing shell
+    // quoting belong in a wrapper script, same rule the skill used.
+    command: m.command.trim().split(/\s+/),
+    workingDirectory: m.workingDirectory.trim(),
+  };
 }
 
 export type RegisterOutcome =

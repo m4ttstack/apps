@@ -64,8 +64,10 @@ test('add app opens on a focused directory step that asks for an absolute path a
       await modal.locator('[name="app-dir"]').getAttribute('pattern')
     ).toBe('/.*');
     expect(await modal.locator('[name="app-name"]').count()).toBe(0);
-    expect(await modal.locator('[data-part="switch"]').count()).toBe(0);
     expect(await modal.getByText('Command', { exact: true }).count()).toBe(0);
+    expect(await modal.locator('form > p').first().textContent()).toBe(
+      'Registers a local service: a named https domain and a supervised process that starts on login.'
+    );
 
     expect(consoleErrors(page)).toEqual([]);
   });
@@ -119,9 +121,16 @@ test('a directory without a manifest reveals the manual form with the directory 
     expect(await modal.locator('[name="app-dir"]').count()).toBe(0);
     expect(await modal.locator('[data-part="alert"]').count()).toBe(0);
 
-    const formLabels = modal.locator('.modal-form > label');
-    expect(await formLabels.nth(0).getAttribute('data-part')).toBe('switch');
-    expect(await formLabels.nth(1).getAttribute('data-part')).toBe('field');
+    const fieldLabels = modal.locator(
+      '.modal-form > label [data-part="field-label"]'
+    );
+    expect(await fieldLabels.allTextContents()).toEqual([
+      'Name',
+      'Command',
+      'Working directory',
+    ]);
+    expect(await modal.locator('[data-part="switch"]').count()).toBe(0);
+    expect(await modal.getByPlaceholder('4200').count()).toBe(0);
     await page.waitForFunction(
       () => document.activeElement?.getAttribute('name') === 'app-name'
     );
@@ -134,13 +143,6 @@ test('a directory without a manifest reveals the manual form with the directory 
     expect(
       await modal.getByText('Will be assigned port 11012 (PORT env).').count()
     ).toBe(1);
-
-    await modal.locator('[data-part="switch-control"]').click();
-    expect(
-      await modal.getByText('Port it listens on', { exact: true }).count()
-    ).toBe(1);
-    expect(await modal.getByText('Command', { exact: true }).count()).toBe(0);
-    await modal.locator('[data-part="switch-control"]').click();
 
     await modal.locator('[name="app-name"]').fill('newapp');
     await modal.getByPlaceholder('bun src/server.ts').click();

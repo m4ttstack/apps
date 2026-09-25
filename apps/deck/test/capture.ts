@@ -239,9 +239,6 @@ await scenario(
   await addModal.locator('button[type="submit"]').click();
   await addModal.locator('[name="app-name"]').waitFor({ state: 'visible' });
   await shoot(page, 'modal-add-service');
-  await addModal.locator('[data-part="switch-control"]').click();
-  await addModal.getByPlaceholder('4200').waitFor({ state: 'visible' });
-  await shoot(page, 'modal-add-external');
   await page.close();
 }
 

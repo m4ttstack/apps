@@ -53,10 +53,8 @@ export interface AddModalState {
   step: 'dir' | 'manual';
   dir: string;
   name: string;
-  external: boolean;
   command: string;
   workingDirectory: string;
-  staticPort: string;
   error: string | null;
 }
 
@@ -164,10 +162,8 @@ function blankAddModal(step: AddModalState['step']): AddModalState {
     step,
     dir: '',
     name: '',
-    external: false,
     command: '',
     workingDirectory: '',
-    staticPort: '',
     error: null,
   };
 }

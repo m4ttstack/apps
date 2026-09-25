@@ -372,26 +372,12 @@ test('autoBanner: nothing to report reads null', () => {
 
 // ---- addPayload ----
 
-test('addPayload: external app sends name and numeric staticPort', () => {
-  expect(
-    addPayload({
-      name: ' ext ',
-      external: true,
-      command: '',
-      workingDirectory: '',
-      staticPort: '4100',
-    })
-  ).toEqual({ name: 'ext', staticPort: 4100 });
-});
-
 test('addPayload: service app sends name, whitespace-split command, workingDirectory', () => {
   expect(
     addPayload({
       name: 'svc',
-      external: false,
       command: '  bun run dev  ',
       workingDirectory: ' /tmp/svc ',
-      staticPort: '',
     })
   ).toEqual({
     name: 'svc',
