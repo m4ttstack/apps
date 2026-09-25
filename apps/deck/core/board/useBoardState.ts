@@ -56,6 +56,7 @@ export interface AddModalState {
   command: string;
   workingDirectory: string;
   error: string | null;
+  submitting: boolean;
 }
 
 export interface EditModalState {
@@ -165,6 +166,7 @@ function blankAddModal(step: AddModalState['step']): AddModalState {
     command: '',
     workingDirectory: '',
     error: null,
+    submitting: false,
   };
 }
 
@@ -476,26 +478,27 @@ export function useBoardState() {
     setAddModal(prev => (prev ? { ...prev, ...patch } : prev));
   }, []);
   const submitAdd = useCallback(async () => {
-    if (!addModal) return;
+    if (!addModal || addModal.submitting) return;
+    updateAddModal({ submitting: true });
+    const stay = (patch: Partial<AddModalState>) =>
+      updateAddModal({ ...patch, submitting: false });
     try {
       if (addModal.step === 'dir') {
         const dir = addModal.dir.trim();
-        const res = await apiPost('/api/v1/apps/register', { dir });
+        const res = await apiPost('/api/v1/apps/register', {
+          dir,
+          create: true,
+        });
         const outcome = registerOutcome(
           res.status,
           await res.json().catch(() => ({}))
         );
         if (outcome.kind === 'no-manifest') {
-          updateAddModal({
-            step: 'manual',
-            dir,
-            workingDirectory: dir,
-            error: null,
-          });
+          stay({ step: 'manual', dir, workingDirectory: dir, error: null });
           return;
         }
         if (outcome.kind === 'error') {
-          updateAddModal({ error: outcome.message });
+          stay({ error: outcome.message });
           return;
         }
       } else {
@@ -504,7 +507,7 @@ export function useBoardState() {
           .json()
           .catch(() => ({}) as { message?: string; error?: string });
         if (!res.ok) {
-          updateAddModal({
+          stay({
             error: body.message || body.error || `failed (${res.status})`,
           });
           return;
@@ -512,7 +515,7 @@ export function useBoardState() {
       }
       setAddModal(null);
     } catch (err) {
-      updateAddModal({ error: String(err) });
+      stay({ error: String(err) });
       return;
     }
     await refresh();

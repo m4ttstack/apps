@@ -89,7 +89,7 @@ test('a directory with mattstack.deck.json registers through the route deck regi
     await modal.locator('button[type="submit"]').click();
 
     await poll(() => registerPosts.length === 1);
-    expect(registerPosts[0]).toEqual({ dir: DIR });
+    expect(registerPosts[0]).toEqual({ dir: DIR, create: true });
     await page.waitForSelector('[data-part="modal"]', { state: 'detached' });
     expect(manualPosts).toBe(0);
   });
@@ -144,6 +144,12 @@ test('a directory without a manifest reveals the manual form with the directory 
       await modal.getByText('Will be assigned port 11012 (PORT env).').count()
     ).toBe(1);
 
+    await modal.locator('[name="app-name"]').fill('My App');
+    expect(
+      await modal
+        .locator('[name="app-name"]')
+        .evaluate(el => (el as HTMLInputElement).validity.patternMismatch)
+    ).toBe(true);
     await modal.locator('[name="app-name"]').fill('newapp');
     await modal.getByPlaceholder('bun src/server.ts').click();
     await page.keyboard.type('bun run start');
@@ -186,5 +192,73 @@ test("any other 400 from the register route shows the route's error and stays on
     );
     expect(await modal.locator('[name="app-dir"]').inputValue()).toBe(DIR);
     expect(await modal.locator('[name="app-name"]').count()).toBe(0);
+  });
+});
+
+test('an app that is already registered shows its name and changes nothing', async () => {
+  await withBoard(async page => {
+    await stubRegister(page, 409, {
+      error: 'already registered',
+      name: 'forecast',
+      dir: DIR,
+    });
+
+    const modal = await openAddModal(page);
+    await modal.locator('[name="app-dir"]').fill(DIR);
+    await modal.locator('button[type="submit"]').click();
+
+    const alert = modal.locator('[data-part="alert"]');
+    await alert.waitFor({ state: 'visible' });
+    expect(await alert.textContent()).toBe('forecast is already registered');
+    expect(await modal.locator('[name="app-dir"]').inputValue()).toBe(DIR);
+    expect(await modal.locator('[name="app-name"]').count()).toBe(0);
+  });
+});
+
+test('a relative directory fails the pattern and never reaches the register route', async () => {
+  await withBoard(async page => {
+    const registerPosts = await stubRegister(page, 200, {});
+
+    const modal = await openAddModal(page);
+    const dir = modal.locator('[name="app-dir"]');
+    await dir.fill('rel/path');
+    expect(
+      await dir.evaluate(
+        el => (el as HTMLInputElement).validity.patternMismatch
+      )
+    ).toBe(true);
+    await modal.locator('button[type="submit"]').click();
+    await page.waitForTimeout(300);
+    expect(registerPosts).toEqual([]);
+  });
+});
+
+test('a second submit while the first is in flight is ignored and the button reads busy', async () => {
+  await withBoard(async page => {
+    const posts: unknown[] = [];
+    let release: () => void = () => {};
+    const held = new Promise<void>(r => (release = r));
+    await page.route('**/api/v1/apps/register', async route => {
+      posts.push(route.request().postDataJSON());
+      await held;
+      await fulfillJson(route, 200, {});
+    });
+
+    const modal = await openAddModal(page);
+    await modal.locator('[name="app-dir"]').fill(DIR);
+    const submit = modal.locator('button[type="submit"]');
+    await submit.click();
+    await poll(() => posts.length === 1);
+
+    expect(await submit.isDisabled()).toBe(true);
+    expect(await submit.getAttribute('aria-busy')).toBe('true');
+    await modal
+      .locator('form')
+      .evaluate(f => (f as HTMLFormElement).requestSubmit());
+    await page.waitForTimeout(300);
+    expect(posts.length).toBe(1);
+
+    release();
+    await page.waitForSelector('[data-part="modal"]', { state: 'detached' });
   });
 });

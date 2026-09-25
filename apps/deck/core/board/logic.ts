@@ -235,6 +235,10 @@ export function autoBanner(data: StatusData, now: number): Notice | null {
   return null;
 }
 
+// Browsers compile `pattern` with the v flag, where an unescaped - in a class
+// is a syntax error that silently switches the check off.
+export const NAME_PATTERN = '[a-z0-9][a-z0-9.\\-]*';
+
 export function addPayload(m: {
   name: string;
   command: string;
@@ -265,10 +269,15 @@ export function registerOutcome(
   body: unknown
 ): RegisterOutcome {
   if (status >= 200 && status < 300) return { kind: 'registered' };
-  const fields = (body ?? {}) as { error?: unknown; message?: unknown };
+  const fields = (body ?? {}) as Record<string, unknown>;
   const error = typeof fields.error === 'string' ? fields.error : '';
   if (status === 400 && error.startsWith(NO_MANIFEST_PREFIX))
     return { kind: 'no-manifest' };
+  if (status === 409 && error === 'already registered')
+    return { kind: 'error', message: `${fields.name} is already registered` };
+  const subject = fields.name ?? fields.port ?? fields.dir;
+  if (error && subject != null)
+    return { kind: 'error', message: `${error}: ${subject}` };
   const message = typeof fields.message === 'string' ? fields.message : '';
   return { kind: 'error', message: error || message || `failed (${status})` };
 }

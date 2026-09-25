@@ -12,11 +12,8 @@ import {
   Modal,
   TextField,
 } from '@mattstack/tui-kit';
+import { NAME_PATTERN } from './logic.ts';
 import type { BoardState } from './useBoardState.ts';
-
-// Browsers compile `pattern` with the v flag, where an unescaped - in a class
-// is a syntax error that silently switches the check off.
-const NAME_PATTERN = '[a-z0-9][a-z0-9.\\-]*';
 
 // Stable identity: an inline callback ref re-runs on every render, pulling
 // focus back to this field on each keystroke typed into another one.
@@ -105,7 +102,9 @@ export function AddAppModal({ board }: { board: BoardState }) {
           <Button type="button" onClick={closeAdd}>
             Cancel
           </Button>
-          <Button type="submit">Add app</Button>
+          <Button type="submit" busy={addModal.submitting}>
+            Add app
+          </Button>
         </footer>
       </form>
     </Modal>
