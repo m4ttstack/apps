@@ -98,16 +98,9 @@ export function decideRequest(
   return { action: 'dispatch', reason: req.source };
 }
 
-const timesToday = (n: number): string =>
-  `${n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`} today`;
-
 /** A decideRequest reason code as the short phrase a desktop notification
     shows. A code this does not know gets a generic phrase, never itself. */
-export function plainReason(
-  reason: string,
-  cfg: TriageConfig,
-  kind?: AskKind
-): string {
+export function plainReason(reason: string, cfg: TriageConfig): string {
   switch (reason) {
     case 'stale':
       return `The ask is over ${NUDGE_FRESH_MS / 3_600_000} hours old`;
@@ -119,8 +112,12 @@ export function plainReason(
       return 'Already reviewed';
     case 'no-commented-review':
       return 'No earlier review to follow up on';
-    case 'budget-exhausted':
-      return `Already ${kind === 'respond' ? 'ran' : 'reviewed'} ${timesToday(cfg.dailyAttemptBudget)}`;
+    case 'budget-exhausted': {
+      // One per-MR counter covers auto-fix, asks and the latch alike, so the
+      // phrase cannot say which kind of run spent it.
+      const n = cfg.dailyAttemptBudget;
+      return `Hit today's limit of ${n} automatic ${n === 1 ? 'run' : 'runs'}`;
+    }
     case 'cooldown':
       return `Last run was under ${cfg.cooldownMinutes} minutes ago`;
     case 'disabled':
@@ -252,7 +249,7 @@ export async function runNudgePass(deps: NudgePassDeps): Promise<{
         result: outcome,
         reason: decision.reason,
       });
-      const why = plainReason(decision.reason, deps.cfg, kind);
+      const why = plainReason(decision.reason, deps.cfg);
       await deps.notify(
         `${ASK_COPY[kind].noun} request skipped on !${nudge.iid}`,
         `${nudge.from} asked; ${lowerFirst(why)}`,

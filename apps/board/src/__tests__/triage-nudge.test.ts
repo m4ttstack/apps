@@ -496,9 +496,7 @@ describe('runNudgePass notification copy', () => {
 
   test('an expired ask reads as skipped, with its age', async () => {
     const d = deps({
-      readNudges: () => [
-        { ...nudge, receivedAt: NOW - (NUDGE_FRESH_MS + 1) },
-      ],
+      readNudges: () => [{ ...nudge, receivedAt: NOW - (NUDGE_FRESH_MS + 1) }],
     });
     await runNudgePass(d);
     expect(d.notifyCalls).toEqual([
@@ -541,7 +539,7 @@ describe('plainReason', () => {
       'No earlier review to follow up on'
     );
     expect(plainReason('budget-exhausted', cfg)).toBe(
-      'Already reviewed 3 times today'
+      "Hit today's limit of 3 automatic runs"
     );
     expect(plainReason('cooldown', cfg)).toBe(
       'Last run was under 30 minutes ago'
@@ -550,20 +548,14 @@ describe('plainReason', () => {
     expect(plainReason('already-handled', cfg)).toBe('Already handled');
   });
 
-  test('the budget phrase counts the configured budget in words', () => {
+  test('the budget phrase names the configured limit, singular at one', () => {
     const budget = (n: number) =>
       parseTriageBlock({ enabled: true, dailyAttemptBudget: n });
     expect(plainReason('budget-exhausted', budget(1))).toBe(
-      'Already reviewed once today'
+      "Hit today's limit of 1 automatic run"
     );
     expect(plainReason('budget-exhausted', budget(2))).toBe(
-      'Already reviewed twice today'
-    );
-  });
-
-  test('a respond ask spends its budget running, not reviewing', () => {
-    expect(plainReason('budget-exhausted', cfg, 'respond')).toBe(
-      'Already ran 3 times today'
+      "Hit today's limit of 2 automatic runs"
     );
   });
 

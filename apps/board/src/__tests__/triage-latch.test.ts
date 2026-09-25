@@ -98,8 +98,7 @@ function harness(
   const memory: DispatchMemory = { identity: null, mrs: {} };
   const resurrects: string[] = [];
   const drops: string[] = [];
-  const notifies: Array<{ title: string; message: string; mrUrl: string }> =
-    [];
+  const notifies: Array<{ title: string; message: string; mrUrl: string }> = [];
   const deps: LatchPassDeps = {
     readReviewStates: () => new Map([[MR, commented]]),
     readPrunedReviewStates: () => new Map(),
@@ -459,7 +458,7 @@ describe('step 3: armed and resolved', () => {
     expect(notifies).toEqual([
       {
         title: 'Re-review skipped on !2317',
-        message: 'Already reviewed 3 times today',
+        message: "Hit today's limit of 3 automatic runs",
         mrUrl: MR,
       },
     ]);
