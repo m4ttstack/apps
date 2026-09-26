@@ -39,6 +39,7 @@ import {
 } from './useConsoleSettings';
 import { useRowSave, type RowStore } from './useRowSave';
 import {
+  APPROVAL_KEY,
   EDITOR_KINDS,
   isRung,
   layerLabel,
@@ -135,7 +136,10 @@ function LayerLine({
   const kind = rowKind(def);
   const edit = editorKind(def);
   const composite = def.type === 'object' || def.type === 'array';
+  // console never edits this key here: it is revoked from /settings, not
+  // set through a free-text control.
   const editable =
+    def.key !== APPROVAL_KEY &&
     writable &&
     (composite ? EDITOR_KINDS.has(edit) : kind === 'scalar' || kind === 'enum');
   // Fix seeds editing open only when the row is editable; a row with no

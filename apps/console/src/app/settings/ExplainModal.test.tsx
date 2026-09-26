@@ -360,6 +360,56 @@ describe('ExplainModal', () => {
     ).toBeInTheDocument();
     expect(within(layer).queryByRole('textbox', { name: 'JSON' })).toBeNull();
   });
+
+  it('rt.worktreeReadyApproval has no pencil or text editor, only Remove', async () => {
+    const APPROVAL: SettingDefWire = {
+      ...DEF,
+      key: 'rt.worktreeReadyApproval',
+      scopes: ['user', 'team', 'machine'],
+      repoScoped: true,
+      description:
+        'Per-repo user approval of a team-authored ready shell ladder.',
+      effective: {
+        scope: 'user',
+        file: '/home/user/settings.user.jsonc',
+        value: '3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d',
+      },
+    };
+    explainGet.mockResolvedValue(
+      ok({
+        def: APPROVAL,
+        rows: [
+          { scope: 'default', file: null, present: false },
+          {
+            scope: 'team',
+            file: '/home/team/settings.team.jsonc',
+            present: false,
+          },
+          {
+            scope: 'user',
+            file: '/home/user/settings.user.jsonc',
+            present: true,
+            value: '3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d',
+          },
+          { scope: 'machine', file: '/stores/local.jsonc', present: false },
+        ],
+      })
+    );
+    renderModal(store({ defs: [APPROVAL] }), APPROVAL.key);
+
+    const layer = await screen.findByTestId('layer-user');
+    expect(
+      within(layer).queryByRole('button', {
+        name: `set ${APPROVAL.key} at user`,
+      })
+    ).toBeNull();
+    expect(within(layer).queryByRole('textbox')).toBeNull();
+    expect(
+      within(layer).getByRole('button', {
+        name: `remove ${APPROVAL.key} from user`,
+      })
+    ).toBeInTheDocument();
+  });
 });
 
 describe('with a repo picked', () => {

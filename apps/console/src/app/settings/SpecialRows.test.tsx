@@ -62,6 +62,20 @@ describe('rt.worktreeReadyApproval', () => {
     );
     expect(screen.queryByRole('button', { name: 'Revoke' })).toBeNull();
   });
+
+  it('shows its scope badge like any row, outside a matching subhead', () => {
+    renderWithProviders(
+      <SettingRow def={APPROVAL} store={store()} subhead={null} query="" />
+    );
+    expect(screen.getByText('user')).toBeInTheDocument();
+  });
+
+  it('suppresses its badge under a matching subhead, same as any row', () => {
+    renderWithProviders(
+      <SettingRow def={APPROVAL} store={store()} subhead="user" query="" />
+    );
+    expect(screen.queryByText('user')).toBeNull();
+  });
 });
 
 describe('UnregisteredNote', () => {
