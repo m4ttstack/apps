@@ -78,6 +78,18 @@ function rangeOf(node: Node): { from: number; to: number } {
     : { from: node.from, to: node.to };
 }
 
+/** The first parse-error node in document order, in `node`'s subtree, or
+    null if none -- lezer's tolerant JSON grammar inserts one wherever a
+    document that fails `JSON.parse` actually stops matching the grammar,
+    which is not always where `JSON.parse` itself reports the error. */
+function firstErrorNode(node: Node): Node | null {
+  const cursor = node.cursor();
+  do {
+    if (cursor.type.isError) return cursor.node;
+  } while (cursor.next());
+  return null;
+}
+
 export function jsonDiagnostics(
   state: EditorState,
   check: JsonSchemaCheck
@@ -88,10 +100,15 @@ export function jsonDiagnostics(
   try {
     value = JSON.parse(text);
   } catch (err) {
+    const tree = ensureSyntaxTree(state, text.length) ?? syntaxTree(state);
+    const errorNode = firstErrorNode(tree.topNode);
+    const { from, to } = errorNode
+      ? { from: errorNode.from, to: errorNode.to }
+      : { from: 0, to: Math.min(1, text.length) };
     return [
       {
-        from: 0,
-        to: Math.min(1, text.length),
+        from,
+        to,
         severity: 'error',
         message: (err as Error).message,
       },

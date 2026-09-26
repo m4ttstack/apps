@@ -421,6 +421,39 @@ test('the kit highlight style also colors javascript, the other language the kit
   expect(ruleFor(keywordClass!)).toContain('var(--tk-text-purple)');
 });
 
+test('a zero-width diagnostic renders a lint point styled from the bad-hue role token, not a raw colour', async () => {
+  const { forceLinting } = await import('@codemirror/lint');
+  const ref = createRef<CodeMirrorRef>();
+  // A value position that gets "]" instead of a value: the lezer JSON
+  // grammar's own error-recovery node lands here at zero width (see
+  // jsonSchema.test.ts's "anchors a parse error at the real break"), which
+  // @codemirror/lint renders as a `cm-lintPoint`, not a `cm-lintRange` mark.
+  renderWithProviders(
+    <CodeMirror
+      ref={ref}
+      value={'{"a": ]'}
+      language="json"
+      jsonCheck={() => []}
+    />
+  );
+  await waitFor(() => expect(ref.current?.view).toBeTruthy());
+  const view = ref.current!.view!;
+  forceLinting(view);
+  await waitFor(() => {
+    expect(view.dom.querySelector('.cm-lintPoint-error')).toBeTruthy();
+  });
+
+  const styleText = Array.from(document.querySelectorAll('style'))
+    .map(tag => tag.textContent ?? '')
+    .join('\n');
+  expect(styleText).toMatch(
+    /\.cm-lintPoint-error:after\s*\{[^}]*var\(--tk-text-bad-vivid\)/
+  );
+  expect(styleText).toMatch(
+    /\.cm-lintPoint-warning:after\s*\{[^}]*var\(--tk-text-warn-vivid\)/
+  );
+});
+
 test('without jsonCheck there is no linting at all', async () => {
   const { diagnosticCount, forceLinting } = await import('@codemirror/lint');
   const ref = createRef<CodeMirrorRef>();

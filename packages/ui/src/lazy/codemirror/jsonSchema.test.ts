@@ -139,6 +139,27 @@ describe('jsonDiagnostics', () => {
     expect(check).not.toHaveBeenCalled();
   });
 
+  it('anchors a parse error at the real break, not always the document start', () => {
+    // Line 1: "{", line 2: a valid property, line 3: a value position that
+    // gets "]" instead of a value -- the syntax actually breaks on line 3.
+    const doc = '{\n  "a": 1,\n  "b": ]\n}';
+    const s = state(doc);
+    const d = jsonDiagnostics(s, () => []);
+    expect(d).toHaveLength(1);
+    expect(s.doc.lineAt(d[0]!.from).number).toBe(3);
+  });
+
+  it('falls back to the document start when the tree has no error node', () => {
+    // No `json()` language configured: `syntaxTree` returns an empty tree
+    // with no error node to anchor on, so the defensive 0..1 fallback is
+    // what fires here (a real caller always configures `json()`).
+    const s = EditorState.create({ doc: '-' });
+    const d = jsonDiagnostics(s, () => []);
+    expect(d).toHaveLength(1);
+    expect(d[0]!.from).toBe(0);
+    expect(d[0]!.to).toBe(1);
+  });
+
   it('an empty document has no diagnostics', () => {
     expect(
       jsonDiagnostics(state('  '), () => [{ path: [], message: 'x' }])

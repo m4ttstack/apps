@@ -142,6 +142,17 @@ const editorTheme = (height: string, dark: boolean): Extension =>
         backgroundColor: 'var(--tk-text-warn-vivid)',
         borderRadius: '50%',
       },
+      // A zero-width or all-whitespace diagnostic range renders as a
+      // `cm-lintPoint` widget instead of a `cm-lintRange` mark (see
+      // @codemirror/lint's own LintState.init) -- reachable for a JSON
+      // parse error anchored at a lezer error node, which is often
+      // zero-width. Same token, different selector.
+      '.cm-lintPoint-error': {
+        '&:after': { borderBottomColor: 'var(--tk-text-bad-vivid)' },
+      },
+      '.cm-lintPoint-warning': {
+        '&:after': { borderBottomColor: 'var(--tk-text-warn-vivid)' },
+      },
     },
     { dark }
   );
