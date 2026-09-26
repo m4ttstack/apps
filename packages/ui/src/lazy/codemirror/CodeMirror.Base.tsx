@@ -3,6 +3,7 @@ import { autocompletion } from '@codemirror/autocomplete';
 import { indentWithTab } from '@codemirror/commands';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
+import { syntaxHighlighting } from '@codemirror/language';
 import { linter, lintGutter } from '@codemirror/lint';
 import { Annotation, Compartment, EditorState } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
@@ -15,6 +16,7 @@ import type { ViewUpdate } from '@codemirror/view';
 import { useComputedColorScheme } from '@mantine/core';
 import { basicSetup } from 'codemirror';
 
+import { kitHighlightStyle } from './highlightStyle';
 import {
   jsonDiagnostics,
   jsonSchemaCompletion,
@@ -85,7 +87,9 @@ export interface CodeMirrorRef {
  * Scheme-aware editor chrome. Colors reference the kit's CSS vars, so the
  * palette flips with the color scheme on its own; the `dark` flag flips
  * CodeMirror's OWN defaults (caret, selection, active line) that don't go
- * through our vars. The frame polish (padding, theme radius) rides along.
+ * through our vars -- overridden below instead, since `@codemirror/view`'s
+ * own dark active-line color is a fixed, too-heavy teal wash. The frame
+ * polish (padding, theme radius) rides along.
  */
 const editorTheme = (height: string, dark: boolean): Extension =>
   EditorView.theme(
@@ -104,6 +108,39 @@ const editorTheme = (height: string, dark: boolean): Extension =>
         backgroundColor: 'var(--ui-bg-3)',
         color: 'var(--mantine-color-dimmed)',
         border: 'none',
+      },
+      '.cm-activeLine': {
+        backgroundColor:
+          'color-mix(in srgb, var(--mantine-color-text) var(--tk-wash), transparent)',
+      },
+      '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground':
+        {
+          backgroundColor:
+            'color-mix(in srgb, var(--tk-fill-accent) var(--tk-wash), transparent)',
+        },
+      // A squiggle/dot rendered from a raw hex data-uri (CodeMirror's own
+      // lint theme) can't reference a CSS var, so the underline and gutter
+      // marker are redrawn as plain CSS shapes on the bad/warn role tokens
+      // instead -- legible in dark, where the stock red squiggle is not.
+      '.cm-lintRange-error': {
+        backgroundImage: 'none',
+        textDecoration: 'underline wavy var(--tk-text-bad-vivid)',
+        textDecorationSkipInk: 'none',
+      },
+      '.cm-lintRange-warning': {
+        backgroundImage: 'none',
+        textDecoration: 'underline wavy var(--tk-text-warn-vivid)',
+        textDecorationSkipInk: 'none',
+      },
+      '.cm-lint-marker-error': {
+        content: 'none',
+        backgroundColor: 'var(--tk-text-bad-vivid)',
+        borderRadius: '50%',
+      },
+      '.cm-lint-marker-warning': {
+        content: 'none',
+        backgroundColor: 'var(--tk-text-warn-vivid)',
+        borderRadius: '50%',
       },
     },
     { dark }
@@ -162,10 +199,11 @@ function schemaExtensions(
 
 /**
  * Resolves the `theme` prop into the extension the theme compartment holds.
- * Omitted -> the auto scheme theme (follows the computed color scheme).
- * `'light'` / `'dark'` -> the kit's own chrome, forced to that scheme.
- * An `Extension` -> used as-is, replacing the kit's theme (and its chrome)
- * entirely.
+ * Omitted -> the auto scheme theme (follows the computed color scheme) plus
+ * the kit's role-token syntax highlighting. `'light'` / `'dark'` -> the
+ * kit's own chrome (and highlighting), forced to that scheme. An
+ * `Extension` -> used as-is, replacing the kit's theme (and its chrome and
+ * highlighting) entirely.
  */
 function resolveThemeExtension(
   theme: 'light' | 'dark' | Extension | undefined,
@@ -173,10 +211,16 @@ function resolveThemeExtension(
   computedColorScheme: 'light' | 'dark'
 ): Extension {
   if (theme === undefined) {
-    return editorTheme(height, computedColorScheme === 'dark');
+    return [
+      editorTheme(height, computedColorScheme === 'dark'),
+      syntaxHighlighting(kitHighlightStyle),
+    ];
   }
   if (theme === 'light' || theme === 'dark') {
-    return editorTheme(height, theme === 'dark');
+    return [
+      editorTheme(height, theme === 'dark'),
+      syntaxHighlighting(kitHighlightStyle),
+    ];
   }
   return theme;
 }
