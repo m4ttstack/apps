@@ -32,28 +32,34 @@ export function shortIssue(issue: SchemaIssue): string {
 export interface FooterSummary {
   touchedText: string | null;
   noteText: string | null;
+  fallbackText: string | null;
 }
 
-/** The item cards footer's two lines: the first issue on a touched field,
-    numbered to match its card header, and a count of empty required fields
-    for the first card whose issues are all untouched. `issues` carries the
-    card index as `path[0]`, so a shape other than a list of objects never
-    matches either line. */
+/** `#N field: message` when the issue carries a card index, `issueText`'s
+    plain `path: message` otherwise (a list- or map-level issue, path []). */
+function fallbackIssueText(issue: SchemaIssue): string {
+  const card = issue.path[0];
+  if (typeof card !== 'number') return issueText(issue);
+  const field = issue.path[1];
+  const short = shortIssue(issue);
+  return typeof field === 'string'
+    ? `#${card + 1} ${field}: ${short}`
+    : `#${card + 1}: ${short}`;
+}
+
+/** The item cards footer's three lines: the first issue on a touched field
+    (numbered to match its card header), a count of empty required fields
+    for every card whose issues are all untouched, and a fallback for the
+    first remaining issue those two lines never speak for -- a card-level or
+    list-level issue (no field in its path), or an issue on an untouched,
+    non-required field. Without the fallback, an issue in one of those shapes
+    leaves Save disabled with nothing on screen explaining why. `issues`
+    carries the card index as `path[0]`, so a shape other than a list of
+    objects never matches the touched or note line, only the fallback. */
 export function footerSummary(
   issues: SchemaIssue[],
   touched: readonly ReadonlySet<string>[]
 ): FooterSummary {
-  let touchedText: string | null = null;
-  for (const issue of issues) {
-    const card = issue.path[0];
-    const field = issue.path[1];
-    if (typeof card !== 'number' || typeof field !== 'string') continue;
-    if (touched[card]?.has(field)) {
-      touchedText = `#${card + 1} ${field}: ${shortIssue(issue)}`;
-      break;
-    }
-  }
-
   const byCard = new Map<number, SchemaIssue[]>();
   for (const issue of issues) {
     const card = issue.path[0];
@@ -62,20 +68,58 @@ export function footerSummary(
     if (list) list.push(issue);
     else byCard.set(card, [issue]);
   }
-  let noteText: string | null = null;
-  for (const card of [...byCard.keys()].sort((a, b) => a - b)) {
-    const list = byCard.get(card)!;
-    const anyTouched = list.some(i => {
-      const field = i.path[1];
-      return typeof field === 'string' && touched[card]?.has(field);
-    });
-    if (anyTouched) continue;
-    const count = list.filter(i => REQUIRED_RE.test(i.message)).length;
-    if (count > 0) {
-      noteText = `#${card + 1} has ${count} empty required field${count === 1 ? '' : 's'}`;
-      break;
-    }
+
+  const isTouched = (issue: SchemaIssue): boolean => {
+    const card = issue.path[0];
+    const field = issue.path[1];
+    return (
+      typeof card === 'number' &&
+      typeof field === 'string' &&
+      (touched[card]?.has(field) ?? false)
+    );
+  };
+
+  let touchedText: string | null = null;
+  for (const issue of issues) {
+    if (!isTouched(issue)) continue;
+    const card = issue.path[0] as number;
+    const field = issue.path[1] as string;
+    touchedText = `#${card + 1} ${field}: ${shortIssue(issue)}`;
+    break;
   }
 
-  return { touchedText, noteText };
+  const untouchedCards: number[] = [];
+  for (const card of [...byCard.keys()].sort((a, b) => a - b)) {
+    const list = byCard.get(card)!;
+    if (list.some(isTouched)) continue;
+    if (list.some(i => REQUIRED_RE.test(i.message))) untouchedCards.push(card);
+  }
+  let noteText: string | null = null;
+  if (untouchedCards.length > 0) {
+    const count = untouchedCards.reduce(
+      (sum, card) =>
+        sum + byCard.get(card)!.filter(i => REQUIRED_RE.test(i.message)).length,
+      0
+    );
+    const names = untouchedCards.map(c => `#${c + 1}`).join(', ');
+    const verb = untouchedCards.length === 1 ? 'has' : 'have';
+    noteText = `${names} ${verb} ${count} empty required field${count === 1 ? '' : 's'}`;
+  }
+
+  const isNoted = (issue: SchemaIssue): boolean => {
+    const card = issue.path[0];
+    return (
+      typeof card === 'number' &&
+      untouchedCards.includes(card) &&
+      REQUIRED_RE.test(issue.message)
+    );
+  };
+  let fallbackText: string | null = null;
+  for (const issue of issues) {
+    if (isTouched(issue) || isNoted(issue)) continue;
+    fallbackText = fallbackIssueText(issue);
+    break;
+  }
+
+  return { touchedText, noteText, fallbackText };
 }

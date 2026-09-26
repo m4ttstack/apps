@@ -282,4 +282,34 @@ describe('item cards', () => {
     expect(patternRow.style.height).not.toBe('');
     expect(patternRow.style.height).toBe(categoryRow.style.height);
   });
+
+  it('a disabled move arrow leaves colour to Mantine and clears its background', async () => {
+    const other = { ...RULE, pattern: 'run/*' };
+    await open([RULE, other]);
+    const up = screen.getByRole('button', { name: 'move item 1 up' });
+    expect(up).toBeDisabled();
+    expect(up.style.color).toBe('');
+    expect(up.style.background).toBe('transparent');
+    const down = screen.getByRole('button', { name: 'move item 1 down' });
+    expect(down).toBeEnabled();
+    expect(down.style.color).not.toBe('');
+    expect(down.style.background).not.toBe('transparent');
+  });
+
+  it('an untouched non-required issue surfaces as a footer fallback', async () => {
+    await open([{ ...RULE, subjectPrefix: 123 }]);
+    expect(
+      screen.getByText('#1 subjectPrefix: expected string, got number')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('the untouched note names every untouched card', async () => {
+    await open([RULE]);
+    await userEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    expect(
+      screen.getByText('#2, #3 have 8 empty required fields')
+    ).toBeInTheDocument();
+  });
 });

@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { Fragment, useRef, useState, type ReactNode } from 'react';
 import {
   ActionIcon,
   Box,
@@ -13,9 +13,28 @@ import type { SchemaIssue } from '@mattstack/settings-kit/shapes';
 
 import { FieldGrid } from './FieldGrid';
 import { newEntry, type FormShape } from './formShape';
-import { footerSummary, issuesUnder } from './issues';
+import { footerSummary, issuesUnder, type FooterSummary } from './issues';
 
 type Entry = Record<string, unknown>;
+
+/** The footer's issue segments in display order: the touched-field issue
+    and the fallback both block Save the same way a touched issue does, so
+    both read in the bad colour; the note is informational. */
+function footerSegments(
+  summary: FooterSummary
+): { text: string; color: string }[] {
+  const segs: { text: string; color: string }[] = [];
+  if (summary.touchedText)
+    segs.push({ text: summary.touchedText, color: 'var(--tk-text-bad-small)' });
+  if (summary.fallbackText)
+    segs.push({
+      text: summary.fallbackText,
+      color: 'var(--tk-text-bad-small)',
+    });
+  if (summary.noteText)
+    segs.push({ text: summary.noteText, color: 'var(--tk-text-3)' });
+  return segs;
+}
 
 // --tk-card reads almost flat against the page in dark scheme; --tk-raised
 // is the step tuned to read as a distinct surface in both schemes.
@@ -26,6 +45,39 @@ export const CARD_STYLE = {
 } as const;
 
 const NO_TOUCHED: ReadonlySet<string> = new Set();
+
+/** A card head icon button. Enabled reads in the muted role colour;
+    disabled leaves colour to Mantine's own disabled styling (it already
+    sets a readable, faded text colour) and clears its filled disabled
+    background, which otherwise reads as a selected square rather than an
+    unavailable action. */
+function CardAction({
+  label,
+  icon,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  icon: ReactNode;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const { text } = useSchemeColors();
+  return (
+    <ActionIcon
+      variant="subtle"
+      color="gray"
+      c={disabled ? undefined : text.muted}
+      style={disabled ? { background: 'transparent' } : undefined}
+      size="sm"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {icon}
+    </ActionIcon>
+  );
+}
 
 /** One card per item, in order. Cards carry stable ids so a card's local
     state (the optional fields it revealed, its touched fields) follows it
@@ -45,7 +97,6 @@ export function ItemCards({
   issues: SchemaIssue[];
   footerEnd: ReactNode;
 }) {
-  const { text } = useSchemeColors();
   const next = useRef(value.length);
   const [ids, setIds] = useState(() => value.map((_, i) => i));
   const [touched, setTouched] = useState<Record<number, Set<string>>>({});
@@ -95,39 +146,24 @@ export function ItemCards({
               )}
             </Text>
             <Group gap={2} wrap="nowrap">
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                c={text.muted}
-                size="sm"
-                aria-label={`move item ${i + 1} up`}
+              <CardAction
+                label={`move item ${i + 1} up`}
+                icon={<Icons.chevronUp size={14} />}
                 disabled={disabled || i === 0}
                 onClick={() => move(i, i - 1)}
-              >
-                <Icons.chevronUp size={14} />
-              </ActionIcon>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                c={text.muted}
-                size="sm"
-                aria-label={`move item ${i + 1} down`}
+              />
+              <CardAction
+                label={`move item ${i + 1} down`}
+                icon={<Icons.chevronDown size={14} />}
                 disabled={disabled || i === value.length - 1}
                 onClick={() => move(i, i + 1)}
-              >
-                <Icons.chevronDown size={14} />
-              </ActionIcon>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                c={text.muted}
-                size="sm"
-                aria-label={`remove item ${i + 1}`}
+              />
+              <CardAction
+                label={`remove item ${i + 1}`}
+                icon={<Icons.trash size={14} />}
                 disabled={disabled}
                 onClick={() => remove(i)}
-              >
-                <Icons.trash size={14} />
-              </ActionIcon>
+              />
             </Group>
           </Group>
           <FieldGrid
@@ -152,21 +188,18 @@ export function ItemCards({
           Add item
         </Button>
         <Group gap={8} wrap="nowrap">
-          {summary.touchedText && (
-            <Text fz={12} c="var(--tk-text-bad-small)">
-              {summary.touchedText}
-            </Text>
-          )}
-          {summary.touchedText && summary.noteText && (
-            <Text fz={12} c="var(--tk-text-3)">
-              ·
-            </Text>
-          )}
-          {summary.noteText && (
-            <Text fz={12} c="var(--tk-text-3)">
-              {summary.noteText}
-            </Text>
-          )}
+          {footerSegments(summary).map((seg, i) => (
+            <Fragment key={i}>
+              {i > 0 && (
+                <Text fz={12} c="var(--tk-text-3)">
+                  ·
+                </Text>
+              )}
+              <Text fz={12} c={seg.color}>
+                {seg.text}
+              </Text>
+            </Fragment>
+          ))}
           {footerEnd}
         </Group>
       </Group>
