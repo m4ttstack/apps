@@ -44,13 +44,14 @@ import {
 } from './controlStyles';
 import { DraftEditor } from './DraftEditor';
 import { ExpandToggle } from './ExpandToggle';
-import { canDraw, editorKind, formOf, type FormShape } from './formShape';
+import { editorKind, formOf, type FormShape } from './formShape';
 import { JsonBlock } from './JsonBlock';
 import { ScopeBadge } from './ScopeBadge';
 import { unitOf } from './units';
 import { useKeyExplain, useSettingsRepo } from './useConsoleSettings';
 import type { useRowSave } from './useRowSave';
 import {
+  EDITOR_KINDS,
   fieldSource,
   leafWrite,
   rungBase,
@@ -110,7 +111,15 @@ function strings(v: unknown): string[] {
     : [];
 }
 
-function StringListBody({ def, row }: { def: SettingDefWire; row: Row }) {
+function StringListBody({
+  def,
+  row,
+  onEditJson,
+}: {
+  def: SettingDefWire;
+  row: Row;
+  onEditJson: () => void;
+}) {
   const list = strings(def.effective.value);
   const saving = row.status === 'saving';
   const [draft, setDraft] = useState('');
@@ -151,6 +160,11 @@ function StringListBody({ def, row }: { def: SettingDefWire; row: Row }) {
           }}
         />
       </Box>
+      <Group py={6}>
+        <Button size="compact-xs" variant="subtle" onClick={onEditJson}>
+          Edit as JSON
+        </Button>
+      </Group>
     </Body>
   );
 }
@@ -288,10 +302,12 @@ function StringMapBody({
   def,
   row,
   labels,
+  onEditJson,
 }: {
   def: SettingDefWire;
   row: Row;
   labels: readonly [string, string];
+  onEditJson: () => void;
 }) {
   const map = (def.effective.value ?? {}) as Record<string, string>;
   const saving = row.status === 'saving';
@@ -371,6 +387,11 @@ function StringMapBody({
         >
           <Icons.plus size={14} />
         </UnstyledButton>
+      </Group>
+      <Group py={6}>
+        <Button size="compact-xs" variant="subtle" onClick={onEditJson}>
+          Edit as JSON
+        </Button>
       </Group>
     </Body>
   );
@@ -475,6 +496,7 @@ function LeavesBody({
   def,
   row,
   shape,
+  onEditJson,
 }: {
   def: SettingDefWire;
   row: Row;
@@ -482,6 +504,7 @@ function LeavesBody({
     fields: Record<string, LeafType>;
     fallbacks?: Record<string, string>;
   };
+  onEditJson: () => void;
 }) {
   const { text } = useSchemeColors();
   const repo = useSettingsRepo();
@@ -585,6 +608,11 @@ function LeavesBody({
           {explained.error}
         </Text>
       )}
+      <Group py={6}>
+        <Button size="compact-xs" variant="subtle" onClick={onEditJson}>
+          Edit as JSON
+        </Button>
+      </Group>
     </Body>
   );
 }
@@ -686,20 +714,25 @@ export function rowSummary(def: SettingDefWire): string {
   return `${n} ${n === 1 ? 'entry' : 'entries'}`;
 }
 
-/** A form over the target layer's own value. A deep key's draft starts from
-    that layer's authored value, never the merged view, so defaults and
-    other layers are never copied into it; a replace key starts from the
-    value in effect, as the list editors do. */
-function FormBody({
+/** A form or JSON draft over the target layer's own value. A deep key's
+    draft starts from that layer's authored value, never the merged view, so
+    defaults and other layers are never copied into it; a replace key starts
+    from the value in effect, as the list editors do. A stored value the
+    form cannot draw still opens: DraftEditor falls back to JSON on its own
+    rather than this leaving a static, uneditable read here. */
+function DraftBody({
   def,
   row,
   form,
+  startIn,
+  onDone,
 }: {
   def: SettingDefWire;
   row: Row;
-  form: FormShape;
+  form: FormShape | null;
+  startIn?: 'form' | 'json';
+  onDone?: () => void;
 }) {
-  const { text } = useSchemeColors();
   const repo = useSettingsRepo();
   const explained = useKeyExplain(def.key, repo);
   const [resets, setResets] = useState(0);
@@ -714,15 +747,6 @@ function FormBody({
   const initial = deep
     ? explained.rows.find(r => r.scope === at && r.present)?.value
     : def.effective.value;
-  if (initial !== undefined && !canDraw(form, initial))
-    return (
-      <Body>
-        <JsonBlock value={initial} />
-        <Text fz={12} c={text.muted} pt={6}>
-          This value does not fit the form.
-        </Text>
-      </Body>
-    );
   return (
     <Body>
       <DraftEditor
@@ -730,9 +754,13 @@ function FormBody({
         def={def}
         form={form}
         initial={initial}
+        startIn={startIn}
         targetLabel={targetLabel(row.target)}
         saving={row.status === 'saving'}
-        onCancel={() => setResets(n => n + 1)}
+        onCancel={() => {
+          setResets(n => n + 1);
+          onDone?.();
+        }}
         onSave={async value => {
           const empty =
             deep &&
@@ -740,7 +768,10 @@ function FormBody({
             value !== null &&
             Object.keys(value).length === 0;
           const ok = await (empty ? row.clear(at) : row.save(value));
-          if (ok) explained.refresh();
+          if (ok) {
+            explained.refresh();
+            onDone?.();
+          }
           return ok;
         }}
       />
@@ -755,7 +786,10 @@ export function compositeParts(
   kind: RowKind,
   row: Row,
   open: boolean,
-  onToggle: () => void
+  onToggle: () => void,
+  asJson: boolean,
+  onDoneJson: () => void,
+  onEditJson: () => void
 ): { control: ReactNode; body: ReactNode } {
   const shape = recognize(def.schema);
   const value = def.effective.value;
@@ -767,8 +801,40 @@ export function compositeParts(
       ? { control: <UnsetSummary />, body: null }
       : { control: toggle, body: open ? <ReadonlyBody def={def} /> : null };
 
-  const form = formOf(def);
+  const toggleOf = (o: boolean) => (
+    <ExpandToggle
+      label={value === undefined ? 'unset' : rowSummary(def)}
+      open={o}
+      onToggle={onToggle}
+    />
+  );
   const edit = editorKind(def);
+  const jsonBody = (
+    <DraftBody
+      def={def}
+      row={row}
+      form={null}
+      startIn="json"
+      onDone={onDoneJson}
+    />
+  );
+  if (asJson && EDITOR_KINDS.has(edit))
+    return { control: toggleOf(open), body: open ? jsonBody : null };
+  if (edit === 'json') {
+    if (def.effective.invalid !== undefined)
+      return {
+        control: <ShapeLock at={def.effective.scope} row={row} />,
+        body: null,
+      };
+    return {
+      control: toggleOf(open),
+      body: open ? (
+        <DraftBody def={def} row={row} form={null} startIn="json" />
+      ) : null,
+    };
+  }
+
+  const form = formOf(def);
   if ((edit === 'objectList' || edit === 'objectMap') && form) {
     if (def.effective.invalid !== undefined)
       return {
@@ -776,14 +842,8 @@ export function compositeParts(
         body: null,
       };
     return {
-      control: (
-        <ExpandToggle
-          label={value === undefined ? 'unset' : rowSummary(def)}
-          open={open}
-          onToggle={onToggle}
-        />
-      ),
-      body: open ? <FormBody def={def} row={row} form={form} /> : null,
+      control: toggleOf(open),
+      body: open ? <DraftBody def={def} row={row} form={form} /> : null,
     };
   }
 
@@ -819,14 +879,21 @@ export function compositeParts(
       };
     return {
       control: toggle,
-      body: open ? <StringListBody def={def} row={row} /> : null,
+      body: open ? (
+        <StringListBody def={def} row={row} onEditJson={onEditJson} />
+      ) : null,
     };
   }
   if (shape.kind === 'stringMap')
     return {
       control: toggle,
       body: open ? (
-        <StringMapBody def={def} row={row} labels={shape.labels} />
+        <StringMapBody
+          def={def}
+          row={row}
+          labels={shape.labels}
+          onEditJson={onEditJson}
+        />
       ) : null,
     };
   if (shape.kind === 'leaves')
@@ -837,6 +904,7 @@ export function compositeParts(
           def={def}
           row={row}
           shape={{ fields: shape.fields, fallbacks: shape.placeholders }}
+          onEditJson={onEditJson}
         />
       ) : null,
     };

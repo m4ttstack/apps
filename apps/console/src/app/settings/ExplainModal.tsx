@@ -24,6 +24,8 @@ import { rowKind } from '@mattstack/settings-kit/shapes';
 import { analyzeChain, shortValue } from '../config/chain';
 import { useAgentModels } from '../config/useSettings';
 import { useEditorHref } from '../editorHref';
+import { DraftEditor } from './DraftEditor';
+import { editorKind, formOf } from './formShape';
 import { JsonBlock } from './JsonBlock';
 import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
@@ -36,6 +38,7 @@ import {
 } from './useConsoleSettings';
 import { useRowSave, type RowStore } from './useRowSave';
 import {
+  EDITOR_KINDS,
   isRung,
   layerLabel,
   repoLabel,
@@ -111,6 +114,7 @@ function LayerLine({
   busy,
   onSet,
   onRemove,
+  startIn = 'form',
 }: {
   def: SettingDefWire;
   row: ExplainRowWire;
@@ -118,6 +122,7 @@ function LayerLine({
   busy: boolean;
   onSet: (scope: string, value: unknown) => Promise<boolean>;
   onRemove: (scope: string) => Promise<boolean>;
+  startIn?: 'form' | 'json';
 }) {
   const { text } = useSchemeColors();
   const editorHref = useEditorHref();
@@ -135,10 +140,14 @@ function LayerLine({
   const allowed = store !== null && def.scopes.includes(store);
   const writable = allowed && def.writable && !def.secret;
   const kind = rowKind(def);
-  const editable = writable && (kind === 'scalar' || kind === 'enum');
+  const edit = editorKind(def);
+  const composite = def.type === 'object' || def.type === 'array';
+  const editable =
+    writable &&
+    (composite ? EDITOR_KINDS.has(edit) : kind === 'scalar' || kind === 'enum');
 
   let value: ReactNode;
-  if (editing && store)
+  if (editing && store && !composite)
     value = (
       <Suggested settingKey={def.key}>
         {suggestions => (
@@ -166,7 +175,7 @@ function LayerLine({
         present, never shown here
       </Text>
     );
-  else if (def.type === 'object' || def.type === 'array')
+  else if (composite)
     // A struck-through block is unreadable, so an overridden composite gets
     // only the muted colour, on the wrapper rather than inside JsonBlock.
     value = (
@@ -299,6 +308,25 @@ function LayerLine({
           </Anchor>
         )}
       </Stack>
+      {editing && composite && store && (
+        <Box pt={10} pl={SCOPE_COL + 12}>
+          <DraftEditor
+            def={def}
+            form={formOf(def)}
+            initial={row.present ? row.value : undefined}
+            startIn={startIn}
+            targetLabel={isRung(scope) ? `${store} · repo` : store}
+            saving={busy}
+            onCancel={() => setEditing(false)}
+            onSave={v =>
+              onSet(scope, v).then(ok => {
+                if (ok) setSaved(true);
+                return ok;
+              })
+            }
+          />
+        </Box>
+      )}
     </Box>
   );
 }

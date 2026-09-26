@@ -4,43 +4,82 @@ import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import { checkValue } from '@mattstack/settings-kit/shapes';
 
-import type { FormShape } from './formShape';
-import { ItemCards } from './ItemCards';
+import { canDraw, type FormShape } from './formShape';
+import { issueText } from './issues';
+import { CardsFooter, ItemCards } from './ItemCards';
+import { JsonDraft } from './JsonDraft';
 import { NamedSections } from './NamedSections';
 
 type Entry = Record<string, unknown>;
+type Parsed = { ok: true; value: unknown } | { ok: false; message: string };
 
-function emptyOf(form: FormShape): unknown {
-  return form.kind === 'objectList' ? [] : {};
+function pretty(v: unknown): string {
+  return JSON.stringify(v, null, 2) ?? '';
 }
 
-/** A local draft of one layer's value, checked against the def's layer
-    schema as it changes and saved only when it passes. Escape and Cancel
-    discard it; Escape is marked handled so an enclosing modal stays open. */
+function parse(text: string): Parsed {
+  if (text.trim() === '') return { ok: false, message: 'empty document' };
+  try {
+    return { ok: true, value: JSON.parse(text) as unknown };
+  } catch (err) {
+    return { ok: false, message: (err as Error).message };
+  }
+}
+
+function emptyOf(def: SettingDefWire): unknown {
+  return def.type === 'array' ? [] : {};
+}
+
+/** A local draft of one layer's value, as a form or as JSON, checked
+    against the def's layer schema as it changes and saved only when it
+    parses and passes. Switching modes carries the draft across; the form is
+    out of reach while the JSON does not parse or does not fit it. Escape
+    and Cancel discard the draft; Escape is marked handled so an enclosing
+    modal stays open. */
 export function DraftEditor({
   def,
   form,
   initial,
+  startIn = 'form',
   targetLabel,
   saving,
   onSave,
   onCancel,
 }: {
   def: SettingDefWire;
-  form: FormShape;
+  form: FormShape | null;
   initial: unknown;
+  startIn?: 'form' | 'json';
   targetLabel: string;
   saving: boolean;
   onSave: (value: unknown) => Promise<boolean>;
   onCancel: () => void;
 }) {
-  const { text } = useSchemeColors();
-  const start = initial ?? emptyOf(form);
-  const [draft, setDraft] = useState<unknown>(() => structuredClone(start));
+  const { text: colors } = useSchemeColors();
+  const start = initial ?? emptyOf(def);
   const schema = def.layerSchema ?? def.schema;
-  const issues = schema ? checkValue(schema, draft) : [];
-  const changed = JSON.stringify(draft) !== JSON.stringify(start);
+  const [mode, setMode] = useState<'form' | 'json'>(
+    form && startIn === 'form' && canDraw(form, start) ? 'form' : 'json'
+  );
+  const [draft, setDraft] = useState<unknown>(() => structuredClone(start));
+  const [text, setText] = useState(() => pretty(start));
 
+  const parsed: Parsed =
+    mode === 'json' ? parse(text) : { ok: true, value: draft };
+  const issues = parsed.ok && schema ? checkValue(schema, parsed.value) : [];
+  const changed =
+    parsed.ok && JSON.stringify(parsed.value) !== JSON.stringify(start);
+  const fits = parsed.ok && form !== null && canDraw(form, parsed.value);
+
+  const toJson = () => {
+    setText(pretty(draft));
+    setMode('json');
+  };
+  const toForm = () => {
+    if (!parsed.ok || !fits) return;
+    setDraft(parsed.value);
+    setMode('form');
+  };
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     const target = e.target as HTMLElement;
@@ -61,8 +100,10 @@ export function DraftEditor({
       </Button>
       <Button
         size="compact-sm"
-        disabled={!changed || issues.length > 0 || saving}
-        onClick={() => void onSave(draft)}
+        disabled={!parsed.ok || !changed || issues.length > 0 || saving}
+        onClick={() => {
+          if (parsed.ok) void onSave(parsed.value);
+        }}
       >
         Save
       </Button>
@@ -71,12 +112,39 @@ export function DraftEditor({
 
   return (
     <Stack gap={10} onKeyDown={onKeyDown}>
-      <Group justify="space-between" wrap="nowrap">
-        <Text fz={12} c={text.muted}>
-          {`Editing the ${targetLabel} layer`}
+      <Group justify="space-between" wrap="nowrap" gap={8}>
+        <Text fz={12} c={colors.muted}>
+          {`saves to ${targetLabel}`}
         </Text>
+        {form && (
+          <Group gap={8} wrap="nowrap">
+            {mode === 'json' && !fits && (
+              <Text fz={12} c={colors.muted}>
+                {parsed.ok
+                  ? 'This value does not fit the form.'
+                  : 'Fix the JSON to switch back to the form.'}
+              </Text>
+            )}
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              disabled={mode === 'json' && !fits}
+              onClick={mode === 'form' ? toJson : toForm}
+            >
+              {mode === 'form' ? 'Edit as JSON' : 'Edit as form'}
+            </Button>
+          </Group>
+        )}
       </Group>
-      {form.kind === 'objectList' ? (
+      {mode === 'json' && (
+        <JsonDraft
+          key={`${def.key}:${targetLabel}:${JSON.stringify(schema) ?? ''}`}
+          text={text}
+          onText={setText}
+          schema={schema}
+        />
+      )}
+      {mode === 'form' && form?.kind === 'objectList' && (
         <ItemCards
           shape={form}
           value={draft as Entry[]}
@@ -85,13 +153,30 @@ export function DraftEditor({
           issues={issues}
           footerEnd={footerEnd}
         />
-      ) : (
+      )}
+      {mode === 'form' && form?.kind === 'objectMap' && (
         <NamedSections
           shape={form}
           value={draft as Record<string, Entry>}
           onChange={setDraft}
           disabled={saving}
           issues={issues}
+          footerEnd={footerEnd}
+        />
+      )}
+      {mode === 'json' && (
+        <CardsFooter
+          leading={null}
+          summary={{
+            touchedText: null,
+            noteText: null,
+            fallbackText: parsed.ok
+              ? issues[0]
+                ? issueText(issues[0])
+                : null
+              : `JSON: ${parsed.message}`,
+          }}
+          issueTestId="draft-issue"
           footerEnd={footerEnd}
         />
       )}

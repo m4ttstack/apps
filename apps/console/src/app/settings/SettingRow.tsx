@@ -28,6 +28,7 @@ import { useRowSave, type RowStore } from './useRowSave';
 import {
   badgeScope,
   firstSentence,
+  isEditable,
   sourceText,
   splitKey,
   type StoreScope,
@@ -74,10 +75,12 @@ export function SettingRow({
   const { text } = useSchemeColors();
   const row = useRowSave(store, def);
   const [open, setOpen] = useState(false);
+  const [asJson, setAsJson] = useState(false);
   const kind = rowKind(def);
   const [ns, name] = splitKey(def.key);
   const badge = badgeScope(def, subhead);
   const plain = sourceText(def);
+  const isComposite = def.type === 'object' || def.type === 'array';
 
   let control: ReactNode;
   let body: ReactNode = null;
@@ -120,8 +123,15 @@ export function SettingRow({
         </Text>
       );
   } else {
-    const composite = compositeParts(def, kind, row, open, () =>
-      setOpen(o => !o)
+    const composite = compositeParts(
+      def,
+      kind,
+      row,
+      open,
+      () => setOpen(o => !o),
+      asJson,
+      () => setAsJson(false),
+      () => setAsJson(true)
     );
     control = composite.control;
     body = composite.body;
@@ -178,7 +188,18 @@ export function SettingRow({
           )}
         </Group>
         <Group gap={4} wrap="nowrap" style={{ flex: 'none' }}>
-          <RowMenu def={def} row={row} />
+          <RowMenu
+            def={def}
+            row={row}
+            onEditJson={
+              isComposite && isEditable(def)
+                ? () => {
+                    setAsJson(true);
+                    setOpen(true);
+                  }
+                : undefined
+            }
+          />
           {onExplain && (
             <ActionIcon
               variant="subtle"

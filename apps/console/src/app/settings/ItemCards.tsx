@@ -43,10 +43,12 @@ export function CardsFooter({
   leading,
   summary,
   footerEnd,
+  issueTestId,
 }: {
   leading: ReactNode;
   summary: FooterSummary;
   footerEnd: ReactNode;
+  issueTestId?: string;
 }) {
   return (
     <Group wrap="nowrap" gap={8} align="center">
@@ -65,6 +67,7 @@ export function CardsFooter({
         gap={8}
         wrap="nowrap"
         justify="flex-end"
+        data-testid={issueTestId}
         style={{ flex: 1, minWidth: 0 }}
       >
         {footerSegments(summary).map((seg, i) => (

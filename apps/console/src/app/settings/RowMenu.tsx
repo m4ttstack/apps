@@ -16,29 +16,31 @@ import {
 
 const SLOT = 28;
 
-/** Move and remove for the layer a writable row's value comes from. Rows
-    with nothing stored, or stored where the key no longer allows, keep an
-    empty slot so every chevron lines up. */
+/** Move and remove for the layer a writable row's value comes from, plus an
+    Edit as JSON entry for a composite row when one is offered. Rows with
+    nothing stored, no move/remove and no JSON entry keep an empty slot so
+    every chevron lines up. */
 export function RowMenu({
   def,
   row,
+  onEditJson,
 }: {
   def: SettingDefWire;
   row: ReturnType<typeof useRowSave>;
+  onEditJson?: () => void;
 }) {
   const { text } = useSchemeColors();
   const from = def.effective.scope;
   const base = rungBase(from);
-  if (!def.writable || !base || !def.scopes.includes(base))
-    return <Box w={SLOT} />;
+  const stored = Boolean(def.writable && base && def.scopes.includes(base));
+  if (!stored && !onEditJson) return <Box w={SLOT} />;
   // A move re-sets the value at its target, which rejects what rt already
   // refused here; removing it still works. settings-kit's move reads and
   // writes global layers only, so a repo rung offers removal alone.
   const moveTo =
-    def.effective.invalid === undefined && !isRung(from)
+    stored && def.effective.invalid === undefined && !isRung(from)
       ? (def.scopes as StoreScope[]).filter(s => s !== from && isStoreScope(s))
       : [];
-  const label = layerLabel(from as LayerScope);
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
@@ -52,23 +54,36 @@ export function RowMenu({
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        {moveTo.map(to => (
+        {onEditJson && (
           <Menu.Item
-            key={to}
-            leftSection={<ScopeDot scope={to} />}
-            onClick={() => void row.move(from!, to)}
+            leftSection={<Icons.edit size={14} />}
+            onClick={onEditJson}
           >
-            {`Move to ${to}`}
+            Edit as JSON
           </Menu.Item>
-        ))}
-        {moveTo.length > 0 && <Menu.Divider />}
-        <Menu.Item
-          c="var(--tk-text-bad)"
-          leftSection={<Icons.trash size={14} />}
-          onClick={() => void row.clear(from!)}
-        >
-          {`Remove from ${label}`}
-        </Menu.Item>
+        )}
+        {onEditJson && stored && <Menu.Divider />}
+        {stored && (
+          <>
+            {moveTo.map(to => (
+              <Menu.Item
+                key={to}
+                leftSection={<ScopeDot scope={to} />}
+                onClick={() => void row.move(from!, to)}
+              >
+                {`Move to ${to}`}
+              </Menu.Item>
+            ))}
+            {moveTo.length > 0 && <Menu.Divider />}
+            <Menu.Item
+              c="var(--tk-text-bad)"
+              leftSection={<Icons.trash size={14} />}
+              onClick={() => void row.clear(from!)}
+            >
+              {`Remove from ${layerLabel(from as LayerScope)}`}
+            </Menu.Item>
+          </>
+        )}
       </Menu.Dropdown>
     </Menu>
   );
