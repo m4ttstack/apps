@@ -490,6 +490,35 @@ describe('with a repo picked', () => {
     ).toBeInTheDocument();
   });
 
+  it('clearing a repo-rung scalar unsets that rung, not the global layer', async () => {
+    explainGet.mockResolvedValue(ok({ def: REPO_DEF, rows: REPO_ROWS }));
+    const s = store({ defs: [REPO_DEF] });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderWithProviders(
+      <SettingsRepoContext.Provider value={REPO}>
+        <QueryClientProvider client={queryClient}>
+          <ExplainModal settingKey={REPO_KEY} store={s} onClose={vi.fn()} />
+        </QueryClientProvider>
+      </SettingsRepoContext.Provider>
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: `set ${REPO_KEY} at team · repo`,
+      })
+    );
+    const layer = screen.getByTestId('layer-team.repo');
+    const input = within(layer).getByRole('textbox', { name: REPO_KEY });
+    await userEvent.clear(input);
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() =>
+      expect(s.unset).toHaveBeenCalledWith(REPO_KEY, 'team', REPO)
+    );
+  });
+
   it('Fix opens the repo-rung layer in the form, Save off, and the explain fetch carries the repo', async () => {
     const ROLES: SettingDefWire = {
       ...REPO_DEF,

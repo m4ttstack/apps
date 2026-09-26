@@ -34,6 +34,7 @@ import {
   firstSentence,
   isEditable,
   rungBase,
+  rungOf,
   sourceText,
   splitKey,
   type StoreScope,
@@ -122,6 +123,7 @@ export function SettingRow({
     control = (
       <ScalarControl
         def={def}
+        writeScope={rungOf(row.target.scope, row.target.repo ?? null)}
         onSave={v => void row.save(v)}
         suggestions={suggestions}
       />

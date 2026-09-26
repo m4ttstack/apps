@@ -4,6 +4,7 @@ import { Icons } from '@mattstack/app-kit/icons';
 import type { SettingDefWire } from '@mattstack/settings-kit/react';
 
 import { ScopeDot } from './ScopeBadge';
+import { useSettingsRepo } from './useConsoleSettings';
 import type { useRowSave } from './useRowSave';
 import {
   APPROVAL_KEY,
@@ -31,6 +32,7 @@ export function RowMenu({
   onEditJson?: () => void;
 }) {
   const { text } = useSchemeColors();
+  const repo = useSettingsRepo();
   const from = def.effective.scope;
   const base = rungBase(from);
   const stored =
@@ -83,7 +85,11 @@ export function RowMenu({
               leftSection={<Icons.trash size={14} />}
               onClick={() => void row.clear(from!)}
             >
-              {`Remove from ${layerLabel(from as LayerScope)}`}
+              {`Remove from ${layerLabel(from as LayerScope)}${
+                repo && def.repoScoped && isStoreScope(from)
+                  ? ' (all repos)'
+                  : ''
+              }`}
             </Menu.Item>
           </>
         )}

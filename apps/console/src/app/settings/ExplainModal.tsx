@@ -163,6 +163,7 @@ function LayerLine({
         {suggestions => (
           <ScalarControl
             def={layerDef(def, row)}
+            writeScope={scope}
             suggestions={suggestions}
             onSave={v =>
               void (v === undefined ? onRemove(scope) : onSet(scope, v)).then(

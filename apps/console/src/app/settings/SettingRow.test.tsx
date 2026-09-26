@@ -651,6 +651,54 @@ describe('with a repo picked', () => {
     );
   });
 
+  it('emptying a repo-scoped scalar inherited from a global layer resets it instead of writing an empty repo section', async () => {
+    const s = store();
+    inRepo(
+      <SettingRow
+        def={def('rt.worktreeCwd', {
+          scopes: ['user', 'team', 'machine'],
+          repoScoped: true,
+          effective: { scope: 'team', file: '/t', value: 'a' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    const input = screen.getByLabelText('rt.worktreeCwd');
+    await userEvent.clear(input);
+    await userEvent.tab();
+    await waitFor(() =>
+      expect(screen.getByLabelText('rt.worktreeCwd')).toHaveValue('a')
+    );
+    expect(s.unset).not.toHaveBeenCalled();
+    expect(s.set).not.toHaveBeenCalled();
+  });
+
+  it('labels Remove from the global layer "(all repos)" when a repo is picked', async () => {
+    const s = store();
+    inRepo(
+      <SettingRow
+        def={def('rt.worktreeCwd', {
+          scopes: ['user', 'team', 'machine'],
+          repoScoped: true,
+          effective: { scope: 'team', file: '/t', value: 'a' },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'rt.worktreeCwd actions' })
+    );
+    expect(
+      await screen.findByRole('menuitem', {
+        name: 'Remove from team (all repos)',
+      })
+    ).toBeInTheDocument();
+  });
+
   it('a key that is not repo-scoped writes as before, with no repo argument', async () => {
     const s = store();
     inRepo(
