@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActionIcon,
   Box,
+  Button,
   Collapse,
   Group,
   Highlight,
@@ -28,9 +29,11 @@ import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
 import { useRowSave, type RowStore } from './useRowSave';
 import {
+  APPROVAL_KEY,
   badgeScope,
   firstSentence,
   isEditable,
+  rungBase,
   sourceText,
   splitKey,
   type StoreScope,
@@ -93,7 +96,29 @@ export function SettingRow({
 
   let control: ReactNode;
   let body: ReactNode = null;
-  if (kind === 'scalar' || kind === 'enum') {
+  if (def.key === APPROVAL_KEY) {
+    const hash =
+      typeof def.effective.value === 'string' ? def.effective.value : null;
+    const at = rungBase(def.effective.scope) ? def.effective.scope : null;
+    control = (
+      <Group gap={8} wrap="nowrap">
+        {hash && (
+          <Text fz={12} ff="monospace" c={text.muted}>
+            {hash.slice(0, 12)}
+          </Text>
+        )}
+        {hash && at && def.writable && (
+          <Button
+            size="compact-xs"
+            variant="default"
+            onClick={() => void row.clear(at)}
+          >
+            Revoke
+          </Button>
+        )}
+      </Group>
+    );
+  } else if (kind === 'scalar' || kind === 'enum') {
     control = (
       <ScalarControl
         def={def}
@@ -169,16 +194,31 @@ export function SettingRow({
             ) : null}
             <RepoReach def={def} />
           </Group>
-          <Marked
-            text={
-              fullDescription ? def.description : firstSentence(def.description)
-            }
-            query={query}
-            fz={12}
-            lh="15px"
-            c={text.muted}
-            lineClamp={fullDescription ? undefined : 1}
-          />
+          {def.key === APPROVAL_KEY ? (
+            <Text fz={12} lh="15px" c={text.muted} data-testid="approval-note">
+              {"approves the team's worktree "}
+              <Text span inherit ff="monospace">
+                ready
+              </Text>
+              {' commands by their hash; approve with '}
+              <Text span inherit ff="monospace">
+                rt worktree ready-approve
+              </Text>
+            </Text>
+          ) : (
+            <Marked
+              text={
+                fullDescription
+                  ? def.description
+                  : firstSentence(def.description)
+              }
+              query={query}
+              fz={12}
+              lh="15px"
+              c={text.muted}
+              lineClamp={fullDescription ? undefined : 1}
+            />
+          )}
         </Stack>
         <Group w={260} gap={8} wrap="nowrap" style={{ flex: 'none' }}>
           {control}

@@ -140,7 +140,12 @@ export const EDITOR_KINDS: ReadonlySet<RowKind> = new Set<RowKind>([
   'json',
 ]);
 
+/** A hash rt writes when the user approves the team's worktree `ready`
+    commands; console never edits it, only revokes it. */
+export const APPROVAL_KEY = 'rt.worktreeReadyApproval';
+
 export function isEditable(def: SettingDefWire): boolean {
+  if (def.key === APPROVAL_KEY) return false;
   return EDITOR_KINDS.has(editorKind(def));
 }
 

@@ -6,6 +6,7 @@ import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import { ScopeDot } from './ScopeBadge';
 import type { useRowSave } from './useRowSave';
 import {
+  APPROVAL_KEY,
   isRung,
   isStoreScope,
   layerLabel,
@@ -32,7 +33,9 @@ export function RowMenu({
   const { text } = useSchemeColors();
   const from = def.effective.scope;
   const base = rungBase(from);
-  const stored = Boolean(def.writable && base && def.scopes.includes(base));
+  const stored =
+    def.key !== APPROVAL_KEY &&
+    Boolean(def.writable && base && def.scopes.includes(base));
   if (!stored && !onEditJson) return <Box w={SLOT} />;
   // A move re-sets the value at its target, which rejects what rt already
   // refused here; removing it still works. settings-kit's move reads and

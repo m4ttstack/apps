@@ -29,6 +29,7 @@ import { TIER_LABEL, type Tier } from './groups';
 import { RepoPicker } from './RepoPicker';
 import { ScopeDot } from './ScopeBadge';
 import { SettingsSection, type Provider } from './SettingsSection';
+import { UnregisteredNote } from './UnregisteredNote';
 import { SettingsRepoContext, useConsoleSettings } from './useConsoleSettings';
 import { useSectionSpy } from './useSectionSpy';
 import {
@@ -455,6 +456,9 @@ export function SettingsPage() {
                     Clear filter
                   </Button>
                 </Group>
+              )}
+              {!store.loading && (
+                <UnregisteredNote entries={store.unregistered} />
               )}
             </Box>
           </PageShell.Content>
