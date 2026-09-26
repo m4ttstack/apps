@@ -43,8 +43,13 @@ export function DraftEditor({
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
-    if ((e.target as HTMLElement).closest('[role="menu"], [role="listbox"]'))
-      return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[role="menu"], [role="listbox"]')) return;
+    // A Select/Autocomplete target closes its own dropdown on Escape without
+    // stopping the event; its aria-expanded is still "true" here since that
+    // close hasn't re-rendered yet. Let that Escape stop there instead of
+    // also discarding the draft.
+    if (target.getAttribute('aria-expanded') === 'true') return;
     e.preventDefault();
     onCancel();
   };

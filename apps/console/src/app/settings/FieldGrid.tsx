@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   ActionIcon,
   Autocomplete,
@@ -178,11 +178,25 @@ export function FieldGrid({
   issues: SchemaIssue[];
 }) {
   const { text } = useSchemeColors();
-  const [shown, setShown] = useState<string[]>([]);
+  // Seeded from what's already set, so clearing a stored optional field's
+  // text (undefined round-trips through here too) never drops its row --
+  // only the remove control below does that.
+  const [shown, setShown] = useState<string[]>(() =>
+    Object.keys(entry).filter(
+      k => k in shape.fields && !shape.required.includes(k)
+    )
+  );
+  // The written object's key order, seeded from the entry's own order and
+  // extended (once) the first time a new name is set, so clearing and
+  // retyping a field returns it to its original position instead of the end.
+  const order = useRef<string[]>(Object.keys(entry));
   const set = (name: string, v: unknown) => {
-    const next = { ...entry };
-    if (v === undefined) delete next[name];
-    else next[name] = v;
+    if (!order.current.includes(name)) order.current = [...order.current, name];
+    const next: Entry = {};
+    for (const k of order.current) {
+      const value = k === name ? v : entry[k];
+      if (value !== undefined) next[k] = value;
+    }
     onChange(next);
   };
   const drop = (name: string) => {

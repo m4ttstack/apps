@@ -183,4 +183,60 @@ describe('item cards', () => {
     ).toBeInTheDocument();
     expect(title).toHaveValue('{label}!');
   });
+
+  it('clearing a set optional field keeps it visible while it is retyped', async () => {
+    const s = await open([RULE]);
+    const card = screen.getByTestId('item-0');
+    await userEvent.clear(within(card).getByLabelText('url'));
+    expect(within(card).getByLabelText('url')).toHaveValue('');
+    await userEvent.type(within(card).getByLabelText('url'), 'http://x');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('rt.notify.eventBridges', 'user', [
+        { ...RULE, url: 'http://x' },
+      ])
+    );
+  });
+
+  it('Escape closes an open Select without discarding the draft; a second Escape discards it', async () => {
+    const s = await open([RULE]);
+    const card = screen.getByTestId('item-0');
+    await userEvent.clear(within(card).getByLabelText('title'));
+    await userEvent.type(within(card).getByLabelText('title'), 'Changed');
+    await userEvent.click(
+      within(card).getByRole('button', { name: 'Add property' })
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'owner' })
+    );
+    await userEvent.click(
+      within(card).getByRole('combobox', { name: 'owner' })
+    );
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(
+      within(screen.getByTestId('item-0')).getByLabelText('title')
+    ).toHaveValue('Changed');
+    await userEvent.keyboard('{Escape}');
+    expect(
+      within(screen.getByTestId('item-0')).getByLabelText('title')
+    ).toHaveValue('{label}');
+    expect(s.set).not.toHaveBeenCalled();
+  });
+
+  it('clearing and retyping a field keeps its position in the written object', async () => {
+    const s = await open([RULE]);
+    const card = screen.getByTestId('item-0');
+    await userEvent.clear(within(card).getByLabelText('category'));
+    await userEvent.type(within(card).getByLabelText('category'), 'run');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(s.set).toHaveBeenCalled());
+    const call = s.set.mock.calls[0] as unknown as [
+      string,
+      string,
+      Record<string, unknown>[],
+    ];
+    expect(Object.keys(call[2][0]!)).toEqual(Object.keys(RULE));
+  });
 });
