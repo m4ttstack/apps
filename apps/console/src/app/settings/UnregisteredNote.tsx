@@ -20,20 +20,30 @@ export function UnregisteredNote({ entries }: { entries: Unregistered[] }) {
       </Group>
       <Stack gap={2} pl={22}>
         {entries.map(e => (
-          <Group key={`${e.scope}:${e.key}`} gap={12} wrap="nowrap">
+          <Group
+            key={`${e.scope}:${e.key}`}
+            gap={12}
+            wrap="nowrap"
+            style={{ minWidth: 0 }}
+          >
             <Text fz={12} ff="monospace">
               {e.key}
             </Text>
             <Text fz={12} c={text.muted}>
               {e.scope}
             </Text>
+            {/* A nowrap, truncated Text's min-content is its full,
+                untruncated width regardless of minWidth: 0 (that only
+                clamps the final, definite-layout size); `contain` stops
+                this path from reporting that width to an ancestor doing
+                its own intrinsic sizing, such as the page's scroll area. */}
             <Text
               fz={12}
               ff="monospace"
               c={text.muted}
               truncate
               title={e.file}
-              style={{ flex: 1, minWidth: 0 }}
+              style={{ flex: 1, minWidth: 0, contain: 'inline-size' }}
             >
               {e.file}
             </Text>
