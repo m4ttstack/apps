@@ -152,8 +152,18 @@ export function useConsoleSettings(
         if (!res.ok || !out?.effective)
           return out?.error ?? `${path} failed: ${res.status}`;
         const effective = out.effective;
+        const bodyRepo = typeof body.repo === 'string' ? body.repo : null;
         setDefs(prev =>
-          prev.map(d => (d.key === key ? { ...d, effective } : d))
+          prev.map(d => {
+            if (d.key !== key) return d;
+            // A repo-scoped def's `effective` is resolved for the repo the
+            // write body carried; patching it here when that repo differs
+            // from this hook's own picked repo would show a repo-specific
+            // value where the hook reads another repo (or all of them).
+            // The reread that follows re-resolves it for the right repo.
+            if (d.repoScoped && bodyRepo !== repo) return d;
+            return { ...d, effective };
+          })
         );
         reread();
         return null;
@@ -161,7 +171,7 @@ export function useConsoleSettings(
         return (err as Error).message;
       }
     },
-    [reread]
+    [reread, repo]
   );
 
   const set = useCallback(

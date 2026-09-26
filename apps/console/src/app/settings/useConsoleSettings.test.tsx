@@ -97,6 +97,63 @@ describe('useConsoleSettings', () => {
     ]);
   });
 
+  it('skips the effective patch when a write repo differs from the hook repo for a repo-scoped def', async () => {
+    const REPO_DEF = {
+      key: 'rt.roles',
+      type: 'object',
+      scopes: ['team', 'user', 'machine'],
+      merge: 'deep',
+      secret: false,
+      teamLocked: false,
+      repoScoped: true,
+      writable: true,
+      description: 'Roles.',
+      hasDefault: false,
+      defaultValue: null,
+      effective: { scope: 'team', file: '/t', value: { dev: {} } },
+      storeVersion: 1,
+    };
+    // The reread a write triggers must not race this assertion: every /defs
+    // call past the first (the mount read) hangs, so the observed defs are
+    // exactly what the write's own patch left behind.
+    let defsCalls = 0;
+    vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+      calls.push({ url, body });
+      if (url.includes('/defs') && !url.includes('console.move-only')) {
+        defsCalls += 1;
+        if (defsCalls > 1) return new Promise<never>(() => {});
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ defs: [REPO_DEF] }),
+        };
+      }
+      if (url.includes('/defs'))
+        return { ok: true, status: 200, json: async () => ({ defs: [] }) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          rows: [],
+          effective: {
+            scope: 'team.repo',
+            file: '/t-repo',
+            value: { dev: { fixedPort: 3000 } },
+          },
+        }),
+      };
+    });
+    const { result } = renderHook(() => useConsoleSettings(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.set('rt.roles', 'team', { dev: {} }, REPO);
+    });
+    expect(
+      result.current.defs.find(d => d.key === 'rt.roles')!.effective
+    ).toEqual(REPO_DEF.effective);
+  });
+
   it('re-reads defs after a write without raising loading', async () => {
     const seen: boolean[] = [];
     const { result } = renderHook(() => {
