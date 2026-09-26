@@ -2,8 +2,8 @@ import { useRef, useState, type ReactNode } from 'react';
 import {
   ActionIcon,
   Autocomplete,
+  Box,
   Button,
-  Code,
   Group,
   Menu,
   NumberInput,
@@ -30,9 +30,15 @@ import {
   type FieldSpec,
   type FormShape,
 } from './formShape';
+import { shortIssue } from './issues';
 import { BLOCK_STYLE } from './JsonBlock';
 
 type Entry = Record<string, unknown>;
+
+const NAME_W = 168;
+const MESSAGE_W = 176;
+const REMOVE_W = 24;
+const ROW_H = 38;
 
 /** Controlled; the number input keeps its raw text so a half-typed "-"
     survives until it parses. */
@@ -41,13 +47,17 @@ function FieldInput({
   spec,
   value,
   disabled,
+  error,
   onChange,
+  onTouch,
 }: {
   label: string;
   spec: FieldSpec;
   value: unknown;
   disabled: boolean;
+  error: boolean;
   onChange: (v: unknown) => void;
+  onTouch: () => void;
 }) {
   const [raw, setRaw] = useState<string | number>(
     typeof value === 'number' ? value : ''
@@ -59,8 +69,12 @@ function FieldInput({
         size="sm"
         style={SWITCH_SIZE}
         disabled={disabled}
+        error={error}
         checked={value === true}
-        onChange={e => onChange(e.currentTarget.checked)}
+        onChange={e => {
+          onTouch();
+          onChange(e.currentTarget.checked);
+        }}
       />
     );
   if (typeof spec.type === 'object')
@@ -71,12 +85,17 @@ function FieldInput({
         w={enumWidth(spec.type.enum)}
         styles={INPUT_TYPE.label}
         disabled={disabled}
+        error={error}
         data={[...spec.type.enum]}
         value={typeof value === 'string' ? value : null}
         allowDeselect={false}
         onChange={v => {
-          if (v !== null) onChange(v);
+          if (v !== null) {
+            onTouch();
+            onChange(v);
+          }
         }}
+        onBlur={onTouch}
       />
     );
   if (spec.type === 'number')
@@ -89,75 +108,76 @@ function FieldInput({
         placeholder={spec.placeholder}
         hideControls
         disabled={disabled}
+        error={error}
         value={raw}
         onChange={v => {
+          onTouch();
           setRaw(v);
           if (typeof v === 'number') onChange(v);
           else if (v === '') onChange(undefined);
         }}
+        onBlur={onTouch}
       />
     );
   const text = typeof value === 'string' ? value : '';
-  const change = (v: string) => onChange(v === '' ? undefined : v);
+  const change = (v: string) => {
+    onTouch();
+    onChange(v === '' ? undefined : v);
+  };
   return spec.suggestions ? (
     <Autocomplete
       aria-label={label}
       size="xs"
-      w={200}
+      w="100%"
       styles={INPUT_TYPE.code}
       placeholder={spec.placeholder}
       disabled={disabled}
+      error={error}
       data={spec.suggestions}
       value={text}
       onChange={change}
+      onBlur={onTouch}
     />
   ) : (
     <TextInput
       aria-label={label}
       size="xs"
-      w={200}
+      w="100%"
       styles={INPUT_TYPE.code}
       placeholder={spec.placeholder}
       disabled={disabled}
+      error={error}
       value={text}
       onTextChange={change}
+      onBlur={onTouch}
     />
   );
 }
 
-function Line({
+/** One row of the shared grid: a fixed name column, an input column that
+    fills the rest, a fixed message column and a fixed remove slot, all at
+    one height so a message or a missing remove control never shifts a
+    neighbouring row. */
+function Row({
   name,
-  hint,
+  message,
+  remove,
   children,
-  error,
+  testId,
 }: {
   name: ReactNode;
-  hint?: string;
+  message?: ReactNode;
+  remove?: ReactNode;
   children: ReactNode;
-  error?: string;
+  testId?: string;
 }) {
-  const { text } = useSchemeColors();
   return (
-    <Stack gap={2} py={4}>
-      <Group gap={24} wrap="nowrap" mih={34}>
-        <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
-          {name}
-          {hint && (
-            <Text fz={12} c={text.muted} lineClamp={2}>
-              {hint}
-            </Text>
-          )}
-        </Stack>
-        <Group w={260} gap={8} wrap="nowrap" style={{ flex: 'none' }}>
-          {children}
-        </Group>
-      </Group>
-      {error && (
-        <Text fz={12} ff="monospace" c="var(--tk-text-bad-small)">
-          {error}
-        </Text>
-      )}
-    </Stack>
+    <Group gap={12} wrap="nowrap" h={ROW_H} align="center" data-testid={testId}>
+      <Box style={{ flex: `0 0 ${NAME_W}px`, minWidth: 0 }}>{name}</Box>
+      <Box style={{ flex: 1, minWidth: 0 }}>{children}</Box>
+      <Box style={{ flex: `0 0 ${MESSAGE_W}px`, minWidth: 0 }}>{message}</Box>
+      <Box style={{ flex: `0 0 ${REMOVE_W}px` }}>{remove}</Box>
+    </Group>
   );
 }
 
@@ -170,12 +190,16 @@ export function FieldGrid({
   onChange,
   disabled,
   issues,
+  touched,
+  onTouch,
 }: {
   shape: FormShape;
   entry: Entry;
   onChange: (next: Entry) => void;
   disabled: boolean;
   issues: SchemaIssue[];
+  touched: ReadonlySet<string>;
+  onTouch: (name: string) => void;
 }) {
   const { text } = useSchemeColors();
   // Seeded from what's already set, so clearing a stored optional field's
@@ -203,8 +227,7 @@ export function FieldGrid({
     setShown(s => s.filter(n => n !== name));
     set(name, undefined);
   };
-  const errorFor = (name: string) =>
-    issues.find(i => i.path[0] === name)?.message;
+  const issueFor = (name: string) => issues.find(i => i.path[0] === name);
   const addable = addableFields(shape, entry, shown);
   const extras = extraKeys(shape, entry);
 
@@ -213,58 +236,100 @@ export function FieldGrid({
       {visibleFields(shape, entry, shown).map(name => {
         const spec = shape.fields[name]!;
         const required = shape.required.includes(name);
+        const issue = issueFor(name);
+        const showIssue = touched.has(name) && issue !== undefined;
         return (
-          <Line
+          <Row
             key={name}
+            testId={`field-row-${name}`}
             name={
-              <Text fz={12} ff="monospace">
+              <Text
+                fz={12}
+                ff="monospace"
+                c="var(--tk-text-1)"
+                truncate
+                title={spec.description}
+              >
                 {spec.title ?? name}
               </Text>
             }
-            hint={spec.description}
-            error={errorFor(name)}
+            message={
+              showIssue && (
+                <Text
+                  fz={12}
+                  c="var(--tk-text-bad-small)"
+                  truncate
+                  title={issue.message}
+                >
+                  {shortIssue(issue)}
+                </Text>
+              )
+            }
+            remove={
+              !required && (
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  c={text.muted}
+                  size="sm"
+                  aria-label={`remove ${name}`}
+                  disabled={disabled}
+                  onClick={() => drop(name)}
+                >
+                  <Icons.close size={14} />
+                </ActionIcon>
+              )
+            }
           >
             <FieldInput
               label={name}
               spec={spec}
               value={entry[name]}
               disabled={disabled}
+              error={showIssue}
               onChange={v => set(name, v)}
+              onTouch={() => onTouch(name)}
             />
-            {!required && (
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                c={text.muted}
-                size="sm"
-                aria-label={`remove ${name}`}
-                disabled={disabled}
-                onClick={() => drop(name)}
-              >
-                <Icons.close size={14} />
-              </ActionIcon>
-            )}
-          </Line>
+          </Row>
         );
       })}
-      {extras.map(name => (
-        <Line
-          key={name}
-          name={
-            <Text fz={12} ff="monospace" c={text.muted}>
-              {name}
-            </Text>
-          }
-        >
-          <Code style={{ ...BLOCK_STYLE, maxWidth: 260 }}>
-            {JSON.stringify(entry[name])}
-          </Code>
-        </Line>
-      ))}
       {extras.length > 0 && (
-        <Text fz={12} c={text.muted} py={4}>
-          Read-only here and kept as they are; use Edit as JSON to change them.
-        </Text>
+        <Box style={{ borderTop: '1px solid var(--tk-line-2)' }} mt={4} pt={4}>
+          {extras.map(name => {
+            const raw = JSON.stringify(entry[name]);
+            return (
+              <Row
+                key={name}
+                name={
+                  <Text fz={12} ff="monospace" c={text.muted} truncate>
+                    {name}
+                  </Text>
+                }
+                message={
+                  <Text fz={12} c={text.muted} truncate>
+                    kept on save · edit in JSON
+                  </Text>
+                }
+              >
+                <Box
+                  style={{
+                    ...BLOCK_STYLE,
+                    fontFamily: 'var(--mantine-font-family-monospace)',
+                    color: 'var(--tk-text-3)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    padding: '4px 8px',
+                    borderRadius: 4,
+                  }}
+                  title={raw}
+                >
+                  {raw}
+                </Box>
+              </Row>
+            );
+          })}
+        </Box>
       )}
       {addable.length > 0 && (
         <Group py={4}>

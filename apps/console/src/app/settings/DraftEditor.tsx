@@ -5,7 +5,6 @@ import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import { checkValue } from '@mattstack/settings-kit/shapes';
 
 import type { FormShape } from './formShape';
-import { issueText } from './issues';
 import { ItemCards } from './ItemCards';
 
 type Entry = Record<string, unknown>;
@@ -54,42 +53,42 @@ export function DraftEditor({
     onCancel();
   };
 
+  const footerEnd = (
+    <>
+      <Button size="compact-sm" variant="default" onClick={onCancel}>
+        Cancel
+      </Button>
+      <Button
+        size="compact-sm"
+        disabled={!changed || issues.length > 0 || saving}
+        onClick={() => void onSave(draft)}
+      >
+        Save
+      </Button>
+    </>
+  );
+
   return (
     <Stack gap={10} onKeyDown={onKeyDown}>
-      {form.kind === 'objectList' && (
+      <Group justify="space-between" wrap="nowrap">
+        <Text fz={12} c={text.muted}>
+          {`Editing the ${targetLabel} layer`}
+        </Text>
+      </Group>
+      {form.kind === 'objectList' ? (
         <ItemCards
           shape={form}
           value={draft as Entry[]}
           onChange={setDraft}
           disabled={saving}
           issues={issues}
+          footerEnd={footerEnd}
         />
+      ) : (
+        <Group gap={8} justify="flex-end" wrap="nowrap">
+          {footerEnd}
+        </Group>
       )}
-      {issues[0] && (
-        <Text
-          fz={12}
-          ff="monospace"
-          c="var(--tk-text-bad-small)"
-          data-testid="draft-issue"
-        >
-          {issueText(issues[0])}
-        </Text>
-      )}
-      <Group gap={8} justify="flex-end" wrap="nowrap">
-        <Text fz={12} c={text.muted}>
-          {`saves to ${targetLabel}`}
-        </Text>
-        <Button size="compact-sm" variant="default" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button
-          size="compact-sm"
-          disabled={!changed || issues.length > 0 || saving}
-          onClick={() => void onSave(draft)}
-        >
-          Save
-        </Button>
-      </Group>
     </Stack>
   );
 }

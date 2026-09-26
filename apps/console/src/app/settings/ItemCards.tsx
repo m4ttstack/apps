@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   ActionIcon,
   Box,
@@ -13,7 +13,7 @@ import type { SchemaIssue } from '@mattstack/settings-kit/shapes';
 
 import { FieldGrid } from './FieldGrid';
 import { newEntry, type FormShape } from './formShape';
-import { issuesUnder } from './issues';
+import { footerSummary, issuesUnder } from './issues';
 
 type Entry = Record<string, unknown>;
 
@@ -25,24 +25,30 @@ export const CARD_STYLE = {
   background: 'var(--tk-raised)',
 } as const;
 
+const NO_TOUCHED: ReadonlySet<string> = new Set();
+
 /** One card per item, in order. Cards carry stable ids so a card's local
-    state (the optional fields it revealed) follows it through a reorder. */
+    state (the optional fields it revealed, its touched fields) follows it
+    through a reorder. */
 export function ItemCards({
   shape,
   value,
   onChange,
   disabled,
   issues,
+  footerEnd,
 }: {
   shape: FormShape;
   value: Entry[];
   onChange: (next: Entry[]) => void;
   disabled: boolean;
   issues: SchemaIssue[];
+  footerEnd: ReactNode;
 }) {
   const { text } = useSchemeColors();
   const next = useRef(value.length);
   const [ids, setIds] = useState(() => value.map((_, i) => i));
+  const [touched, setTouched] = useState<Record<number, Set<string>>>({});
   const swap = <T,>(list: T[], a: number, b: number) => {
     const out = [...list];
     [out[a], out[b]] = [out[b]!, out[a]!];
@@ -60,17 +66,30 @@ export function ItemCards({
     setIds([...ids, next.current++]);
     onChange([...value, newEntry(shape)]);
   };
+  const markTouched = (id: number, name: string) =>
+    setTouched(t => {
+      if (t[id]?.has(name)) return t;
+      const set = new Set(t[id]);
+      set.add(name);
+      return { ...t, [id]: set };
+    });
   const first = shape.required[0];
+  const summary = footerSummary(
+    issues,
+    ids.map(id => touched[id] ?? NO_TOUCHED)
+  );
 
   return (
     <Stack gap={8}>
       {value.map((item, i) => (
         <Box key={ids[i]} p={12} style={CARD_STYLE} data-testid={`item-${i}`}>
           <Group justify="space-between" wrap="nowrap" pb={4}>
-            <Text fz={12} fw={500} ff="monospace" truncate>
-              {`#${i + 1}`}
+            <Text fz={12} ff="monospace" truncate>
+              <Text span inherit c="var(--tk-text-3)">
+                {`#${i + 1}`}
+              </Text>
               {first && typeof item[first] === 'string' && (
-                <Text span inherit c={text.muted} fw={400}>
+                <Text span inherit fw={500} c="var(--tk-text-1)">
                   {`  ${item[first] as string}`}
                 </Text>
               )}
@@ -116,11 +135,13 @@ export function ItemCards({
             entry={item}
             disabled={disabled}
             issues={issuesUnder(issues, i)}
+            touched={touched[ids[i]!] ?? NO_TOUCHED}
+            onTouch={name => markTouched(ids[i]!, name)}
             onChange={e => onChange(value.map((x, j) => (j === i ? e : x)))}
           />
         </Box>
       ))}
-      <Group>
+      <Group justify="space-between" wrap="nowrap" gap={8}>
         <Button
           size="compact-sm"
           variant="default"
@@ -130,6 +151,24 @@ export function ItemCards({
         >
           Add item
         </Button>
+        <Group gap={8} wrap="nowrap">
+          {summary.touchedText && (
+            <Text fz={12} c="var(--tk-text-bad-small)">
+              {summary.touchedText}
+            </Text>
+          )}
+          {summary.touchedText && summary.noteText && (
+            <Text fz={12} c="var(--tk-text-3)">
+              ·
+            </Text>
+          )}
+          {summary.noteText && (
+            <Text fz={12} c="var(--tk-text-3)">
+              {summary.noteText}
+            </Text>
+          )}
+          {footerEnd}
+        </Group>
       </Group>
     </Stack>
   );

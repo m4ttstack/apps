@@ -81,9 +81,10 @@ describe('item cards', () => {
     const card = screen.getByTestId('item-1');
     const save = screen.getByRole('button', { name: 'Save' });
     expect(save).toBeDisabled();
-    expect(screen.getByTestId('draft-issue')).toHaveTextContent(
-      '[1].pattern: required property "pattern" is missing'
-    );
+    expect(within(card).queryByText('required')).toBeNull();
+    expect(
+      screen.getByText('#2 has 4 empty required fields')
+    ).toBeInTheDocument();
     await userEvent.type(within(card).getByLabelText('pattern'), 'run/*');
     await userEvent.type(within(card).getByLabelText('category'), 'run');
     await userEvent.type(within(card).getByLabelText('title'), 't');
@@ -238,5 +239,47 @@ describe('item cards', () => {
       Record<string, unknown>[],
     ];
     expect(Object.keys(call[2][0]!)).toEqual(Object.keys(RULE));
+  });
+
+  it('an untouched new card shows no issue text and Save is disabled', async () => {
+    await open([RULE]);
+    await userEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    const card = screen.getByTestId('item-1');
+    expect(within(card).queryByText('required')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('typing into and clearing a required field shows "required" on its row', async () => {
+    await open([RULE]);
+    const card = screen.getByTestId('item-0');
+    const pattern = within(card).getByLabelText('pattern');
+    await userEvent.type(pattern, 'x');
+    await userEvent.clear(pattern);
+    expect(
+      within(screen.getByTestId('field-row-pattern')).getByText('required')
+    ).toBeInTheDocument();
+  });
+
+  it("the footer's touched issue is numbered to match the card header", async () => {
+    await open([RULE]);
+    await userEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    const card = screen.getByTestId('item-1');
+    expect(within(card).getByText('#2')).toBeInTheDocument();
+    const pattern = within(card).getByLabelText('pattern');
+    await userEvent.type(pattern, 'x');
+    await userEvent.clear(pattern);
+    expect(screen.getByText('#2 pattern: required')).toBeInTheDocument();
+  });
+
+  it('a field row with an issue keeps the same height as one without', async () => {
+    await open([RULE]);
+    const card = screen.getByTestId('item-0');
+    const pattern = within(card).getByLabelText('pattern');
+    await userEvent.type(pattern, 'x');
+    await userEvent.clear(pattern);
+    const patternRow = screen.getByTestId('field-row-pattern');
+    const categoryRow = screen.getByTestId('field-row-category');
+    expect(patternRow.style.height).not.toBe('');
+    expect(patternRow.style.height).toBe(categoryRow.style.height);
   });
 });
