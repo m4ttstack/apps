@@ -12,20 +12,27 @@ import {
 } from './issues';
 import { JsonBlock } from './JsonBlock';
 
-// A column narrower than this reads as unusable JSON, so two columns wrap
-// to their own full-width rows once the row can no longer fit both at this
-// width.
+// Two columns share the row down to this width each before wrapping to
+// their own full-width rows; `flex-shrink` must stay enabled (1, not 0) so
+// a column can still shrink below this basis instead of forcing the row
+// wider than the space actually available for it.
 const DIVERGED_COL_BASIS = 260;
 
-/** Neither column grows the row from its content: `contain` stops the
-    JsonBlock's own intrinsic width from propagating out to the page (the
-    same fix FieldGrid's extras row uses), so a value that does not wrap
-    scrolls inside its own block instead of widening everything around it. */
+/** `minWidth: 0` lets a column shrink at all (a flex item's automatic
+    minimum size otherwise floors at its content's width); `contain` keeps
+    JsonBlock's own intrinsic width from reaching back out to size this
+    column. Neither alone stops the row from widening the page: a
+    `flex-shrink: 0` column cannot become smaller than its own unshrinkable
+    width, so it still reports that width to every ancestor doing intrinsic
+    sizing (such as the settings page's own scroll area) regardless of
+    `contain`. */
 const DIVERGED_COL_STYLE = {
-  flex: `1 0 ${DIVERGED_COL_BASIS}px`,
+  flex: `1 1 ${DIVERGED_COL_BASIS}px`,
   minWidth: 0,
   contain: 'inline-size',
 } as const;
+
+const DIVERGED_WRAP_STYLE = { width: '100%', minWidth: 0 } as const;
 
 /** One warning line per stored value that fails its schema or type check,
     and per merged-value failure, each with Fix when the page can open it. */
@@ -65,6 +72,7 @@ export function IssueLines({
           <Stack
             key={`d${i}`}
             gap={6}
+            style={DIVERGED_WRAP_STYLE}
             data-testid={`diverged-${issue.scope}-${issue.storeName}`}
           >
             {line(
@@ -73,7 +81,13 @@ export function IssueLines({
               onFix ? () => onFix(issue) : undefined
             )}
             {!def.secret && (
-              <Group gap={12} align="flex-start" wrap="wrap" pl={20}>
+              <Group
+                gap={12}
+                align="flex-start"
+                wrap="wrap"
+                pl={20}
+                style={DIVERGED_WRAP_STYLE}
+              >
                 <Stack
                   gap={2}
                   style={DIVERGED_COL_STYLE}

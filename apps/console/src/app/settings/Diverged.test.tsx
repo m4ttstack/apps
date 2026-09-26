@@ -97,13 +97,24 @@ describe('a diverged older name', () => {
     expect(line).toHaveTextContent(
       'user · rt.roles differs from the current value'
     );
+    expect(line.style.width).toBe('100%');
     const current = within(line).getByTestId('diverged-current');
     const older = within(line).getByTestId('diverged-older');
+    expect(current.parentElement).toBe(older.parentElement);
+    expect((current.parentElement as HTMLElement).style.width).toBe('100%');
     expect(current).toHaveTextContent('"fixedPort": 3000');
     expect(older).toHaveTextContent('"fixedPort": 3100');
     for (const col of [current, older]) {
+      // flex-shrink must stay 1 (not 0): a column that cannot shrink
+      // reports its own unshrinkable width to every ancestor doing
+      // intrinsic sizing, widening the whole page (see IssueLines.tsx).
+      expect(col.style.flexShrink).toBe('1');
       expect(col.style.minWidth).toBe('0px');
       expect(col.style.contain).toBe('inline-size');
+      const block = within(col).getByTestId('json-block');
+      expect(block.style.width).toBe('100%');
+      expect(block.style.minWidth).toBe('0px');
+      expect(block.style.contain).toBe('inline-size');
     }
   });
 
