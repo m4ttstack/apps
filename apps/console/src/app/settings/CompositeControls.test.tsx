@@ -905,6 +905,46 @@ describe('composite rows', () => {
     expect(screen.getByText(/"RT"/)).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).toBeNull();
   });
+
+  it('an invalid row offers no Edit as JSON in its row menu', async () => {
+    const s = store();
+    renderWithProviders(
+      <SettingRow
+        def={def('rt.repoRoots', {
+          effective: {
+            scope: 'machine',
+            file: '/m',
+            invalid: 'expected array',
+          },
+        })}
+        store={s}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'rt.repoRoots actions' })
+    );
+    expect(
+      await screen.findByRole('menuitem', { name: 'Remove from machine' })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Edit as JSON' })).toBeNull();
+  });
+
+  it("a stored row's menu offers Edit as JSON plus Remove together", async () => {
+    renderWithProviders(
+      <SettingRow def={PREFIXES} store={store()} subhead={null} query="" />
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'board.ticketPrefixes actions' })
+    );
+    expect(
+      await screen.findByRole('menuitem', { name: 'Edit as JSON' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Remove from team' })
+    ).toBeInTheDocument();
+  });
 });
 
 describe('rowSummary', () => {

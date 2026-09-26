@@ -1,5 +1,11 @@
 import { useState, type KeyboardEvent } from 'react';
-import { Button, Group, Stack, Text } from '@mattstack/app-kit/core';
+import {
+  Button,
+  Group,
+  SegmentedControl,
+  Stack,
+  Text,
+} from '@mattstack/app-kit/core';
 import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import { checkValue } from '@mattstack/settings-kit/shapes';
@@ -114,7 +120,7 @@ export function DraftEditor({
     <Stack gap={10} onKeyDown={onKeyDown}>
       <Group justify="space-between" wrap="nowrap" gap={8}>
         <Text fz={12} c={colors.muted}>
-          {`saves to ${targetLabel}`}
+          {`Editing the ${targetLabel} layer`}
         </Text>
         {form && (
           <Group gap={8} wrap="nowrap">
@@ -125,14 +131,19 @@ export function DraftEditor({
                   : 'Fix the JSON to switch back to the form.'}
               </Text>
             )}
-            <Button
-              size="compact-xs"
-              variant="subtle"
-              disabled={mode === 'json' && !fits}
-              onClick={mode === 'form' ? toJson : toForm}
-            >
-              {mode === 'form' ? 'Edit as JSON' : 'Edit as form'}
-            </Button>
+            <SegmentedControl
+              size="xs"
+              value={mode}
+              onChange={v => (v === 'json' ? toJson() : toForm())}
+              data={[
+                {
+                  value: 'form',
+                  label: 'Form',
+                  disabled: mode === 'json' && !fits,
+                },
+                { value: 'json', label: 'JSON' },
+              ]}
+            />
           </Group>
         )}
       </Group>

@@ -717,9 +717,7 @@ export function rowSummary(def: SettingDefWire): string {
 /** A form or JSON draft over the target layer's own value. A deep key's
     draft starts from that layer's authored value, never the merged view, so
     defaults and other layers are never copied into it; a replace key starts
-    from the value in effect, as the list editors do. A stored value the
-    form cannot draw still opens: DraftEditor falls back to JSON on its own
-    rather than this leaving a static, uneditable read here. */
+    from the value in effect, as the list editors do. */
 function DraftBody({
   def,
   row,
@@ -808,39 +806,33 @@ export function compositeParts(
       onToggle={onToggle}
     />
   );
+  const invalidLock = () => <ShapeLock at={def.effective.scope} row={row} />;
   const edit = editorKind(def);
-  const jsonBody = (
-    <DraftBody
-      def={def}
-      row={row}
-      form={null}
-      startIn="json"
-      onDone={onDoneJson}
-    />
-  );
-  if (asJson && EDITOR_KINDS.has(edit))
-    return { control: toggleOf(open), body: open ? jsonBody : null };
-  if (edit === 'json') {
+  const form = formOf(def);
+  // An invalid winning layer's effective.value is undefined; an editor
+  // seeded from that would discard the layer's real, unseen stored value on
+  // save. The guard runs before asJson (the row menu's forced JSON entry)
+  // and the ordinary json/objectList/objectMap bodies alike.
+  if ((asJson && EDITOR_KINDS.has(edit)) || edit === 'json') {
     if (def.effective.invalid !== undefined)
-      return {
-        control: <ShapeLock at={def.effective.scope} row={row} />,
-        body: null,
-      };
+      return { control: invalidLock(), body: null };
     return {
       control: toggleOf(open),
       body: open ? (
-        <DraftBody def={def} row={row} form={null} startIn="json" />
+        <DraftBody
+          def={def}
+          row={row}
+          form={form}
+          startIn="json"
+          onDone={onDoneJson}
+        />
       ) : null,
     };
   }
 
-  const form = formOf(def);
   if ((edit === 'objectList' || edit === 'objectMap') && form) {
     if (def.effective.invalid !== undefined)
-      return {
-        control: <ShapeLock at={def.effective.scope} row={row} />,
-        body: null,
-      };
+      return { control: invalidLock(), body: null };
     return {
       control: toggleOf(open),
       body: open ? <DraftBody def={def} row={row} form={form} /> : null,

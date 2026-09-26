@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActionIcon,
   Box,
@@ -76,6 +76,11 @@ export function SettingRow({
   const row = useRowSave(store, def);
   const [open, setOpen] = useState(false);
   const [asJson, setAsJson] = useState(false);
+  // A collapsed row starts fresh: a JSON draft forced open from the row
+  // menu must not resurface JSON mode on the next ordinary expand.
+  useEffect(() => {
+    if (!open) setAsJson(false);
+  }, [open]);
   const kind = rowKind(def);
   const [ns, name] = splitKey(def.key);
   const badge = badgeScope(def, subhead);
@@ -192,7 +197,10 @@ export function SettingRow({
             def={def}
             row={row}
             onEditJson={
-              isComposite && isEditable(def)
+              isComposite &&
+              isEditable(def) &&
+              def.writable &&
+              def.effective.invalid === undefined
                 ? () => {
                     setAsJson(true);
                     setOpen(true);

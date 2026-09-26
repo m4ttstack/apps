@@ -123,7 +123,7 @@ describe('JSON editor', () => {
       screen.getByRole('button', { name: /^1 intercept$/ })
     );
     expect(editor()).toHaveValue(JSON.stringify([INTERCEPT], null, 2));
-    expect(screen.queryByRole('button', { name: 'Edit as form' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'Form' })).toBeNull();
 
     setText('[{"command": "bun"');
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -157,12 +157,12 @@ describe('JSON editor', () => {
     const title = within(screen.getByTestId('item-0')).getByLabelText('title');
     await userEvent.clear(title);
     await userEvent.type(title, 'Gate');
-    await userEvent.click(screen.getByRole('button', { name: 'Edit as JSON' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'JSON' }));
     expect(JSON.parse((editor() as HTMLTextAreaElement).value)).toEqual([
       { ...RULE, title: 'Gate' },
     ]);
     setText(JSON.stringify([{ ...RULE, title: 'Gate 2' }]));
-    await userEvent.click(screen.getByRole('button', { name: 'Edit as form' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Form' }));
     expect(
       within(screen.getByTestId('item-0')).getByLabelText('title')
     ).toHaveValue('Gate 2');
@@ -179,9 +179,9 @@ describe('JSON editor', () => {
       />
     );
     await userEvent.click(screen.getByRole('button', { name: /^1 bridge$/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Edit as JSON' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'JSON' }));
     setText('[');
-    expect(screen.getByRole('button', { name: 'Edit as form' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Form' })).toBeDisabled();
     expect(
       screen.getByText('Fix the JSON to switch back to the form.')
     ).toBeInTheDocument();
@@ -217,6 +217,74 @@ describe('JSON editor', () => {
     );
   });
 
+  it("a string map's Edit as JSON button opens the JSON editor", async () => {
+    stubRows([]);
+    renderWithProviders(
+      <SettingRow
+        def={def(
+          'rt.repoIdentityOverrides',
+          { 'https://example.dev/a.git': 'a' },
+          { type: 'object' }
+        )}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /1 entry/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit as JSON' }));
+    expect(JSON.parse((editor() as HTMLTextAreaElement).value)).toEqual({
+      'https://example.dev/a.git': 'a',
+    });
+  });
+
+  it("a leaves field's Edit as JSON button opens the JSON editor", async () => {
+    const SNAPSHOT_DEFAULTS = {
+      enabled: true,
+      debounceSec: 20,
+      pushDelaySec: 60,
+      janitorThresholdHours: 6,
+      janitorIntervalMin: 30,
+    };
+    stubRows([
+      { scope: 'default', file: null, present: true, value: SNAPSHOT_DEFAULTS },
+      {
+        scope: 'machine',
+        file: '/m',
+        present: true,
+        value: { enabled: false },
+      },
+    ]);
+    renderWithProviders(
+      <SettingRow
+        def={def(
+          'rt.homeSnapshot',
+          { ...SNAPSHOT_DEFAULTS, enabled: false },
+          {
+            type: 'object',
+            merge: 'deep',
+            scopes: ['machine'],
+            effective: {
+              scope: 'machine',
+              file: '/m',
+              value: { ...SNAPSHOT_DEFAULTS, enabled: false },
+              authored: { enabled: false },
+            },
+          }
+        )}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /1 of 5 set/ }));
+    expect(await screen.findByText('debounceSec')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit as JSON' }));
+    expect(JSON.parse((editor() as HTMLTextAreaElement).value)).toEqual({
+      enabled: false,
+    });
+  });
+
   it("in JSON mode, a deep map writes only the target layer's own fields", async () => {
     const DEFAULT_FORGE = { 'gitlab.example.com': { provider: 'gitlab' } };
     const USER_FORGE = {
@@ -236,9 +304,7 @@ describe('JSON editor', () => {
       />
     );
     await userEvent.click(screen.getByRole('button', { name: /^2 entries$/ }));
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Edit as JSON' })
-    );
+    await userEvent.click(await screen.findByRole('radio', { name: 'JSON' }));
     expect(JSON.parse((editor() as HTMLTextAreaElement).value)).toEqual(
       USER_FORGE
     );
@@ -275,9 +341,7 @@ describe('JSON editor', () => {
         name: 'set rt.notify.eventBridges at user',
       })
     );
-    await userEvent.click(
-      within(layer).getByRole('button', { name: 'Edit as JSON' })
-    );
+    await userEvent.click(within(layer).getByRole('radio', { name: 'JSON' }));
     setText('[]');
     await userEvent.type(
       within(layer).getByRole('textbox', { name: 'JSON' }),
