@@ -9,7 +9,7 @@ import { matchesSchema, recognize } from '@mattstack/settings-kit/shapes';
 
 export type ConfigDef = SettingDefWire;
 
-export type LeafType = 'string' | 'number';
+export type LeafType = 'number';
 
 export type CompositeShape =
   | { kind: 'stringList' }
@@ -32,7 +32,9 @@ export function shapeOf(
     return undefined;
   const fields: Record<string, LeafType> = {};
   for (const [path, type] of Object.entries(r.fields)) {
-    if (type !== 'string' && type !== 'number') return undefined;
+    // LeavesControl (SettingsPage.tsx) only ever draws a NumberInput; a
+    // string leaf here would render in one and lose its type on save.
+    if (type !== 'number') return undefined;
     fields[path] = type;
   }
   return { kind: 'leaves', fields };

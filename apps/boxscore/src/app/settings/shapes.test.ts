@@ -60,6 +60,24 @@ describe('shapeOf', () => {
     });
   });
 
+  it('a string leaf has no editor, since LeavesControl only draws NumberInput', () => {
+    expect(
+      shapeOf(
+        def('boxscore.label', {
+          type: 'object',
+          schema: {
+            type: 'object',
+            properties: {
+              tooSmall: { type: 'number' },
+              title: { type: 'string' },
+            },
+            additionalProperties: {},
+          },
+        })
+      )
+    ).toBeUndefined();
+  });
+
   it('leaves boxscore cannot draw, and unknown shapes, have no editor', () => {
     expect(
       shapeOf(

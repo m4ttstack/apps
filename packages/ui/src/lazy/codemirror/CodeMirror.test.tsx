@@ -356,17 +356,25 @@ test('the kit highlight style (not the CodeMirror default) is installed for both
   unmount();
 
   setPrefersColorScheme('dark');
-  const darkRef = createRef<CodeMirrorRef>();
-  renderWithProviders(<CodeMirror ref={darkRef} value="[1]" language="json" />);
-  await waitFor(() => expect(darkRef.current?.view).toBeTruthy());
-  const darkView = darkRef.current!.view!;
-  const darkClass = highlightingFor(darkView.state, [tags.string]);
-  expect(darkClass).toBeTruthy();
-  // Same static role-token style, but reinstalled alongside the dark chrome
-  // -- proves the highlight extension lives in the reconfigured theme
-  // compartment rather than a fixed top-level extension.
-  expect(ruleFor(darkClass!)).toContain('var(--tk-text-cyan)');
-  expect(darkView.state.facet(EditorView.darkTheme)).toBe(true);
+  try {
+    const darkRef = createRef<CodeMirrorRef>();
+    renderWithProviders(
+      <CodeMirror ref={darkRef} value="[1]" language="json" />
+    );
+    await waitFor(() => expect(darkRef.current?.view).toBeTruthy());
+    const darkView = darkRef.current!.view!;
+    const darkClass = highlightingFor(darkView.state, [tags.string]);
+    expect(darkClass).toBeTruthy();
+    // Same static role-token style, but reinstalled alongside the dark chrome
+    // -- proves the highlight extension lives in the reconfigured theme
+    // compartment rather than a fixed top-level extension.
+    expect(ruleFor(darkClass!)).toContain('var(--tk-text-cyan)');
+    expect(darkView.state.facet(EditorView.darkTheme)).toBe(true);
+  } finally {
+    // The simulated dark preference must not outlive this test; later tests
+    // in this file assume the light default.
+    setPrefersColorScheme('light');
+  }
 });
 
 test('the lint underline and gutter marker use the bad/warn role tokens instead of a raw-hex data URI', async () => {

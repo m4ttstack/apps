@@ -34,6 +34,7 @@ import {
   setLeaf,
   shapeOf,
   type ConfigDef,
+  type LeafType,
   type RosterEntry,
 } from './shapes';
 
@@ -114,12 +115,12 @@ function LeavesControl({
 }: {
   def: ConfigDef;
   value: unknown;
-  fields: Record<string, 'string' | 'number'>;
+  fields: Record<string, LeafType>;
   row: ReturnType<typeof useRowSave>;
 }) {
   return (
     <Group gap="sm">
-      {Object.entries(fields).map(([path, type]) => {
+      {Object.entries(fields).map(([path]) => {
         const leaf = getLeaf(value, path);
         const label = `${def.key}.${path}`;
         return (
@@ -128,13 +129,7 @@ function LeavesControl({
             label={path}
             size="xs"
             w={110}
-            value={
-              type === 'number'
-                ? typeof leaf === 'number'
-                  ? leaf
-                  : ''
-                : String(leaf ?? '')
-            }
+            value={typeof leaf === 'number' ? leaf : ''}
             disabled={row.busy}
             aria-label={label}
             onChange={v =>
