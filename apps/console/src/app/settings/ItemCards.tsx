@@ -13,7 +13,12 @@ import type { SchemaIssue } from '@mattstack/settings-kit/shapes';
 
 import { FieldGrid } from './FieldGrid';
 import { newEntry, type FormShape } from './formShape';
-import { footerSummary, issuesUnder, type FooterSummary } from './issues';
+import {
+  footerSummary,
+  issuesByCard,
+  issuesUnder,
+  type FooterSummary,
+} from './issues';
 
 type Entry = Record<string, unknown>;
 
@@ -149,6 +154,7 @@ export function ItemCards({
   disabled,
   issues,
   footerEnd,
+  issueTestId,
 }: {
   shape: FormShape;
   value: Entry[];
@@ -156,10 +162,19 @@ export function ItemCards({
   disabled: boolean;
   issues: SchemaIssue[];
   footerEnd: ReactNode;
+  issueTestId?: string;
 }) {
   const next = useRef(value.length);
   const [ids, setIds] = useState(() => value.map((_, i) => i));
-  const [touched, setTouched] = useState<Record<number, Set<string>>>({});
+  // Seeded from the mount-time issues (ids[i] === i at mount, before any
+  // reorder), so a card opened already nonconforming starts touched on its
+  // own bad fields instead of waiting for the user to touch them first.
+  const [touched, setTouched] = useState<Record<number, Set<string>>>(() => {
+    const seed: Record<number, Set<string>> = {};
+    for (const [card, fields] of issuesByCard(issues))
+      if (typeof card === 'number') seed[card] = new Set(fields);
+    return seed;
+  });
   const swap = <T,>(list: T[], a: number, b: number) => {
     const out = [...list];
     [out[a], out[b]] = [out[b]!, out[a]!];
@@ -252,6 +267,7 @@ export function ItemCards({
         }
         summary={summary}
         footerEnd={footerEnd}
+        issueTestId={issueTestId}
       />
     </Stack>
   );

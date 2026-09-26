@@ -498,7 +498,10 @@ describe('SettingsPage', () => {
 });
 
 describe('repo picker', () => {
-  const ROLES = (effective: SettingDefWire['effective']) =>
+  const ROLES = (
+    effective: SettingDefWire['effective'],
+    issues?: SettingDefWire['issues']
+  ) =>
     def('rt.roles', {
       type: 'object',
       scopes: ['user', 'team', 'machine'],
@@ -506,6 +509,7 @@ describe('repo picker', () => {
       repoScoped: true,
       repos: [{ identity: REPO, scopes: ['team'] }],
       effective,
+      issues,
     });
 
   it('lists All repos plus each repo, and picking one keeps it in ?repo=', async () => {
@@ -560,5 +564,41 @@ describe('repo picker', () => {
         ).length + 1
       )
     );
+  });
+
+  it('the Needs fixing count follows the picked repo', async () => {
+    defsResponse = serve([...DEFS, ROLES({ scope: null, file: null })]);
+    repoDefs = [
+      ...DEFS,
+      ROLES(
+        {
+          scope: 'team.repo',
+          file: '/home/team/settings.team.jsonc',
+          value: { dev: { fixedPort: '3000' } },
+        },
+        [
+          {
+            scope: 'team.repo',
+            file: '/home/team/settings.team.jsonc',
+            repo: REPO,
+            kind: 'nonconforming',
+            path: ['dev', 'fixedPort'],
+            message: 'expected number, got string',
+          },
+        ]
+      ),
+    ];
+    renderPage();
+    const chip = await screen.findByRole('checkbox', { name: /^Needs fixing/ });
+    const count = (n: number) =>
+      expect(chip.closest('label') ?? chip.parentElement!).toHaveTextContent(
+        `Needs fixing ${n}`
+      );
+    count(0);
+    await userEvent.click(screen.getByRole('combobox', { name: 'repo' }));
+    await userEvent.click(
+      await screen.findByRole('option', { name: 'acme/app' })
+    );
+    await waitFor(() => count(1));
   });
 });

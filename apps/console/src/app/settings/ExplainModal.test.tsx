@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ExplainModal, type ExplainStore } from './ExplainModal';
+import { schemaFields } from './testSchemas';
 import { SettingsRepoContext } from './useConsoleSettings';
 
 const KEY = 'board.agent.model';
@@ -322,6 +323,43 @@ describe('ExplainModal', () => {
     expect(layer).toHaveTextContent('"--all"');
     expect(layer.textContent).not.toContain('…');
   });
+
+  it('Set at an unset objectList layer opens the form, not JSON', async () => {
+    const BRIDGES: SettingDefWire = {
+      ...DEF,
+      key: 'rt.notify.eventBridges',
+      type: 'array',
+      scopes: ['user', 'machine'],
+      merge: 'replace',
+      effective: { scope: 'default', file: null, value: [] },
+      ...schemaFields('rt.notify.eventBridges'),
+    };
+    explainGet.mockResolvedValue(
+      ok({
+        def: BRIDGES,
+        rows: [
+          { scope: 'default', file: null, present: false },
+          { scope: 'user', file: '/stores/user.jsonc', present: false },
+          { scope: 'machine', file: '/stores/local.jsonc', present: false },
+        ],
+      })
+    );
+    renderModal(store({ defs: [BRIDGES] }), 'rt.notify.eventBridges');
+
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'set rt.notify.eventBridges at user',
+      })
+    );
+    const layer = screen.getByTestId('layer-user');
+    expect(
+      within(layer).getByText('Editing the user layer')
+    ).toBeInTheDocument();
+    expect(
+      within(layer).getByRole('button', { name: 'Add item' })
+    ).toBeInTheDocument();
+    expect(within(layer).queryByRole('textbox', { name: 'JSON' })).toBeNull();
+  });
 });
 
 describe('with a repo picked', () => {
@@ -399,6 +437,76 @@ describe('with a repo picked', () => {
     expect(
       screen.getByRole('button', { name: `set ${REPO_KEY} at team · repo` })
     ).toBeInTheDocument();
+  });
+
+  it('Fix opens the repo-rung layer in the form, Save off, and the explain fetch carries the repo', async () => {
+    const ROLES: SettingDefWire = {
+      ...REPO_DEF,
+      merge: 'deep',
+      type: 'object',
+      ...schemaFields('rt.roles'),
+    };
+    explainGet.mockResolvedValue(
+      ok({
+        def: ROLES,
+        rows: [
+          { scope: 'default', file: null, present: false },
+          { scope: 'team', file: '/stores/team.jsonc', present: false },
+          {
+            scope: 'team.repo',
+            file: '/stores/team-repo.jsonc',
+            present: true,
+            value: { dev: { fixedPort: '3000' } },
+            nonconforming: [
+              {
+                path: ['dev', 'fixedPort'],
+                message: 'expected number, got string',
+              },
+            ],
+          },
+          { scope: 'user', file: '/stores/user.jsonc', present: false },
+          {
+            scope: 'user.repo',
+            file: '/stores/user-repo.jsonc',
+            present: false,
+          },
+          { scope: 'machine', file: '/stores/local.jsonc', present: false },
+          {
+            scope: 'machine.repo',
+            file: '/stores/machine-repo.jsonc',
+            present: false,
+          },
+        ],
+      })
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderWithProviders(
+      <SettingsRepoContext.Provider value={REPO}>
+        <QueryClientProvider client={queryClient}>
+          <ExplainModal
+            settingKey={REPO_KEY}
+            fix="team.repo"
+            store={store({ defs: [ROLES] })}
+            onClose={vi.fn()}
+          />
+        </QueryClientProvider>
+      </SettingsRepoContext.Provider>
+    );
+
+    const layer = await screen.findByTestId('layer-team.repo');
+    expect(
+      within(layer).getByText('Editing the team · repo layer')
+    ).toBeInTheDocument();
+    expect(within(layer).getByRole('button', { name: 'Save' })).toBeDisabled();
+    await waitFor(() =>
+      expect(
+        explainGet.mock.calls.some((call: unknown[]) =>
+          (call[0] as string).includes(`repo=${encodeURIComponent(REPO)}`)
+        )
+      ).toBe(true)
+    );
   });
 
   it('with all repos, lists each repo that sets the key and switches to it', async () => {

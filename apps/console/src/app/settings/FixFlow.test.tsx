@@ -96,6 +96,84 @@ function roles(): SettingDefWire {
   };
 }
 
+/** A deep-merge key whose issue is on the merged value, not one layer --
+    Fix has no single layer to open for it. */
+function homeSnapshot(): SettingDefWire {
+  return {
+    key: 'rt.homeSnapshot',
+    type: 'object',
+    scopes: ['user'],
+    merge: 'deep',
+    secret: false,
+    teamLocked: false,
+    repoScoped: false,
+    writable: true,
+    description: 'Home snapshot cadence.',
+    hasDefault: false,
+    defaultValue: null,
+    effective: { scope: 'user', file: USER_FILE, value: { enabled: 'yes' } },
+    storeVersion: 1,
+    mergedIssues: [
+      { path: ['enabled'], message: 'expected boolean, got string' },
+    ],
+    ...schemaFields('rt.homeSnapshot'),
+  };
+}
+
+/** `board.members` is SHAPES-external (edited in board): writable, so
+    Remove still applies, but its kind is never in EDITOR_KINDS, so it is
+    never editable regardless of the def's own writable flag. */
+function boardMembers(): SettingDefWire {
+  return {
+    key: 'board.members',
+    type: 'array',
+    scopes: ['user'],
+    merge: 'replace',
+    secret: false,
+    teamLocked: false,
+    repoScoped: false,
+    writable: true,
+    description: 'Board members, edited in board.',
+    hasDefault: false,
+    defaultValue: null,
+    effective: {
+      scope: 'user',
+      file: USER_FILE,
+      value: [{ username: 'a' }],
+    },
+    storeVersion: 1,
+    issues: [
+      {
+        scope: 'user',
+        file: USER_FILE,
+        kind: 'nonconforming',
+        path: [0, 'username'],
+        message: 'expected string, got number',
+      },
+    ],
+    ...schemaFields('board.members'),
+  };
+}
+
+/** A key with no issue at all, so the chip filter has something to hide. */
+function fine(): SettingDefWire {
+  return {
+    key: 'rt.logLevel',
+    type: 'string',
+    scopes: ['user'],
+    merge: 'replace',
+    secret: false,
+    teamLocked: false,
+    repoScoped: false,
+    writable: true,
+    description: 'Log level.',
+    hasDefault: true,
+    defaultValue: 'info',
+    effective: { scope: 'default', file: null, value: 'info' },
+    storeVersion: 1,
+  };
+}
+
 describe('Needs fixing on the page', () => {
   beforeEach(() => {
     window.history.replaceState(null, '', '/settings');
@@ -107,7 +185,7 @@ describe('Needs fixing on the page', () => {
           ? { repos: [{ identity: REPO, label: 'acme/app' }] }
           : url.startsWith('/api/settings/explain/')
             ? { def: null, rows: [] }
-            : { defs: [bridges(), roles()] },
+            : { defs: [bridges(), roles(), fine()] },
     }));
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -133,6 +211,40 @@ describe('Needs fixing on the page', () => {
         'team · acme/app · dev.fixedPort: expected number, got string'
       )
     ).toBeInTheDocument();
+
+    expect(screen.getByText('logLevel')).toBeInTheDocument();
+    await userEvent.click(chip.closest('label') ?? chip);
+    await waitFor(() => expect(screen.queryByText('logLevel')).toBeNull());
+    expect(screen.getByText('eventBridges')).toBeInTheDocument();
+    expect(screen.getByText('roles')).toBeInTheDocument();
+  });
+
+  it('Fix on a merged issue opens the modal with no layer editor', async () => {
+    vi.stubGlobal('fetch', async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        url.startsWith('/api/settings/repos')
+          ? { repos: [{ identity: REPO, label: 'acme/app' }] }
+          : url.startsWith('/api/settings/explain/')
+            ? { def: null, rows: [] }
+            : { defs: [homeSnapshot()] },
+    }));
+    renderPage();
+    const line = await screen.findByText(
+      'merged · enabled: expected boolean, got string'
+    );
+    await userEvent.click(
+      within(line.closest('[data-testid="issue-line"]')!).getByRole('button', {
+        name: 'Fix',
+      })
+    );
+    await waitFor(() => {
+      const p = new URLSearchParams(window.location.search);
+      expect(p.get('explain')).toBe('rt.homeSnapshot');
+      expect(p.get('fix')).toBeNull();
+      expect(p.get('repo')).toBeNull();
+    });
   });
 
   it('Fix opens the explain modal on that layer, switching to the issue’s repo', async () => {
@@ -184,7 +296,7 @@ describe('Fix in the explain modal', () => {
     );
   }
 
-  it('opens the layer in the form when the form can draw it, issues shown, Save off', async () => {
+  it('opens the layer in the form when the form can draw it, the field highlighted, Save off', async () => {
     const value = [RULE, RULE, { ...RULE, url: 3 }];
     openFix(bridges(), [
       { scope: 'default', file: null, present: false },
@@ -199,9 +311,14 @@ describe('Fix in the explain modal', () => {
       },
     ]);
     const layer = await screen.findByTestId('layer-user');
-    expect(await within(layer).findByTestId('item-2')).toBeInTheDocument();
+    const item = await within(layer).findByTestId('item-2');
+    // Opened by Fix, the bad field starts touched: its error shows without
+    // the user typing into it first, and the footer names the same card.
+    expect(within(item).getByTestId('field-row-url')).toHaveTextContent(
+      'expected string, got number'
+    );
     expect(within(layer).getByTestId('draft-issue')).toHaveTextContent(
-      '[2].url: expected string, got number'
+      '#3 url: expected string, got number'
     );
     expect(within(layer).getByRole('button', { name: 'Save' })).toBeDisabled();
     expect(
@@ -233,5 +350,27 @@ describe('Fix in the explain modal', () => {
     ).toHaveValue(JSON.stringify({ pattern: 'x' }, null, 2));
     expect(within(layer).queryByTestId('item-0')).toBeNull();
     expect(within(layer).getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('a non-editable failing layer keeps Remove as the remedy, no editor opens', async () => {
+    openFix(boardMembers(), [
+      { scope: 'default', file: null, present: false },
+      {
+        scope: 'user',
+        file: USER_FILE,
+        present: true,
+        value: [{ username: 'a' }],
+      },
+    ]);
+    const layer = await screen.findByTestId('layer-user');
+    expect(within(layer).queryByText(/^Editing the/)).toBeNull();
+    expect(
+      within(layer).queryByRole('button', { name: 'set board.members at user' })
+    ).toBeNull();
+    expect(
+      within(layer).getByRole('button', {
+        name: 'remove board.members from user',
+      })
+    ).toBeInTheDocument();
   });
 });

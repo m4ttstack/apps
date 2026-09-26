@@ -44,6 +44,11 @@ const SCOPES = ['user', 'team', 'machine'] as const;
 const TOOLBAR_ROW = 68;
 // The title row and the toolbar row, plus the header's own bottom hairline.
 const HEADER_HEIGHT = PAGE_ROW_HEIGHT + TOOLBAR_ROW + 1;
+// Shared by the toolbar's three count chips (Changed, Editable, Needs
+// fixing), so their label geometry never drifts apart between edits.
+const FILTER_CHIP_STYLES = {
+  label: { height: 30, paddingInline: 12, fontSize: 12, fontWeight: 500 },
+};
 
 function Index({
   sections,
@@ -313,14 +318,7 @@ export function SettingsPage() {
                   onChange={setChangedOnly}
                   variant="outline"
                   size="sm"
-                  styles={{
-                    label: {
-                      height: 30,
-                      paddingInline: 12,
-                      fontSize: 12,
-                      fontWeight: 500,
-                    },
-                  }}
+                  styles={FILTER_CHIP_STYLES}
                 >
                   Changed{' '}
                   <Text span inherit ff="monospace">
@@ -332,14 +330,7 @@ export function SettingsPage() {
                   onChange={setEditableOnly}
                   variant="outline"
                   size="sm"
-                  styles={{
-                    label: {
-                      height: 30,
-                      paddingInline: 12,
-                      fontSize: 12,
-                      fontWeight: 500,
-                    },
-                  }}
+                  styles={FILTER_CHIP_STYLES}
                 >
                   Editable{' '}
                   <Text span inherit ff="monospace">
@@ -351,14 +342,7 @@ export function SettingsPage() {
                   onChange={setNeedsFixingOnly}
                   variant="outline"
                   size="sm"
-                  styles={{
-                    label: {
-                      height: 30,
-                      paddingInline: 12,
-                      fontSize: 12,
-                      fontWeight: 500,
-                    },
-                  }}
+                  styles={FILTER_CHIP_STYLES}
                 >
                   Needs fixing{' '}
                   <Text span inherit ff="monospace">

@@ -163,6 +163,7 @@ export function DraftEditor({
           disabled={saving}
           issues={issues}
           footerEnd={footerEnd}
+          issueTestId="draft-issue"
         />
       )}
       {mode === 'form' && form?.kind === 'objectMap' && (
@@ -173,17 +174,8 @@ export function DraftEditor({
           disabled={saving}
           issues={issues}
           footerEnd={footerEnd}
+          issueTestId="draft-issue"
         />
-      )}
-      {mode === 'form' && issues[0] && (
-        <Text
-          data-testid="draft-issue"
-          fz={12}
-          ff="monospace"
-          c="var(--tk-text-bad-small)"
-        >
-          {issueText(issues[0])}
-        </Text>
       )}
       {mode === 'json' && (
         <CardsFooter

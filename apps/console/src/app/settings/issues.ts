@@ -74,6 +74,25 @@ function fallbackIssueText(issue: SchemaIssue): string {
     : `${cardLabel(card)}: ${short}`;
 }
 
+/** Field names with an issue, grouped by their card key -- the seed for a
+    form opened on a nonconforming stored value: it starts touched on its
+    own bad fields, so the field shows its error immediately rather than
+    waiting for the user to touch it first. */
+export function issuesByCard(
+  issues: SchemaIssue[]
+): Map<CardKey, ReadonlySet<string>> {
+  const out = new Map<CardKey, Set<string>>();
+  for (const issue of issues) {
+    const card = issue.path[0];
+    const field = issue.path[1];
+    if (!isCardKey(card) || typeof field !== 'string') continue;
+    const set = out.get(card) ?? new Set<string>();
+    set.add(field);
+    out.set(card, set);
+  }
+  return out;
+}
+
 /** The item/section cards footer's three lines: the first issue on a
     touched field (numbered to match its card header, or named to match its
     section), a count of empty required fields for every card whose issues

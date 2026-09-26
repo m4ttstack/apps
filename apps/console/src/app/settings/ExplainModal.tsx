@@ -25,7 +25,7 @@ import { analyzeChain, shortValue } from '../config/chain';
 import { useAgentModels } from '../config/useSettings';
 import { useEditorHref } from '../editorHref';
 import { DraftEditor } from './DraftEditor';
-import { canDraw, editorKind, formOf } from './formShape';
+import { editorKind, formOf } from './formShape';
 import { issueText } from './issues';
 import { JsonBlock } from './JsonBlock';
 import { ScalarControl } from './ScalarControl';
@@ -108,14 +108,6 @@ function layerDef(def: SettingDefWire, row: ExplainRowWire): SettingDefWire {
   };
 }
 
-/** The mode a layer's editor should open in: the form when it can draw the
-    layer's own stored value, JSON otherwise -- a wrong-typed stored value
-    (row.invalid) never opens a form that would drop it. */
-function startInFor(def: SettingDefWire, row: ExplainRowWire): 'form' | 'json' {
-  const form = formOf(def);
-  return form && row.present && canDraw(form, row.value) ? 'form' : 'json';
-}
-
 function LayerLine({
   def,
   row,
@@ -124,7 +116,6 @@ function LayerLine({
   onSet,
   onRemove,
   startEditing = false,
-  startIn = 'form',
 }: {
   def: SettingDefWire;
   row: ExplainRowWire;
@@ -133,18 +124,9 @@ function LayerLine({
   onSet: (scope: string, value: unknown) => Promise<boolean>;
   onRemove: (scope: string) => Promise<boolean>;
   startEditing?: boolean;
-  startIn?: 'form' | 'json';
 }) {
   const { text } = useSchemeColors();
   const editorHref = useEditorHref();
-  const [editing, setEditing] = useState(startEditing);
-  const [saved, setSaved] = useState(false);
-  // Close on the re-read, not the write, so the old value never flashes.
-  useEffect(() => {
-    if (!saved) return;
-    setSaved(false);
-    setEditing(false);
-  }, [row]); // eslint-disable-line react-hooks/exhaustive-deps
   const scope = row.scope;
   const store = rungBase(scope);
   const label = store ? layerLabel(scope as LayerScope) : null;
@@ -156,6 +138,16 @@ function LayerLine({
   const editable =
     writable &&
     (composite ? EDITOR_KINDS.has(edit) : kind === 'scalar' || kind === 'enum');
+  // Fix seeds editing open only when the row is editable; a row with no
+  // console control keeps Remove as its only remedy.
+  const [editing, setEditing] = useState(startEditing && editable);
+  const [saved, setSaved] = useState(false);
+  // Close on the re-read, not the write, so the old value never flashes.
+  useEffect(() => {
+    if (!saved) return;
+    setSaved(false);
+    setEditing(false);
+  }, [row]); // eslint-disable-line react-hooks/exhaustive-deps
 
   let value: ReactNode;
   if (editing && store && !composite)
@@ -330,7 +322,6 @@ function LayerLine({
             def={def}
             form={formOf(def)}
             initial={row.present ? row.value : undefined}
-            startIn={startIn}
             targetLabel={isRung(scope) ? `${store} · repo` : store}
             saving={busy}
             onCancel={() => setEditing(false)}
@@ -525,7 +516,6 @@ function ExplainBody({
             onSet={(scope, v) => layers.setAt(scope, v)}
             onRemove={scope => layers.clear(scope)}
             startEditing={r.scope === fix && r.present}
-            startIn={startInFor(def, r)}
           />
         ))
       )}

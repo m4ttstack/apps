@@ -13,7 +13,7 @@ import type { SchemaIssue } from '@mattstack/settings-kit/shapes';
 import { INPUT_TYPE } from './controlStyles';
 import { FieldGrid } from './FieldGrid';
 import { newEntry, type FormShape } from './formShape';
-import { footerSummary, issuesUnder } from './issues';
+import { footerSummary, issuesByCard, issuesUnder } from './issues';
 import { CARD_STYLE, CardAction, CardsFooter } from './ItemCards';
 
 type Entry = Record<string, unknown>;
@@ -30,6 +30,7 @@ export function NamedSections({
   disabled,
   issues,
   footerEnd,
+  issueTestId,
 }: {
   shape: FormShape;
   value: Record<string, Entry>;
@@ -37,16 +38,21 @@ export function NamedSections({
   disabled: boolean;
   issues: SchemaIssue[];
   footerEnd: ReactNode;
+  issueTestId?: string;
 }) {
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
   // A Map, not a Record: an entry can be named "constructor" or
   // "toString", and a plain-object lookup for a key not yet touched would
   // resolve to the inherited Object.prototype function of that name
-  // instead of undefined.
-  const [touched, setTouched] = useState<Map<string, Set<string>>>(
-    () => new Map()
-  );
+  // instead of undefined. Seeded from the mount-time issues, so an entry
+  // opened already nonconforming starts touched on its own bad fields.
+  const [touched, setTouched] = useState<Map<string, Set<string>>>(() => {
+    const seed = new Map<string, Set<string>>();
+    for (const [card, fields] of issuesByCard(issues))
+      if (typeof card === 'string') seed.set(card, new Set(fields));
+    return seed;
+  });
   const [noun] = shape.labels;
 
   const add = () => {
@@ -155,6 +161,7 @@ export function NamedSections({
         }
         summary={summary}
         footerEnd={footerEnd}
+        issueTestId={issueTestId}
       />
     </Stack>
   );
