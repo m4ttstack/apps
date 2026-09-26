@@ -739,7 +739,13 @@ function DraftBody({
   if (deep && explained.rows.length === 0)
     return (
       <Body>
-        <Skeleton h={48} />
+        {explained.error ? (
+          <Text fz={12} ff="monospace" c="var(--tk-text-bad-small)">
+            {explained.error}
+          </Text>
+        ) : (
+          <Skeleton h={48} />
+        )}
       </Body>
     );
   const initial = deep

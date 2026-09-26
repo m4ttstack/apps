@@ -981,3 +981,32 @@ describe('rowSummary', () => {
     expect(rowSummary(d)).toBe('2 entries');
   });
 });
+
+describe('a deep composite editor whose explain read fails', () => {
+  it('shows the error instead of a permanent skeleton', async () => {
+    vi.stubGlobal('fetch', async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'explain failed: 500' }),
+    }));
+    renderWithProviders(
+      <SettingRow
+        def={def('gitq.forges', {
+          type: 'object',
+          merge: 'deep',
+          effective: {
+            scope: 'user',
+            file: '/home/user/settings.user.jsonc',
+            value: { 'gitlab.example.com': { provider: 'gitlab' } },
+          },
+        })}
+        store={store()}
+        subhead={null}
+        query=""
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /1 entry/ }));
+    expect(await screen.findByText('explain failed: 500')).toBeInTheDocument();
+    expect(screen.queryByLabelText('new host')).toBeNull();
+  });
+});
