@@ -420,22 +420,30 @@ function ExplainBody({
   const { refresh, rows, loading } = explained;
   // A settled explain read is fresher than a store loaded when the page
   // mounted; while a re-read runs, the store already holds the write.
-  // settings-kit 0.4.0's /explain route never sets `repos` (only /defs
-  // does), so it is carried over from storeDef regardless of freshness.
+  // settings-kit 0.5.0's /explain route never sets `repos`, `issues` or
+  // `mergedIssues` (those come from /defs only), so they are carried over
+  // from storeDef regardless of freshness -- otherwise the diverged panel
+  // and the modal's own issue lines never render on real data.
   const def =
     !loading && explained.def
-      ? { ...explained.def, repos: explained.def.repos ?? storeDef.repos }
+      ? {
+          ...explained.def,
+          repos: explained.def.repos ?? storeDef.repos,
+          issues: explained.def.issues ?? storeDef.issues,
+          mergedIssues: explained.def.mergedIssues ?? storeDef.mergedIssues,
+        }
       : storeDef;
   useEffect(() => {
     if (!loading && rows.length > 0) onRead(new Date());
   }, [loading, rows, onRead]);
 
   // A failed move can still have written its target, so every settled write
-  // re-reads the stack.
-  const tracked: RowStore = {
+  // re-reads the stack; prune goes through the same path as any other write.
+  const tracked: RowStore & Pick<ConsoleStore, 'prune'> = {
     set: async (...a) => after(await store.set(...a)),
     unset: async (...a) => after(await store.unset(...a)),
     move: async (...a) => after(await store.move(...a)),
+    prune: async (...a) => after(await store.prune(...a)),
   };
   function after(err: string | null) {
     refresh();
@@ -451,7 +459,7 @@ function ExplainBody({
     if (verdict.winner === row) return 'winner';
     return verdict.overridden.includes(row) ? 'overridden' : 'inert';
   };
-  const diverged = (def.issues ?? []).filter(isDiverged);
+  const diverged = def.secret ? [] : (def.issues ?? []).filter(isDiverged);
   const replaceWithFor = (row: ExplainRowWire) => {
     const issue = diverged.find(d =>
       d.scope !== row.scope ? false : isRung(row.scope) ? d.repo === repo : true
@@ -548,11 +556,12 @@ function ExplainBody({
           key={i}
           issue={issue}
           onPrune={() => {
+            setPruneError(null);
             const base = rungBase(issue.scope)!;
             const op = issue.repo
-              ? store.prune(def.key, base, issue.storeName, issue.repo)
-              : store.prune(def.key, base, issue.storeName);
-            void op.then(err => (err ? setPruneError(err) : refresh()));
+              ? tracked.prune(def.key, base, issue.storeName, issue.repo)
+              : tracked.prune(def.key, base, issue.storeName);
+            void op.then(err => err && setPruneError(err));
           }}
         />
       ))}

@@ -12,6 +12,21 @@ import {
 } from './issues';
 import { JsonBlock } from './JsonBlock';
 
+// A column narrower than this reads as unusable JSON, so two columns wrap
+// to their own full-width rows once the row can no longer fit both at this
+// width.
+const DIVERGED_COL_BASIS = 260;
+
+/** Neither column grows the row from its content: `contain` stops the
+    JsonBlock's own intrinsic width from propagating out to the page (the
+    same fix FieldGrid's extras row uses), so a value that does not wrap
+    scrolls inside its own block instead of widening everything around it. */
+const DIVERGED_COL_STYLE = {
+  flex: `1 0 ${DIVERGED_COL_BASIS}px`,
+  minWidth: 0,
+  contain: 'inline-size',
+} as const;
+
 /** One warning line per stored value that fails its schema or type check,
     and per merged-value failure, each with Fix when the page can open it. */
 export function IssueLines({
@@ -47,34 +62,40 @@ export function IssueLines({
     <Stack gap={4} pb={12}>
       {issues.map((issue, i) =>
         isDiverged(issue) ? (
-          <Stack key={`d${i}`} gap={6} data-testid={`diverged-${issue.scope}`}>
+          <Stack
+            key={`d${i}`}
+            gap={6}
+            data-testid={`diverged-${issue.scope}-${issue.storeName}`}
+          >
             {line(
               `d${i}`,
               `${issueWhere(issue)} · ${issue.storeName} differs from the current value`,
               onFix ? () => onFix(issue) : undefined
             )}
-            <Group gap={12} align="flex-start" wrap="nowrap" pl={20}>
-              <Stack
-                gap={2}
-                style={{ flex: 1, minWidth: 0 }}
-                data-testid="diverged-current"
-              >
-                <Text fz={12} c={text.muted}>
-                  current
-                </Text>
-                <JsonBlock value={issue.currentValue} maxHeight={160} />
-              </Stack>
-              <Stack
-                gap={2}
-                style={{ flex: 1, minWidth: 0 }}
-                data-testid="diverged-older"
-              >
-                <Text fz={12} c={text.muted}>
-                  {`older (${issue.storeName})`}
-                </Text>
-                <JsonBlock value={issue.olderValue} maxHeight={160} />
-              </Stack>
-            </Group>
+            {!def.secret && (
+              <Group gap={12} align="flex-start" wrap="wrap" pl={20}>
+                <Stack
+                  gap={2}
+                  style={DIVERGED_COL_STYLE}
+                  data-testid="diverged-current"
+                >
+                  <Text fz={12} c={text.muted}>
+                    current
+                  </Text>
+                  <JsonBlock value={issue.currentValue} maxHeight={160} />
+                </Stack>
+                <Stack
+                  gap={2}
+                  style={DIVERGED_COL_STYLE}
+                  data-testid="diverged-older"
+                >
+                  <Text fz={12} c={text.muted}>
+                    {`older (${issue.storeName})`}
+                  </Text>
+                  <JsonBlock value={issue.olderValue} maxHeight={160} />
+                </Stack>
+              </Group>
+            )}
           </Stack>
         ) : (
           line(

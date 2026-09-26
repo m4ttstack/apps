@@ -111,4 +111,19 @@ describe('UnregisteredNote', () => {
     renderWithProviders(<UnregisteredNote entries={[]} />);
     expect(screen.queryByTestId('unregistered-note')).toBeNull();
   });
+
+  it('constrains a long file path so it never widens the page', () => {
+    const longFile =
+      '/home/user/local/deeply/nested/config/directory/tree/settings.local.jsonc';
+    renderWithProviders(
+      <UnregisteredNote
+        entries={[
+          { key: 'board.claudeCommand', scope: 'machine', file: longFile },
+        ]}
+      />
+    );
+    const file = screen.getByTitle(longFile);
+    expect(file.style.flex).toBe('1 1 0%');
+    expect(file.style.minWidth).toBe('0px');
+  });
 });

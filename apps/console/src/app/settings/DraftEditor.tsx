@@ -142,6 +142,8 @@ export function DraftEditor({
                 onClick={() => {
                   setDraft(structuredClone(replaceWith.value));
                   setText(pretty(replaceWith.value));
+                  if (form && !canDraw(form, replaceWith.value))
+                    setMode('json');
                 }}
               >
                 {replaceWith.label}

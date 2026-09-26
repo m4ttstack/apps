@@ -27,7 +27,14 @@ export function UnregisteredNote({ entries }: { entries: Unregistered[] }) {
             <Text fz={12} c={text.muted}>
               {e.scope}
             </Text>
-            <Text fz={12} ff="monospace" c={text.muted} truncate>
+            <Text
+              fz={12}
+              ff="monospace"
+              c={text.muted}
+              truncate
+              title={e.file}
+              style={{ flex: 1, minWidth: 0 }}
+            >
               {e.file}
             </Text>
           </Group>
