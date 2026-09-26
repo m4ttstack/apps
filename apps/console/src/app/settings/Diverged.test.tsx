@@ -333,6 +333,138 @@ describe('a diverged older name', () => {
     );
   });
 
+  it('Use the older value in form mode shows the older value in the field itself', async () => {
+    stubExplain(ROLES, [
+      { scope: 'default', file: null, present: false },
+      { scope: 'user', file: USER_FILE, present: true, value: CURRENT },
+    ]);
+    const s = store();
+    renderWithProviders(
+      <QueryClientProvider client={new QueryClient()}>
+        <ExplainModal
+          settingKey="rt.roles"
+          fix="user"
+          store={{ defs: [ROLES], loading: false, error: null, ...s }}
+          onClose={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    const layer = await screen.findByTestId('layer-user');
+    // No switch to JSON: the layer opens in form mode already, since the
+    // older value still fits the form.
+    await userEvent.click(
+      within(layer).getByRole('button', { name: 'Use the older value' })
+    );
+    expect(within(layer).getByLabelText('fixedPort')).toHaveValue('3100');
+    await userEvent.click(within(layer).getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('rt.roles', 'user', OLDER)
+    );
+  });
+
+  it('editing another field afterwards keeps an older-only key', async () => {
+    const OLDER_WITH_EXTRA = { dev: { fixedPort: 3100, legacy: 'x' } };
+    const ROLES_EXTRA: SettingDefWire = {
+      ...ROLES,
+      issues: [{ ...ROLES.issues![0]!, olderValue: OLDER_WITH_EXTRA }],
+    };
+    stubExplain(ROLES_EXTRA, [
+      { scope: 'default', file: null, present: false },
+      { scope: 'user', file: USER_FILE, present: true, value: CURRENT },
+    ]);
+    const s = store();
+    renderWithProviders(
+      <QueryClientProvider client={new QueryClient()}>
+        <ExplainModal
+          settingKey="rt.roles"
+          fix="user"
+          store={{ defs: [ROLES_EXTRA], loading: false, error: null, ...s }}
+          onClose={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    const layer = await screen.findByTestId('layer-user');
+    await userEvent.click(
+      within(layer).getByRole('button', { name: 'Use the older value' })
+    );
+    const fixedPort = within(layer).getByLabelText('fixedPort');
+    await userEvent.clear(fixedPort);
+    await userEvent.type(fixedPort, '4000');
+    await userEvent.click(within(layer).getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(s.set).toHaveBeenCalledWith('rt.roles', 'user', {
+        dev: { fixedPort: 4000, legacy: 'x' },
+      })
+    );
+  });
+
+  it('an older list with a different length renders the right number of cards', async () => {
+    const RULE = {
+      pattern: 'gate/opened/*',
+      category: 'gate',
+      title: 't',
+      message: 'm',
+    };
+    const CURRENT_LIST = [RULE];
+    const OLDER_LIST = [
+      RULE,
+      { ...RULE, pattern: 'run/*' },
+      { ...RULE, pattern: 'mr/*' },
+    ];
+    const BRIDGES: SettingDefWire = {
+      key: 'rt.notify.eventBridges',
+      type: 'array',
+      scopes: ['user'],
+      merge: 'replace',
+      secret: false,
+      teamLocked: false,
+      repoScoped: false,
+      writable: true,
+      description: 'Event bridge rules.',
+      hasDefault: false,
+      defaultValue: null,
+      effective: { scope: 'user', file: USER_FILE, value: CURRENT_LIST },
+      storeVersion: 2,
+      issues: [
+        {
+          scope: 'user',
+          file: USER_FILE,
+          kind: 'diverged',
+          path: [],
+          message:
+            'rt.notify.eventBridges changed after rt.notify.eventBridges@2 was written',
+          storeName: 'rt.notify.eventBridges',
+          olderValue: OLDER_LIST,
+          currentValue: CURRENT_LIST,
+        },
+      ],
+      ...schemaFields('rt.notify.eventBridges'),
+    };
+    stubExplain(BRIDGES, [
+      { scope: 'default', file: null, present: false },
+      { scope: 'user', file: USER_FILE, present: true, value: CURRENT_LIST },
+    ]);
+    renderWithProviders(
+      <QueryClientProvider client={new QueryClient()}>
+        <ExplainModal
+          settingKey="rt.notify.eventBridges"
+          fix="user"
+          store={{ defs: [BRIDGES], loading: false, error: null, ...store() }}
+          onClose={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    const layer = await screen.findByTestId('layer-user');
+    expect(within(layer).getByTestId('item-0')).toBeInTheDocument();
+    expect(within(layer).queryByTestId('item-1')).toBeNull();
+    await userEvent.click(
+      within(layer).getByRole('button', { name: 'Use the older value' })
+    );
+    expect(within(layer).getByTestId('item-0')).toBeInTheDocument();
+    expect(within(layer).getByTestId('item-1')).toBeInTheDocument();
+    expect(within(layer).getByTestId('item-2')).toBeInTheDocument();
+  });
+
   it('the issue disappears once a successful prune is reflected back through defs', async () => {
     stubExplain(ROLES, [
       { scope: 'default', file: null, present: false },

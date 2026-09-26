@@ -229,8 +229,15 @@ export function FieldGrid({
   const order = useRef<string[]>(Object.keys(entry));
   const set = (name: string, v: unknown) => {
     if (!order.current.includes(name)) order.current = [...order.current, name];
+    // A key present in the entry but missing from order.current (a stale
+    // instance sharing state across an entry swap it never remounted for)
+    // would otherwise drop that key on this write.
+    const keys = [
+      ...order.current,
+      ...Object.keys(entry).filter(k => !order.current.includes(k)),
+    ];
     const next: Entry = {};
-    for (const k of order.current) {
+    for (const k of keys) {
       const value = k === name ? v : entry[k];
       if (value !== undefined) next[k] = value;
     }

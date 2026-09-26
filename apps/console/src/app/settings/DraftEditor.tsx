@@ -73,6 +73,11 @@ export function DraftEditor({
   );
   const [draft, setDraft] = useState<unknown>(() => structuredClone(start));
   const [text, setText] = useState(() => pretty(start));
+  // Bumped whenever the draft is replaced wholesale (Use the older value),
+  // keyed onto ItemCards/NamedSections so they remount from the new value
+  // instead of keeping card ids, key order and per-field local state seeded
+  // from the value they had at mount.
+  const [formGeneration, setFormGeneration] = useState(0);
 
   const parsed: Parsed =
     mode === 'json' ? parse(text) : { ok: true, value: draft };
@@ -142,6 +147,7 @@ export function DraftEditor({
                 onClick={() => {
                   setDraft(structuredClone(replaceWith.value));
                   setText(pretty(replaceWith.value));
+                  setFormGeneration(g => g + 1);
                   if (form && !canDraw(form, replaceWith.value))
                     setMode('json');
                 }}
@@ -177,6 +183,7 @@ export function DraftEditor({
       )}
       {mode === 'form' && form?.kind === 'objectList' && (
         <ItemCards
+          key={formGeneration}
           shape={form}
           value={draft as Entry[]}
           onChange={setDraft}
@@ -188,6 +195,7 @@ export function DraftEditor({
       )}
       {mode === 'form' && form?.kind === 'objectMap' && (
         <NamedSections
+          key={formGeneration}
           shape={form}
           value={draft as Record<string, Entry>}
           onChange={setDraft}

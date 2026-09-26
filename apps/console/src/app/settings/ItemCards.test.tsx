@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { renderWithProviders } from '@mattstack/app-kit/test-utils';
 import type { SettingDefWire } from '@mattstack/settings-kit/react';
+import { checkValue } from '@mattstack/settings-kit/shapes';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { formShape } from './formShape';
+import { ItemCards } from './ItemCards';
 import { SettingRow } from './SettingRow';
 import { schemaFields } from './testSchemas';
 
@@ -296,10 +300,11 @@ describe('item cards', () => {
     expect(down.style.background).not.toBe('transparent');
   });
 
-  it('an untouched non-required issue surfaces as a footer fallback', async () => {
+  it('stored issues show on their field at once', async () => {
     await open([{ ...RULE, subjectPrefix: 123 }]);
+    const row = screen.getByTestId('field-row-subjectPrefix');
     expect(
-      screen.getByText('#1 subjectPrefix: expected string, got number')
+      within(row).getByText('expected string, got number')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
@@ -325,5 +330,61 @@ describe('item cards', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+});
+
+describe('a card with a number, a switch and an enum field', () => {
+  const CARD_SCHEMA = {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        count: { type: 'number' },
+        active: { type: 'boolean' },
+        level: { type: 'string', enum: ['low', 'medium', 'high'] },
+      },
+      required: ['name'],
+      additionalProperties: {},
+    },
+  };
+  const CARD_SHAPE = formShape(CARD_SCHEMA)!;
+
+  function CardsHarness({ initial }: { initial: Record<string, unknown>[] }) {
+    const [value, setValue] = useState(initial);
+    const issues = checkValue(CARD_SCHEMA, value);
+    return (
+      <ItemCards
+        shape={CARD_SHAPE}
+        value={value}
+        onChange={setValue}
+        disabled={false}
+        issues={issues}
+        footerEnd={null}
+      />
+    );
+  }
+
+  it('edits a number, a switch and an enum field on the same card', async () => {
+    renderWithProviders(
+      <CardsHarness
+        initial={[{ name: 'a', count: 1, active: false, level: 'low' }]}
+      />
+    );
+    const card = screen.getByTestId('item-0');
+    const count = within(card).getByLabelText('count');
+    await userEvent.clear(count);
+    await userEvent.type(count, '5');
+    await userEvent.click(within(card).getByLabelText('active'));
+    await userEvent.click(
+      within(card).getByRole('combobox', { name: 'level' })
+    );
+    await userEvent.click(await screen.findByRole('option', { name: 'high' }));
+    expect(within(card).getByLabelText('count')).toHaveValue('5');
+    expect(within(card).getByLabelText('active')).toBeChecked();
+    expect(within(card).getByRole('combobox', { name: 'level' })).toHaveValue(
+      'high'
+    );
   });
 });
