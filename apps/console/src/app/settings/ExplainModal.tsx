@@ -25,7 +25,8 @@ import { analyzeChain, shortValue } from '../config/chain';
 import { useAgentModels } from '../config/useSettings';
 import { useEditorHref } from '../editorHref';
 import { DraftEditor } from './DraftEditor';
-import { editorKind, formOf } from './formShape';
+import { canDraw, editorKind, formOf } from './formShape';
+import { issueText } from './issues';
 import { JsonBlock } from './JsonBlock';
 import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
@@ -107,6 +108,14 @@ function layerDef(def: SettingDefWire, row: ExplainRowWire): SettingDefWire {
   };
 }
 
+/** The mode a layer's editor should open in: the form when it can draw the
+    layer's own stored value, JSON otherwise -- a wrong-typed stored value
+    (row.invalid) never opens a form that would drop it. */
+function startInFor(def: SettingDefWire, row: ExplainRowWire): 'form' | 'json' {
+  const form = formOf(def);
+  return form && row.present && canDraw(form, row.value) ? 'form' : 'json';
+}
+
 function LayerLine({
   def,
   row,
@@ -114,6 +123,7 @@ function LayerLine({
   busy,
   onSet,
   onRemove,
+  startEditing = false,
   startIn = 'form',
 }: {
   def: SettingDefWire;
@@ -122,11 +132,12 @@ function LayerLine({
   busy: boolean;
   onSet: (scope: string, value: unknown) => Promise<boolean>;
   onRemove: (scope: string) => Promise<boolean>;
+  startEditing?: boolean;
   startIn?: 'form' | 'json';
 }) {
   const { text } = useSchemeColors();
   const editorHref = useEditorHref();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(startEditing);
   const [saved, setSaved] = useState(false);
   // Close on the re-read, not the write, so the old value never flashes.
   useEffect(() => {
@@ -286,6 +297,11 @@ function LayerLine({
             {row.invalid}
           </Text>
         )}
+        {row.nonconforming?.map((issue, i) => (
+          <Text key={i} fz={12} ff="monospace" c="var(--tk-text-warn-small)">
+            {issueText(issue)}
+          </Text>
+        ))}
         {store && !allowed && (
           <Text fz={12} c={text.muted}>
             {`not allowed at this layer (allowed: ${def.scopes.join(', ')})`}
@@ -386,12 +402,14 @@ function RepoSection({
 function ExplainBody({
   def: storeDef,
   store,
+  fix,
   onRead,
   onChanged,
   onPickRepo,
 }: {
   def: SettingDefWire;
   store: RowStore;
+  fix?: string | null;
   onRead: (at: Date) => void;
   onChanged?: () => void;
   onPickRepo?: (repo: string) => void;
@@ -506,6 +524,8 @@ function ExplainBody({
             busy={layers.status === 'saving'}
             onSet={(scope, v) => layers.setAt(scope, v)}
             onRemove={scope => layers.clear(scope)}
+            startEditing={r.scope === fix && r.present}
+            startIn={startInFor(def, r)}
           />
         ))
       )}
@@ -547,12 +567,14 @@ function ExplainBody({
 function Resolved({
   settingKey,
   store,
+  fix,
   onRead,
   onChanged,
   onPickRepo,
 }: {
   settingKey: string;
   store: ExplainStore;
+  fix?: string | null;
   onRead: (at: Date) => void;
   onChanged?: () => void;
   onPickRepo?: (repo: string) => void;
@@ -565,6 +587,7 @@ function Resolved({
         key={def.key}
         def={def}
         store={store}
+        fix={fix}
         onRead={onRead}
         onChanged={onChanged}
         onPickRepo={onPickRepo}
@@ -594,6 +617,7 @@ function Resolved({
 /** Loads just this key, for pages with no settings store of their own. */
 function OwnStore(props: {
   settingKey: string;
+  fix?: string | null;
   onRead: (at: Date) => void;
   onChanged?: () => void;
 }) {
@@ -619,12 +643,14 @@ function useLastKey(key: string | null): string | null {
 export function ExplainModal({
   settingKey,
   store,
+  fix,
   onClose,
   onChanged,
   onPickRepo,
 }: {
   settingKey: string | null;
   store?: ExplainStore;
+  fix?: string | null;
   onClose: () => void;
   onChanged?: () => void;
   onPickRepo?: (repo: string) => void;
@@ -679,12 +705,18 @@ export function ExplainModal({
           <Resolved
             settingKey={key}
             store={store}
+            fix={fix}
             onRead={setReadAt}
             onChanged={onChanged}
             onPickRepo={onPickRepo}
           />
         ) : (
-          <OwnStore settingKey={key} onRead={setReadAt} onChanged={onChanged} />
+          <OwnStore
+            settingKey={key}
+            fix={fix}
+            onRead={setReadAt}
+            onChanged={onChanged}
+          />
         ))}
     </Modal>
   );

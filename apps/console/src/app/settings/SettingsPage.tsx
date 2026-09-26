@@ -34,6 +34,7 @@ import { useSectionSpy } from './useSectionSpy';
 import {
   buildSections,
   isEditable,
+  needsFixing,
   type ScopeFilter,
   type Section,
 } from './view';
@@ -147,6 +148,7 @@ export function SettingsPage() {
   const store = useConsoleSettings(repo);
   const [changedOnly, setChangedOnly] = useState(false);
   const [editableOnly, setEditableOnly] = useState(false);
+  const [needsFixingOnly, setNeedsFixingOnly] = useState(false);
   const [scope, setScope] = useState<ScopeFilter>('any');
   const filterRef = useRef<HTMLInputElement>(null);
   const [asOf, setAsOf] = useState<Date | null>(null);
@@ -179,8 +181,14 @@ export function SettingsPage() {
 
   const sections = useMemo(
     () =>
-      buildSections(store.defs, { query, changedOnly, editableOnly, scope }),
-    [store.defs, query, changedOnly, editableOnly, scope]
+      buildSections(store.defs, {
+        query,
+        changedOnly,
+        editableOnly,
+        needsFixing: needsFixingOnly,
+        scope,
+      }),
+    [store.defs, query, changedOnly, editableOnly, needsFixingOnly, scope]
   );
   const total = store.defs.length;
   const agentProvider: Provider =
@@ -190,7 +198,11 @@ export function SettingsPage() {
       : 'claude';
   const shown = sections.reduce((n, s) => n + s.shown, 0);
   const filtering =
-    query !== '' || changedOnly || editableOnly || scope !== 'any';
+    query !== '' ||
+    changedOnly ||
+    editableOnly ||
+    needsFixingOnly ||
+    scope !== 'any';
   const visible = sections.filter(s => s.shown > 0);
   const frame = useRef<HTMLDivElement>(null);
   const [active, jump] = useSectionSpy(
@@ -210,6 +222,7 @@ export function SettingsPage() {
     setQuery('');
     setChangedOnly(false);
     setEditableOnly(false);
+    setNeedsFixingOnly(false);
     setScope('any');
   };
 
@@ -333,6 +346,25 @@ export function SettingsPage() {
                     {store.defs.filter(isEditable).length}
                   </Text>
                 </Chip>
+                <Chip
+                  checked={needsFixingOnly}
+                  onChange={setNeedsFixingOnly}
+                  variant="outline"
+                  size="sm"
+                  styles={{
+                    label: {
+                      height: 30,
+                      paddingInline: 12,
+                      fontSize: 12,
+                      fontWeight: 500,
+                    },
+                  }}
+                >
+                  Needs fixing{' '}
+                  <Text span inherit ff="monospace">
+                    {store.defs.filter(needsFixing).length}
+                  </Text>
+                </Chip>
                 <SegmentedControl
                   size="xs"
                   withItemsBorders={false}
@@ -414,6 +446,12 @@ export function SettingsPage() {
                     filtering={filtering}
                     agentProvider={agentProvider}
                     onExplain={explain.open}
+                    onFix={(key, issue) =>
+                      explain.open(key, {
+                        fix: issue?.scope,
+                        repo: issue?.repo,
+                      })
+                    }
                   />
                 ))
               )}
@@ -439,6 +477,7 @@ export function SettingsPage() {
         </PageShell.Main>
         <ExplainModal
           settingKey={explain.key}
+          fix={explain.fix}
           store={store}
           onClose={explain.close}
           onPickRepo={setRepo}

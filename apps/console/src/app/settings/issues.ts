@@ -1,4 +1,19 @@
+import type { SettingDefWire } from '@mattstack/settings-kit/react';
 import type { SchemaIssue } from '@mattstack/settings-kit/shapes';
+
+import { repoLabel, rungBase } from './view';
+
+export type WireIssue = NonNullable<SettingDefWire['issues']>[number];
+
+/** The layer an issue lives in, with its repo when it is a repo section's. */
+export function issueWhere(issue: WireIssue): string {
+  const base = rungBase(issue.scope) ?? issue.scope;
+  return issue.repo ? `${base} · ${repoLabel(issue.repo)}` : base;
+}
+
+export function issueLine(issue: WireIssue): string {
+  return `${issueWhere(issue)} · ${issueText(issue)}`;
+}
 
 export function issuePath(path: (string | number)[]): string {
   if (path.length === 0) return '(root)';

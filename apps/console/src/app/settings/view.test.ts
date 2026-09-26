@@ -14,6 +14,7 @@ import {
   isRung,
   layerLabel,
   leafWrite,
+  needsFixing,
   NO_FILTER,
   rungBase,
   rungOf,
@@ -289,5 +290,42 @@ describe('layer rungs and write targets', () => {
     expect(layerLabel('team.repo')).toBe('team · repo');
     expect(layerLabel('team')).toBe('team');
     expect(layerLabel('machine.repo')).toBe('machine · repo');
+  });
+});
+
+describe('needs fixing', () => {
+  const broken = def('rt.notify.eventBridges', {
+    type: 'array',
+    issues: [
+      {
+        scope: 'user',
+        file: '/home/user/settings.user.jsonc',
+        kind: 'nonconforming',
+        path: [2, 'url'],
+        message: 'expected string, got number',
+      },
+    ],
+  });
+  const mergedOnly = def('rt.homeSnapshot', {
+    type: 'object',
+    mergedIssues: [
+      { path: ['enabled'], message: 'expected boolean, got string' },
+    ],
+  });
+  const fine = def('rt.logLevel', {});
+
+  it('counts a key with any layer issue or merged issue', () => {
+    expect(
+      [broken, mergedOnly, fine].filter(needsFixing).map(d => d.key)
+    ).toEqual(['rt.notify.eventBridges', 'rt.homeSnapshot']);
+  });
+
+  it('the filter keeps only keys that need fixing', () => {
+    expect(
+      applyFilter([broken, mergedOnly, fine], {
+        ...NO_FILTER,
+        needsFixing: true,
+      }).map(d => d.key)
+    ).toEqual(['rt.notify.eventBridges', 'rt.homeSnapshot']);
   });
 });

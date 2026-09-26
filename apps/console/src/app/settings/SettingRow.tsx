@@ -20,6 +20,8 @@ import {
 } from '@mattstack/settings-kit/shapes';
 
 import { compositeParts } from './CompositeControls';
+import { IssueLines } from './IssueLines';
+import type { WireIssue } from './issues';
 import { RepoReach } from './RepoReach';
 import { RowMenu } from './RowMenu';
 import { ScalarControl } from './ScalarControl';
@@ -62,6 +64,7 @@ export function SettingRow({
   query,
   suggestions,
   onExplain,
+  onFix,
   fullDescription = false,
 }: {
   def: SettingDefWire;
@@ -70,6 +73,7 @@ export function SettingRow({
   query: string;
   suggestions?: string[];
   onExplain?: (key: string) => void;
+  onFix?: (key: string, issue: WireIssue | null) => void;
   fullDescription?: boolean;
 }) {
   const { text } = useSchemeColors();
@@ -221,20 +225,21 @@ export function SettingRow({
           )}
         </Group>
       </Group>
-      {(row.error || def.effective.invalid) && (
+      {(row.error || (def.effective.invalid && def.issues === undefined)) && (
         <Stack gap={4} pb={12}>
           {row.error && (
             <Text fz={12} ff="monospace" c="var(--tk-text-bad-small)">
               {row.error}
             </Text>
           )}
-          {def.effective.invalid && (
+          {def.effective.invalid && def.issues === undefined && (
             <Text fz={12} ff="monospace" c="var(--tk-text-bad-small)">
               stored value rejected: {def.effective.invalid}
             </Text>
           )}
         </Stack>
       )}
+      <IssueLines def={def} onFix={onFix && (issue => onFix(def.key, issue))} />
       {body && <Collapse expanded={open}>{body}</Collapse>}
     </Box>
   );

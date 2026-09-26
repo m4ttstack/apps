@@ -22,6 +22,7 @@ export interface ViewFilter {
   query: string;
   changedOnly: boolean;
   editableOnly: boolean;
+  needsFixing: boolean;
   scope: ScopeFilter;
 }
 
@@ -29,8 +30,13 @@ export const NO_FILTER: ViewFilter = {
   query: '',
   changedOnly: false,
   editableOnly: false,
+  needsFixing: false,
   scope: 'any',
 };
+
+export function needsFixing(def: SettingDefWire): boolean {
+  return (def.issues?.length ?? 0) > 0 || (def.mergedIssues?.length ?? 0) > 0;
+}
 
 export const SUBHEAD_THRESHOLD = 12;
 const SUB_ORDER: StoreScope[] = ['team', 'user', 'machine'];
@@ -146,6 +152,7 @@ export function applyFilter(
     d =>
       (!f.changedOnly || isSet(d)) &&
       (!f.editableOnly || isEditable(d)) &&
+      (!f.needsFixing || needsFixing(d)) &&
       (f.scope === 'any' || rungBase(d.effective.scope) === f.scope)
   );
 }

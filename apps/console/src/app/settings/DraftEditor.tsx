@@ -175,6 +175,16 @@ export function DraftEditor({
           footerEnd={footerEnd}
         />
       )}
+      {mode === 'form' && issues[0] && (
+        <Text
+          data-testid="draft-issue"
+          fz={12}
+          ff="monospace"
+          c="var(--tk-text-bad-small)"
+        >
+          {issueText(issues[0])}
+        </Text>
+      )}
       {mode === 'json' && (
         <CardsFooter
           leading={null}
