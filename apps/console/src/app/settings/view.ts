@@ -130,6 +130,7 @@ export const EDITOR_KINDS: ReadonlySet<RowKind> = new Set<RowKind>([
   'stringMap',
   'leaves',
   'objectList',
+  'objectMap',
 ]);
 
 export function isEditable(def: SettingDefWire): boolean {

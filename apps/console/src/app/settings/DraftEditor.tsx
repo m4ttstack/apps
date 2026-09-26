@@ -6,6 +6,7 @@ import { checkValue } from '@mattstack/settings-kit/shapes';
 
 import type { FormShape } from './formShape';
 import { ItemCards } from './ItemCards';
+import { NamedSections } from './NamedSections';
 
 type Entry = Record<string, unknown>;
 
@@ -85,9 +86,14 @@ export function DraftEditor({
           footerEnd={footerEnd}
         />
       ) : (
-        <Group gap={8} justify="flex-end" wrap="nowrap">
-          {footerEnd}
-        </Group>
+        <NamedSections
+          shape={form}
+          value={draft as Record<string, Entry>}
+          onChange={setDraft}
+          disabled={saving}
+          issues={issues}
+          footerEnd={footerEnd}
+        />
       )}
     </Stack>
   );

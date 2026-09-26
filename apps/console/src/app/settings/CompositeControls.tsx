@@ -671,6 +671,21 @@ function UnsetSummary() {
   );
 }
 
+/** A form map counts its entries from the row's own authored layer where a
+    deep-merge key provides one (the summary names what this layer sets, not
+    the merged view), `effective.value` otherwise; settings-kit's own
+    `summarize` for every row that isn't a form map, a widened `json` key
+    included. */
+export function rowSummary(def: SettingDefWire): string {
+  if (editorKind(def) !== 'objectMap') return summarize(def);
+  const v = def.effective.authored ?? def.effective.value;
+  const n =
+    typeof v === 'object' && v !== null && !Array.isArray(v)
+      ? Object.keys(v).length
+      : 0;
+  return `${n} ${n === 1 ? 'entry' : 'entries'}`;
+}
+
 /** A form over the target layer's own value. A deep key's draft starts from
     that layer's authored value, never the merged view, so defaults and
     other layers are never copied into it; a replace key starts from the
@@ -763,7 +778,7 @@ export function compositeParts(
     return {
       control: (
         <ExpandToggle
-          label={value === undefined ? 'unset' : summarize(def)}
+          label={value === undefined ? 'unset' : rowSummary(def)}
           open={open}
           onToggle={onToggle}
         />

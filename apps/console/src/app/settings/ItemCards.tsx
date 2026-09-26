@@ -36,6 +36,55 @@ function footerSegments(
   return segs;
 }
 
+/** Item cards' and named sections' shared footer: a leading add control,
+    the issue summary (shrinks and truncates first so it never displaces the
+    buttons), then Cancel/Save. */
+export function CardsFooter({
+  leading,
+  summary,
+  footerEnd,
+}: {
+  leading: ReactNode;
+  summary: FooterSummary;
+  footerEnd: ReactNode;
+}) {
+  return (
+    <Group wrap="nowrap" gap={8} align="center">
+      <Group gap={8} wrap="nowrap" align="center" style={{ flex: 'none' }}>
+        {leading}
+      </Group>
+      <Group
+        gap={8}
+        wrap="nowrap"
+        justify="flex-end"
+        style={{ flex: 1, minWidth: 0 }}
+      >
+        {footerSegments(summary).map((seg, i) => (
+          <Fragment key={i}>
+            {i > 0 && (
+              <Text fz={12} c="var(--tk-text-3)" style={{ flex: 'none' }}>
+                ·
+              </Text>
+            )}
+            <Text
+              fz={12}
+              c={seg.color}
+              truncate
+              title={seg.text}
+              style={{ minWidth: 0 }}
+            >
+              {seg.text}
+            </Text>
+          </Fragment>
+        ))}
+      </Group>
+      <Group gap={8} wrap="nowrap" style={{ flex: 'none' }}>
+        {footerEnd}
+      </Group>
+    </Group>
+  );
+}
+
 // --tk-card reads almost flat against the page in dark scheme; --tk-raised
 // is the step tuned to read as a distinct surface in both schemes.
 export const CARD_STYLE = {
@@ -51,7 +100,7 @@ const NO_TOUCHED: ReadonlySet<string> = new Set();
     sets a readable, faded text colour) and clears its filled disabled
     background, which otherwise reads as a selected square rather than an
     unavailable action. */
-function CardAction({
+export function CardAction({
   label,
   icon,
   disabled,
@@ -127,7 +176,7 @@ export function ItemCards({
   const first = shape.required[0];
   const summary = footerSummary(
     issues,
-    ids.map(id => touched[id] ?? NO_TOUCHED)
+    new Map(ids.map((id, i) => [i, touched[id] ?? NO_TOUCHED]))
   );
 
   return (
@@ -177,48 +226,21 @@ export function ItemCards({
           />
         </Box>
       ))}
-      <Group wrap="nowrap" gap={8} align="center">
-        <Button
-          size="compact-sm"
-          variant="default"
-          disabled={disabled}
-          leftSection={<Icons.plus size={14} />}
-          onClick={add}
-          style={{ flex: 'none' }}
-        >
-          Add item
-        </Button>
-        {/* Shrinks and lets its Text segments truncate first, so a long
-            issue message never pushes Cancel/Save out of the card. */}
-        <Group
-          gap={8}
-          wrap="nowrap"
-          justify="flex-end"
-          style={{ flex: 1, minWidth: 0 }}
-        >
-          {footerSegments(summary).map((seg, i) => (
-            <Fragment key={i}>
-              {i > 0 && (
-                <Text fz={12} c="var(--tk-text-3)" style={{ flex: 'none' }}>
-                  ·
-                </Text>
-              )}
-              <Text
-                fz={12}
-                c={seg.color}
-                truncate
-                title={seg.text}
-                style={{ minWidth: 0 }}
-              >
-                {seg.text}
-              </Text>
-            </Fragment>
-          ))}
-        </Group>
-        <Group gap={8} wrap="nowrap" style={{ flex: 'none' }}>
-          {footerEnd}
-        </Group>
-      </Group>
+      <CardsFooter
+        leading={
+          <Button
+            size="compact-sm"
+            variant="default"
+            disabled={disabled}
+            leftSection={<Icons.plus size={14} />}
+            onClick={add}
+          >
+            Add item
+          </Button>
+        }
+        summary={summary}
+        footerEnd={footerEnd}
+      />
     </Stack>
   );
 }
