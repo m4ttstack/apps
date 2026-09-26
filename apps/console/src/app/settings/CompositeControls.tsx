@@ -13,6 +13,7 @@ import {
   NumberInput,
   Pill,
   Select,
+  Skeleton,
   Stack,
   Switch,
   Text,
@@ -41,7 +42,9 @@ import {
   numberWidth,
   SWITCH_SIZE,
 } from './controlStyles';
+import { DraftEditor } from './DraftEditor';
 import { ExpandToggle } from './ExpandToggle';
+import { canDraw, editorKind, formOf, type FormShape } from './formShape';
 import { JsonBlock } from './JsonBlock';
 import { ScopeBadge } from './ScopeBadge';
 import { unitOf } from './units';
@@ -52,6 +55,7 @@ import {
   leafWrite,
   rungBase,
   rungOf,
+  targetLabel,
   type LayerScope,
 } from './view';
 
@@ -667,6 +671,68 @@ function UnsetSummary() {
   );
 }
 
+/** A form over the target layer's own value. A deep key's draft starts from
+    that layer's authored value, never the merged view, so defaults and
+    other layers are never copied into it; a replace key starts from the
+    value in effect, as the list editors do. */
+function FormBody({
+  def,
+  row,
+  form,
+}: {
+  def: SettingDefWire;
+  row: Row;
+  form: FormShape;
+}) {
+  const { text } = useSchemeColors();
+  const repo = useSettingsRepo();
+  const explained = useKeyExplain(def.key, repo);
+  const [resets, setResets] = useState(0);
+  const at = rungOf(row.target.scope, row.target.repo ?? null);
+  const deep = def.merge === 'deep';
+  if (deep && explained.rows.length === 0)
+    return (
+      <Body>
+        <Skeleton h={48} />
+      </Body>
+    );
+  const initial = deep
+    ? explained.rows.find(r => r.scope === at && r.present)?.value
+    : def.effective.value;
+  if (initial !== undefined && !canDraw(form, initial))
+    return (
+      <Body>
+        <JsonBlock value={initial} />
+        <Text fz={12} c={text.muted} pt={6}>
+          This value does not fit the form.
+        </Text>
+      </Body>
+    );
+  return (
+    <Body>
+      <DraftEditor
+        key={`${resets}:${JSON.stringify(initial) ?? ''}`}
+        def={def}
+        form={form}
+        initial={initial}
+        targetLabel={targetLabel(row.target)}
+        saving={row.status === 'saving'}
+        onCancel={() => setResets(n => n + 1)}
+        onSave={async value => {
+          const empty =
+            deep &&
+            typeof value === 'object' &&
+            value !== null &&
+            Object.keys(value).length === 0;
+          const ok = await (empty ? row.clear(at) : row.save(value));
+          if (ok) explained.refresh();
+          return ok;
+        }}
+      />
+    </Body>
+  );
+}
+
 /** Composite rows: the control column holds an inline editor or a summary
     toggle, and the body expands under the row. */
 export function compositeParts(
@@ -685,6 +751,26 @@ export function compositeParts(
     (value === undefined && !def.secret) || def.effective.scope === null
       ? { control: <UnsetSummary />, body: null }
       : { control: toggle, body: open ? <ReadonlyBody def={def} /> : null };
+
+  const form = formOf(def);
+  const edit = editorKind(def);
+  if ((edit === 'objectList' || edit === 'objectMap') && form) {
+    if (def.effective.invalid !== undefined)
+      return {
+        control: <ShapeLock at={def.effective.scope} row={row} />,
+        body: null,
+      };
+    return {
+      control: (
+        <ExpandToggle
+          label={value === undefined ? 'unset' : summarize(def)}
+          open={open}
+          onToggle={onToggle}
+        />
+      ),
+      body: open ? <FormBody def={def} row={row} form={form} /> : null,
+    };
+  }
 
   if (kind !== 'stringList' && kind !== 'stringMap' && kind !== 'leaves')
     return readonly;

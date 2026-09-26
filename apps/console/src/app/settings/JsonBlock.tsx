@@ -1,6 +1,8 @@
 import { Code, ScrollArea } from '@mattstack/app-kit/core';
 
-const BLOCK_STYLE = {
+/** Shared with FieldGrid's extra-property display, the same raw-JSON look
+    at any size. */
+export const BLOCK_STYLE = {
   background: 'var(--tk-inset)',
   fontSize: 12,
   whiteSpace: 'pre-wrap',

@@ -7,12 +7,12 @@ import {
   filterDefs,
   getLeaf,
   isSet,
-  rowKind,
   setLeaf,
   targetScope,
   type RowKind,
 } from '@mattstack/settings-kit/shapes';
 
+import { editorKind } from './formShape';
 import { groupOf, GROUPS, type Group } from './groups';
 
 export type StoreScope = 'team' | 'user' | 'machine';
@@ -109,6 +109,10 @@ export function writeTarget(
   return { scope: targetScope(def) as StoreScope };
 }
 
+export function targetLabel(t: WriteTarget): string {
+  return t.repo ? `${t.scope} · ${repoLabel(t.repo)}` : t.scope;
+}
+
 /** A layer line's scope as a write target; a repo rung needs the picked
     repo. */
 export function targetAt(at: string, repo: string | null): WriteTarget | null {
@@ -125,10 +129,11 @@ export const EDITOR_KINDS: ReadonlySet<RowKind> = new Set<RowKind>([
   'stringList',
   'stringMap',
   'leaves',
+  'objectList',
 ]);
 
 export function isEditable(def: SettingDefWire): boolean {
-  return EDITOR_KINDS.has(rowKind(def));
+  return EDITOR_KINDS.has(editorKind(def));
 }
 
 export function applyFilter(

@@ -76,7 +76,8 @@ export function formShape(schema: JsonSchema | undefined): FormShape | null {
     item = add as JsonSchema;
     kind = 'objectMap';
   } else return null;
-  if (!item || item.type !== 'object' || !isRecord(item.properties)) return null;
+  if (!item || item.type !== 'object' || !isRecord(item.properties))
+    return null;
   const fields: Record<string, FieldSpec> = {};
   const nested: string[] = [];
   for (const [name, prop] of Object.entries(
@@ -150,7 +151,9 @@ export function addableFields(
 ): string[] {
   return Object.keys(shape.fields).filter(
     k =>
-      !shape.required.includes(k) && entry[k] === undefined && !shown.includes(k)
+      !shape.required.includes(k) &&
+      entry[k] === undefined &&
+      !shown.includes(k)
   );
 }
 

@@ -106,7 +106,9 @@ describe('entries', () => {
     expect(canDraw(s, [1])).toBe(false);
     expect(canDraw(s, { a: {} })).toBe(false);
     const map = formShape(TEST_SCHEMAS['gitq.forges'])!;
-    expect(canDraw(map, { 'gitlab.example.com': { provider: 'gitlab' } })).toBe(true);
+    expect(canDraw(map, { 'gitlab.example.com': { provider: 'gitlab' } })).toBe(
+      true
+    );
     expect(canDraw(map, { 'gitlab.example.com': 'gitlab' })).toBe(false);
   });
 });
