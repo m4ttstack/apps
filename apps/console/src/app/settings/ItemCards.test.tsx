@@ -312,4 +312,18 @@ describe('item cards', () => {
       screen.getByText('#2, #3 have 8 empty required fields')
     ).toBeInTheDocument();
   });
+
+  it('footer issue text can shrink and truncate, and never displaces the buttons', async () => {
+    await open([{ ...RULE, subjectPrefix: 123 }]);
+    const fallback = screen.getByText(
+      '#1 subjectPrefix: expected string, got number'
+    );
+    expect(fallback).toHaveAttribute('data-truncate');
+    expect(fallback.style.minWidth).toBe('0px');
+    expect(
+      screen.getByRole('button', { name: 'Add item' })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
 });

@@ -177,29 +177,45 @@ export function ItemCards({
           />
         </Box>
       ))}
-      <Group justify="space-between" wrap="nowrap" gap={8}>
+      <Group wrap="nowrap" gap={8} align="center">
         <Button
           size="compact-sm"
           variant="default"
           disabled={disabled}
           leftSection={<Icons.plus size={14} />}
           onClick={add}
+          style={{ flex: 'none' }}
         >
           Add item
         </Button>
-        <Group gap={8} wrap="nowrap">
+        {/* Shrinks and lets its Text segments truncate first, so a long
+            issue message never pushes Cancel/Save out of the card. */}
+        <Group
+          gap={8}
+          wrap="nowrap"
+          justify="flex-end"
+          style={{ flex: 1, minWidth: 0 }}
+        >
           {footerSegments(summary).map((seg, i) => (
             <Fragment key={i}>
               {i > 0 && (
-                <Text fz={12} c="var(--tk-text-3)">
+                <Text fz={12} c="var(--tk-text-3)" style={{ flex: 'none' }}>
                   ·
                 </Text>
               )}
-              <Text fz={12} c={seg.color}>
+              <Text
+                fz={12}
+                c={seg.color}
+                truncate
+                title={seg.text}
+                style={{ minWidth: 0 }}
+              >
                 {seg.text}
               </Text>
             </Fragment>
           ))}
+        </Group>
+        <Group gap={8} wrap="nowrap" style={{ flex: 'none' }}>
           {footerEnd}
         </Group>
       </Group>
