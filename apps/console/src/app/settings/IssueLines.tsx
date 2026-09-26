@@ -1,8 +1,16 @@
 import { Button, Group, Stack, Text } from '@mattstack/app-kit/core';
+import { useSchemeColors } from '@mattstack/app-kit/hooks';
 import { Icons } from '@mattstack/app-kit/icons';
 import type { SettingDefWire } from '@mattstack/settings-kit/react';
 
-import { issueLine, issueText, type WireIssue } from './issues';
+import {
+  isDiverged,
+  issueLine,
+  issueText,
+  issueWhere,
+  type WireIssue,
+} from './issues';
+import { JsonBlock } from './JsonBlock';
 
 /** One warning line per stored value that fails its schema or type check,
     and per merged-value failure, each with Fix when the page can open it. */
@@ -13,6 +21,7 @@ export function IssueLines({
   def: SettingDefWire;
   onFix?: (issue: WireIssue | null) => void;
 }) {
+  const { text } = useSchemeColors();
   const issues = def.issues ?? [];
   const merged = def.mergedIssues ?? [];
   if (issues.length === 0 && merged.length === 0) return null;
@@ -37,7 +46,43 @@ export function IssueLines({
   return (
     <Stack gap={4} pb={12}>
       {issues.map((issue, i) =>
-        line(`i${i}`, issueLine(issue), onFix ? () => onFix(issue) : undefined)
+        isDiverged(issue) ? (
+          <Stack key={`d${i}`} gap={6} data-testid={`diverged-${issue.scope}`}>
+            {line(
+              `d${i}`,
+              `${issueWhere(issue)} · ${issue.storeName} differs from the current value`,
+              onFix ? () => onFix(issue) : undefined
+            )}
+            <Group gap={12} align="flex-start" wrap="nowrap" pl={20}>
+              <Stack
+                gap={2}
+                style={{ flex: 1, minWidth: 0 }}
+                data-testid="diverged-current"
+              >
+                <Text fz={12} c={text.muted}>
+                  current
+                </Text>
+                <JsonBlock value={issue.currentValue} maxHeight={160} />
+              </Stack>
+              <Stack
+                gap={2}
+                style={{ flex: 1, minWidth: 0 }}
+                data-testid="diverged-older"
+              >
+                <Text fz={12} c={text.muted}>
+                  {`older (${issue.storeName})`}
+                </Text>
+                <JsonBlock value={issue.olderValue} maxHeight={160} />
+              </Stack>
+            </Group>
+          </Stack>
+        ) : (
+          line(
+            `i${i}`,
+            issueLine(issue),
+            onFix ? () => onFix(issue) : undefined
+          )
+        )
       )}
       {merged.map((issue, i) =>
         line(

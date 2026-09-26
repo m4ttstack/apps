@@ -289,6 +289,7 @@ describe('Fix in the explain modal', () => {
             set: vi.fn(async () => null),
             unset: vi.fn(async () => null),
             move: vi.fn(async () => null),
+            prune: vi.fn(async () => null),
           }}
           onClose={vi.fn()}
         />

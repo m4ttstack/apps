@@ -49,6 +49,7 @@ export function DraftEditor({
   startIn = 'form',
   targetLabel,
   saving,
+  replaceWith,
   onSave,
   onCancel,
 }: {
@@ -58,6 +59,9 @@ export function DraftEditor({
   startIn?: 'form' | 'json';
   targetLabel: string;
   saving: boolean;
+  /** Swaps the draft (form and JSON alike) for a value from elsewhere,
+      such as a diverged older store's value. */
+  replaceWith?: { label: string; value: unknown };
   onSave: (value: unknown) => Promise<boolean>;
   onCancel: () => void;
 }) {
@@ -122,28 +126,42 @@ export function DraftEditor({
         <Text fz={12} c={colors.muted}>
           {`Editing the ${targetLabel} layer`}
         </Text>
-        {form && (
+        {(form || replaceWith) && (
           <Group gap={8} wrap="nowrap">
-            {mode === 'json' && !fits && (
+            {form && mode === 'json' && !fits && (
               <Text fz={12} c={colors.muted}>
                 {parsed.ok
                   ? 'This value does not fit the form.'
                   : 'Fix the JSON to switch back to the form.'}
               </Text>
             )}
-            <SegmentedControl
-              size="xs"
-              value={mode}
-              onChange={v => (v === 'json' ? toJson() : toForm())}
-              data={[
-                {
-                  value: 'form',
-                  label: 'Form',
-                  disabled: mode === 'json' && !fits,
-                },
-                { value: 'json', label: 'JSON' },
-              ]}
-            />
+            {replaceWith && (
+              <Button
+                size="compact-xs"
+                variant="subtle"
+                onClick={() => {
+                  setDraft(structuredClone(replaceWith.value));
+                  setText(pretty(replaceWith.value));
+                }}
+              >
+                {replaceWith.label}
+              </Button>
+            )}
+            {form && (
+              <SegmentedControl
+                size="xs"
+                value={mode}
+                onChange={v => (v === 'json' ? toJson() : toForm())}
+                data={[
+                  {
+                    value: 'form',
+                    label: 'Form',
+                    disabled: mode === 'json' && !fits,
+                  },
+                  { value: 'json', label: 'JSON' },
+                ]}
+              />
+            )}
           </Group>
         )}
       </Group>

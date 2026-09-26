@@ -24,9 +24,10 @@ import { rowKind } from '@mattstack/settings-kit/shapes';
 import { analyzeChain, shortValue } from '../config/chain';
 import { useAgentModels } from '../config/useSettings';
 import { useEditorHref } from '../editorHref';
+import { DivergedPanel } from './DivergedPanel';
 import { DraftEditor } from './DraftEditor';
 import { editorKind, formOf } from './formShape';
-import { issueText } from './issues';
+import { isDiverged, issueText } from './issues';
 import { JsonBlock } from './JsonBlock';
 import { ScalarControl } from './ScalarControl';
 import { ScopeBadge } from './ScopeBadge';
@@ -50,7 +51,7 @@ import {
 
 export type ExplainStore = Pick<
   ConsoleStore,
-  'defs' | 'loading' | 'error' | 'set' | 'unset' | 'move'
+  'defs' | 'loading' | 'error' | 'set' | 'unset' | 'move' | 'prune'
 >;
 
 const MODAL_WIDTH = 760;
@@ -117,6 +118,7 @@ function LayerLine({
   onSet,
   onRemove,
   startEditing = false,
+  replaceWith,
 }: {
   def: SettingDefWire;
   row: ExplainRowWire;
@@ -125,6 +127,7 @@ function LayerLine({
   onSet: (scope: string, value: unknown) => Promise<boolean>;
   onRemove: (scope: string) => Promise<boolean>;
   startEditing?: boolean;
+  replaceWith?: { label: string; value: unknown };
 }) {
   const { text } = useSchemeColors();
   const editorHref = useEditorHref();
@@ -328,6 +331,7 @@ function LayerLine({
             initial={row.present ? row.value : undefined}
             targetLabel={isRung(scope) ? `${store} · repo` : store}
             saving={busy}
+            replaceWith={replaceWith}
             onCancel={() => setEditing(false)}
             onSave={v =>
               onSet(scope, v).then(ok => {
@@ -403,7 +407,7 @@ function ExplainBody({
   onPickRepo,
 }: {
   def: SettingDefWire;
-  store: RowStore;
+  store: RowStore & Pick<ConsoleStore, 'prune'>;
   fix?: string | null;
   onRead: (at: Date) => void;
   onChanged?: () => void;
@@ -412,6 +416,7 @@ function ExplainBody({
   const { text } = useSchemeColors();
   const repo = useSettingsRepo();
   const explained = useKeyExplain(storeDef.key, repo);
+  const [pruneError, setPruneError] = useState<string | null>(null);
   const { refresh, rows, loading } = explained;
   // A settled explain read is fresher than a store loaded when the page
   // mounted; while a re-read runs, the store already holds the write.
@@ -445,6 +450,15 @@ function ExplainBody({
       return verdict.contributors.includes(row) ? 'contributor' : 'inert';
     if (verdict.winner === row) return 'winner';
     return verdict.overridden.includes(row) ? 'overridden' : 'inert';
+  };
+  const diverged = (def.issues ?? []).filter(isDiverged);
+  const replaceWithFor = (row: ExplainRowWire) => {
+    const issue = diverged.find(d =>
+      d.scope !== row.scope ? false : isRung(row.scope) ? d.repo === repo : true
+    );
+    return issue
+      ? { label: 'Use the older value', value: issue.olderValue }
+      : undefined;
   };
 
   return (
@@ -520,12 +534,31 @@ function ExplainBody({
             onSet={(scope, v) => layers.setAt(scope, v)}
             onRemove={scope => layers.clear(scope)}
             startEditing={r.scope === fix && r.present}
+            replaceWith={replaceWithFor(r)}
           />
         ))
       )}
       {layers.error && (
         <Text fz={12} ff="monospace" c="var(--tk-text-bad-small)" pt={8}>
           {layers.error}
+        </Text>
+      )}
+      {diverged.map((issue, i) => (
+        <DivergedPanel
+          key={i}
+          issue={issue}
+          onPrune={() => {
+            const base = rungBase(issue.scope)!;
+            const op = issue.repo
+              ? store.prune(def.key, base, issue.storeName, issue.repo)
+              : store.prune(def.key, base, issue.storeName);
+            void op.then(err => (err ? setPruneError(err) : refresh()));
+          }}
+        />
+      ))}
+      {pruneError && (
+        <Text fz={12} ff="monospace" c="var(--tk-text-bad-small)" pt={8}>
+          {pruneError}
         </Text>
       )}
       {def.repoScoped && repo === null && (def.repos?.length ?? 0) > 0 && (

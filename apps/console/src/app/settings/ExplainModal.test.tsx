@@ -66,6 +66,7 @@ function store(over: Partial<ExplainStore> = {}): ExplainStore {
     set: vi.fn(async () => null as string | null),
     unset: vi.fn(async () => null as string | null),
     move: vi.fn(async () => null as string | null),
+    prune: vi.fn(async () => null as string | null),
     ...over,
   };
 }

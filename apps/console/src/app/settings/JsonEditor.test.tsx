@@ -92,6 +92,7 @@ const store = () => ({
   set: vi.fn(async () => null as string | null),
   unset: vi.fn(async () => null as string | null),
   move: vi.fn(async () => null as string | null),
+  prune: vi.fn(async () => null as string | null),
 });
 
 function stubRows(rows: ExplainRowWire[], d: SettingDefWire | null = null) {

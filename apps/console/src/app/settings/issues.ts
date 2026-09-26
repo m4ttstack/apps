@@ -5,6 +5,17 @@ import { repoLabel, rungBase } from './view';
 
 export type WireIssue = NonNullable<SettingDefWire['issues']>[number];
 
+export interface DivergedIssue extends WireIssue {
+  kind: 'diverged';
+  storeName: string;
+  olderValue: unknown;
+  currentValue: unknown;
+}
+
+export function isDiverged(issue: WireIssue): issue is DivergedIssue {
+  return issue.kind === 'diverged' && typeof issue.storeName === 'string';
+}
+
 /** The layer an issue lives in, with its repo when it is a repo section's. */
 export function issueWhere(issue: WireIssue): string {
   const base = rungBase(issue.scope) ?? issue.scope;
