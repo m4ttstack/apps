@@ -62,21 +62,34 @@ function FieldInput({
   const [raw, setRaw] = useState<string | number>(
     typeof value === 'number' ? value : ''
   );
-  if (spec.type === 'boolean')
+  if (spec.type === 'boolean') {
+    const checked = value === true;
     return (
       <Switch
         aria-label={label}
         size="sm"
         style={SWITCH_SIZE}
+        // Mantine's own off-track colour (dark-5) is the same hex as
+        // --tk-raised in dark scheme, so an off switch on a card reads as a
+        // bare thumb with no visible track. Overridden only off/enabled --
+        // checked keeps Mantine's own filled colour, disabled keeps
+        // Mantine's own disabled styling (see CardAction for the same
+        // reasoning).
+        styles={
+          !checked && !disabled
+            ? { track: { '--switch-bg': 'var(--tk-border)' } }
+            : undefined
+        }
         disabled={disabled}
         error={error}
-        checked={value === true}
+        checked={checked}
         onChange={e => {
           onTouch();
           onChange(e.currentTarget.checked);
         }}
       />
     );
+  }
   if (typeof spec.type === 'object')
     return (
       <Select
@@ -321,6 +334,14 @@ export function FieldGrid({
                     textOverflow: 'ellipsis',
                     padding: '4px 8px',
                     borderRadius: 4,
+                    // An unbroken JSON string (no spaces for `white-space:
+                    // nowrap` to break on) has an effectively unbounded
+                    // min-content width. Without size containment that
+                    // propagates through Mantine's ScrollArea, whose own
+                    // content wrapper is `min-width: min-content`, and
+                    // widens the whole settings panel instead of
+                    // ellipsizing in place.
+                    contain: 'inline-size',
                   }}
                   title={raw}
                 >

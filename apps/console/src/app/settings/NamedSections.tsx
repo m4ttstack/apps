@@ -40,7 +40,13 @@ export function NamedSections({
 }) {
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
-  const [touched, setTouched] = useState<Record<string, Set<string>>>({});
+  // A Map, not a Record: an entry can be named "constructor" or
+  // "toString", and a plain-object lookup for a key not yet touched would
+  // resolve to the inherited Object.prototype function of that name
+  // instead of undefined.
+  const [touched, setTouched] = useState<Map<string, Set<string>>>(
+    () => new Map()
+  );
   const [noun] = shape.labels;
 
   const add = () => {
@@ -55,18 +61,26 @@ export function NamedSections({
     const next = { ...value };
     delete next[key];
     onChange(next);
+    setTouched(t => {
+      if (!t.has(key)) return t;
+      const untouched = new Map(t);
+      untouched.delete(key);
+      return untouched;
+    });
   };
   const markTouched = (key: string, field: string) =>
     setTouched(t => {
-      if (t[key]?.has(field)) return t;
-      const set = new Set(t[key]);
+      if (t.get(key)?.has(field)) return t;
+      const next = new Map(t);
+      const set = new Set(t.get(key));
       set.add(field);
-      return { ...t, [key]: set };
+      next.set(key, set);
+      return next;
     });
 
   const summary = footerSummary(
     issues,
-    new Map(Object.keys(value).map(k => [k, touched[k] ?? NO_TOUCHED]))
+    new Map(Object.keys(value).map(k => [k, touched.get(k) ?? NO_TOUCHED]))
   );
 
   return (
@@ -89,7 +103,7 @@ export function NamedSections({
             entry={entry}
             disabled={disabled}
             issues={issuesUnder(issues, key)}
-            touched={touched[key] ?? NO_TOUCHED}
+            touched={touched.get(key) ?? NO_TOUCHED}
             onTouch={field => markTouched(key, field)}
             onChange={e => onChange({ ...value, [key]: e })}
           />
@@ -102,9 +116,11 @@ export function NamedSections({
               aria-label={`new ${noun}`}
               size="xs"
               w={200}
+              style={{ flex: 'none' }}
               styles={INPUT_TYPE.code}
               placeholder={noun}
               disabled={disabled}
+              error={Boolean(nameError)}
               value={name}
               onTextChange={v => {
                 setName(v);
@@ -120,11 +136,18 @@ export function NamedSections({
               disabled={disabled}
               leftSection={<Icons.plus size={14} />}
               onClick={add}
+              style={{ flex: 'none' }}
             >
               Add entry
             </Button>
             {nameError && (
-              <Text fz={12} c="var(--tk-text-bad-small)" truncate>
+              <Text
+                fz={12}
+                c="var(--tk-text-bad-small)"
+                truncate
+                title={nameError}
+                style={{ minWidth: 0 }}
+              >
                 {nameError}
               </Text>
             )}

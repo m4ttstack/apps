@@ -4,6 +4,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { rowSummary } from './CompositeControls';
 import { SettingRow } from './SettingRow';
 import { schemaFields } from './testSchemas';
 
@@ -903,5 +904,40 @@ describe('composite rows', () => {
     await userEvent.click(screen.getByRole('button', { name: /2 prefixes/ }));
     expect(screen.getByText(/"RT"/)).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).toBeNull();
+  });
+});
+
+describe('rowSummary', () => {
+  const MERGED = {
+    'gitlab.example.com': { provider: 'gitlab' },
+    'github.example.com': { provider: 'github' },
+  };
+  const AUTHORED = { 'github.example.com': { provider: 'github' } };
+
+  it("counts a deep map's authored layer, not the merged value, when authored is present", () => {
+    const d = def('gitq.forges', {
+      type: 'object',
+      merge: 'deep',
+      effective: {
+        scope: 'user',
+        file: '/home/user/settings.user.jsonc',
+        value: MERGED,
+        authored: AUTHORED,
+      },
+    });
+    expect(rowSummary(d)).toBe('1 entry');
+  });
+
+  it('falls back to effective.value when a deep map has no authored layer', () => {
+    const d = def('gitq.forges', {
+      type: 'object',
+      merge: 'deep',
+      effective: {
+        scope: 'user',
+        file: '/home/user/settings.user.jsonc',
+        value: MERGED,
+      },
+    });
+    expect(rowSummary(d)).toBe('2 entries');
   });
 });

@@ -50,7 +50,15 @@ export function CardsFooter({
 }) {
   return (
     <Group wrap="nowrap" gap={8} align="center">
-      <Group gap={8} wrap="nowrap" align="center" style={{ flex: 'none' }}>
+      {/* Can shrink -- a long name error inside (NamedSections) must give
+          way before Cancel/Save do; its own flex-none controls hold their
+          size regardless. */}
+      <Group
+        gap={8}
+        wrap="nowrap"
+        align="center"
+        style={{ flex: '0 1 auto', minWidth: 0 }}
+      >
         {leading}
       </Group>
       <Group
@@ -234,6 +242,7 @@ export function ItemCards({
             disabled={disabled}
             leftSection={<Icons.plus size={14} />}
             onClick={add}
+            style={{ flex: 'none' }}
           >
             Add item
           </Button>
